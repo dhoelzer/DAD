@@ -1,0 +1,17 @@
+<SOFTPKG NAME="GDTextUtil" VERSION="0,86,0,0">
+	<TITLE>GDTextUtil</TITLE>
+	<ABSTRACT>text utilities for GD</ABSTRACT>
+	<AUTHOR>Martien Verbruggen (mgjv@comdyn.com.au)</AUTHOR>
+	<IMPLEMENTATION>
+		<DEPENDENCY NAME="GD" VERSION="1,0,0,0" />
+		<OS NAME="MSWin32" />
+		<ARCHITECTURE NAME="MSWin32-x86-multi-thread" />
+		<CODEBASE HREF="GDTextUtil-0.86-PPM56.tar.gz" />
+	</IMPLEMENTATION>
+	<IMPLEMENTATION>
+    <DEPENDENCY NAME="GD" VERSION="1,0,0,0" />
+    <OS NAME="MSWin32" />
+    <ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.8" />
+    <CODEBASE HREF="GDTextUtil-0.86-PPM58.tar.gz" />
+  </IMPLEMENTATION>
+</SOFTPKG>

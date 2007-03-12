@@ -1,0 +1,15 @@
+<SOFTPKG NAME="Win32-EventLog" VERSION="0,073,0,0">
+	<TITLE>Win32-EventLog</TITLE>
+	<ABSTRACT>Creates an object oriented interface to the Windows NT Eventlog.</ABSTRACT>
+	<AUTHOR>Bret Giddings &lt;bret@essex.ac.uk&gt;</AUTHOR>
+	<IMPLEMENTATION>
+		<OS NAME="MSWin32" />
+		<ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.8" />
+		<CODEBASE HREF="MSWin32-x86-multi-thread-5.8/Win32-EventLog-0.073.tar.gz" />
+	</IMPLEMENTATION>
+	<IMPLEMENTATION>
+		<OS NAME="MSWin32" />
+		<ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.8" />
+		<CODEBASE HREF="MSWin32-x86-multi-thread-5.8/Win32-EventLog-0.073.tar.gz" />
+	</IMPLEMENTATION>
+</SOFTPKG>

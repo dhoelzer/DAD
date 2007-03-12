@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SOFTPKG NAME="Convert-ASN1" VERSION="0,20,0,0">
+  <ABSTRACT>Convert between perl data structures and ASN.1 encoded packets</ABSTRACT>
+  <AUTHOR>Graham Barr (gbarr@pobox.com)</AUTHOR>
+  <IMPLEMENTATION>
+    <ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.8" />
+    <CODEBASE HREF="MSWin32-x86-multi-thread-5.8/Convert-ASN1-0.20.tar.gz" />
+    <OS NAME="MSWin32" />
+  </IMPLEMENTATION>
+  <TITLE>Convert-ASN1</TITLE>
+</SOFTPKG>

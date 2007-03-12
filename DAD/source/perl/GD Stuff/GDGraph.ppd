@@ -1,0 +1,19 @@
+<SOFTPKG NAME="GDGraph" VERSION="1,4308,0,0">
+	<TITLE>GDGraph</TITLE>
+	<ABSTRACT>Produces charts with GD</ABSTRACT>
+	<AUTHOR>Martien Verbruggen &lt;mgjv@tradingpost.com.au&gt;</AUTHOR>
+	<IMPLEMENTATION>
+		<DEPENDENCY NAME="GD" VERSION="1,18,0,0" />
+		<DEPENDENCY NAME="GDTextUtil" VERSION="0,80,0,0" />
+		<OS NAME="MSWin32" />
+		<ARCHITECTURE NAME="MSWin32-x86-multi-thread" />
+		<CODEBASE HREF="GDGraph-1.4308-PPM56.tar.gz" />
+	</IMPLEMENTATION>
+	<IMPLEMENTATION>
+    <DEPENDENCY NAME="GD" VERSION="1,18,0,0" />
+    <DEPENDENCY NAME="GDTextUtil" VERSION="0,80,0,0" />
+    <OS NAME="MSWin32" />
+    <ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.8" />
+    <CODEBASE HREF="GDGraph-1.4308-PPM58.tar.gz" />
+  </IMPLEMENTATION>
+</SOFTPKG>

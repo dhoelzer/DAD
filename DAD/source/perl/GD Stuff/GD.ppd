@@ -1,0 +1,15 @@
+<SOFTPKG NAME="GD" VERSION="2,34,0,0">
+	<TITLE>GD</TITLE>
+	<ABSTRACT>Interface to Gd Graphics Library (GIF support)</ABSTRACT>
+	<AUTHOR>Lincoln Stein (lstein@cshl.org)</AUTHOR>
+	<IMPLEMENTATION>
+		<OS NAME="MSWin32" />
+		<ARCHITECTURE NAME="MSWin32-x86-multi-thread" />
+		<CODEBASE HREF="GD-2.34-PPM56.tar.gz" />
+	</IMPLEMENTATION>
+	<IMPLEMENTATION>
+    <OS NAME="MSWin32" />
+    <ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.8" />
+    <CODEBASE HREF="GD-2.34-PPM58.tar.gz" />
+  </IMPLEMENTATION>
+</SOFTPKG>

@@ -1,0 +1,3 @@
+@echo off
+echo Backing up initial tables from %1
+mysqldump -u root -p -h %1 --databases dad --tables dad_sys_services --tables dad_sys_systems --tables dad_event_log_types --tables dad_sys_events_aging --tables dad_sys_filtered_events --tables dad_sys_linked_queries --tables dad_sys_queries --tables language --tables menu --tables menuoption --tables orggroup --tables orggroupmember --tables orggrouptype --tables orgunit --tables orgunittype --tables role --tables rolemenuoption --tables session --tables system --tables user --tables userrole --tables userstat -q > Starter_Data.sql

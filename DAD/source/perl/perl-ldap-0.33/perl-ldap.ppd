@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SOFTPKG NAME="perl-ldap" VERSION="0,33,0,0">
+  <ABSTRACT>LDAP client library</ABSTRACT>
+  <AUTHOR>Graham Barr (gbarr@pobox.com)</AUTHOR>
+  <IMPLEMENTATION>
+    <ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.8" />
+    <CODEBASE HREF="MSWin32-x86-multi-thread-5.8/perl-ldap-0.33.tar.gz" />
+    <DEPENDENCY NAME="Convert-ASN1" VERSION="0,0,0,0" />
+    <OS NAME="MSWin32" />
+  </IMPLEMENTATION>
+  <TITLE>perl-ldap</TITLE>
+</SOFTPKG>

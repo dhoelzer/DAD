@@ -1,0 +1,5 @@
+To install this ActiveState PPM package, run the following command
+in the current directory:
+
+ppm install Convert-ASN1.ppd
+
