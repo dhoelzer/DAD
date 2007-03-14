@@ -1,6 +1,6 @@
 -- MySQL dump 10.10
 --
--- Host: localhost    Database: dad
+-- Host: 10.245.31.155    Database: dad
 -- ------------------------------------------------------
 -- Server version	5.0.21-community-nt
 
@@ -42,7 +42,7 @@ CREATE TABLE `a2ksystem` (
 
 DROP TABLE IF EXISTS `dad_adm_action`;
 CREATE TABLE `dad_adm_action` (
-  `id_dad_adm_action` smallint(5) unsigned NOT NULL auto_increment,
+  `id_dad_adm_action` mediumint(8) unsigned NOT NULL auto_increment,
   `abbreviation` char(1) default NULL,
   `name` varchar(50) NOT NULL default '',
   `description` text,
@@ -52,32 +52,62 @@ CREATE TABLE `dad_adm_action` (
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 --
--- Table structure for table `dad_adm_alertgroup`
+-- Table structure for table `dad_adm_alert`
 --
 
-DROP TABLE IF EXISTS `dad_adm_alertgroup`;
-CREATE TABLE `dad_adm_alertgroup` (
+DROP TABLE IF EXISTS `dad_adm_alert`;
+CREATE TABLE `dad_adm_alert` (
+  `id_dad_adm_alert` int(10) unsigned NOT NULL auto_increment,
+  `id_dad_adm_computer_group` int(10) unsigned default NULL,
+  `description` varchar(45) NOT NULL default '',
+  `id_dad_adm_action` int(10) unsigned default NULL,
+  `notes` varchar(200) default NULL,
+  `calleractive` varchar(45) default NULL,
+  `timeactive` int(10) unsigned default NULL,
+  `active` tinyint(1) unsigned default NULL,
+  `supress_interval` smallint(5) unsigned default NULL,
+  `supress_criteria` int(10) unsigned default NULL,
+  PRIMARY KEY  (`id_dad_adm_alert`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+
+--
+-- Table structure for table `dad_adm_alert_criteria`
+--
+
+DROP TABLE IF EXISTS `dad_adm_alert_criteria`;
+CREATE TABLE `dad_adm_alert_criteria` (
+  `id_dad_adm_alert_criteria` int(10) unsigned NOT NULL auto_increment,
+  `id_dad_adm_alert` int(10) unsigned NOT NULL default '0',
+  `field` varchar(45) NOT NULL default '',
+  `criteria` varchar(150) NOT NULL default '',
+  PRIMARY KEY  (`id_dad_adm_alert_criteria`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+
+--
+-- Table structure for table `dad_adm_alert_group`
+--
+
+DROP TABLE IF EXISTS `dad_adm_alert_group`;
+CREATE TABLE `dad_adm_alert_group` (
   `id_dad_adm_alertgroup` smallint(5) unsigned NOT NULL auto_increment,
   `name` varchar(30) NOT NULL default '',
   `description` varchar(100) default '',
   `calleractive` varchar(45) NOT NULL default '',
-  `timeactive` timestamp NOT NULL default '0000-00-00 00:00:00',
+  `timeactive` int(10) unsigned default NULL,
   PRIMARY KEY  (`id_dad_adm_alertgroup`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1 ROW_FORMAT=DYNAMIC;
 
 --
--- Table structure for table `dad_adm_alertgroupmember`
+-- Table structure for table `dad_adm_alert_group_member`
 --
 
-DROP TABLE IF EXISTS `dad_adm_alertgroupmember`;
-CREATE TABLE `dad_adm_alertgroupmember` (
+DROP TABLE IF EXISTS `dad_adm_alert_group_member`;
+CREATE TABLE `dad_adm_alert_group_member` (
   `id_dad_adm_alertgroup` smallint(5) unsigned NOT NULL default '0',
-  `id_dad_org_person` int(10) unsigned NOT NULL default '0',
-  `personname` varchar(75) NOT NULL default '',
-  `personemail` varchar(200) NOT NULL default '',
+  `id_dad_adm_alertuser` int(10) unsigned NOT NULL default '0',
   `calleractive` varchar(45) NOT NULL default '',
-  `timeactive` timestamp NOT NULL default '0000-00-00 00:00:00',
-  KEY `idx_dad_adm_alertgroupmember_idperson` USING BTREE (`id_dad_adm_alertgroup`,`id_dad_org_person`)
+  `timeactive` int(10) unsigned default NULL,
+  KEY `idx_dad_adm_alertgroupmember_idperson` USING BTREE (`id_dad_adm_alertgroup`,`id_dad_adm_alertuser`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 --
@@ -87,15 +117,48 @@ CREATE TABLE `dad_adm_alertgroupmember` (
 DROP TABLE IF EXISTS `dad_adm_alertuser`;
 CREATE TABLE `dad_adm_alertuser` (
   `id_dad_adm_alertuser` smallint(5) unsigned NOT NULL auto_increment,
+  `employeeid` int(10) unsigned default NULL,
   `firstname` varchar(30) NOT NULL default '',
   `lastname` varchar(30) NOT NULL default '',
   `emailaddress` varchar(45) NOT NULL default '',
   `department` varchar(100) default '',
-  `notes` varchar(100) default '',
+  `subdepartment` varchar(100) default NULL,
+  `phone1` varchar(30) default NULL,
+  `phone2` varchar(30) default NULL,
+  `location` varchar(45) default NULL,
+  `custom_entry` tinyint(3) unsigned default NULL,
   `calleractive` varchar(45) NOT NULL default '',
-  `timeactive` timestamp NOT NULL default '0000-00-00 00:00:00',
+  `timeactive` int(10) unsigned default NULL,
   PRIMARY KEY  (`id_dad_adm_alertuser`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1 ROW_FORMAT=DYNAMIC;
+
+--
+-- Table structure for table `dad_adm_computer_group`
+--
+
+DROP TABLE IF EXISTS `dad_adm_computer_group`;
+CREATE TABLE `dad_adm_computer_group` (
+  `id_dad_adm_computer_group` int(10) unsigned NOT NULL auto_increment,
+  `group_name` varchar(45) default NULL,
+  `description` varchar(100) default NULL,
+  `calleractive` varchar(45) default NULL,
+  `timeactive` int(11) default NULL,
+  PRIMARY KEY  (`id_dad_adm_computer_group`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+
+--
+-- Table structure for table `dad_adm_computer_group_member`
+--
+
+DROP TABLE IF EXISTS `dad_adm_computer_group_member`;
+CREATE TABLE `dad_adm_computer_group_member` (
+  `id_dad_adm_computer_group_member` int(10) unsigned NOT NULL auto_increment,
+  `id_dad_adm_computer_group` int(10) unsigned default NULL,
+  `system_id` int(10) unsigned default NULL,
+  `calleractive` varchar(45) default NULL,
+  `timeactive` int(11) default NULL,
+  PRIMARY KEY  (`id_dad_adm_computer_group_member`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 --
 -- Table structure for table `dad_adm_grooming`
@@ -124,20 +187,20 @@ CREATE TABLE `dad_adm_job` (
   `path` varchar(2048) default NULL,
   `package_name` varchar(100) default NULL,
   `calleractive` varchar(45) default NULL,
-  `timeactive` int(11) default NULL,
+  `timeactive` int(10) unsigned default NULL,
   `user_name` varchar(45) default NULL,
   `distinguishedname` varchar(256) default NULL,
   `pword` varchar(100) default NULL,
-  `frequency` smallint(5) unsigned default NULL,
-  `repeat_time` smallint(6) default NULL,
   `times_to_run` int(10) unsigned default NULL,
   `times_ran` smallint(6) unsigned default NULL,
   `start_date` date default NULL,
   `start_time` time default NULL,
-  `d_of_w` smallint(5) unsigned default NULL,
-  `w_of_m` smallint(5) unsigned default NULL,
-  `m_of_y` smallint(5) unsigned default NULL,
-  `last_ran` datetime default NULL,
+  `last_ran` int(10) unsigned default NULL,
+  `min` varchar(45) default NULL,
+  `hour` varchar(45) default NULL,
+  `d_of_m` varchar(45) default NULL,
+  `m_of_y` varchar(45) default NULL,
+  `d_of_w` varchar(45) default NULL,
   PRIMARY KEY  (`id_dad_adm_job`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
@@ -619,6 +682,57 @@ CREATE TABLE `dad_sys_events_groomed` (
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1 COMMENT='Groomed Event Stats';
 
 --
+-- Table structure for table `dad_sys_events_old`
+--
+
+DROP TABLE IF EXISTS `dad_sys_events_old`;
+CREATE TABLE `dad_sys_events_old` (
+  `Event_ID` bigint(20) unsigned NOT NULL auto_increment,
+  `System_ID` int(10) unsigned NOT NULL default '0',
+  `Timestamp` int(10) unsigned NOT NULL default '0',
+  `Service_ID` int(10) unsigned NOT NULL default '0',
+  `Field_0` varchar(64) default NULL,
+  `Field_1` varchar(768) default NULL,
+  `Field_2` varchar(64) default NULL,
+  `Field_3` varchar(64) default NULL,
+  `Field_4` varchar(768) default NULL,
+  `Field_5` int(10) unsigned default '0',
+  `Field_6` varchar(512) default NULL,
+  `Field_7` varchar(64) default NULL,
+  `Field_8` int(10) unsigned default '0',
+  `Field_9` varchar(768) default NULL,
+  `Field_10` varchar(512) default NULL,
+  `Field_11` varchar(512) default NULL,
+  `Field_12` varchar(768) default NULL,
+  `Field_13` varchar(512) default NULL,
+  `Field_14` varchar(64) default NULL,
+  `Field_15` varchar(64) default NULL,
+  `Field_16` varchar(64) default NULL,
+  `Field_17` varchar(64) default NULL,
+  `Field_18` varchar(64) default NULL,
+  `Field_19` varchar(64) default NULL,
+  `Field_20` varchar(64) default NULL,
+  `Field_21` varchar(64) default NULL,
+  `Field_22` varchar(64) default NULL,
+  `Field_23` varchar(64) default NULL,
+  `Field_24` varchar(64) default NULL,
+  `Field_25` varchar(64) default NULL,
+  PRIMARY KEY  (`Event_ID`),
+  KEY `System` (`System_ID`),
+  KEY `Timestamp` (`Timestamp`),
+  KEY `Service` (`Service_ID`),
+  KEY `WindowsEventID` (`Field_8`),
+  KEY `Username` (`Field_10`(255)),
+  KEY `TimeGenerated` (`Field_5`),
+  KEY `LogonID_Filename` (`Field_12`(255)),
+  KEY `SystemName` (`Field_7`),
+  KEY `Username2` (`Field_11`(255)),
+  KEY `KerberosMsgNumber` (`Field_13`(255)),
+  KEY `KerberosMsgNumber2` (`Field_14`),
+  KEY `FileType` (`Field_25`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='Contains actual event data';
+
+--
 -- Table structure for table `dad_sys_field_descriptions`
 --
 
@@ -730,6 +844,7 @@ CREATE TABLE `dad_sys_services` (
   `Service_ID` int(10) unsigned NOT NULL auto_increment,
   `Service_Name` varchar(45) NOT NULL default '',
   `Contact_Information` varchar(80) NOT NULL default '',
+  `log_these_id` int(11) default NULL,
   PRIMARY KEY  (`Service_ID`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1 COMMENT='Tracks services reported on';
 

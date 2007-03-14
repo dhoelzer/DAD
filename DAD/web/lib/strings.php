@@ -57,6 +57,23 @@ function clean_string_sql( $strIn ) {
 
 }
 
+/*-----------------------------------------------------
+ * $arr = bitmask_to_array ( $bitmask );
+ *-----------------------------------------------------
+ *    will return an array of numbers in the bitmask that are 'on', to be used for looping through
+ */
+function bitmask_to_array( $bitmask, $arrBits ){
+    $arr = array();
+    $bit = 0;
+    $bitmask = intval($bitmask);
+    foreach( $arrBits as $bit ){
+        if( $bitmask & $bit ){
+            array_push( $arr, $bit );
+        }
+    }
+    return $arr;
+}
+
 
 
 ?>

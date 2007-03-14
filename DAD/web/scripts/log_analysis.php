@@ -1,20 +1,4 @@
 <?php
-#   This file is a part of the DAD Log Aggregation and Analysis tool
-#    Copyright (C) 2006, David Hoelzer/Cyber-Defense.org
-#
-#    This program is free software; you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation; either version 2 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program; if not, write to the Free Software
-#    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
 // This is the log analysis builder. - 5/2006 - DSH
 
 function show_existing_queries()
@@ -79,7 +63,7 @@ function show_log_stats()
     $strSQL   = 'SELECT COUNT(*) FROM dad_sys_events';;
     $events = runQueryReturnArray( $strSQL );
 	$num_events = $events[0][0];
-    $strSQL   = 'SELECT COUNT(*) FROM dad_sys_event_import_from';
+    $strSQL   = 'SELECT COUNT(*) FROM dad_sys_systems';
     $num_systems = runQueryReturnArray( $strSQL );
     $strSQL   = 'SELECT System_Name FROM dad_sys_event_import_from';
     $systems = runQueryReturnArray( $strSQL );
@@ -98,9 +82,16 @@ function show_log_stats()
 		$PercentFree."%).  ".
 	    "This should be enough space for approximately ".number_format($MoreEvents)." more events.";
 	$strHTML .= "<p><h3>Aggregate Log Statistics</h3><img src='/Stats/Aggregate.gif'>";
-	foreach($systems as $row)
+	if($systems) 
 	{
-		$strHTML .= "<p><h3>".$row[0]." Log Statistics</h3><img src='/Stats/".$row[0].".gif'>";
+		foreach($systems as $row)
+		{
+			$strHTML .= "<p><h3>".$row[0]." Log Statistics</h3><img src='/Stats/".$row[0].".gif'>";
+		}
+	}
+	else 
+	{
+		$strHTML .= "<p><h3>No systems are currently being monitored.</h3>";
 	}
     add_element($strHTML);
 }
@@ -121,6 +112,19 @@ function show_query_builder()
 
 	$PrimaryTable = isset($Global["primary_table"]) ? $Global["primary_table"] : NULL;
 
+# Added special case to pop up a window with the field name contents if we're looking at dad_sys_events
+	if($PrimaryTable == "dad_sys_events")
+	{
+		$Popup_Contents = <<<END
+			<STYLE TYPE='text/css'><!--.PopupTable{	font-size:7pt;}	--> </STYLE>
+END;
+		$Popup_Contents .= Query_to_Table("SELECT dad_sys_field_descriptions.Service_ID, dad_sys_services.Service_Name, ".
+			"Field_0_Name, Field_1_Name, Field_2_Name, Field_3_Name, Field_4_Name, ".
+			"Field_5_Name, Field_6_Name, Field_7_Name, Field_8_Name, Field_9_Name ".
+			"FROM dad_sys_field_descriptions,dad_sys_services WHERE dad_sys_field_descriptions.Service_ID=dad_sys_services.Service_ID",
+			1, "PopupTable");
+		Popup("Field Mappings for Events", $Popup_Contents, 800, 100);
+	}
 	# Retrieve the table names to populate the table selectors
 	$aResults = runQueryReturnArray("SHOW TABLES LIKE 'dad%'");
 	foreach($aResults as $row)

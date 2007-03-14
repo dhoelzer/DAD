@@ -25,6 +25,7 @@
 
 // This is temporary!
 require_once "../lib/globalizer.php";
+require_once "../lib/html_formatter.php";
 /*-----------------------------------------------------------------------------
  * Module Globals:
  * ---------------

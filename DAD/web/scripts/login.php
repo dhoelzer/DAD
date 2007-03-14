@@ -110,7 +110,6 @@ function loginFailed() {
  *
 */
 function getUser ($strUserName, $strPassword) {    
-
    $strSQL = "SELECT u.UserID
                 FROM User u
                WHERE u.Username = '$strUserName'

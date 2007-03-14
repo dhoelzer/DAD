@@ -1,20 +1,4 @@
 <?php
-#   This file is a part of the DAD Log Aggregation and Analysis tool
-#    Copyright (C) 2006, David Hoelzer/Cyber-Defense.org
-#
-#    This program is free software; you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation; either version 2 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program; if not, write to the Free Software
-#    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
 /*------------------------------------------------------------------------
  * Menu Administration & Role Security - 6/30/05
  *
@@ -59,15 +43,26 @@ function SubmitNewOption()
           $RolesToInsert[$row['RoleName']] = $row['RoleID'];
         }
       }
-      foreach($RolesToInsert as $Role)
-      {
-        $sql = "INSERT INTO DAD.RoleMenuOption (RoleID, MenuOptionID)
-                VALUES ($Role, $NewOptionID)";
-        $success = runInsertReturnID($sql);
-        if(!$success)
-        {
-          add_element("Error inserting role ID $Role for $NewOptionID.");
-        }
+      if( is_array($RolesToInsert) ){
+          foreach($RolesToInsert as $Role)
+          {
+            $sql = "INSERT INTO DAD.RoleMenuOption (RoleID, MenuOptionID)
+                    VALUES ($Role, $NewOptionID)";
+            $success = runInsertReturnID($sql);
+            if(!$success)
+            {
+              add_element("Error inserting role ID $Role for $NewOptionID.");
+            }
+          }
+      }else{
+          /*if the user did not give it a role, we will default to Software Developer*/
+          $sql = "INSERT INTO DAD.RoleMenuOption (RoleID, MenuOptionID)
+                  VALUES (1, $NewOptionID)";
+          $success = runInsertReturnID($sql);
+          add_element("<font color=red>Default role asssigned</font><br>");
+          if(!$success){
+              add_element("Error inserting role ID $Role for $NewOptionID.");
+          }
       }
       $OptionConstantName = "OPTIONID_".strtoupper($NewOptionName);
       $OptionConstantName = preg_replace("/ /", "_", $OptionConstantName);
@@ -76,7 +71,7 @@ function SubmitNewOption()
       fwrite($OptionIDFile, "define('$OptionConstantName', $NewOptionID);\n");
       fclose($OptionIDFile);
     //Add option text to literals
-      $OptionIDFile = fopen("../scripts/common/pages/E/Auto_added_literals.php", "a+");
+      $OptionIDFile = fopen("../scripts/E/Auto_added_literals.php", "a+");
       fwrite($OptionIDFile, "\$gaLiterals['$NewOptionName'] = '$NewOptionName';\n");
       fclose($OptionIDFile);
       add_element("Completed.  The literal translations will be available following the next page click or refresh.");
@@ -196,6 +191,9 @@ function GetRolesForOption($ThisMenuOption)
             WHERE ro.MenuOptionID=$ThisMenuOption";
   $RolesThisOption = runQueryReturnArray($sql);
 
+  if(!is_array($RolesThisOption)){
+    $RolesThisOption = array();
+  }
   
   foreach($RolesThisOption as $row)
   {
@@ -315,15 +313,26 @@ function SubmitOptionEdit()
       $RolesToInsert[$row['RoleName']] = $row['RoleID'];
     }
   }
-  foreach($RolesToInsert as $Role)
-  {
-    $sql = "INSERT INTO DAD.RoleMenuOption (RoleID, MenuOptionID)
-            VALUES ($Role, $NewOptionID)";
-    $success = runInsertReturnID($sql);
-    if(!$success)
-    {
-      add_element("Error inserting role ID $Role for $NewOptionID.");
-    }
+  if( is_array($RolesToInsert) ){
+      foreach($RolesToInsert as $Role)
+      {
+        $sql = "INSERT INTO DAD.RoleMenuOption (RoleID, MenuOptionID)
+                VALUES ($Role, $NewOptionID)";
+        $success = runInsertReturnID($sql);
+        if(!$success)
+        {
+          add_element("Error inserting role ID $Role for $NewOptionID.");
+        }
+      }
+  }else{
+      /*if the user did not give it a role, we will default to Software Developer*/
+      $sql = "INSERT INTO DAD.RoleMenuOption (RoleID, MenuOptionID)
+              VALUES (1, $NewOptionID)";
+      $success = runInsertReturnID($sql);
+      add_element("<font color=red>Default role asssigned</font><br>");
+      if(!$success){
+          add_element("Error inserting role ID $Role for $NewOptionID.");
+      }
   }
 /* Option ID already exists, no need to create a duplicate
 
@@ -336,7 +345,7 @@ function SubmitOptionEdit()
 */
 
 //Add option text to literals
-  $OptionIDFile = fopen("../scripts/common/pages/E/Auto_added_literals.php", "a+");
+  $OptionIDFile = fopen("../scripts/E/Auto_added_literals.php", "a+");
   fwrite($OptionIDFile, "\$gaLiterals['$NewOptionName'] = '$NewOptionName';\n");
   fclose($OptionIDFile);
   add_element("Completed.  The literal translations will be available following the next page click or refresh.");
