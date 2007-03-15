@@ -79,7 +79,7 @@ function show_log_stats()
     $strSQL   = 'SELECT COUNT(*) FROM dad_sys_events';;
     $events = runQueryReturnArray( $strSQL );
 	$num_events = $events[0][0];
-    $strSQL   = 'SELECT COUNT(*) FROM dad_sys_systems';
+    $strSQL   = 'SELECT COUNT(*) FROM dad_sys_event_import_from';
     $num_systems = runQueryReturnArray( $strSQL );
     $strSQL   = 'SELECT System_Name FROM dad_sys_event_import_from';
     $systems = runQueryReturnArray( $strSQL );
@@ -98,16 +98,9 @@ function show_log_stats()
 		$PercentFree."%).  ".
 	    "This should be enough space for approximately ".number_format($MoreEvents)." more events.";
 	$strHTML .= "<p><h3>Aggregate Log Statistics</h3><img src='/Stats/Aggregate.gif'>";
-	if($systems) 
+	foreach($systems as $row)
 	{
-		foreach($systems as $row)
-		{
-			$strHTML .= "<p><h3>".$row[0]." Log Statistics</h3><img src='/Stats/".$row[0].".gif'>";
-		}
-	}
-	else 
-	{
-		$strHTML .= "<p><h3>No systems are currently being monitored.</h3>";
+		$strHTML .= "<p><h3>".$row[0]." Log Statistics</h3><img src='/Stats/".$row[0].".gif'>";
 	}
     add_element($strHTML);
 }
@@ -128,19 +121,6 @@ function show_query_builder()
 
 	$PrimaryTable = isset($Global["primary_table"]) ? $Global["primary_table"] : NULL;
 
-# Added special case to pop up a window with the field name contents if we're looking at dad_sys_events
-	if($PrimaryTable == "dad_sys_events")
-	{
-		$Popup_Contents = <<<END
-			<STYLE TYPE='text/css'><!--.PopupTable{	font-size:7pt;}	--> </STYLE>
-END;
-		$Popup_Contents .= Query_to_Table("SELECT dad_sys_field_descriptions.Service_ID, dad_sys_services.Service_Name, ".
-			"Field_0_Name, Field_1_Name, Field_2_Name, Field_3_Name, Field_4_Name, ".
-			"Field_5_Name, Field_6_Name, Field_7_Name, Field_8_Name, Field_9_Name ".
-			"FROM dad_sys_field_descriptions,dad_sys_services WHERE dad_sys_field_descriptions.Service_ID=dad_sys_services.Service_ID",
-			1, "PopupTable");
-		Popup("Field Mappings for Events", $Popup_Contents, 800, 100);
-	}
 	# Retrieve the table names to populate the table selectors
 	$aResults = runQueryReturnArray("SHOW TABLES LIKE 'dad%'");
 	foreach($aResults as $row)

@@ -1,0 +1,1063 @@
+/* for all W3C conforming browsers */
+
+/****  DEFAULTS ****/
+body {
+	margin: 0 0 2em;
+	padding: 0;
+	color: black;
+	background-color: #ffffff;
+	background-image: url("../images/body.gif"); 
+	background-repeat: repeat-y;
+	font-size: 80%;
+	font-family: arial, geneva, "lucida grande", verdana, helvetica, sans-serif;
+}
+h1, h2, h3, h4, h5, h6 { 
+	font-family: arial, geneva, "lucida grande", helvetica, sans-serif;
+}
+
+table, td, th, caption, p, ul, ol, li, label, legend, input { 
+	font-family:  arial, geneva, "lucida grande", verdana, helvetica, sans-serif;
+	font-size: 100%; /* IE5 */
+}
+cite, em { font-style: italic; }
+strong { font-weight: bold; }
+ul {
+	list-style-type: square;
+	list-style-image: url("../images/listitem.gif");
+}
+
+ul li.selecteditem {
+	list-style-image: url("../images/selecteditem.gif");
+}
+
+
+/**** STATIC HEADER *****/
+#header {
+	background: url("../images/header.gif") #ffffff repeat-x left bottom;
+	width: 100%;
+	min-width: 700px;
+	min-height: 92px; 
+	display: block;
+	position: relative;
+	/*z-index: 0;*/
+	float: left;  
+}
+
+#sitename {
+	font-size: 26px;
+	color: #003146;
+	line-height: 1em;
+	margin: 0;
+	padding: 5px 0 20px 20px;
+	width: 60%;
+	float: left;
+}
+#sitename .sitename-sm {
+	font-size: 20px;
+	font-weight: normal;
+}
+
+/**** HELP and LOGOUT ****/
+#sitelinks {
+	float: right;
+	display: block;
+	margin: 10px 10px 1em 0;
+	font-size: 95%;
+}
+#sitelinks li {
+	float: left;
+	margin: 0;
+	padding: 0 0 0 12px;
+	list-style: none;
+}
+
+
+/**** LOGIN INFO ****/
+#userinfo {
+	position: absolute;
+	z-index: 1;
+	bottom: 3px;
+	right: 10px;
+	left: auto;
+	top: auto;
+	margin: 0;
+	padding: 0;
+	white-space: nowrap;
+	color: #666666;
+	background-color: #FFFFFF;
+ }
+ 
+/************** SITE MENU **************/
+#sitemenu {
+	font-size: 95%;
+	font-weight: bold;
+	line-height: normal;
+	padding-left: 21px;
+	clear: left;
+}
+#sitemenu ul {
+	margin:0;
+	padding:0;
+	text-align: center;
+}
+#sitemenu li {
+	position: relative;
+	z-index: 2;
+	float:left;
+	text-align: left;
+	margin: 0;
+	padding: 0 0 0 7px;
+	background: url("../images/inactive_01.gif") no-repeat top left;
+	border-bottom: 1px solid #619FB9;	
+	list-style: none;
+}
+#sitemenu a {
+	display: block;
+	background: url("../images/inactive_02.gif") no-repeat right top;
+	padding: 7px 7px 3px 0px;
+	white-space: nowrap;
+	width:.1em;  /* IE6 clickable region */
+	float:left;  /*  MacIE5 hack  */
+	}
+	/* hide rule from IE5-Mac \*/
+	 #sitemenu a {float:none;}
+   /* End IE5-Mac hack */
+
+#sitemenu > ul a {width:auto;} /* W3C browsers */
+
+#sitemenu a:link {
+	color: #333333;
+	text-decoration: none;
+}
+#sitemenu a:visited {
+	color: #333333;
+	text-decoration: none;
+}
+#sitemenu a:hover {
+	color: #0000cc;
+	text-decoration: none;
+}
+#sitemenu a:active {
+	color: #0000cc;
+	text-decoration: none;
+}
+#sitemenu li.selectedtab  {
+	background:url("../images/active_01.gif") no-repeat top left;
+	border-bottom-width:0;
+}
+#sitemenu li.selectedtab a {
+	background:url("../images/active_02.gif") no-repeat top right;
+	padding-bottom: 4px;
+}
+#sitemenu li.selectedtab a:link, 
+#sitemenu li.selectedtab a:visited, 
+#sitemenu li.selectedtab a:hover, 
+#sitemenu li.selectedtab a:active {
+	color: #000000;
+}
+
+/**** SECTION LABEL ****/
+#sectionname { 
+	margin: 0 ;
+	padding: 16px 0 18px 8px;
+	width: 360px;
+	text-align: center;
+	clear: both;
+	background-color: #ffffff;
+}
+#sectionname h1  {
+	margin: 0 ;
+	font-size: 170%;
+	color: #D26A0F;
+}
+/**** SECTION MENU ****/
+#sectionmenu {
+	width: 170px;
+	margin: 0;
+	padding: 0 3px 20px 6px;
+	position: absolute;
+	left: 0;
+	background-color: #FFFFFF;
+	overflow: hidden;
+}
+#sectionmenu p.h1 {
+	font-weight: bold;
+	margin: 0;
+}
+#sectionmenu ul {
+	margin-top: 0;
+	margin-left: 16px;
+	padding-left: 0;
+}
+#sectionmenu li {
+	margin-left: 0;
+	padding-left: 0;	
+}
+
+/**** CONTENT ****/
+#content {
+	margin: 0 20px 50px 205px;
+	min-width: 500px;  /* Safari */
+	max-width: 700px;
+	position: relative;
+	}
+
+/*** IE float bug fix ***/
+	/* Hide from IE5-mac \*/
+	* html #content {height: 1%;}
+	/* End hide from IE-mac */
+
+/* first element in content (Mozilla) */
+#sectionname+#content+*:first-child {
+	margin-top: 0; 
+}
+
+#content h1 {
+	color: #003146;
+	font-size: 140%;
+	margin-top: 0;
+}
+#content h2 {
+	color: #003146;
+	background-color: #E8F4F9;
+	padding: 2px 1px;
+	font-size: 140%;
+	margin-top: 0;
+}
+#content h3 {
+	color: #333333;
+	font-size: 130%;
+	margin-bottom: .5em;
+}
+#content h4 {
+	color: #000000;
+	font-size: 115%;
+	margin-bottom: .5em;
+}
+#content h5 {
+	color: #000000;
+	font-size: 100%;
+	margin-bottom: .5em;
+}
+#content h6 {
+	color: #000000;
+	font-size: 100%;
+	font-style: italic;
+}
+
+#content ul {
+	margin-top: 0;
+	margin-left: 35px;
+	padding: 0;
+}
+ol {
+	margin-top: 0;
+	margin-left: 35px;
+	padding: 0;
+}
+li {
+	margin-left: 0;
+	padding: 0;
+}
+ol li {
+	list-style-type: decimal;
+	list-style-image: none;
+}
+
+ol li ol li {
+	list-style-type: lower-alpha ;
+}
+
+li.heading {
+	list-style-image: none;
+	list-style: none;
+	margin-top: 1em;
+	margin-left: -25px; 
+	font-weight: bold;
+}
+li.heading li {
+	font-weight: normal;
+	margin-left: -20px;
+	padding: 0;
+}
+/* lists with no bullet */
+ul.no_marker li, ol.no_marker li, li.no_marker {
+	list-style-image: none;
+	list-style: none;
+}
+/* lists not indented */
+#content ul.no_indent, ol.no_indent {
+	margin: 0;
+	margin-left: 14px;
+}
+
+ul.add_space li, ol.add_space li {
+	margin-bottom: 1em;
+}
+ul.add_space li li, ol.add_space li li {
+	margin-bottom: 0;
+}
+
+li table {
+	margin-top: 1em;
+	margin-bottom: 1em;
+}
+
+
+/******** TABLES have grid by default ********/
+table {
+	border: 1px solid #F7B67F; 
+	border-collapse: collapse;
+	empty-cells: show;
+	clear: both;
+}
+caption {
+	font-weight: bold;
+	font-size: 100%;
+	color: #000000;
+	text-align: left;
+	background-color: #FFD4AF;
+	border: 1px solid #F7B67F; 
+	border-bottom-width: 0;
+	padding: 2px 3px;
+}
+thead { display: table-header-group; }
+tbody {display: table-row-group; border: inherit;}
+th {
+	background-color: #FFEFE1;
+	border: 1px solid #F7B67F; 
+	text-align: left;
+}
+td {
+	border: 1px solid #F7B67F; 
+}
+
+/******* Turn Off Table Grid **********/
+.nogrid, .nogrid th, .nogrid td {
+	border: none ;
+	background-color: transparent;  /*new */
+}
+.nogrid caption {
+	background-color: transparent;
+	border-left: none;
+	border-right: none;
+	border-bottom: 1px solid #F7B67F;  
+	}
+
+/******* Table external border only, no grid **********/
+table.table_box {
+	border: 1px solid #F7B67F; 
+}
+table.table_box td, table.table_box th {
+	border: none;
+	background-color: transparent;
+}
+table.table_box caption {
+	background-color: #FFD4AF;
+	border: 1px solid #F7B67F; 
+	border-bottom-width: 0;
+}
+table.table_box .shaded, table.table_box .shaded th {
+	padding: 2px 1px;
+	border-top: 1px solid #F7B67F; 
+	background-color: #FFEFE1;
+}
+
+
+/******* Table with border on rows, not vertically  **********/
+/* leave in table as part of selectors */
+table.table_rows {
+
+}
+table.table_rows td, table.table_rows th {
+	border: 1px solid #F7B67F; 
+	border-left: none;
+	border-right: none;
+	padding: 2px 3px;
+}
+
+/******* Table with border on cols, not horizontal  **********/
+/* leave in table as part of selectors */
+
+table.table_cols td, table.table_cols th {
+	border: 1px solid #F7B67F; 
+	border-top: none;
+	border-bottom: none;
+	padding: 2px 3px;
+}
+
+/******** SPECIAL TABLE CLASSES ***********/
+tr.shaded td, tr.shaded th, td.shaded, th.shaded {
+	background-color: #FFEFE1;
+}
+tr.caption td, tr.caption th, td.caption, th.caption {
+	font-weight: bold;
+	background-color: #FFD4AF;
+	padding: 1px 1px;
+}
+
+.totals {
+	font-weight: bold;
+}
+table tr.bd_left td, table tr.bd_left th, 
+table td.bd_left, table th.bd_left  {
+	border-left: 1px solid #F7B67F;
+}
+td.bd_left, th.bd_left  {
+	padding-left: 1px;
+}
+table tr.bd_right td, table tr.bd_right th, 
+table td.bd_right, table th.bd_right, {
+	border-right: 1px solid #F7B67F; 
+}
+td.bd_right, th.bd_right  {
+	padding-right: 1px;
+}
+
+tr.box td, tr.box th, td.box, th.box, table.box  {
+	border: 1px solid #F7B67F; 
+}
+
+/* ******** CONFIRM SET ON FORM INSTEAD *******/
+#content form.confirm table {
+	border-color: #95B1BD ;
+}
+#content form.confirm fieldset {
+	border-color: #95B1BD ;
+}
+#content form.confirm legend {
+	color: #003146 ;
+}
+#content form.confirm table caption {
+	background-color: #95B1BD ;
+	color: #002A3C ;
+	border: none ;
+}
+#content form.confirm table th{
+	border-color: #D1DBE0 ; 
+	background-color: #ffffff ;
+}
+#content form.confirm table td {
+	border-color: #D1DBE0 ; 
+}
+#content form.confirm table tr.shaded td, #content form.confirm table tr.shaded th, 
+#content form.confirm table td.shaded, #content form.confirm table th.shaded {
+	background-color: #DDE8ED;
+}
+#content form.confirm table th.shaded {
+	border-top: 1px solid #95B1BD ;
+}
+#content form.confirm table tr.caption td, #content form.confirm table tr.caption th, 
+#content form.confirm table td.caption, #content form.confirm table th.caption {
+	background-color: #95B1BD ;
+}
+
+#content form.confirm table .totals {
+	background-color: #F0F6F9;
+	border-top-color: #95B1BD ;
+	border-top-width: 3px;
+	border-top-style: double;
+	padding-top: 4px;
+	padding-bottom: 4px;
+}
+#content form.confirm table .bd_left {
+	border-left-color: #95B1BD ;
+}
+#content form.confirm table .bd_right {
+	border-right-color: #95B1BD ;
+}
+/****** CONFIRM TABLES must be after other table defs ******/
+#content table.confirm {
+	border-color: #95B1BD ;
+}
+#content table.confirm caption {
+	background-color: #95B1BD ;
+	color: #002A3C ;
+	border: none ;
+}
+#content table.confirm th{
+	border-color: #D1DBE0 ; 
+	background-color: #ffffff ;
+}
+#content table.confirm td {
+	border-color: #D1DBE0 ; 
+}
+#content table.confirm tr.shaded td, #content table.confirm tr.shaded th, 
+#content table.confirm td.shaded, #content table.confirm th.shaded {
+	/*background-color: #E8F4F9;*/
+	background-color: #DDE8ED;
+}
+#content table.confirm th.shaded {
+	border-top: 1px solid #95B1BD ;
+}
+#content table.confirm tr.caption td, #content table.confirm tr.caption th, 
+#content table.confirm td.caption, #content table.confirm th.caption {
+	background-color: #95B1BD ;
+}
+#content table.confirm .totals {
+	/*background-color: #E8F4F9 ;*/
+	background-color: #F0F6F9;
+	border-top-color: #95B1BD ;
+	border-top-width: 3px;
+	border-top-style: double;
+	padding-top: 4px;
+	padding-bottom: 4px;
+}
+#content table.confirm .bd_left {
+	border-left-color: #95B1BD ;
+}
+#content table.confirm .bd_right {
+	border-right-color: #95B1BD ;
+}
+
+
+
+
+
+/************* FORMS ***************/
+
+  /**** max width of form in two column layout is 550px for 800x600 full screen ****/
+form {
+	overflow: visible;
+	max-width: 700px;
+	}
+	* html #content form { /* IE 6 ealier */
+		width: 550px;
+	}
+fieldset {
+	padding: 10px;
+	margin: 0 0 1em;
+	border: 1px solid #D26A0F;
+}
+
+legend {
+	font-weight: bold;
+	font-size: 115%;
+	padding:  0 10px;
+	color: #D26A0F;
+}
+
+label, td label, th label  {
+	color: #000000;
+	font-weight: bold;
+	text-align: left;
+	margin-right: 3px;
+}
+/***** standard buttons at bottom of form ******/
+div.formbuttons {
+	margin: 2em 0;
+	white-space: nowrap;
+	clear: both;
+}
+* html div.formbuttons {
+	margin-bottom: 1em;
+}
+
+div.formbuttons input {
+	margin-top: 2px;
+	margin-bottom: 2px;
+	text-align: center !important;
+}
+
+/***** MAIN INPUT BUTTONS *****/
+input#btnSubmit, input#btnChange, input#btnUpdate, input#btnPrint, input#btnNext {
+	text-align: center;
+	width: 6em;
+}
+
+/***** input button with message to right *****/
+div.button-msg {  
+	clear: both;
+	margin-top: 1em;
+	vertical-align: middle;
+	position: relative;
+}
+div.button-msg input {
+	float: left;
+	clear: left;
+	margin: 0;
+	margin-right: 10px;
+}
+div.button-msg p {
+	float: left;
+	clear: right;
+	margin: 0;
+}
+/************/
+div.add_btn {
+	margin: 10px 0;
+	float: right;
+}
+
+/******* LOGIN **********/   
+#content #frmLogin {
+	margin-top: 1em;
+}
+   /* hides rule from IE5-Mac \*/
+   #content #frmLogin { width: 30em; max-width: 450px; min-width: 300px; }
+   /* End IE5-Mac hack */
+   
+#frmLogin fieldset {
+	padding: 10px 20px;
+}
+#frmLogin legend {
+	font-size: 140%;
+}
+#frmLogin #btnSubmit {
+	margin-left: 0;
+	width: auto;
+}
+#frmLogin td {
+	padding-bottom: 3px;
+}
+ 
+/**** CREATE USER ****/
+#content form#frmCreateUser {
+	width: 24em;
+}
+#content form#frmAccountID {
+	width: 28em;
+	}
+  
+/******* S-1 form **********/
+#frmS-1 {
+	margin-right: 10%;
+	width: 500px;
+}
+#frmS-1 th, #frmS-1 td {
+	text-align: center;
+}
+#frmS-1 .confirm td {
+	text-align: right;
+}
+#frmS-1 td input, #frmS-1 .ralign  {
+	text-align: right;
+}
+/**** PASSWORD ****/
+#frmChangePassword {
+	margin-top: 2em;
+}
+/**** Cong Analysis ****/
+#frmAnalysis td input, #frmAnalysis .ralign  {
+	text-align: right;
+}
+
+/*************** Memorial Report ***********/
+#frmMemorial fieldset {
+	width: 30em; 
+	padding: 0 10px;
+}
+
+#frmMemorial table {
+	margin-bottom: 1em; /* top margin breaks caption in Mozilla*/ 
+}
+
+#frmMemorial table.confirm {
+	width: 400px;	
+}
+
+/**** PRNT FORMS ****/
+#frmReqItem, #frmBrowse, #frmBrowseAdd, #frmRequest, 
+#frmSearch, #frmSearchAdd {
+	width: 550px;
+}
+#frmBrowse fieldset, #frmReqItem fieldset {
+	padding: 0 2px 10px 7px;
+	/* width: 544px; */
+}
+#frmBrowse fieldset td {
+	height: 2em;
+}
+
+#frmSearch fieldset {
+	padding: 0 7px 10px 7px;
+	width: 539px;
+}
+
+#frmSearch fieldset td {
+	padding: 3px 0;
+}
+
+#frmSearch tr.caption td {
+	background-color: #FFD4AF;
+	border: 1px solid #F7B67F; 
+   font-weight: bold;
+	padding: 3px 1px;
+}
+#frmSearch th {
+	padding: 3px 1px;
+	border-top: 1px solid #F7B67F !important;
+}
+#srchCat { width: 280px;}
+#srchCat .catHead {font-weight: bold; background-color: #FFEFE1;} /* ie */
+#srchCat > .catHead {font-weight: bold; background-color: inherit;} /* mozilla */
+
+#srchLang {
+	max-width: 250px; 
+	width: expression(250); /* IE */
+}
+
+
+#srch_context {
+	clear: both;
+	width: 555px;
+	float: none;
+}
+.flt_label {
+	float: left;
+	margin-right: 10px;
+	clear: left;
+}
+.flt_msg {
+	float: left;
+	clear: right;
+}
+
+/**** CONTROL BUTTON WIDTHS - IE ONLY - Dependent on IDs ****/
+input#addItem {
+	width: expression(frmReqItem.addItem.createTextRange().boundingWidth + 16);
+}
+#frmBrowse #btnSelLang {
+	width: expression(frmBrowse.btnSelLang.createTextRange().boundingWidth + 16);
+}
+#frmBrowse #btnNameMe {
+	width: expression(frmBrowse.btnNameMe.createTextRange().boundingWidth + 16);
+}
+#btnAddItems1 {
+	width: expression(document.forms(1).btnAddItems1.createTextRange().boundingWidth + 16);
+}
+#btnAddItems2 {
+	width: expression(document.forms(1).btnAddItems2.createTextRange().boundingWidth + 16);
+}
+
+
+/********* no section menu  ************/
+body.cols-1 {
+	background-image: none;
+	margin-bottom: 4em;
+}
+.cols-1 #sectionname {
+	margin-left: 120px;
+	padding-left: 0;
+	padding-right: 0;
+	text-align: left;
+	width: auto;
+}
+
+.cols-1 #content{
+	margin: 0px 15% 20px 120px;
+	padding: 0;
+	clear: both;
+	float: none;
+}
+.cols-1 #content h2{
+	
+}
+.cols-1 #content h3{
+	margin-top: 1.5em;
+	border-top: 1px dashed #cccccc;
+	border-bottom: 1px dashed #cccccc;
+	padding: 1px 0;
+}
+/********** W3C browsers ***********/
+.cols-1 #header + #content{
+	padding-top: 30px; /*   margin adds space before header in mozilla */
+}
+.cols-1 #sectionname + #content{ 
+	margin-top: 0; 
+}
+
+
+/********** PAGING PREVIOUS AND NEXT *********/
+div#paging {
+	margin: 1em 0;
+	padding: 2px;
+	border-top: 1px dotted #CCCCCC;
+	border-bottom: 1px dotted #CCCCCC; 
+	clear: both;
+}
+#paging p {margin: 0;}
+
+div.total_pages {
+
+	float: left;
+	padding: 2px;
+	width: 125px;
+	overflow: visable;
+}
+div.page_nums {
+	text-align: right;
+	padding: 2px;
+}
+
+/******* STEPS *******/
+
+div#step {
+	display: block; 
+	float: none; 
+	width: 100%; 
+	clear: both; 
+	width: 500px;
+	margin: .5em 0 2em;
+	}
+
+#content > div#step {
+	width: auto;
+	min-width: 500px;
+}
+div#step img {
+	float: left;
+	position: relative;
+	z-index: 2;
+}
+
+.label {
+	padding: 2px 10px 2px 15px;
+	text-align: left;
+	font-size: 12px;
+	width: 6em;
+	margin-right: 20px; 
+	float: left;
+	position: relative;
+	left: -10px;
+	top: 3px;
+	z-index: 1;
+}
+* html .label { margin-right: 10px; } /* double margin float bug */
+div > div.label {
+	min-width: 6em;
+	width: auto;
+}
+
+.off .label {
+	border: 1px solid #BEBEBE;
+	background-color: #ffffff;
+	color: #333333;
+}
+.on .label {
+	border: 1px solid #D26A0F;
+	background-color: #FFEFE1;
+	font-weight: bold;
+	color: #000000;
+}
+div#s-1, div#s-2 { background: url("../images/step_bg.gif") left center no-repeat; }
+.off, .on {	position: relative; white-space: nowrap; float: left; }
+
+/*********** CLASSES ************/
+div.msg_box {
+	border-top: 1px dotted #CCCCCC;
+	border-bottom: 1px dotted #CCCCCC;
+	padding: 0 6px;
+	margin-bottom: 1em;
+	clear: both;
+}
+div.msg_box p {
+	margin: .5em 0;
+}
+
+.clear {
+	clear: both;
+}
+.ralign {
+	text-align: right;
+}
+.calign {
+	text-align: center;
+}
+.bold {
+	font-weight: bold;
+}
+.normal {
+	font-weight: normal !important;
+	}
+.italic {
+	font-style: italic;
+}
+.warning {
+	font-weight: bold;
+	color: #D26A0F;
+}
+
+.error {
+	font-weight: bold;
+	color: #CC0000;
+}
+.alert {
+	color: #CC0000;
+}
+.success {
+	color: #1E8402;
+	font-weight: bold;
+}
+.not_found {
+	font-weight: bold;
+	color: #D26A0F;
+	font-style: italic;
+}
+.bold_color {
+	font-weight: bold;
+	color: #D26A0F;
+}
+.disabled {
+	color: #666666;
+}
+.reduce_margin {
+	margin-top: .5em;
+	margin-bottom: .5em;
+}
+.reduce_bot_marg {
+	margin-bottom: .5em;
+}
+.more_top_marg {
+	margin-top: 2em !important;
+}
+.more_bot_marg {
+	margin-bottom: 1em !important;
+}
+.default_top_marg {
+	margin-top: 1em;
+}
+.spacer {
+	margin-top: 2em;
+}
+.indent1 {
+	margin-left: 5px;
+}
+.indent2 {
+	margin-left: 20px;
+}
+.indent3 {
+	margin-left: 40px;
+}
+.small {
+	font-size: 85%;
+}
+.nowrap {
+   white-space: nowrap;
+}
+
+br {
+	clear: both;
+}
+hr {
+	height: 1px;
+	color: #D26A0F;
+	background-color: #D26A0F;
+	border: none;
+	clear: both; 
+	margin: 1em 0 1em;
+}
+hr.confirm {
+	color: #95B1BD;
+	background-color: #95B1BD;
+}
+
+div.dash {
+	margin-top: 2em;
+	height: 1px;
+	border-bottom: 1px dotted #CCCCCC;
+	clear: both; 
+	display: block;
+}
+*.input-error {
+	background-color: #FFF7C4 !important; 
+}
+
+/***** HELP TEXT  *****/
+.helptextclick {
+	font-weight: bold;
+	color: #D26A0F;
+}
+.path {
+	font-weight: bold;
+	font-size: 90%;
+	color: #555555;
+	letter-spacing: 1px
+}
+
+/***** LINKS *****/
+
+a:link {
+	color: #0000CC;
+	text-decoration: none;
+}
+a:visited {
+	color: #0000CC;
+	text-decoration: none;
+}
+a:hover {
+	color: #0000ff;
+	text-decoration: underline;
+}
+a:active {
+	color: #0000ff;
+	text-decoration: underline;
+}
+
+/************** PRINT ***********/
+@media print {
+    body {
+		margins: 0;
+		background-image: none;
+		}
+	#sitelinks, #sectionmenu, #sitemenu, #content div#step, #btnPrint {
+		display: none;
+	}
+	.cols-1 #header, #header {
+		background-image: none;
+		border-bottom: 1px solid #003146;
+		height: auto;
+		min-height: 0;
+		margin-bottom: 2em;
+	}
+	#sitename {
+		padding: 0;
+	}
+	#sectionname, .cols-1 #sectionname { 
+	padding: 0;
+	margin: 1em 0;
+	width: auto;
+	text-align: left;
+	}
+	#userinfo {
+		position: relative;
+		text-align: right;
+		margin-right: 10px;
+		font-weight: bold;	
+ 	}
+	div#content, .cols-1 #content {
+		margin: 0;
+		padding: 0;
+	}
+	#content h2, #content h3, #content h4 {
+		page-break-after: avoid;
+		page-break-inside: avoid;
+		orphans: 2;
+	}
+	#content table tr {
+		page-break-inside: avoid;
+		page-break-after: auto;
+		page-break-before: auto;
+	}
+	#content table.confirm .shaded {
+		background-color: #eeeeee;
+	} 
+	
+	#content ul li {
+		list-style-type: square;
+		list-style-image: none;
+	}
+
+	
+  }
+
+select.wide{
+	width: 415pt;
+}
+
+select.long{
+	size: 20;
+}
+td.readonly{
+    color: #A9A9A9;
+}

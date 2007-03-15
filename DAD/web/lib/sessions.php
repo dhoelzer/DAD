@@ -87,7 +87,8 @@ function destroySession($strSessionAuthenticator) {
 
 function genRandomString($intLength) {
    $strValidChars="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789\$~.|_";
-   srand(rand(0,time()));
+   // Someday we'll do something better for the randomizer.  This should be sufficient for now.
+   srand(rand(rand(1,314157911),time()));
    $intFieldSize = strlen($strValidChars) - 1;
   
    for($i = 0; $i < $intLength; $i++) {
