@@ -162,26 +162,25 @@ End
 		close(STATS);
 	}
 # Disabled for testing	if($Time_Remaining < 1)				#If we've run out of time and there's no groomer, signal the end
-	if($Time_Remaining > 100000)				#If we've run out of time and there's no groomer, signal the end
-	{
-		if((!$Groomer_Running) && (!$Pending_Running)) { $Time_To_Die = 1; }
-		if(($SQL_Queue->pending()==0)) #Enough time for the SQL threads to complete if sleeping
-		{
-			my $safe_to_die = 1;
-			foreach $status ((sort keys(%Status)))
-			{
-				if ($Status{$status} ne "Dead.") { $safe_to_die = 0; }
-			}
-			if($safe_to_die)
-			{
-				print "All log threads dead, SQL queue empty.  Force exiting.\n";
-				exit;
-			}
-			else { print "There are still locked threads pending.  Delaying exit.\n"; }
-		}
-	}
+#	{
+#		if((!$Groomer_Running) && (!$Pending_Running)) { $Time_To_Die = 1; }
+#		if(($SQL_Queue->pending()==0)) #Enough time for the SQL threads to complete if sleeping
+#		{
+#			my $safe_to_die = 1;
+#			foreach $status ((sort keys(%Status)))
+#			{
+#				if ($Status{$status} ne "Dead.") { $safe_to_die = 0; }
+#			}
+#			if($safe_to_die)
+#			{
+#				print "All log threads dead, SQL queue empty.  Force exiting.\n";
+#				exit;
+#			}
+#			else { print "There are still locked threads pending.  Delaying exit.\n"; }
+#		}
+#	}
 							#See which queues are waiting and queue them as appropriate
-#	@Systems = &_get_systems_to_process;
+	@Systems = &_get_systems_to_process;
 	foreach $system (@Systems)
 	{
 		if(!$Processing{$system}) #pseudo-atomic to avoid race condition
