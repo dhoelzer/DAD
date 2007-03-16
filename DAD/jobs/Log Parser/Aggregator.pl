@@ -108,8 +108,9 @@ while(1)						#Always running, never getting anywhere
 		}
 	}
 	$loop++;					# Number of times through this run
-	$Time_Remaining = $Total_Run_Time - (mktime(localtime())- $System_Started);
-	if((($loop % 120) == 0) && !$Groomer_Running)		# Update the stat graphs every 10 minutes
+#	$Time_Remaining = $Total_Run_Time - (mktime(localtime())- $System_Started);
+	$Time_Remaining = "Continuously running.";
+	if((($loop % 120) == 0))		# Update the stat graphs every 10 minutes
 	{
 		open(STATS, ">>$OUTPUT_LOCATION/stats.html") or print "Couldn't open stats file.\n";
 		print STATS "Building statistics\n";
@@ -160,7 +161,8 @@ End
 		}
 		close(STATS);
 	}
-	if($Time_Remaining < 1)				#If we've run out of time and there's no groomer, signal the end
+# Disabled for testing	if($Time_Remaining < 1)				#If we've run out of time and there's no groomer, signal the end
+	if($Time_Remaining > 100000)				#If we've run out of time and there's no groomer, signal the end
 	{
 		if((!$Groomer_Running) && (!$Pending_Running)) { $Time_To_Die = 1; }
 		if(($SQL_Queue->pending()==0)) #Enough time for the SQL threads to complete if sleeping
@@ -179,7 +181,7 @@ End
 		}
 	}
 							#See which queues are waiting and queue them as appropriate
-	@Systems = &_get_systems_to_process;
+#	@Systems = &_get_systems_to_process;
 	foreach $system (@Systems)
 	{
 		if(!$Processing{$system}) #pseudo-atomic to avoid race condition
@@ -1040,7 +1042,6 @@ sub _check_for_groomer
 {
 	my $now, $hours, $that_hour, $that_minute, $minutes;
 
-return 0;	
 	if($Pending_Running) { return 0; } # Don't groom if you're still catching up.
 	$now = time();
 	$minutes = $now/(60);
@@ -1082,7 +1083,7 @@ sub _groomer
 		
 		$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
 		$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
-			or die ("Could not connect to DB server to import the list of servers to poll.\n");
+			or die ("Could not connect to DB server to groom.\n");
 	
 		print "Pruning statistics\n";
 	
@@ -1099,7 +1100,7 @@ sub _groomer
 		print "Deleted $deleted rows.  Pruning took ".(time()-$start_time)." seconds.\n";
 		print "Optimizing table to remove holes.\n";
 		my $start_time = time();
-		$SQL = "OPTIMIZE TABLE dad_sys_events";
+		$SQL = "OPTIMIZE TABLE dad_sys_event_stats";
 		$dbh->do($SQL);
 		print "Table optimized.  Optimization took ".(time()-$start_time)." seconds.\n";
 	}
@@ -1116,33 +1117,91 @@ sub _groomer
 		
 		$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
 		$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
-			or die ("Could not connect to DB server to import the list of servers to poll.\n");
-		
-		if($event_to_prune == 0)
-		{
-			print "Pruning default rule\n";
-			$SQL = "DELETE FROM dad_sys_events WHERE Field_2='Security'";
-			foreach $event (@Events_To_Prune)
-			{
-				if($event == 0)
-				{
-					next;
-				}
-				$SQL .= " AND NOT Field_8='$event'";
-			}
-		$SQL .= " AND Field_5<".(time()-$Retention_Times{$event_to_prune});
-		}
-		else
-		{
-			$SQL = "DELETE FROM dad_sys_events WHERE Field_2='Security' AND Field_8='$event' AND Field_5<".(time() - $Retention_Times{$event_to_prune});
-		}
-		print "Executing $SQL\n";
+			or die ("Could not connect to DB server to groom.\n");
+
 		my $start_time = time();
-		if($DEBUG!=1) { $deleted = (($dbh->do($SQL)) * 1); } else { $deleted=0; }
-		print "Deleted $deleted rows.  Pruning took ".(time()-$start_time)." seconds.\n";
-		$SQL = "INSERT INTO dad_sys_events_groomed (Timestamp, Event_ID, Number_Groomed) VALUES (".
-			"'".time()."','$event','$deleted')";
-		&SQL_Insert($SQL);
+			
+			$SQL = "CREATE TABLE dad_sys_events_pruning (".
+  "`dad_sys_events_id` int(10) unsigned NOT NULL auto_increment,".
+  "`SystemID` mediumint(8) unsigned NOT NULL default '0',".
+  "`ServiceID` mediumint(8) unsigned NOT NULL default '0',".
+  "`TimeWritten` int(10) unsigned NOT NULL default '0',".
+  "`TimeGenerated` int(10) unsigned NOT NULL default '0',".
+  "`Source` char(255) NOT NULL default '',".
+  "`Category` char(255) NOT NULL default '',".
+  "`SID` char(64) character set latin1 NOT NULL default '',".
+  "`Computer` char(255) NOT NULL default '',".
+  "`EventID` mediumint(8) unsigned NOT NULL default '0',".
+  "`EventType` tinyint(3) unsigned NOT NULL default '0',".
+  "`Field_0` varchar(760) default NULL,".
+  "`Field_1` varchar(760) default NULL,".
+  "`Field_2` varchar(760) default NULL,".
+  "`Field_3` varchar(760) default NULL,".
+  "`Field_4` varchar(760) default NULL,".
+  "`Field_5` varchar(760) default NULL,".
+  "`Field_6` varchar(760) default NULL,".
+  "`Field_7` varchar(760) default NULL,".
+  "`Field_8` varchar(760) default NULL,".
+  "`Field_9` varchar(760) default NULL,".
+  "`Field_10` varchar(760) default NULL,".
+  "`Field_11` varchar(760) default NULL,".
+  "`Field_12` varchar(760) default NULL,".
+  "`Field_13` varchar(760) default NULL,".
+  "`Field_14` varchar(760) default NULL,".
+  "`Field_15` varchar(760) default NULL,".
+  "`Field_16` varchar(760) default NULL,".
+  "`Field_17` varchar(760) default NULL,".
+  "`Field_18` varchar(760) default NULL,".
+  "`Field_19` varchar(760) default NULL,".
+  "`Field_20` varchar(760) default NULL,".
+  "`Field_21` varchar(760) default NULL,".
+  "`Field_22` varchar(760) default NULL,".
+  "`Field_23` varchar(760) default NULL,".
+  "`Field_24` varchar(760) default NULL,".
+  "`Field_25` varchar(760) default NULL,".
+  "`idxID_Code` char(64) default NULL,".
+  "`idxID_Kerb` char(64) default NULL,".
+  "`idxID_NTLM` char(64) default NULL,".
+  "PRIMARY KEY  (`dad_sys_events_id`),".
+  "KEY `idxEventID` (`EventID`),".
+  "KEY `idxSID` (`SID`),".
+  "KEY `idxTimestamp` (`TimeGenerated`),".
+  "KEY `idxIDbyCode` (`idxID_Code`(10)),".
+  "KEY `idxIDbyKerb` (`idxID_Kerb`(15)),".
+  "KEY `idxIDbyNTLM` (`idxID_NTLM`(10)),".
+  "KEY `idxNTLMCode` (`Field_3`(15))".
+") ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='Normalized Windows Events' ";
+
+		$dbh->do($SQL) or die("Could not create pruner table.");
+			
+		$SQL = "RENAME TABLE dad_sys_events TO dad_tmp, dad_sys_events_pruning TO dad_sys_events, dad_tmp TO dad_sys_events_pruning";
+		$dbh->do($SQL) or die("Could not rename tables for groomer.");
+		
+		foreach $event (@Events_To_Prune)
+		{
+			if($event == 0) { next; } # Don't try to process default rule
+			print "Pruning event ID $event\n";
+			$SQL = "INSERT INTO dad_sys_events SELECT * FROM dad_sys_events_pruning WHERE EventID='$event' AND TimeGenerated>".(time() - $Retention_Times{$event});
+			my $query = $dbh->prepare($SQL);
+			$query->execute() or die("Error pruning!  Could not complete prune for $event.");
+			$query->finish();
+		}
+		print "Pruning default rule\n";
+		$SQL = "INSERT INTO dad_sys_events SELECT * FROM dad_sys_events_pruning WHERE TimeGenerated>".(time()-$Retention_Times{0});
+		foreach $event (@Events_To_Prune)
+		{
+			if($event == 0)
+			{
+				next;
+			}
+			$SQL .= " AND NOT EventID='$event'";
+		}
+		my $query = $dbh->prepare($SQL);
+		$query->execute() or die("Error pruning!  Could not complete default rule.");
+		$query->finish();
+		print "Pruning Complete.  Pruning took ".(time()-$start_time)." seconds.\n";
+		$SQL = "DROP TABLE dad_sys_events_pruning";
+		$dbh->do($SQL);
 	}
 	
 	##########################
