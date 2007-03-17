@@ -240,6 +240,7 @@ sub _event_thread
 			}
 			$row = shift(@$result_ref);
 			$Service_IDs{"$service"} = @$row[0];
+			undef $result_ref;
 		}
 	
 		# See if the system is known.  If not, get it from the database or create a new ID:
@@ -256,6 +257,7 @@ sub _event_thread
 			}
 			$row = shift(@$result_ref);
 			$System_IDs{"$system"} = @$row[0];
+			undef $result_ref;
 		}
 
 		
@@ -642,7 +644,7 @@ sub _insert_thread
 			while(! $continue)
 			{
 				$retry++;
-				if(! $Groomer_Running)
+#				if(! $Groomer_Running)
 				{
 					$query=$dbh->prepare($SQL);
 					$query->execute(); 
@@ -672,12 +674,12 @@ sub _insert_thread
 						$continue = 1; 
 					}
 				}
-				else
-				{
-					&_spew_sql($SQL);
-					$continue = 1;
-				}
-				if(!$Groomer_Running)
+#				else
+#				{
+#					&_spew_sql($SQL);
+#					$continue = 1;
+#				}
+#				if(!$Groomer_Running)
 				{
 					$query->finish();
 				}
@@ -1049,6 +1051,7 @@ sub _check_for_groomer
 	$that_minute = $minutes % 60;
 	if(($Groomer_Hour == $that_hour) && ($that_minute < 1))
 	{
+		print "The time is $that_hour:$that_minute - Starting Groomer";
 		return 1;
 	}
 	return 0;
@@ -1063,11 +1066,7 @@ sub _groomer
 	$Groomer_Running = 1;
 	print "Groomer running.\n";
 	&_get_events_to_prune();
-	
-	foreach $event (@Events_To_Prune)
-	{
-		&_prune_events($event);
-	}
+	&_prune_events($event);
 	&_prune_stats;
 	$Groomer_Running = 0;
 
@@ -1112,7 +1111,6 @@ sub _groomer
 			@this_row;					#Current row
 		my	$dsn, 						# Database connection
 			$dbh;
-		my $event_to_prune = shift();
 		
 		$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
 		$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
