@@ -396,18 +396,45 @@ function show_sql_query()
     $strURL  = getOptionURL(OPTIONID_SQL_QUERY);   
     // Get post variables from $Globals array
     $strSQLQuery = isset($Global["txtSQLQuery"]) ? $Global["txtSQLQuery"] : NULL;
+    $txtQueryName = isset($Global["txtQueryName"]) ? $Global["txtQueryName"] : NULL;
+    $txtQueryDescription = isset($Global["txtQueryDescription"]) ? $Global["txtQueryDescription"] : NULL;
+    $txtQueryCategory = isset($Global["txtQueryCategory"]) ? $Global["txtQueryCategory"] : NULL;
+	$intSelectedQuery = isset($Global["SelectedQuery"]) ? $Global["SelectedQuery"] : NULL;
+	$txtPostbackValue = isset($Global["PostbackValue"]) ? $Global["PostbackValue"] : NULL;
+	$aResults = runQueryReturnArray("SELECT Query_ID,Name,Description,Category,Query FROM dad_sys_queries");
+	$ExistingQueriesOptions = "";
+	foreach($aResults as $row)
+	{
+		$selected = "";
+		if(isset($intSelectedQuery))
+		{
+			if($intSelectedQuery == $row[0])
+			{
+				$selected = " selected";
+				if($txtPostbackValue == "QueryChange")
+				{
+					$strSQLQuery = $row[4];
+					$txtQueryName = $row[1];
+					$txtQueryDescription == $row[2];
+					$txtQueryCategory = $row[3];
+				}
+			}
+		}
+		$tmpString = "$row[1] - $row[2]";
+		$tmpString = substr($tmpString, 0, 80);
+		$ExistingQueriesOptions .= "<option value=\"$row[0]\"$selected>$tmpString";
+
+	}
 	if(isset($Global["btnSave"]))
 	{
-		$ButtonName = (isset($Global["txtQueryName"]) ? $Global["txtQueryName"] : "");
-		$QueryDescription = (isset($Global["txtQueryDescription"]) ? $Global["txtQueryDescription"] : "");
-		if($ButtonName == "" or $QueryDescription == "") 
+		if($txtQueryName == "" or $txtQueryDescription == "" or $txtQueryCategory == "" or $strSQLQuery == "") 
 		{
-			add_element("<h4>You must set a name and a description to save a query.</h4>");
+			add_element("<h4>You must include a name, description, category and query.</h4>");
 		}
 		else
 		{
-			$strSQL = "INSERT INTO dad_sys_queries (Query, Description, Name) ".
-				"VALUES ('$strSQLQuery', '$QueryDescription', '$ButtonName')";
+			$strSQL = "INSERT INTO dad_sys_queries (Query, Description, Name, Category) ".
+				"VALUES ('$strSQLQuery', '$txtQueryDescription', '$txtQueryName', '$txtQueryCategory')";
 			$intRowsAffected = runSQLReturnAffected($strSQL);
 			if ($intRowsAffected < 1)
 			{
@@ -424,25 +451,43 @@ function show_sql_query()
 	$strSQLQuery = stripslashes($strSQLQuery);
 	$output = (isset($Global["btnProcess"]) ? 1 : 0);
 	if(!$strSQLQuery) { $strSQLQuery = "SELECT COUNT(*) FROM dad_sys_events"; }
+# Set the javascript preamble for postbacks
+# The JavaScript below is intended to simulate the "Postback" functionality that ASP.NET has
 	$strHTML = <<<END
-		<form id="frmSQLQuery" action="$strURL" method="post" style="position:relative; top:25px;">
+		<script language="javascript">  
+		<!--  
+		function PostBack(postbacktype) 
+		{
+			var theform = document.QueryMaintenance;  
+			theform.PostbackValue.value=postbacktype;
+			theform.submit();  
+		}  
+		// --> 
+		</script>
+
+		<form id="frmSQLQuery" name="QueryMaintenance" action="$strURL" method="post" style="position:relative; top:25px;">
+			<input type=hidden name="PostbackValue" value="">
 			<table cellpadding=5>
 			<tr>
-				<td colspan="2"><h2>Raw SQL Query</h2></td>
+				<td colspan="2"><h2>SQL Query Maintenance</h2></td>
+			</tr>
+			<tr>
+				<td colspan='2'>Existing Queries: <select OnChange="PostBack('QueryChange')" name=SelectedQuery>$ExistingQueriesOptions</select></td>
 			</tr>
 			<tr>
 				<td valign=top>Please enter query here:</td>
 				<td><textarea id="txtSQLQuery" cols="60" rows="8" name="txtSQLQuery">$strSQLQuery</textarea></td>
 			</tr>
 			<tr>
-				<td>Query Name: <input type=text size=15 name="txtQueryName"></td>
-				<td><textarea name="txtQueryDescription" rows=2 cols=60>Description</textarea>
+				<td>Query Name: <input type=text size=15 name="txtQueryName" value="$txtQueryName"><br>
+					Category: <input type=text size=15 name="txtQueryCategory" value="$txtQueryCategory"></td>
+				<td><textarea name="txtQueryDescription" rows=4 cols=60>$txtQueryDescription</textarea>
 			</tr>
 			<tr>
 				<td colspan=2>
 					<center>
-						<input type="submit" name="btnProcess" value="Process Query">
-						<input type="submit" name="btnSave" value="Save Query">
+						<input type="submit" name="btnProcess" value="Process This Query">
+						<input type="submit" name="btnSave" value="Save as New Query">
 					</center>
 				</td>
 			</tr>

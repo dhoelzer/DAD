@@ -115,20 +115,20 @@ BEGIN {
         my $u;
 
         if ( $option eq 'domain' ){
-            $d = 'cn=Username,cn=Container,dc=Domain,dc=Name,dc=net';
-            $p = 'Password';
-            $u = 'DAD Username';
+            $d = 'cn=wtdad01,cn=users,dc=usa,dc=wtbts,dc=net';
+            $p = 'StopAndSm3llTheDetails';
+            $u = 'wtdad01';
         }elsif ( $option eq 'db_read' ){
             $d = '';
-            $p = 'Password';
+            $p = 'R3@Dallday';
             $u = 'dad_read';
         }elsif ( $option eq 'db_change' ){
             $d = '';
-            $p = 'Password';
+            $p = '()nly2Write';
             $u = 'dad_write';
         }elsif ( $option eq 'db_admin' ){
             $d = '';
-            $p = 'Password';
+            $p = '@dminaLL5tuff';
             $u = 'dad_root';
         }else{
             return 0;
@@ -148,9 +148,9 @@ BEGIN {
 
         $eFrom = $ENV{USER} if $eFrom eq '';
         $eFrom = $ENV{USERNAME} if $eFrom eq '';
-        $eTo   = 'DAD@localdomain.com' if $eTo eq '';
+        $eTo   = 'InboxISSecurityTeam@usa.wtbts.net' if $eTo eq '';
 
-        my $smtp = Net::SMTP->new('smtp.mail.server.com');
+        my $smtp = Net::SMTP->new('mail.usa.wtbts.net');
 
         $smtp->mail(    $eFrom );
         foreach( split/[;,]/,$eTo ){
