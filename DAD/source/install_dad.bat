@@ -26,8 +26,8 @@ call %INSTALL_DIR%\MySQL\mysql-5.0.21-win32\setup.exe
 echo Please hit enter AFTER the MySQL installer completes.
 pause
 call sc stop mysql
-pause
-move "C:\Program Files\MySQL\MySQL Server 5.0\data" "c:\DAD\data"
+ping -n 10 -w 1000 127.0.0.1 > nul
+move "C:\Program Files\MySQL\MySQL Server 5.0\data" "c:\DAD\"
 copy /Y %INSTALL_DIR%\MySQL\my.ini "C:\Program Files\MySQL\MySQL Server 5.0\my.ini"
 call sc start mysql
 echo -----------------------------------------------------------------
