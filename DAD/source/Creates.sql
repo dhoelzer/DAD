@@ -1,6 +1,6 @@
 -- MySQL dump 10.10
 --
--- Host: 10.245.31.155    Database: dad
+-- Host: 127.0.0.1    Database: dad
 -- ------------------------------------------------------
 -- Server version	5.0.21-community-nt
 
