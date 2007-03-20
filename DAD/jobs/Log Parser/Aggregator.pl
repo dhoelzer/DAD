@@ -263,8 +263,11 @@ sub _event_thread
 		
 		# Now insert a new event with the correct system and service IDs
 		$idxID_Code = substr("$eventid $values[2]",0,64);
+		if($idxID_Code =~ /.*[^\\]\\$/) { chop($idxID_Code); }
 		$idxID_Kerb = substr("$eventid $values[4]",0,64);
+		if($idxID_Kerb =~ /.*[^\\]\\$/) { chop($idxID_Kerb); }
 		$idxID_NTLM = substr("$eventid $values[3]",0,64);
+		if($idxID_NTLM =~ /.*[^\\]\\$/) { chop($idxID_NTLM); }
 		$SQL_Queue->enqueue("('". $System_IDs{"$system"} ."', ". $Service_IDs{"$service"} .", ".
 			"'$timewritten', '$timegenerated', '$source', '$category', '$sid', '$computer', '$eventid', '$eventtype', ".
 			"'$values[0]', '$values[1]', '$values[2]', '$values[3]', '$values[4]', ".
