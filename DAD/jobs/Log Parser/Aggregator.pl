@@ -1181,13 +1181,29 @@ sub _groomer
 		{
 			if($event == 0) { next; } # Don't try to process default rule
 			print "Pruning event ID $event\n";
-			$SQL = "INSERT INTO dad_sys_events SELECT * FROM dad_sys_events_pruning WHERE EventID='$event' AND TimeGenerated>".(time() - $Retention_Times{$event});
+		$SQL = "INSERT INTO dad_sys_events (SystemID, ServiceID, TimeWritten, TimeGenerated, Source, ".
+				"Category, SID, Computer, EventID, EventType, Field_0, Field_1, Field_2, Field_3, Field_4, Field_5, ".
+				"Field_6, Field_7, Field_8, Field_9, Field_10, Field_11, Field_12, Field_13, Field_14, Field_15, Field_16, ".
+				"Field_17, Field_18, Field_19, Field_20, Field_21, Field_22, Field_23, Field_24, Field_25, idxID_Code, ".
+				"idxID_Kerb, idxID_NTLM) SELECT SystemID, ServiceID, TimeWritten, TimeGenerated, Source, ".
+				"Category, SID, Computer, EventID, EventType, Field_0, Field_1, Field_2, Field_3, Field_4, Field_5, ".
+				"Field_6, Field_7, Field_8, Field_9, Field_10, Field_11, Field_12, Field_13, Field_14, Field_15, Field_16, ".
+				"Field_17, Field_18, Field_19, Field_20, Field_21, Field_22, Field_23, Field_24, Field_25, idxID_Code, ".
+				"idxID_Kerb, idxID_NTLM FROM dad_sys_events_pruning WHERE EventID='$event' AND TimeGenerated>".(time() - $Retention_Times{$event});
 			my $query = $dbh->prepare($SQL);
 			$query->execute() or die("Error pruning!  Could not complete prune for $event.");
 			$query->finish();
 		}
 		print "Pruning default rule\n";
-		$SQL = "INSERT INTO dad_sys_events SELECT * FROM dad_sys_events_pruning WHERE TimeGenerated>".(time()-$Retention_Times{0});
+		$SQL = "INSERT INTO dad_sys_events (SystemID, ServiceID, TimeWritten, TimeGenerated, Source, ".
+				"Category, SID, Computer, EventID, EventType, Field_0, Field_1, Field_2, Field_3, Field_4, Field_5, ".
+				"Field_6, Field_7, Field_8, Field_9, Field_10, Field_11, Field_12, Field_13, Field_14, Field_15, Field_16, ".
+				"Field_17, Field_18, Field_19, Field_20, Field_21, Field_22, Field_23, Field_24, Field_25, idxID_Code, ".
+				"idxID_Kerb, idxID_NTLM) SELECT SystemID, ServiceID, TimeWritten, TimeGenerated, Source, ".
+				"Category, SID, Computer, EventID, EventType, Field_0, Field_1, Field_2, Field_3, Field_4, Field_5, ".
+				"Field_6, Field_7, Field_8, Field_9, Field_10, Field_11, Field_12, Field_13, Field_14, Field_15, Field_16, ".
+				"Field_17, Field_18, Field_19, Field_20, Field_21, Field_22, Field_23, Field_24, Field_25, idxID_Code, ".
+				"idxID_Kerb, idxID_NTLM FROM dad_sys_events_pruning WHERE TimeGenerated>".(time()-$Retention_Times{0});
 		foreach $event (@Events_To_Prune)
 		{
 			if($event == 0)
