@@ -82,14 +82,19 @@ sub _groomer
 			@this_row;					#Current row
 		my	$dsn, 						# Database connection
 			$dbh;
+		my	$starting_number, $ending_number;
 		
 		$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
 		$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
 			or die ("Could not connect to DB server to groom.\n");
 
 		my $start_time = time();
-			
-			$SQL = "CREATE TABLE dad_sys_events_pruning (".
+
+	$results_ref = &SQL_Query("SELECT COUNT(*) FROM dad_sys_events");
+	$row = shift(@$results_ref);
+	$starting_number = $row[0];
+	
+	$SQL = "CREATE TABLE dad_sys_events_pruning (".
   "`dad_sys_events_id` int(10) unsigned NOT NULL auto_increment,".
   "`SystemID` mediumint(8) unsigned NOT NULL default '0',".
   "`ServiceID` mediumint(8) unsigned NOT NULL default '0',".
@@ -186,6 +191,12 @@ sub _groomer
 		print "Pruning Complete.  Pruning took ".(time()-$start_time)." seconds.\n";
 		$SQL = "DROP TABLE dad_sys_events_pruning";
 		$dbh->do($SQL);
+
+	$results_ref = &SQL_Query("SELECT COUNT(*) FROM dad_sys_events");
+	$row = shift(@$results_ref);
+	$ending_number = $row[0];
+	print "There were $starting number events, there are now $ending_number events.  Groomed ".($starting_number - $ending_number).".\n";
+
 	}
 	
 	##########################
