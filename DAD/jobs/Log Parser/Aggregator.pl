@@ -31,7 +31,6 @@ use GD::Graph::lines;
 ################################################################
 #
 # The following are "Shared".  This means that all threads can see the contents or modify the contents of these
-my $Groomer_Running : shared;	#Status of the log groomer
 my $Time_To_Die : shared;		# Windows threads has a nasty memory leak.  This is used to force
 								# all threads to exit and then to die gracefully.
 my $Pending_Running : shared;
@@ -51,7 +50,6 @@ my $High_Priority_Queue : shared; #Queue used for priority 1 systems
 my $MAX_EXECUTION_TIME : shared;#Maximum time a thread can spend processing any given log.
 ##################################################################
 
-my $Groomer_Hour;
 my $BackupSQLFile;
 my $TZ_Offset;
 my $Stat_Time_Period;
@@ -71,7 +69,6 @@ close(FILE);
 
 #Initialize shared variables
 $Time_To_Die = 0;
-$Groomer_Running = 0;
 $Pending_Running = 0;
 
 # Create the queues.  These queues are used to transfer servers to the event queues and events to the SQL queues.
@@ -95,18 +92,7 @@ while(1)						#Always running, never getting anywhere
 	my $Time_Remaining;
 	my $system;
 	my $pending, $hpending;
-	my $Run_Groomer = 0;
 	
-	if(! $Groomer_Running) 		#Don't start a groomer if there is a groomer already
-	{
-		$Run_Groomer = &_check_for_groomer;
-		if($Run_Groomer)
-		{
-			my $thread;
-			$thread = threads->new(\&_groomer);	#Spin and detach a groomer thread
-			$thread->detach();
-		}
-	}
 	$loop++;					# Number of times through this run
 #	$Time_Remaining = $Total_Run_Time - (mktime(localtime())- $System_Started);
 	$Time_Remaining = "Continuously running.";
@@ -151,10 +137,6 @@ End
 		print STATS "Base execution time per log: $MAX_EXECUTION_TIME<br >\n";
 		print STATS "Run time remaining: $Time_Remaining<br >\n";
 		print STATS "<hr />";
-		if($Groomer_Running)
-		{
-			print STATS "Groomer is currently running.  Please be patient.\n";
-		}
 		if($Pending_Running)
 		{
 			print STATS "Inserting outstanding queries.\n";
@@ -647,7 +629,6 @@ sub _insert_thread
 			while(! $continue)
 			{
 				$retry++;
-#				if(! $Groomer_Running)
 				{
 					$query=$dbh->prepare($SQL);
 					$query->execute(); 
@@ -682,7 +663,6 @@ sub _insert_thread
 #					&_spew_sql($SQL);
 #					$continue = 1;
 #				}
-#				if(!$Groomer_Running)
 				{
 					$query->finish();
 				}
@@ -1042,214 +1022,6 @@ sub _get_stats_to_process
 }
 }
 
-sub _check_for_groomer
-{
-	my $now, $hours, $that_hour, $that_minute, $minutes;
-
-	if($Pending_Running) { return 0; } # Don't groom if you're still catching up.
-	$now = time();
-	$minutes = $now/(60);
-	$hours = $minutes/(60);
-	$that_hour = ($hours % 24) - $TZ_Offset;
-	$that_minute = $minutes % 60;
-	if(($Groomer_Hour == $that_hour) && ($that_minute < 1))
-	{
-		print "The time is $that_hour:$that_minute - Starting Groomer";
-		return 1;
-	}
-	return 0;
-}
-
-sub _groomer
-{
-	my $days_of_history=31*24*60*60; #31 days of history
-	my @Events_To_Prune;
-	my %Explanations, %Retention_Times;
-	
-	$Groomer_Running = 1;
-	print "Groomer running.\n";
-	&_get_events_to_prune();
-	&_prune_events($event);
-	&_prune_stats;
-	$Groomer_Running = 0;
-
-
-	sub _prune_stats
-	{
-		my	$results_ref,				# Used to hold query responses
-			$row,						#Row array reference
-			@this_row;					#Current row
-		my	$dsn, 						# Database connection
-			$dbh;
-		
-		$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
-		$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
-			or die ("Could not connect to DB server to groom.\n");
-	
-		print "Pruning statistics\n";
-	
-		my $mark = time()-$days_of_history;
-		$SQL = "DELETE FROM dad_sys_events_groomed WHERE Timestamp<$mark";
-		print "Executing $SQL\n";
-		my $start_time = time();
-		if($DEBUG!=1) { $deleted = (($dbh->do($SQL)) * 1); } else { $deleted=0; }
-		print "Deleted $deleted rows.  Pruning took ".(time()-$start_time)." seconds.\n";
-		$SQL = "DELETE FROM dad_sys_event_stats WHERE Stat_Time<$mark";
-		print "Executing $SQL\n";
-		my $start_time = time();
-		if($DEBUG!=1) { $deleted = (($dbh->do($SQL)) * 1); } else { $deleted=0; }
-		print "Deleted $deleted rows.  Pruning took ".(time()-$start_time)." seconds.\n";
-		print "Optimizing table to remove holes.\n";
-		my $start_time = time();
-		$SQL = "OPTIMIZE TABLE dad_sys_event_stats";
-		$dbh->do($SQL);
-		print "Table optimized.  Optimization took ".(time()-$start_time)." seconds.\n";
-	}
-	
-	
-	sub _prune_events
-	{
-		my	$results_ref,				# Used to hold query responses
-			$row,						#Row array reference
-			@this_row;					#Current row
-		my	$dsn, 						# Database connection
-			$dbh;
-		
-		$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
-		$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
-			or die ("Could not connect to DB server to groom.\n");
-
-		my $start_time = time();
-			
-			$SQL = "CREATE TABLE dad_sys_events_pruning (".
-  "`dad_sys_events_id` int(10) unsigned NOT NULL auto_increment,".
-  "`SystemID` mediumint(8) unsigned NOT NULL default '0',".
-  "`ServiceID` mediumint(8) unsigned NOT NULL default '0',".
-  "`TimeWritten` int(10) unsigned NOT NULL default '0',".
-  "`TimeGenerated` int(10) unsigned NOT NULL default '0',".
-  "`Source` char(255) NOT NULL default '',".
-  "`Category` char(255) NOT NULL default '',".
-  "`SID` char(64) character set latin1 NOT NULL default '',".
-  "`Computer` char(255) NOT NULL default '',".
-  "`EventID` mediumint(8) unsigned NOT NULL default '0',".
-  "`EventType` tinyint(3) unsigned NOT NULL default '0',".
-  "`Field_0` varchar(760) default NULL,".
-  "`Field_1` varchar(760) default NULL,".
-  "`Field_2` varchar(760) default NULL,".
-  "`Field_3` varchar(760) default NULL,".
-  "`Field_4` varchar(760) default NULL,".
-  "`Field_5` varchar(760) default NULL,".
-  "`Field_6` varchar(760) default NULL,".
-  "`Field_7` varchar(760) default NULL,".
-  "`Field_8` varchar(760) default NULL,".
-  "`Field_9` varchar(760) default NULL,".
-  "`Field_10` varchar(760) default NULL,".
-  "`Field_11` varchar(760) default NULL,".
-  "`Field_12` varchar(760) default NULL,".
-  "`Field_13` varchar(760) default NULL,".
-  "`Field_14` varchar(760) default NULL,".
-  "`Field_15` varchar(760) default NULL,".
-  "`Field_16` varchar(760) default NULL,".
-  "`Field_17` varchar(760) default NULL,".
-  "`Field_18` varchar(760) default NULL,".
-  "`Field_19` varchar(760) default NULL,".
-  "`Field_20` varchar(760) default NULL,".
-  "`Field_21` varchar(760) default NULL,".
-  "`Field_22` varchar(760) default NULL,".
-  "`Field_23` varchar(760) default NULL,".
-  "`Field_24` varchar(760) default NULL,".
-  "`Field_25` varchar(760) default NULL,".
-  "`idxID_Code` char(64) default NULL,".
-  "`idxID_Kerb` char(64) default NULL,".
-  "`idxID_NTLM` char(64) default NULL,".
-  "PRIMARY KEY  (`dad_sys_events_id`),".
-  "KEY `idxEventID` (`EventID`),".
-  "KEY `idxSID` (`SID`),".
-  "KEY `idxTimestamp` (`TimeGenerated`),".
-  "KEY `idxIDbyCode` (`idxID_Code`(10)),".
-  "KEY `idxIDbyKerb` (`idxID_Kerb`(15)),".
-  "KEY `idxIDbyNTLM` (`idxID_NTLM`(10)),".
-  "KEY `idxNTLMCode` (`Field_3`(15))".
-") ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='Normalized Windows Events' ";
-
-		$dbh->do($SQL) or die("Could not create pruner table.");
-			
-		$SQL = "RENAME TABLE dad_sys_events TO dad_tmp, dad_sys_events_pruning TO dad_sys_events, dad_tmp TO dad_sys_events_pruning";
-		$dbh->do($SQL) or die("Could not rename tables for groomer.");
-		
-		foreach $event (@Events_To_Prune)
-		{
-			if($event == 0) { next; } # Don't try to process default rule
-			print "Pruning event ID $event\n";
-		$SQL = "INSERT INTO dad_sys_events (SystemID, ServiceID, TimeWritten, TimeGenerated, Source, ".
-				"Category, SID, Computer, EventID, EventType, Field_0, Field_1, Field_2, Field_3, Field_4, Field_5, ".
-				"Field_6, Field_7, Field_8, Field_9, Field_10, Field_11, Field_12, Field_13, Field_14, Field_15, Field_16, ".
-				"Field_17, Field_18, Field_19, Field_20, Field_21, Field_22, Field_23, Field_24, Field_25, idxID_Code, ".
-				"idxID_Kerb, idxID_NTLM) SELECT SystemID, ServiceID, TimeWritten, TimeGenerated, Source, ".
-				"Category, SID, Computer, EventID, EventType, Field_0, Field_1, Field_2, Field_3, Field_4, Field_5, ".
-				"Field_6, Field_7, Field_8, Field_9, Field_10, Field_11, Field_12, Field_13, Field_14, Field_15, Field_16, ".
-				"Field_17, Field_18, Field_19, Field_20, Field_21, Field_22, Field_23, Field_24, Field_25, idxID_Code, ".
-				"idxID_Kerb, idxID_NTLM FROM dad_sys_events_pruning WHERE EventID='$event' AND TimeGenerated>".(time() - $Retention_Times{$event});
-			my $query = $dbh->prepare($SQL);
-			$query->execute() or die("Error pruning!  Could not complete prune for $event.");
-			$query->finish();
-		}
-		print "Pruning default rule\n";
-		$SQL = "INSERT INTO dad_sys_events (SystemID, ServiceID, TimeWritten, TimeGenerated, Source, ".
-				"Category, SID, Computer, EventID, EventType, Field_0, Field_1, Field_2, Field_3, Field_4, Field_5, ".
-				"Field_6, Field_7, Field_8, Field_9, Field_10, Field_11, Field_12, Field_13, Field_14, Field_15, Field_16, ".
-				"Field_17, Field_18, Field_19, Field_20, Field_21, Field_22, Field_23, Field_24, Field_25, idxID_Code, ".
-				"idxID_Kerb, idxID_NTLM) SELECT SystemID, ServiceID, TimeWritten, TimeGenerated, Source, ".
-				"Category, SID, Computer, EventID, EventType, Field_0, Field_1, Field_2, Field_3, Field_4, Field_5, ".
-				"Field_6, Field_7, Field_8, Field_9, Field_10, Field_11, Field_12, Field_13, Field_14, Field_15, Field_16, ".
-				"Field_17, Field_18, Field_19, Field_20, Field_21, Field_22, Field_23, Field_24, Field_25, idxID_Code, ".
-				"idxID_Kerb, idxID_NTLM FROM dad_sys_events_pruning WHERE TimeGenerated>".(time()-$Retention_Times{0});
-		foreach $event (@Events_To_Prune)
-		{
-			if($event == 0)
-			{
-				next;
-			}
-			$SQL .= " AND NOT EventID='$event'";
-		}
-		my $query = $dbh->prepare($SQL);
-		$query->execute() or die("Error pruning!  Could not complete default rule.");
-		$query->finish();
-		print "Pruning Complete.  Pruning took ".(time()-$start_time)." seconds.\n";
-		$SQL = "DROP TABLE dad_sys_events_pruning";
-		$dbh->do($SQL);
-	}
-	
-	##########################
-	# Grabs the numbers of the events to process
-	sub _get_events_to_prune
-	{
-		my	$results_ref,				# Used to hold query responses
-			$row,						#Row array reference
-			@this_row;					#Current row
-		my	$dsn, 						# Database connection
-			$dbh;
-		
-		$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
-		$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
-			or die ("Could not connect to DB server to import the list of servers to poll.\n");
-	
-		$results_ref = &SQL_Query("SELECT Event_ID,Explanation,Retention_Time FROM dad_sys_events_aging");
-		# Populate the arrays and mappings
-		while($row = shift(@$results_ref) ) 
-		{
-			@this_row = @$row;
-			my $event_id = $this_row[0];
-			my $explanation = $this_row[1];
-			my $retention_time = $this_row[2];
-			
-			unshift(@Events_To_Prune, $event_id);
-			$Explanations{$event_id} = $explanation;
-			$Retention_Times{$event_id} = $retention_time;
-		}
-	}
-}
-
 sub _insert_pending_events
 {
 	my $pending = 1;
@@ -1259,7 +1031,7 @@ sub _insert_pending_events
 	{
 		my $thread;
 		rename($BackupSQLFile, "$BackupSQLFile.pnd") or system("mv", $old, $new);
-		$thread = threads->new(\&_pending_inserts_thread);	#Spin and detach a groomer thread
+		$thread = threads->new(\&_pending_inserts_thread);	#Spin and detach an inserter thread
 		$thread->detach();
 	}
 }

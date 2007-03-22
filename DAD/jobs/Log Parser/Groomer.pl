@@ -217,3 +217,20 @@ sub _groomer
 		}
 	}
 }
+
+	##################################################
+	#
+	# SQL_Query - Does the legwork for all SQL queries including basic error checking
+	# 	Takes a SQL string as an argument
+	#
+	##################################################
+	sub SQL_Query
+	{
+		my $SQL = $_[0];
+		
+		my $query = $dbh->prepare($SQL);
+		$query -> execute();
+		my $ref_to_array_of_row_refs = $query->fetchall_arrayref(); 
+		$query->finish();
+		return $ref_to_array_of_row_refs;
+	}
