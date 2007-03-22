@@ -92,7 +92,7 @@ sub _groomer
 
 	$results_ref = &SQL_Query("SELECT COUNT(*) FROM dad_sys_events");
 	$row = shift(@$results_ref);
-	$starting_number = $row[0];
+	$starting_number = @$row[0];
 	
 	$SQL = "CREATE TABLE dad_sys_events_pruning (".
   "`dad_sys_events_id` int(10) unsigned NOT NULL auto_increment,".
@@ -194,8 +194,8 @@ sub _groomer
 
 	$results_ref = &SQL_Query("SELECT COUNT(*) FROM dad_sys_events");
 	$row = shift(@$results_ref);
-	$ending_number = $row[0];
-	print "There were $starting number events, there are now $ending_number events.  Groomed ".($starting_number - $ending_number).".\n";
+	$ending_number = @$row[0];
+	print "There were $starting_number events, there are now $ending_number events.  Groomed ".($starting_number - $ending_number).".\n";
 
 	}
 	
