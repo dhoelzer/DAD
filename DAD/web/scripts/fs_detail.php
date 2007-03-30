@@ -1,20 +1,4 @@
 <?php
-#   This file is a part of the DAD Log Aggregation and Analysis tool
-#    Copyright (C) 2006, David Hoelzer/Cyber-Defense.org
-#
-#    This program is free software; you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation; either version 2 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program; if not, write to the Free Software
-#    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
 
 function fs_detail_show() {
     global $gaLiterals;
@@ -669,11 +653,9 @@ function fs_new_show() {
 
     $strSQL = 'SELECT id_dad_adm_action, abbreviation FROM dad_adm_action WHERE abbreviation IS NOT NULL';
     $rows   = runQueryReturnArray( $strSQL );
-    if($rows) {
-		foreach( $rows as $row ){
-			$arrAction[$row[0]] = $row[1];
-		}
-	}
+    foreach( $rows as $row ){
+        $arrAction[$row[0]] = $row[1];
+    }
 
 /*THIS WHERE STATEMENT HAS TO CHANGE IN THIS WHEN THE JOB IS MARKING RESOURCES WITH INHERITED RIGHTS*/
     $strSQL = "CREATE TEMPORARY TABLE tbl( id int, date date, fullpath text, cl_read tinyint, ac_read tinyint, cl_write tinyint, ac_write tinyint );\n
@@ -731,17 +713,15 @@ function fs_new_show() {
     $strHTML .= "<tr><td colspan=\"4\"><input type=\"submit\" name=\"bt\" id=\"bt\" value=\"${gaLiterals['Acknowledge']}\"></td></tr>";
     $strHTML .= "<tr><td><input type=\"checkbox\" name=\"cball\" id=\"cball\" onclick=\"check_all();\"></td><td><b>Class</b></td><td><b>Date</b></td><td><b>Path</b></td></tr>";
 
-    if($rows){
-		foreach( $rows as $row ){
+    foreach( $rows as $row ){
 
-			$strHTML .= "<tr><td><input type=\"checkbox\" name=\"cb${row[0]}\"></td>
+        $strHTML .= "<tr><td><input type=\"checkbox\" name=\"cb${row[0]}\"></td>
                          <td>" . $row[3] . $arrAction[$row[4]] . $row[5] . $arrAction[$row[6]] . "</td>
                          <td nowrap>${row[1]}</td>
                          <td><a href=\"javascript:window.open( '" . getOptionURL( OPTIONID_FS_DETAIL_EDIT ) . "&folder=${row[0]}&compact=1', '', 'height=600,width=600,status=yes,toolbar=no,menubar=no,location=no,scrollbars=yes,resizable=yes');window.back\">${row[2]}</a></td></tr>";
 
-		}
-	}
-	
+    }
+
     $strHTML .= '</form>';
 
     add_element( $strHTML );    

@@ -1,23 +1,7 @@
 <?php
-#   This file is a part of the DAD Log Aggregation and Analysis tool
-#    Copyright (C) 2006, David Hoelzer/Cyber-Defense.org
-#
-#    This program is free software; you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation; either version 2 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program; if not, write to the Free Software
-#    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
 
 
-require_once("../lib/strings.php");
+
 
 function systems_edit() {
 
@@ -61,9 +45,9 @@ function systems_edit() {
             }
 
             /*we delete and then re-insert; if there's no id to be begin with, then nothing can be delete - by design*/
-            $strSQL = "DELETE FROM dad_sys_event_import_from WHERE system_name='${Global['system_name']}'";
+            $strSQL = "DELETE dad_sys_event_import_from FROM dad_sys_event_import_from WHERE system_name='${Global['system_name']}'";
             $strAff = runSQLReturnAffected( $strSQL );
-            $strSQL = "DELETE FROM dad_sys_systems WHERE system_id = '${Global['system_id']}'";
+            $strSQL = "DELETE dad_sys_systems FROM dad_sys_systems WHERE system_id = '${Global['system_id']}'";
             $strAff = runSQLReturnAffected( $strSQL );
 
             $strSQL = "INSERT INTO dad_sys_systems( 
@@ -117,9 +101,9 @@ function systems_edit() {
     }
 
     if( isset( $Global['form_action'] ) && $Global['form_action'] === 'delete' ) {
-        $strSQL = "DELETE FROM dad_sys_event_import_from WHERE system_name='${Global['system_name']}'";
+        $strSQL = "DELETE dad_sys_event_import_from FROM dad_sys_event_import_from WHERE system_name='${Global['system_name']}'";
         $strAff = runSQLReturnAffected( $strSQL );
-        $strSQL = "DELETE FROM dad_sys_systems WHERE system_id='${Global['system_id']}'";
+        $strSQL = "DELETE dad_sys_systems FROM dad_sys_systems WHERE system_id='${Global['system_id']}'";
         $strAff = runSQLReturnAffected( $strSQL );
         if( $strAff ){
             add_element( "<font color=red><b>DELETED \"${Global['system_name']}\"</b></font>" );
@@ -129,7 +113,7 @@ function systems_edit() {
     }
 
     if( isset( $Global['form_action'] ) && ($Global['form_action'] === 'lookup' || $Global['bt'] === $gaLiterals['Update'] || $Global['form_action'] === 'saveasnew') ) {
-	$strSQL = "SELECT sys.system_id, sys.system_name, loc.location_name, sys.timezone, os.os_name, sys.ip_address, sys.contact_information, import.log_these, import.priority, import.next_run
+        $strSQL = "SELECT sys.system_id, sys.system_name, loc.location_name, sys.timezone, os.os_name, sys.ip_address, sys.contact_information, import.log_these, import.priority, import.next_run
                    FROM dad_sys_systems AS sys
                      LEFT JOIN dad_sys_location AS loc ON sys.location_id = loc.location_id
                      LEFT JOIN dad_sys_os AS os ON sys.os_id = os.os_id
@@ -137,7 +121,7 @@ function systems_edit() {
                    WHERE sys.system_id=${Global['system_id']}";
         $arrDetails = runQueryReturnArray( $strSQL );
         if( isset($arrDetails) ){
-            $arrDetails = $arrDetails[0];
+            $arrDetails = array_shift( $arrDetails );
             $arrLogThese = bitmask_to_array($arrDetails['log_these'],$arrServices);
         }
     }
@@ -210,6 +194,7 @@ function systems_edit() {
             . "</td>
           </tr>
         </table></form>";
+
     if( isset( $arrVals['calleractive'] ) && $Global['calleractive'] != '' ) {
         $strHTML .="<tr><td align='right'>Who added: </td><td>${Global['calleractive']} on ${Global['timeactive']}</td></tr>";
     }
@@ -278,17 +263,16 @@ function computer_group_admin(){
     }
 
     if ( isset($Global['form_action']) && $Global['form_action'] === 'update' ){
-
         if( isset($Global['groupname']) && preg_match( '/\S/', $Global['groupname'] ) ){
             /*NEED INPUT VALIDATION*/
-            $strAff = runSQLReturnAffected( "DELETE FROM dad_adm_computer_group WHERE id_dad_adm_computer_group = ${Global['group_id']}" );
+            $strAff = runSQLReturnAffected( "DELETE dad_adm_computer_group FROM dad_adm_computer_group WHERE id_dad_adm_computer_group = ${Global['group_id']}" );
             if( is_int($strAff) && $stAff >= 0 ){
                 $strSQL = "INSERT INTO dad_adm_computer_group( id_dad_adm_computer_group, group_name, description, calleractive, timeactive)VALUES( '${Global['group_id']}', '${Global['groupname']}', '${Global['groupdesc']}', '${Global['txtUserName']}', unix_timestamp() )";
                 $strID = runInsertReturnID( $strSQL );
 
                 if( $strID ){
                     // remove email addresses
-                    runSQLReturnAffected( "DELETE FROM dad_adm_computer_group_member WHERE id_dad_adm_computer_group = ${Global['group_id']}" );
+                    runSQLReturnAffected( "DELETE dad_adm_computer_group_member FROM dad_adm_computer_group_member WHERE id_dad_adm_computer_group = ${Global['group_id']}" );
                     // ADD email address
                     $arr = explode(',',$Global['selectedcomputers_list']);
                     foreach( $arr as $a ){
