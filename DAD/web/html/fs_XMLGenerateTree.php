@@ -1,12 +1,9 @@
 <?php
 
-//require_once "../config/constants.php";
 require_once "../config/OptionIDs.php";
 require_once "../lib/database.php";
 require_once "../lib/strings.php";
-//require "../lib/security.php";
 require "../lib/globalizer.php";
-//require "../scripts/pagebuilder.php";
 
 global $Global;
 
