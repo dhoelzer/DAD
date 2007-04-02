@@ -5,7 +5,6 @@ mysqldump -u root -p -h %1 --databases dad --tables dad_adm_action --tables dad_
 ECHO -->> Starter_Data.sql
 ECHO -- Dumping data for table `user`>> Starter_Data.sql
 ECHO -->> Starter_Data.sql
-ECHO .>> Starter_Data.sql
 ECHO /*!40000 ALTER TABLE `user` DISABLE KEYS */;>> Starter_Data.sql
 ECHO LOCK TABLES `user` WRITE;>> Starter_Data.sql
 ECHO INSERT INTO `user` VALUES (1,'admin','70ccd9007338d6d81dd3b6271621b9cf9a97ea00','The','Administrator','',0,'2005-06-30 20:41:19','0000-00-00 00:00:00',3,'2007-03-13 19:00:59');>> Starter_Data.sql
