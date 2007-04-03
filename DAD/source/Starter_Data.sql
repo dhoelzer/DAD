@@ -571,7 +571,7 @@ UNLOCK TABLES;
 --
 -- Dumping data for table `user`
 --
-.
+
 /*!40000 ALTER TABLE `user` DISABLE KEYS */;
 LOCK TABLES `user` WRITE;
 INSERT INTO `user` VALUES (1,'admin','70ccd9007338d6d81dd3b6271621b9cf9a97ea00','The','Administrator','',0,'2005-06-30 20:41:19','0000-00-00 00:00:00',3,'2007-03-13 19:00:59');
