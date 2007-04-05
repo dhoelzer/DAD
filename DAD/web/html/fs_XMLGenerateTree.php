@@ -40,7 +40,7 @@ foreach( $rows as $row ) {
     $xml .= "<key>$key</key>\n";
     $xml .= "<text>$name</text>\n";
     $xml .= "<tip>$name</tip>\n";
-    $xml .= "<url><![CDATA[javascript:window.open( 'index.php?option=" . (OPTIONID_FS_DETAIL_SHOW) . "&folder=$key&session=". ($Global['SessionID']) . "&compact=1', '', 'height=420,width=600,status=yes,toolbar=no,menubar=no,location=no,scrollbars=yes,resizable=yes');window.back]]></url>";
+    $xml .= "<url><![CDATA[javascript:window.open( 'index.html?option=" . (OPTIONID_FS_DETAIL_SHOW) . "&folder=$key&session=". ($Global['SessionID']) . "&compact=1', '', 'height=420,width=600,status=yes,toolbar=no,menubar=no,location=no,scrollbars=yes,resizable=yes');window.back]]></url>";
     $xml .= "<script></script>\n";
     $xml .= "<frame></frame>\n";
     $xml .= "<collapsed>_CLOSEDFOLDER</collapsed>\n";
