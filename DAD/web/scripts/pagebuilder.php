@@ -495,7 +495,7 @@ function getTabMenuOptionRow(&$aMenuOptions, $intCurrentOptionID) {
 function getOptionURL($strOption) {
    global $Global;
    
-   return "index.php?".ARG_OPTION."=$strOption&".ARG_SESSION."=". (isset( $Global["SessionID"] ) ? $Global["SessionID"] : '');
+   return "index.html?".ARG_OPTION."=$strOption&".ARG_SESSION."=". (isset( $Global["SessionID"] ) ? $Global["SessionID"] : '');
 }
 
 ?>
