@@ -411,9 +411,9 @@ $Win32::EventLog::GetMessageText = 0;	# If this is off, there should be no ntdll
 			}
 			$stop_time = mktime(localtime())+$my_execution_time;
 			$continue = 1;
-			Win32::EventLog::Open($handle,$log, $system);
-			if(!$handle)
-			{ 
+			$handle = Win32::EventLog->new($log, $system) or $continue=0;
+			if(!$continue)
+			{
 				print "Can't open $log EventLog on $system\n";
 				&mark_log_processed($log, $system, -1, 0, 0);
 				next; 	#Can't open log, go to the next one.
@@ -431,22 +431,19 @@ $Win32::EventLog::GetMessageText = 0;	# If this is off, there should be no ntdll
 			if($row)
 			{
 				$lastprocessed = @$row[0] + 0;
+				if($total > 0 && $lastprocessed > $total)
+				{
+					print "\nLikely log reset on $system, $log log.  Forcing pull.\n";
+					$lastprocessed = $base;
+				}
 				if($total <= $lastprocessed) 
 				{ 
 					$handle->Close();
 					&mark_log_processed($log, $system, $lastprocessed, 0, 0);
 					next; 
 				}
-				if($lastprocessed < $base)
-				{
-					print "\t$who_am_i Missed ".($base-$lastprocessed)." events from $system!!  Catching up.\n";
-					$base+=50;
-				}
-				else
-				{
-					$base = $lastprocessed;
-				}
-			$new = $total - $base;
+				$base = $lastprocessed;
+				$new = $total - $base;
 			}
 			else
 			{
@@ -457,7 +454,6 @@ $Win32::EventLog::GetMessageText = 0;	# If this is off, there should be no ntdll
 # And then read in all of the events.
 			if($DEBUG) {print "\t\t\t$who_am_i:$system Processing $new events from $log log...\n";}
 			{
-#				lock($Event_Log_Lock);
 				$continue = $handle->Read(EVENTLOG_FORWARDS_READ|EVENTLOG_SEEK_READ,
 					$base, $hashRef);
 			}
@@ -528,7 +524,6 @@ $Win32::EventLog::GetMessageText = 0;	# If this is off, there should be no ntdll
 				}
 				else
 				{
-#					lock($Event_Log_Lock);
 					$continue = $handle->Read(EVENTLOG_FORWARDS_READ|EVENTLOG_SEEK_READ,
 						$base, $hashRef);
 				}
@@ -536,7 +531,6 @@ $Win32::EventLog::GetMessageText = 0;	# If this is off, there should be no ntdll
 			$base--; #Subtract one since we read one too far.
 			$handle->Close();
 			&mark_log_processed($log, $system, ($base), $total, $collected);
-#			print "\tThread $who_am_i finished processing $system:  $total, $collected\n";
 			$total = 0;
 			$collected = 0;
 		}
@@ -545,7 +539,6 @@ $Win32::EventLog::GetMessageText = 0;	# If this is off, there should be no ntdll
 	}
 print "\t$who_am_i Exited\n";
 $Status{"log $who_am_i"} = "Dead.";
-#delete $Status{"log $who_am_i"};
 delete $Processing{$system};
 return;
 }
