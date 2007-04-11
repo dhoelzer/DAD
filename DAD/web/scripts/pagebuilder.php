@@ -1,4 +1,20 @@
 <?php
+#   This file is a part of the DAD Log Aggregation and Analysis tool
+#    Copyright (C) 2006, David Hoelzer/Cyber-Defense.org
+#
+#    This program is free software; you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation; either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program; if not, write to the Free Software
+#    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
 /*-----------------------------------------------------------------------------
  * Pagebuilder - 6/21/05
  *
@@ -9,6 +25,7 @@
 
 // This is temporary!
 require_once "../lib/globalizer.php";
+require_once "../lib/html_formatter.php";
 /*-----------------------------------------------------------------------------
  * Module Globals:
  * ---------------
@@ -39,7 +56,7 @@ function Popup($Title, $Contents,$Width=640, $Height=480, $Top=5, $Left=5)
 		<script language="javascript">  
 		<!--  
 		$Window_Name = window.open("", "$Window_Name", "top=$Top,left=$Left,width=$Width,height=$Height,scrollbars=1,menubar=1,location=0,status=0,resizable=1");
-		$Window_Name.document.write("<html><head><title>$Title</title></head><body><font size=-5>$Contents</font></body></html>");
+		$Window_Name.document.write("<html><head><title>$Title</title></head><body><font size=-1>$Contents</font></body></html>");
 		// --> 
 		</script>
 END;
@@ -82,7 +99,7 @@ function showpage() {
              WHERE ur.UserID = $UserIDForQuery
           ORDER BY m.ParentMenuOptionID, m.LevelNum, m.SequenceNum, mo.SequenceNum";
 
-   $aOptions = runQueryReturnArray($strSQL, KEY_COLUMN1, MYSQL_ASSOC);
+   $aOptions = runQueryReturnArray($strSQL, KEY_COLUMN1);
    add_global("CurrentTab", GetCurrentTab($aOptions), $gbTrustContents);
    add_global("CurrentTabID", GetCurrentTabID($aOptions), $gbTrustContents);
    add_global("TabList", getTabList($aOptions), $gbTrustContents);
@@ -215,7 +232,7 @@ $i = 0;
 #		}
          foreach($headers as $key)
             {
-			  $table .= "<td><font size=-2>".$row[$key]."</font></td>";
+			  $table .= "<td><font size=-1>".$row[$key]."</font></td>";
             }
          $table .= "</tr>";
       }
@@ -302,6 +319,7 @@ function _body()
    global $strCurrentTabName;
    global $strHelpURL;
 
+   $strHelpURL = getOptionURL(OPTIONID_HELP);
    if( !isset($Global['compact']) ){
        $Global['compact'] = '';
    }

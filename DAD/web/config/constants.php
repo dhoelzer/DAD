@@ -1,4 +1,20 @@
 <?php 
+#   Constants definitions for DAD Log Analysis Suite
+#    Copyright (C) 2006, David Hoelzer/Cyber-Defense.org
+#
+#    This program is free software; you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation; either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program; if not, write to the Free Software
+#    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
 
 // ERRORS
 // System wide settings
@@ -6,7 +22,7 @@ define('ERR_NOTICES', true); // ignore notices
 define('ERR_SCREEN_ERRORS', true); // do print
 //define('ERR_LOG_ERRORS', true);
 
-define('D_LOG', '/var/www/log/');
+define('D_LOG', 'c:/dad/');
 
 /* 
    These used tags in you calls to trigger_error($strMessage) calls by prepending 
@@ -41,6 +57,7 @@ define('ARG_USERINFO', 'user');
 define('RETURN_SUCCESS', 0);
 define('RETURN_FAILURE', -1);
 define('RETURN_LOGIN', -2);
+define('MYSQL_DRIVE', "c:");
 
 
 ?>

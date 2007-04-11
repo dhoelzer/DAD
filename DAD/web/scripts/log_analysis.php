@@ -1,4 +1,20 @@
 <?php
+#   This file is a part of the DAD Log Aggregation and Analysis tool
+#    Copyright (C) 2006, David Hoelzer/Cyber-Defense.org
+#
+#    This program is free software; you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation; either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program; if not, write to the Free Software
+#    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
 // This is the log analysis builder. - 5/2006 - DSH
 
 function show_existing_queries()
@@ -64,26 +80,35 @@ function show_log_stats()
     $events = runQueryReturnArray( $strSQL );
 	$num_events = $events[0][0];
     $strSQL   = 'SELECT COUNT(*) FROM dad_sys_systems';
+    $num_systems = runQueryReturnArray( $strSQL );
+    $strSQL   = 'SELECT System_Name FROM dad_sys_event_import_from';
     $systems = runQueryReturnArray( $strSQL );
     $strSQL   = 'SELECT COUNT(*) FROM dad_sys_services';
-    $services = runQueryReturnArray( $strSQL );
-	$FreeSpace = disk_free_space("d:");
-	$TotalSpace = disk_total_space("d:");
+    $num_services = runQueryReturnArray( $strSQL );
+	$FreeSpace = disk_free_space(MYSQL_DRIVE);
+	$TotalSpace = disk_total_space(MYSQL_DRIVE);
 	$MoreEvents = $FreeSpace/(($TotalSpace-$FreeSpace) / ($num_events + 1)+1);
 	$PercentFree = round((($FreeSpace/($TotalSpace + 1)) * 100), 2);
 	$PercentUsed = 100 - $PercentFree;
 	
 	$strHTML = "Disk Utilization: <img src='/images/percent.php?percent=$PercentUsed' valign=top halign=left> $PercentFree% Free";
 	$strHTML .= "<br />There are a total of ".number_format($events[0][0])." events from ".
-		number_format($systems[0][0])." systems reporting on ".number_format($services[0][0])." services.";
+		number_format($num_systems[0][0])." systems reporting on ".number_format($num_services[0][0])." services.";
 	$strHTML .= "<p>The database volume currently has ".number_format($FreeSpace)." bytes free (".
 		$PercentFree."%).  ".
 	    "This should be enough space for approximately ".number_format($MoreEvents)." more events.";
 	$strHTML .= "<p><h3>Aggregate Log Statistics</h3><img src='/Stats/Aggregate.gif'>";
-	$strHTML .= "<p><h3>BSRV2 Log Statistics</h3><img src='/Stats/BSRV2.gif'>";
-	$strHTML .= "<p><h3>USDC007 Log Statistics</h3><img src='/Stats/USDC007.gif'>";
-	$strHTML .= "<p><h3>USDC008 Log Statistics</h3><img src='/Stats/USDC008.gif'>";
-	
+	if($systems) 
+	{
+		foreach($systems as $row)
+		{
+			$strHTML .= "<p><h3>".$row[0]." Log Statistics</h3><img src='/Stats/".$row[0].".gif'>";
+		}
+	}
+	else 
+	{
+		$strHTML .= "<p><h3>No systems are currently being monitored.</h3>";
+	}
     add_element($strHTML);
 }
 
@@ -371,18 +396,45 @@ function show_sql_query()
     $strURL  = getOptionURL(OPTIONID_SQL_QUERY);   
     // Get post variables from $Globals array
     $strSQLQuery = isset($Global["txtSQLQuery"]) ? $Global["txtSQLQuery"] : NULL;
+    $txtQueryName = isset($Global["txtQueryName"]) ? $Global["txtQueryName"] : NULL;
+    $txtQueryDescription = isset($Global["txtQueryDescription"]) ? $Global["txtQueryDescription"] : NULL;
+    $txtQueryCategory = isset($Global["txtQueryCategory"]) ? $Global["txtQueryCategory"] : NULL;
+	$intSelectedQuery = isset($Global["SelectedQuery"]) ? $Global["SelectedQuery"] : NULL;
+	$txtPostbackValue = isset($Global["PostbackValue"]) ? $Global["PostbackValue"] : NULL;
+	$aResults = runQueryReturnArray("SELECT Query_ID,Name,Description,Category,Query FROM dad_sys_queries");
+	$ExistingQueriesOptions = "";
+	foreach($aResults as $row)
+	{
+		$selected = "";
+		if(isset($intSelectedQuery))
+		{
+			if($intSelectedQuery == $row[0])
+			{
+				$selected = " selected";
+				if($txtPostbackValue == "QueryChange")
+				{
+					$strSQLQuery = $row[4];
+					$txtQueryName = $row[1];
+					$txtQueryDescription == $row[2];
+					$txtQueryCategory = $row[3];
+				}
+			}
+		}
+		$tmpString = "$row[1] - $row[2]";
+		$tmpString = substr($tmpString, 0, 80);
+		$ExistingQueriesOptions .= "<option value=\"$row[0]\"$selected>$tmpString";
+
+	}
 	if(isset($Global["btnSave"]))
 	{
-		$ButtonName = (isset($Global["txtQueryName"]) ? $Global["txtQueryName"] : "");
-		$QueryDescription = (isset($Global["txtQueryDescription"]) ? $Global["txtQueryDescription"] : "");
-		if($ButtonName == "" or $QueryDescription == "") 
+		if($txtQueryName == "" or $txtQueryDescription == "" or $txtQueryCategory == "" or $strSQLQuery == "") 
 		{
-			add_element("<h4>You must set a name and a description to save a query.</h4>");
+			add_element("<h4>You must include a name, description, category and query.</h4>");
 		}
 		else
 		{
-			$strSQL = "INSERT INTO dad_sys_queries (Query, Description, Name) ".
-				"VALUES ('$strSQLQuery', '$QueryDescription', '$ButtonName')";
+			$strSQL = "INSERT INTO dad_sys_queries (Query, Description, Name, Category) ".
+				"VALUES ('$strSQLQuery', '$txtQueryDescription', '$txtQueryName', '$txtQueryCategory')";
 			$intRowsAffected = runSQLReturnAffected($strSQL);
 			if ($intRowsAffected < 1)
 			{
@@ -399,25 +451,43 @@ function show_sql_query()
 	$strSQLQuery = stripslashes($strSQLQuery);
 	$output = (isset($Global["btnProcess"]) ? 1 : 0);
 	if(!$strSQLQuery) { $strSQLQuery = "SELECT COUNT(*) FROM dad_sys_events"; }
+# Set the javascript preamble for postbacks
+# The JavaScript below is intended to simulate the "Postback" functionality that ASP.NET has
 	$strHTML = <<<END
-		<form id="frmSQLQuery" action="$strURL" method="post" style="position:relative; top:25px;">
+		<script language="javascript">  
+		<!--  
+		function PostBack(postbacktype) 
+		{
+			var theform = document.QueryMaintenance;  
+			theform.PostbackValue.value=postbacktype;
+			theform.submit();  
+		}  
+		// --> 
+		</script>
+
+		<form id="frmSQLQuery" name="QueryMaintenance" action="$strURL" method="post" style="position:relative; top:25px;">
+			<input type=hidden name="PostbackValue" value="">
 			<table cellpadding=5>
 			<tr>
-				<td colspan="2"><h2>Raw SQL Query</h2></td>
+				<td colspan="2"><h2>SQL Query Maintenance</h2></td>
+			</tr>
+			<tr>
+				<td colspan='2'>Existing Queries: <select OnChange="PostBack('QueryChange')" name=SelectedQuery>$ExistingQueriesOptions</select></td>
 			</tr>
 			<tr>
 				<td valign=top>Please enter query here:</td>
 				<td><textarea id="txtSQLQuery" cols="60" rows="8" name="txtSQLQuery">$strSQLQuery</textarea></td>
 			</tr>
 			<tr>
-				<td>Query Name: <input type=text size=15 name="txtQueryName"></td>
-				<td><textarea name="txtQueryDescription" rows=2 cols=60>Description</textarea>
+				<td>Query Name: <input type=text size=15 name="txtQueryName" value="$txtQueryName"><br>
+					Category: <input type=text size=15 name="txtQueryCategory" value="$txtQueryCategory"></td>
+				<td><textarea name="txtQueryDescription" rows=4 cols=60>$txtQueryDescription</textarea>
 			</tr>
 			<tr>
 				<td colspan=2>
 					<center>
-						<input type="submit" name="btnProcess" value="Process Query">
-						<input type="submit" name="btnSave" value="Save Query">
+						<input type="submit" name="btnProcess" value="Process This Query">
+						<input type="submit" name="btnSave" value="Save as New Query">
 					</center>
 				</td>
 			</tr>

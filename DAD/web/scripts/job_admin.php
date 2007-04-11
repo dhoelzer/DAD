@@ -1,4 +1,20 @@
 <?php
+#   This file is a part of the DAD Log Aggregation and Analysis tool
+#    Copyright (C) 2006, David Hoelzer/Cyber-Defense.org
+#
+#    This program is free software; you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation; either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program; if not, write to the Free Software
+#    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
 
 function edit_job() {
 
@@ -145,7 +161,7 @@ function edit_job() {
             <td colspan=3>
               <SELECT NAME='id_dad_adm_job' ID='id_dad_adm_job' onchange='select_job_click();'>
               <option></option>";
-              foreach( $arrJobs as $job ){
+              if(isset($arrJobs)) foreach( $arrJobs as $job ){
                   $strHTML .= "<OPTION VALUE=${job['id_dad_adm_job']}";
 
                   if( isset( $arrDetails['id_dad_adm_job'] ) && $job['id_dad_adm_job'] == $arrDetails['id_dad_adm_job'] ) {

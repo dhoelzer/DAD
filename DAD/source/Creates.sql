@@ -68,6 +68,8 @@ CREATE TABLE `dad_adm_alert` (
   `supress_interval` smallint(5) unsigned default NULL,
   `id_dad_adm_alert_group` int(10) unsigned default NULL,
   `id_dad_adm_alert_message` int(10) default NULL,
+  `id_dad_adm_alert_group` int(10) unsigned default NULL,
+  `id_dad_adm_alert_message` int(10) default NULL,
   PRIMARY KEY  (`id_dad_adm_alert`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
