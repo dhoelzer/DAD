@@ -25,7 +25,7 @@ public class Main {
     public static void main(String[] args) {
         // TODO code application logic here
         System.out.printf("Starting\n");
-        SpawnProcess process = new SpawnProcess("C:\\windows\\system32\\notepad.exe");
+        SpawnProcess process = new SpawnProcess("C:\\windows\\system32\\notepad.exe", "/dad/00_license.txt");
         process.start();
 
     }
