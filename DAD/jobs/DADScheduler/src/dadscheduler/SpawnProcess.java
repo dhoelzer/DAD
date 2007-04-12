@@ -48,6 +48,7 @@ public class SpawnProcess extends Thread implements Runnable {
  
     public void run()
     {
+        System.out.printf("Starting process: %s\n", Executable);
         try {
         SpawnedProcess = new ProcessBuilder(Executable, Argument1, Argument2).start();
         // The following should be changed to real error checking - TODO
