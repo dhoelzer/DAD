@@ -577,8 +577,8 @@ sub _insert_thread
 			$Inserted++;
 			$Queue_Size++;
 		}
-		if(($SQL_Queue->pending() == 0) && ($Queue_Size > 0) && $Time_To_Die) { $Force=1; }
-		if(($Queue_Size > $MAX_QUEUE_SIZE) || ($Force == 1) || $empty_loops > $MAX_IDLE_LOOPS) 
+		if(($SQL_Queue->pending() == 0) && ($Queue_Size > 0)) { $Force=1; }
+		if(($Queue_Size > $MAX_QUEUE_SIZE) || ($Force == 1) || ($empty_loops > $MAX_IDLE_LOOPS && $Queue_Size > 0)) 
 		{
 			my $retries = 0;
 			$empty_loops=0;
