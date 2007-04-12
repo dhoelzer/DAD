@@ -433,6 +433,7 @@ $Win32::EventLog::GetMessageText = 0;	# If this is off, there should be no ntdll
 				$lastprocessed = @$row[0] + 0;
 				if($total > 0 && $lastprocessed > $total)
 				{
+# If a Windows log is cleared, the internal event numbers are reset.  This looks for this behavior.
 					print "\nLikely log reset on $system, $log log.  Forcing pull.\n";
 					$lastprocessed = $base;
 				}
