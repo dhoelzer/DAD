@@ -30,8 +30,9 @@ public class ScheduleDBInterface {
         ResultSetMetaData columns;
         String data;
         
-        String SQL = "SELECT * FROM dad_sys_adm_job";
+        String SQL = "SELECT * FROM dad_adm_job";
         rs = dbo.SQLQuery(SQL);
+        System.out.printf("Ran query\n");
         try
         {
             columns = rs.getMetaData();
@@ -39,7 +40,7 @@ public class ScheduleDBInterface {
             {
                 int i,j;
                 i = columns.getColumnCount();
-                for(j=0;j!=i;j++)
+                for(j=1;j!=i;j++)
                 {
                     data = rs.getString(columns.getColumnName(j));
                     System.out.printf("%s: %s\t",columns.getColumnName(j), data);

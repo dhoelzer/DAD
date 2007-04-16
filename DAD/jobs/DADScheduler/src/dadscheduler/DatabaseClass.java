@@ -30,7 +30,7 @@ public class DatabaseClass {
         }
         catch (Exception e)
         {
-            System.err.println("Could not connect to database server");
+            System.err.println("Could not connect to database server:" + e.getMessage());
         }
     }
     
@@ -53,19 +53,16 @@ public class DatabaseClass {
     
     public ResultSet SQLQuery(String theQuery)
     {
-        ResultSet rs;
         try
         {
             Statement s = conn.createStatement();
             s.executeQuery(theQuery);
-            rs = s.getResultSet();
-            s.close();
+            return(s.getResultSet());
         }
         catch(java.sql.SQLException e)
         {
             System.err.println("SQL Exception occurred: " + e.getMessage());
             return(null);
         }
-        return(rs);
     }
 }
