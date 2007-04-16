@@ -18,7 +18,7 @@ public class DatabaseClass {
     private Connection conn = null;
     private String username = "root";
     private String password = "All4Fun";
-    private String connectionURL = "jdbc:mysql://localhost/DAD";
+    private String connectionURL = "jdbc:mysql://127.0.0.1/DAD";
 
     
     /** Creates a new instance of DatabaseClass */
