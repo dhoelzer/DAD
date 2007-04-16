@@ -42,12 +42,24 @@ public class Main {
     public static void main(String[] args) {
         // TODO code application logic here
         ScheduleDBInterface schedule = new ScheduleDBInterface();
+        Job DoThis;
         
         System.out.printf("Starting\n");
+        while(1==1)
+        {
 //        SpawnProcess process = new SpawnProcess("C:\\windows\\system32\\notepad.exe", "/dad/00_license.txt");
 //        process.start();
-        schedule.GetNextJob();
-
+            DoThis = schedule.GetNextJob();
+            SpawnProcess process = new SpawnProcess(DoThis.GetExecutable());
+            process.start();
+            try
+            {
+                Thread.sleep(10000);
+            }
+            catch (Exception e)
+            { ; }
+            System.out.println("Looping");
+        }
     }
     
 }

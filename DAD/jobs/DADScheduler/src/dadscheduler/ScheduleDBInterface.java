@@ -30,23 +30,15 @@ public class ScheduleDBInterface {
         ResultSetMetaData columns;
         String data;
         
-        String SQL = "SELECT * FROM dad_adm_job";
+        String SQL = "SELECT * FROM dad_adm_job ";
         rs = dbo.SQLQuery(SQL);
         System.out.printf("Ran query\n");
         try
         {
-            columns = rs.getMetaData();
-            while (rs.next())
-            {
-                int i,j;
-                i = columns.getColumnCount();
-                for(j=1;j!=i;j++)
-                {
-                    data = rs.getString(columns.getColumnName(j));
-                    System.out.printf("%s: %s\t",columns.getColumnName(j), data);
-                }
-                System.out.println();
-            }
+            if(!rs.next()) { return null; }
+            thisJob.SetExecutable(rs.getString("path"));
+            thisJob.SetName(rs.getString("descrip"));
+            thisJob.SetRuntime(rs.getInt("timeactive"));
             rs.close();
         }
         catch (java.sql.SQLException e)
