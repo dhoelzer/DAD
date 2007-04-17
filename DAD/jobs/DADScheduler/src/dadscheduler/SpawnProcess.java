@@ -41,7 +41,6 @@ public class SpawnProcess extends Thread implements Runnable {
     private Process SpawnedProcess;
     private Date TimeStarted;
     private int JobID;
-    boolean is_running;
     
     public void SetJobID(int x)
     {
@@ -76,22 +75,23 @@ public class SpawnProcess extends Thread implements Runnable {
     public void run()
     {
         System.out.printf("Starting process: %s\n", Executable);
-        is_running = true;
         try 
         {
             SpawnedProcess = new ProcessBuilder(Executable, Argument1, Argument2).start();
             // The following should be changed to real error checking - TODO
             TimeStarted = new Date();
-            try
+/*            try
             {
+                System.out.println("Waiting");
                 SpawnedProcess.waitFor();
+                System.out.println("Done");
                 is_running = false;
             }
             catch (Exception e)
             {
                 SpawnedProcess.destroy();
             }
-
+*/
         }
         catch (Exception err)
         {
@@ -107,27 +107,33 @@ public class SpawnProcess extends Thread implements Runnable {
      */
     public boolean IsRunning()
     {
-        return is_running;
-/*        
-        boolean bRunning;
+//        return is_running;
+        
         System.out.println(Executable);
         try
         {
             if(SpawnedProcess.exitValue() == 0)
             {
-                bRunning = false;
+                return false;
             }
             else // Throws exception - should never run this code
             {
-                bRunning = true;
+                //return true;
             }         
         }
         catch(IllegalThreadStateException eITSE)
         {
-            bRunning = true;
+            return true;
         }
-        return bRunning;
- */ 
+        catch(IllegalMonitorStateException eIMSE)
+        {
+            return true;
+        }
+        catch(NullPointerException npe)
+        {
+            return true;
+        }
+        return true;
     }
     
     /*

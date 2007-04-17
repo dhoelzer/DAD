@@ -64,8 +64,6 @@ public class Main {
                 process.SetJobID(DoThis.QueryJobID());
                 process.start();
                 processes[running_jobs] = process;
-                System.out.println("Job: " + process.IsRunning());
-                System.out.println("Array: " + processes[running_jobs].IsRunning());
             }
             else
             {
@@ -86,6 +84,7 @@ public class Main {
                     if(i == running_jobs)
                     {
                         JobFinished(processes[i].QueryJobID());
+                        running_jobs--;
                     }
                     else
                     {
