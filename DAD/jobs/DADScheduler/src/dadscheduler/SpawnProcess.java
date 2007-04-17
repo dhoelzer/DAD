@@ -40,7 +40,18 @@ public class SpawnProcess extends Thread implements Runnable {
     private String Argument2;
     private Process SpawnedProcess;
     private Date TimeStarted;
+    private int JobID;
+    boolean is_running;
     
+    public void SetJobID(int x)
+    {
+        JobID = x;
+    }
+    
+    public int QueryJobID()
+    {
+        return JobID;
+    }
     /** Creates a new instance of SpawnProcess
      *
      * Constructor requires the executable and two arguments.  The arguments
@@ -65,15 +76,28 @@ public class SpawnProcess extends Thread implements Runnable {
     public void run()
     {
         System.out.printf("Starting process: %s\n", Executable);
-        try {
-        SpawnedProcess = new ProcessBuilder(Executable, Argument1, Argument2).start();
-        // The following should be changed to real error checking - TODO
+        is_running = true;
+        try 
+        {
+            SpawnedProcess = new ProcessBuilder(Executable, Argument1, Argument2).start();
+            // The following should be changed to real error checking - TODO
+            TimeStarted = new Date();
+            try
+            {
+                SpawnedProcess.waitFor();
+                is_running = false;
+            }
+            catch (Exception e)
+            {
+                SpawnedProcess.destroy();
+            }
+
         }
         catch (Exception err)
         {
             err.printStackTrace();
         }
-        TimeStarted = new Date();
+        
     }
     
     /*
@@ -83,7 +107,10 @@ public class SpawnProcess extends Thread implements Runnable {
      */
     public boolean IsRunning()
     {
+        return is_running;
+/*        
         boolean bRunning;
+        System.out.println(Executable);
         try
         {
             if(SpawnedProcess.exitValue() == 0)
@@ -100,6 +127,7 @@ public class SpawnProcess extends Thread implements Runnable {
             bRunning = true;
         }
         return bRunning;
+ */ 
     }
     
     /*

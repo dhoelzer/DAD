@@ -20,6 +20,8 @@ public class Job {
     private String arg1;
     private String arg2;
     private int runtime;
+    private int db_job_ID;
+    private boolean exists;
     
     /** Creates a new instance of Job */
     public Job() {
@@ -27,7 +29,25 @@ public class Job {
         executable = "";
         arg1 = "";
         arg2 = "";
+        db_job_ID = -1;
         runtime = 0;
+        exists = false;
+    }
+    
+    public boolean exists()
+    {
+        return exists;
+    }
+    
+    public int SetJobID(int x)
+    {
+        db_job_ID = x;
+        return db_job_ID;
+    }
+    
+    public int QueryJobID()
+    {
+        return db_job_ID;
     }
     
     public String SetName(String x)
@@ -38,6 +58,7 @@ public class Job {
     
     public String SetExecutable(String x)
     {
+        exists = true;
         executable = x;
         return(executable);
     }

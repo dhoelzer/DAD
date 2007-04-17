@@ -9,6 +9,7 @@
 
 package dadscheduler;
 import java.sql.*;
+import java.util.*;
 
 /**
  *
@@ -27,24 +28,44 @@ public class ScheduleDBInterface {
     {
         Job thisJob = new Job();
         ResultSet rs;
+        int job_ID;
         ResultSetMetaData columns;
         String data;
+        java.util.Date now = new java.util.Date();
         
-        String SQL = "SELECT * FROM dad_adm_job ";
+        now.getTime();
+        String SQL = "SELECT * FROM dad_adm_job WHERE next_start<" +
+                (now.getTime()/1000) + " AND is_running=FALSE";
+        System.out.println(SQL);
         rs = dbo.SQLQuery(SQL);
-        System.out.printf("Ran query\n");
         try
         {
-            if(!rs.next()) { return null; }
+            if(!rs.next()) { return thisJob; }
             thisJob.SetExecutable(rs.getString("path"));
             thisJob.SetName(rs.getString("descrip"));
-            thisJob.SetRuntime(rs.getInt("timeactive"));
+            thisJob.SetRuntime(rs.getInt("next_start"));
+            job_ID = rs.getInt("id_dad_adm_job");
             rs.close();
+            SQL = "UPDATE dad_adm_job SET is_running=TRUE WHERE " +
+                    "id_dad_adm_job='" + job_ID + "'";
+            dbo.SQLQueryNoResult(SQL);
         }
         catch (java.sql.SQLException e)
         {
             System.err.println("SQL error has occurred: " + e.getMessage());
         }
         return thisJob;
+    }
+
+    void SetFinished(int job)
+    {
+        String SQL = "UPDATE dad_adm_job SET is_running='FALSE' WHERE " +
+                "id_dad_adm_job='" + job + "'";
+        dbo.SQLQueryNoResult(SQL);
+    }
+    
+    void Reschedule(int job)
+    {
+        throw new UnsupportedOperationException("Not yet implemented");
     }
 }

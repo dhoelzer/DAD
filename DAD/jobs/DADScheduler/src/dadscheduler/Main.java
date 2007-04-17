@@ -32,32 +32,67 @@ package dadscheduler;
  */
 public class Main {
     
+    static private ScheduleDBInterface schedule;
+
     /** Creates a new instance of Main */
     public Main() {
     }
     
+    private static void JobFinished(int job)
+    {
+        schedule.SetFinished(job);
+        schedule.Reschedule(job);
+    }
     /**
      * @param args the command line arguments
      */
     public static void main(String[] args) {
         // TODO code application logic here
-        ScheduleDBInterface schedule = new ScheduleDBInterface();
         Job DoThis;
+        SpawnProcess processes[] = new SpawnProcess[256];
+        int running_jobs = 0;
         
+        schedule = new ScheduleDBInterface();
         System.out.printf("Starting\n");
         while(1==1)
         {
-//        SpawnProcess process = new SpawnProcess("C:\\windows\\system32\\notepad.exe", "/dad/00_license.txt");
-//        process.start();
             DoThis = schedule.GetNextJob();
-            SpawnProcess process = new SpawnProcess(DoThis.GetExecutable());
-            process.start();
-            try
+            if(DoThis.exists())
             {
-                Thread.sleep(10000);
+                running_jobs ++;
+                SpawnProcess process = new SpawnProcess(DoThis.GetExecutable());
+                process.SetJobID(DoThis.QueryJobID());
+                process.start();
+                processes[running_jobs] = process;
+                System.out.println("Job: " + process.IsRunning());
+                System.out.println("Array: " + processes[running_jobs].IsRunning());
             }
-            catch (Exception e)
-            { ; }
+            else
+            {
+                try
+                {
+                    DoThis=null;
+                    Thread.sleep(10000);
+                }
+                catch (Exception e)
+                { ; }
+            }
+            System.out.println("Running jobs: " + running_jobs);
+            for(int i = 1; i <= running_jobs; i++)
+            {
+                System.out.println("PID: "+i+"\t"+processes[i].IsRunning());
+                if(! processes[i].IsRunning())
+                {
+                    if(i == running_jobs)
+                    {
+                        JobFinished(processes[i].QueryJobID());
+                    }
+                    else
+                    {
+                        System.out.println("Need to kill a job but it's not the last one");
+                    }
+                }
+            }
             System.out.println("Looping");
         }
     }

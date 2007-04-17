@@ -82,7 +82,7 @@ function edit_job() {
                 path,
                 package_name,
                 calleractive,
-                timeactive,
+                next_start,
                 user_name,
                 distinguishedname,
                 pword,
@@ -95,7 +95,8 @@ function edit_job() {
                 hour,
                 d_of_w,
                 d_of_m,
-                m_of_y
+                m_of_y,
+				is_running
               ) VALUES ( 
                 " . (isset($Global['id_dad_adm_job']) && $Global['id_dad_adm_job'] > 0 ? "'${Global['id_dad_adm_job']}'":'NULL') . ",
                 '${Global['descrip']}',
@@ -117,7 +118,8 @@ function edit_job() {
                 '${Global['hour']}',
                 '${Global['d_of_w']}',
                 '${Global['d_of_m']}',
-                '${Global['m_of_y']}'
+                '${Global['m_of_y']}',
+				'FALSE'
               )";
 
             $strID = runInsertReturnID( $strSQL );
@@ -141,7 +143,7 @@ function edit_job() {
     }
 
     if( isset( $Global['form_action'] ) && ($Global['form_action'] === 'lookup' || $Global['bt'] === $gaLiterals['Update'] || $Global['form_action'] === 'delete') ) {
-        $strSQL = "SELECT id_dad_adm_job, descrip, length, job_type, path, package_name, calleractive, from_unixtime(timeactive) as 'timeactive', user_name, 
+        $strSQL = "SELECT id_dad_adm_job, descrip, length, job_type, path, package_name, calleractive, from_unixtime(next_run) as 'next_run', user_name, 
                      distinguishedname, pword, times_to_run, times_ran, start_date, start_time, from_unixtime(last_ran) as 'last_ran', min, hour, d_of_w, d_of_m, m_of_y 
                    FROM dad_adm_job WHERE id_dad_adm_job='${Global['id_dad_adm_job']}'";
         $arrDetails = runQueryReturnArray( $strSQL );
@@ -199,7 +201,7 @@ function edit_job() {
           </tr><tr>
           <td align='right'>Times to Run: </td><td><INPUT TYPE='text' NAME='times_to_run' ID='times_to_run' VALUE='" . (isset($arrDetails['time_to_run'])?$arrDetails['time_to_run']:'')  . "'></td>
           <td align='right'>Password: </td><td><INPUT TYPE='password' NAME='pword' ID='pword' SIZE='22' VALUE='" . (isset($arrDetails['pword'])?$arrDetails['pword']:'')  . "'></td>
-          <td align='right'><font color='gray'>Time Active:</font></td><td><INPUT TYPE='text' NAME='timeactive' ID='timeactive' READONLY VALUE='" . (isset($arrDetails['timeactive'])?$arrDetails['timeactive']:'')  . "' STYLE=\"color:gray;border:none;\"></td>
+          <td align='right'><font color='gray'>Time Active:</font></td><td><INPUT TYPE='text' NAME='next_run' ID='next_run' READONLY VALUE='" . (isset($arrDetails['next_run'])?$arrDetails['next_run']:'')  . "' STYLE=\"color:gray;border:none;\"></td>
           </tr><tr>
           <td align='right'>Hour/Minute:</td>
           <td><INPUT TYPE='text' NAME='hour' ID='hour' SIZE='6' title='values: 0-23' VALUE='" . (isset($arrDetails['hour'])?$arrDetails['hour']:'*')  . "'> <INPUT TYPE='text' NAME='min' ID='min' SIZE='6' title='values: 0-59' VALUE='" . (isset($arrDetails['min'])?$arrDetails['min']:'*')  . "'></td>
@@ -216,7 +218,7 @@ function edit_job() {
 
           
     if( isset( $arrVals['calleractive'] ) && $Global['calleractive'] != '' ) {
-        $strHTML .="<tr><td align='right'>Who added: </td><td>${Global['calleractive']} on ${Global['timeactive']}</td></tr>";
+        $strHTML .="<tr><td align='right'>Who added: </td><td>${Global['calleractive']} on ${Global['next_run']}</td></tr>";
     }
 
     add_element( $strHTML );
