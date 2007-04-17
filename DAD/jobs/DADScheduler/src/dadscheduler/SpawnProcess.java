@@ -35,49 +35,33 @@ import java.util.*;
  * This object allows the job scheduler to spawn an external process.
  */
 public class SpawnProcess extends Thread implements Runnable {
-    private String Executable;
-    private String Argument1;
-    private String Argument2;
     private Process SpawnedProcess;
     private Date TimeStarted;
-    private int JobID;
+    private Job thisJob;
     
-    public void SetJobID(int x)
+    public String QueryDescription()
     {
-        JobID = x;
+        return thisJob.GetName();
     }
-    
     public int QueryJobID()
     {
-        return JobID;
+        return thisJob.QueryJobID();
     }
     /** Creates a new instance of SpawnProcess
      *
      * Constructor requires the executable and two arguments.  The arguments
      * may be blank.
      */
-    public SpawnProcess(String Command, String Arg1, String Arg2) {
-        Executable = Command;
-        Argument1 = Arg1;
-        Argument2 = Arg2;
-    }
-    public SpawnProcess(String Command, String Arg1) {
-        Executable = Command;
-        Argument1 = Arg1;
-        Argument2 = "";
-    }
-    public SpawnProcess(String Command) {
-        Executable = Command;
-        Argument1 = "";
-        Argument2 = "";
+    public SpawnProcess(Job DoThis) {
+        thisJob = DoThis;
     }
  
     public void run()
     {
-        System.out.printf("Starting process: %s\n", Executable);
+        System.out.printf("Starting process: %s\n", thisJob.GetExecutable());
         try 
         {
-            SpawnedProcess = new ProcessBuilder(Executable, Argument1, Argument2).start();
+            SpawnedProcess = new ProcessBuilder(thisJob.GetExecutable()).start();
             // The following should be changed to real error checking - TODO
             TimeStarted = new Date();
 /*            try
@@ -107,9 +91,6 @@ public class SpawnProcess extends Thread implements Runnable {
      */
     public boolean IsRunning()
     {
-//        return is_running;
-        
-        System.out.println(Executable);
         try
         {
             if(SpawnedProcess.exitValue() == 0)

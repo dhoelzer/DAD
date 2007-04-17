@@ -36,7 +36,6 @@ public class ScheduleDBInterface {
         now.getTime();
         String SQL = "SELECT * FROM dad_adm_job WHERE next_start<" +
                 (now.getTime()/1000) + " AND is_running=FALSE";
-        System.out.println(SQL);
         rs = dbo.SQLQuery(SQL);
         try
         {
@@ -45,6 +44,7 @@ public class ScheduleDBInterface {
             thisJob.SetName(rs.getString("descrip"));
             thisJob.SetRuntime(rs.getInt("next_start"));
             job_ID = rs.getInt("id_dad_adm_job");
+            thisJob.SetJobID(job_ID);
             rs.close();
             SQL = "UPDATE dad_adm_job SET is_running=TRUE WHERE " +
                     "id_dad_adm_job='" + job_ID + "'";
@@ -59,13 +59,49 @@ public class ScheduleDBInterface {
 
     void SetFinished(int job)
     {
-        String SQL = "UPDATE dad_adm_job SET is_running='FALSE' WHERE " +
+        String SQL = "UPDATE dad_adm_job SET is_running=FALSE WHERE " +
                 "id_dad_adm_job='" + job + "'";
         dbo.SQLQueryNoResult(SQL);
     }
     
     void Reschedule(int job)
     {
-        throw new UnsupportedOperationException("Not yet implemented");
+        ResultSet rs;
+        long last_started, next_start_time, minutes, hours, days;
+        java.util.Date now = new java.util.Date();
+        
+        now.getTime();
+        String SQL = "SELECT * FROM dad_adm_job WHERE id_dad_adm_job='" + 
+                job + "'";
+        rs = dbo.SQLQuery(SQL);
+        try
+        {
+            System.out.println("Resetting JobID in DB");
+            if(!rs.next()) { return; } // Job deleted while running?
+            System.out.println("Found the job");
+            last_started = rs.getInt("next_start");
+            if(last_started == 0)
+            {
+                last_started = (now.getTime()/1000);
+            }
+            minutes = rs.getInt("min") * 60;
+            hours = rs.getInt("hour") * 3600;
+            days = rs.getInt("day") * 86400;
+            rs.close();
+            next_start_time = last_started + minutes + hours + days;
+            System.out.println("After reschedule.");
+            SQL = "UPDATE dad_adm_job SET "+
+                    "is_running=FALSE, last_ran=" + last_started +
+                    ", next_start=" + next_start_time + " WHERE " +
+                    "id_dad_adm_job='" + job + "'";
+            dbo.SQLQueryNoResult(SQL);
+            System.out.println("Finished reset");
+        }
+        catch (java.sql.SQLException e)
+        {
+            System.err.println("SQL error has occurred: " + e.getMessage());
+            System.err.println("Could not mark job as completed!");
+            return;
+        }
     }
 }

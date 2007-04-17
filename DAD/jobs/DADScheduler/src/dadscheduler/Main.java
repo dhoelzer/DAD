@@ -8,6 +8,7 @@
  */
 
 package dadscheduler;
+import java.util.*;
 
 /**
  *
@@ -40,6 +41,7 @@ public class Main {
     
     private static void JobFinished(int job)
     {
+        System.out.println("Killing JobID: " + job);
         schedule.SetFinished(job);
         schedule.Reschedule(job);
     }
@@ -49,9 +51,8 @@ public class Main {
     public static void main(String[] args) {
         // TODO code application logic here
         Job DoThis;
-        SpawnProcess processes[] = new SpawnProcess[256];
-        int running_jobs = 0;
-        
+        ArrayList<SpawnProcess> processes = new ArrayList<SpawnProcess>();
+                
         schedule = new ScheduleDBInterface();
         System.out.printf("Starting\n");
         while(1==1)
@@ -59,11 +60,9 @@ public class Main {
             DoThis = schedule.GetNextJob();
             if(DoThis.exists())
             {
-                running_jobs ++;
-                SpawnProcess process = new SpawnProcess(DoThis.GetExecutable());
-                process.SetJobID(DoThis.QueryJobID());
+                SpawnProcess process = new SpawnProcess(DoThis);
                 process.start();
-                processes[running_jobs] = process;
+                processes.add(process);
             }
             else
             {
@@ -75,25 +74,28 @@ public class Main {
                 catch (Exception e)
                 { ; }
             }
-            System.out.println("Running jobs: " + running_jobs);
-            for(int i = 1; i <= running_jobs; i++)
-            {
-                System.out.println("PID: "+i+"\t"+processes[i].IsRunning());
-                if(! processes[i].IsRunning())
-                {
-                    if(i == running_jobs)
-                    {
-                        JobFinished(processes[i].QueryJobID());
-                        running_jobs--;
-                    }
-                    else
-                    {
-                        System.out.println("Need to kill a job but it's not the last one");
-                    }
-                }
-            }
-            System.out.println("Looping");
+            PruneDeadJobs(processes);
         }
+    }
+    
+    private static void PruneDeadJobs(ArrayList<SpawnProcess> ProcessList)
+    {
+        SpawnProcess aProcessList[] = new SpawnProcess[ProcessList.size()];
+        aProcessList = ProcessList.toArray(aProcessList);
+        System.out.println("Running jobs: " + ProcessList.size());
+        for(SpawnProcess i : aProcessList)
+        {
+            System.out.println("\t" + i.QueryJobID() + ": " + 
+                    i.QueryDescription() + 
+                    " is " + (i.IsRunning() == true ? "running" : "dead"));
+            if(! i.IsRunning())
+            {
+                JobFinished(i.QueryJobID());
+                ProcessList.remove(i);
+            }
+        }
+        System.out.println("------------------");
+        
     }
     
 }
