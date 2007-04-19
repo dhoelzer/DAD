@@ -23,19 +23,30 @@ public class ScheduleDBInterface {
     public ScheduleDBInterface() {
         dbo = new DatabaseClass();
     }
-    
     public Job GetNextJob()
+    {
+        return GetNextJob("FALSE");
+    }
+    
+    public Job GetNextJob(String PersistentState)
     {
         Job thisJob = new Job();
         ResultSet rs;
+        String RunningState;
         int job_ID;
         ResultSetMetaData columns;
         String data;
         java.util.Date now = new java.util.Date();
         
+        RunningState = " ";
+        if(PersistentState != "TRUE")
+        {
+            PersistentState = "FALSE";
+        }
         now.getTime();
         String SQL = "SELECT * FROM dad_adm_job WHERE next_start<" +
-                (now.getTime()/1000) + " AND is_running=FALSE";
+                (now.getTime()/1000) + " AND is_running=FALSE " +
+                "AND persistent="+PersistentState;
         rs = dbo.SQLQuery(SQL);
         try
         {
@@ -63,6 +74,23 @@ public class ScheduleDBInterface {
         String SQL = "UPDATE dad_adm_job SET is_running=FALSE WHERE " +
                 "id_dad_adm_job='" + job + "'";
         dbo.SQLQueryNoResult(SQL);
+    }
+
+    void ClearIsRunning()
+    {
+        String SQL;
+        try
+        {
+            SQL = "UPDATE dad_adm_job SET "+
+                    "is_running=FALSE";
+            dbo.SQLQueryNoResult(SQL);
+        }
+        catch (Exception e)
+        {
+            System.err.println("SQL error has occurred: " + e.getMessage());
+            System.err.println("Could not mark job as completed!");
+            return;
+        }
     }
     
     void Reschedule(int job)

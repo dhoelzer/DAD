@@ -94,7 +94,8 @@ function edit_job() {
                 hour,
                 day,
                 month,
-				is_running
+				is_running,
+				persistent
               ) VALUES ( 
                 " . (isset($Global['id_dad_adm_job']) && $Global['id_dad_adm_job'] > 0 ? "'${Global['id_dad_adm_job']}'":'NULL') . ",
                 '${Global['descrip']}',
@@ -116,7 +117,8 @@ function edit_job() {
                 '${Global['hour']}',
                 '${Global['day']}',
                 '${Global['month']}',
-				FALSE
+				FALSE, ".
+				(isset($Global['persistent']) ? (($Global['persistent'] == '1') ? "TRUE" : "FALSE") : "FALSE") . "
               )";
 
             $strID = runInsertReturnID( $strSQL );
@@ -141,7 +143,7 @@ function edit_job() {
 
     if( isset( $Global['form_action'] ) && ($Global['form_action'] === 'lookup' || $Global['bt'] === $gaLiterals['Update'] || $Global['form_action'] === 'delete') ) {
         $strSQL = "SELECT id_dad_adm_job, descrip, length, job_type, path, package_name, calleractive, from_unixtime(next_start) as 'next_start', user_name, 
-                     distinguishedname, pword, times_to_run, times_ran, start_date, start_time, from_unixtime(last_ran) as 'last_ran', min, hour, day, month 
+                     distinguishedname, pword, times_to_run, times_ran, start_date, start_time, from_unixtime(last_ran) as 'last_ran', min, hour, day, month, persistent 
                    FROM dad_adm_job WHERE id_dad_adm_job='${Global['id_dad_adm_job']}'";
         $arrDetails = runQueryReturnArray( $strSQL );
         $arrDetails = array_shift( $arrDetails );
@@ -193,12 +195,13 @@ function edit_job() {
           <td align='right'><font color='gray'>Last Ran:</font></td><td><INPUT TYPE='text' NAME='last_ran' ID='last_ran' READONLY VALUE='" . (isset($arrDetails['last_ran'])?$arrDetails['last_ran']:'')  . "' STYLE=\"color:gray;border:none;\"></td>
           </tr><tr>
           <td align='right'>Repeat every:</td>
-          <td colspan=5><INPUT TYPE='text' NAME='month' ID='month' SIZE='1' title='values: 0-12' VALUE='" . (isset($arrDetails['month'])?$arrDetails['month']:'0')  . "'> months,
+          <td colspan=4><INPUT TYPE='text' NAME='month' ID='month' SIZE='1' title='values: 0-12' VALUE='" . (isset($arrDetails['month'])?$arrDetails['month']:'0')  . "'> months,
 			<INPUT TYPE='text' NAME='day' ID='day' SIZE='1' title='values: 0-31' VALUE='" . (isset($arrDetails['day'])?$arrDetails['day']:'0')  . "'> days, 
 			<INPUT TYPE='text' NAME='hour' ID='hour' SIZE='1' title='values: 0-23' VALUE='" . (isset($arrDetails['hour'])?$arrDetails['hour']:'0')  . "'> hours, 
 			<INPUT TYPE='text' NAME='min' ID='min' SIZE='1' title='values: 0-59' VALUE='" . (isset($arrDetails['min'])?$arrDetails['min']:'0')  . "'> minutes</td>
-          </td>
-          </tr>
+		</td>
+		<td align='right'>Persistent: <input type='checkbox' name=persistent value='" . (isset($arrDetails['persistent']) ? $arrDetails['persistent'] : '0') . "'>
+        </tr>
         </table>";
 
           

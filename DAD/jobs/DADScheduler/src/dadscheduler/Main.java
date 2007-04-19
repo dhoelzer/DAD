@@ -57,6 +57,19 @@ public class Main {
         schedule = new ScheduleDBInterface();
         System.out.println("Copyright (C) 2007, David Hoelzer/Cyber-Defense.org");
         System.out.println("DAD Scheduler now operational.");
+        System.out.println("---------------------------------------------------");
+        System.out.println("Starting persistent jobs");
+        
+        DoThis = schedule.GetNextJob("TRUE");
+        while(DoThis.exists())
+        {
+            process = new SpawnProcess(DoThis);
+            process.start();
+            processes.add(process);
+            DoThis = schedule.GetNextJob("True");
+        }
+        // Persistent jobs started.  Clear the running flag for restart.
+        schedule.ClearIsRunning();
         while(1==1)
         {
             DoThis = schedule.GetNextJob();
