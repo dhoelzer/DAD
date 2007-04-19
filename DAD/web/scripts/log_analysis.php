@@ -108,12 +108,13 @@ function show_log_stats()
 		<form id='acknowledge_alerts' action='$strURL' method='post'>
 		<input type='hidden' name='AckMarker' value='1'></input>
 		<p><h3>Pending Alerts</h3><input type='submit' value='Acknowledge Marked'></input></h3>
+<div id="Scrollable">
 		<table border='0' cellpadding='5'>
 			<tr><th>Ack</th><th>Alert Time</th><th>Event Time</th><th>Alert</th></tr>
 endHTML;
 	$strSQL = "SELECT FROM_UNIXTIME(Alert_Time) as 'Alerted at', ".
 		"FROM_UNIXTIME(Event_Time) as 'Event Timestamp', Event_Data as 'Alert', ".
-		"Severity, dad_alert_id from dad_alerts WHERE Acknowledged=FALSE ORDER BY Alert_Time,Event_Time";
+		"Severity, dad_alert_id from dad_alerts WHERE Acknowledged=FALSE ORDER BY Alert_Time DESC,Event_Time DESC";
 	$alerts = runQueryReturnArray($strSQL);
 	if(! $alerts)
 	{
@@ -137,9 +138,10 @@ endHTML;
 endHTML;
 		}
 	}
-	$strHTML .= "</table>";
+	$strHTML .= "</table></div>";
 // Stats
-	$strHTML .= "<p><h3>Aggregate Log Statistics</h3><img src='/Stats/Aggregate.gif'>";	
+	$strHTML .= "<p><table><tr><td><h3>Aggregate Log Statistics</h3><img src='/Stats/Aggregate.gif'></td>".
+		"<td><div id='ScrollableStats'>";	
 	if($systems) 
 	{
 		foreach($systems as $row)
@@ -151,6 +153,7 @@ endHTML;
 	{
 		$strHTML .= "<p><h3>No systems are currently being monitored.</h3>";
 	}
+	$strHTML .= "</div></td><table>";
     add_element($strHTML);
 }
 

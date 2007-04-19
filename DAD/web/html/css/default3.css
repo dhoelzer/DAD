@@ -30,6 +30,18 @@ ul li.selecteditem {
 	list-style-image: url("../images/selecteditem.gif");
 }
 
+/**** Scrolling area ****/
+#Scrollable{
+	height:250px;
+	width:800px;
+	overflow:auto;
+}		
+
+#ScrollableStats{
+	height:200px;
+	width:425px;
+	overflow:auto;
+}		
 
 /**** STATIC HEADER *****/
 #header {

@@ -31,26 +31,25 @@ function edit_job() {
 
     $strHTML  = "<SCRIPT ID='clientEventHandlersJS' LANGUAGE='javascript'>
                     function delete_bt_click(){
-	                    var page = document.forms[0].document.all;
-                        if( page.id_dad_adm_job.value < 1 ){
+	                    var element = document.getElementById('id_dad_adm_job');
+                        if( element.value < 1 ){
                             alert( 'Please select a job' );
                         }else{
     	        	        var TellMe = confirm( 'Are you sure you want to delete this job?' );
                             if ( TellMe ){
-                                page.form_action.value = 'delete';
+                               document.getElementById('form_action').value='delete';
                                 window.edit_job.submit();
                             }
                         }
                     }
                     function saveasnew_bt_click(){
-	                    var page = document.forms[0].document.all;
-                        page.form_action.value = 'saveasnew';
+	                    var element = document.getElementById('form_action');
+                        element.value = 'saveasnew';
                         window.edit_job.submit();
                     }
                     function select_job_click(){
-                        var page = document.forms[0].document.all;
-                        page.form_action.value = 'lookup';
-                        window.edit_job.submit();
+                        document.getElementById('form_action').value='lookup';
+                        document.edit_job.submit();
                     }
                 </SCRIPT>";
 
@@ -93,9 +92,8 @@ function edit_job() {
                 last_ran,
                 min,
                 hour,
-                d_of_w,
-                d_of_m,
-                m_of_y,
+                day,
+                month,
 				is_running
               ) VALUES ( 
                 " . (isset($Global['id_dad_adm_job']) && $Global['id_dad_adm_job'] > 0 ? "'${Global['id_dad_adm_job']}'":'NULL') . ",
@@ -116,10 +114,9 @@ function edit_job() {
                 " . (isset($Global['last_ran']) && strlen($Global['last_ran']) > 1 ? "unix_timestamp('${Global['last_ran']}')":'NULL') . ",
                 '${Global['min']}',
                 '${Global['hour']}',
-                '${Global['d_of_w']}',
-                '${Global['d_of_m']}',
-                '${Global['m_of_y']}',
-				'FALSE'
+                '${Global['day']}',
+                '${Global['month']}',
+				FALSE
               )";
 
             $strID = runInsertReturnID( $strSQL );
@@ -143,8 +140,8 @@ function edit_job() {
     }
 
     if( isset( $Global['form_action'] ) && ($Global['form_action'] === 'lookup' || $Global['bt'] === $gaLiterals['Update'] || $Global['form_action'] === 'delete') ) {
-        $strSQL = "SELECT id_dad_adm_job, descrip, length, job_type, path, package_name, calleractive, from_unixtime(next_run) as 'next_run', user_name, 
-                     distinguishedname, pword, times_to_run, times_ran, start_date, start_time, from_unixtime(last_ran) as 'last_ran', min, hour, d_of_w, d_of_m, m_of_y 
+        $strSQL = "SELECT id_dad_adm_job, descrip, length, job_type, path, package_name, calleractive, from_unixtime(next_start) as 'next_start', user_name, 
+                     distinguishedname, pword, times_to_run, times_ran, start_date, start_time, from_unixtime(last_ran) as 'last_ran', min, hour, day, month 
                    FROM dad_adm_job WHERE id_dad_adm_job='${Global['id_dad_adm_job']}'";
         $arrDetails = runQueryReturnArray( $strSQL );
         $arrDetails = array_shift( $arrDetails );
@@ -154,7 +151,7 @@ function edit_job() {
     $arrJobs = runQueryReturnArray( $strSQL );
 
     $strHTML .="
-      <form id='edit_job' action='$strURL' method='post'>\n
+      <form name='edit_job' id='edit_job' action='$strURL' method='post'>\n
         <input type='hidden' name='form_action' id='form_action'>
         <table>
           <colgroup valign=top></colgroup>
@@ -184,35 +181,23 @@ function edit_job() {
             </td>
           </tr><tr>
           <td align='right'>Description: </td><td><INPUT TYPE='text' NAME='descrip' ID='descrip' VALUE='" . (isset($arrDetails['descrip'])?$arrDetails['descrip']:'')  . "'></td>
-          <td align='right'>Start Time: </td><td><INPUT TYPE='text' NAME='start_time' ID='start_time' Title='Format: HH:MM' VALUE='" . (isset($arrDetails['start_time'])?$arrDetails['start_time']:date("H:i",time())) . "'></td>
+          <td align='right'>First Start Time: </td><td><INPUT TYPE='text' NAME='start_time' ID='start_time' Title='Format: HH:MM' VALUE='" . (isset($arrDetails['start_time'])?$arrDetails['start_time']:date("H:i",time())) . "'></td>
           <td align='right'><font color='gray'>Job ID:</font></td><td><font color='gray'>" . (isset($arrDetails['id_dad_adm_job'])?$arrDetails['id_dad_adm_job']:'')  . "</font></td>
           </tr><tr>
           <td align='right'>Job Type: </td><td><INPUT TYPE='text' NAME='job_type' ID='job_type' VALUE='" . (isset($arrDetails['job_type'])?$arrDetails['job_type']:'')  . "'></td>
-          <td align='right'>Start Date: </td><td><INPUT TYPE='text' NAME='start_date' ID='start_date' Title='Format: YYYY-MM-DD' VALUE='" . (isset($arrDetails['start_date'])?$arrDetails['start_date']:date("Y-m-d",time())) . "'></td>
+          <td align='right'>First Start Date: </td><td><INPUT TYPE='text' NAME='start_date' ID='start_date' Title='Format: YYYY-MM-DD' VALUE='" . (isset($arrDetails['start_date'])?$arrDetails['start_date']:date("Y-m-d",time())) . "'></td>
           <td align='right'><font color='gray'>Times Ran:</font></td><td><INPUT TYPE='text' NAME='times_ran' ID='times_ran' READONLY VALUE='" . (isset($arrDetails['times_ran'])?$arrDetails['times_ran']:'')  . "' STYLE=\"color:gray;border:none;\"></td>
           </tr><tr>
           <td align='right'>Path to Script: </td><td><INPUT TYPE='text' NAME='path' ID='path' VALUE='" . (isset($arrDetails['path'])?$arrDetails['path']:'') . "'></td>
-          <td align='right'>Username: </td><td><INPUT TYPE='text' NAME='user_name' ID='user_name' VALUE='" . (isset($arrDetails['user_name'])?$arrDetails['user_name']:'')  . "'></td>
+          <td align='right'>Times to Run: </td><td><INPUT TYPE='text' NAME='times_to_run' ID='times_to_run' VALUE='" . (isset($arrDetails['time_to_run'])?$arrDetails['time_to_run']:'')  . "'></td>
           <td align='right'><font color='gray'>Last Ran:</font></td><td><INPUT TYPE='text' NAME='last_ran' ID='last_ran' READONLY VALUE='" . (isset($arrDetails['last_ran'])?$arrDetails['last_ran']:'')  . "' STYLE=\"color:gray;border:none;\"></td>
           </tr><tr>
-          <td align='right'>Package Name: </td><td><INPUT TYPE='text' NAME='package_name' ID='package_name' TITLE='For Perl only' VALUE='" . (isset($arrDetails['package_name'])?$arrDetails['package_name']:'')  . "'></td>
-          <td align='right'>DN: </td><td><INPUT TYPE='text' NAME='distinguishedname' ID='distinguishedname' VALUE='" . (isset($arrDetails['distinguishedname'])?$arrDetails['distinguishedname']:'')  . "'></td>
-          <td align='right'><font color='gray'>Caller Active:</font></td><td><INPUT TYPE='text' NAME='calleractive' ID='calleractive' READONLY VALUE='" . (isset($arrDetails['calleractive'])?$arrDetails['calleractive']:'')  . "' STYLE=\"color:gray;border:none;\"></td>
-          </tr><tr>
-          <td align='right'>Times to Run: </td><td><INPUT TYPE='text' NAME='times_to_run' ID='times_to_run' VALUE='" . (isset($arrDetails['time_to_run'])?$arrDetails['time_to_run']:'')  . "'></td>
-          <td align='right'>Password: </td><td><INPUT TYPE='password' NAME='pword' ID='pword' SIZE='22' VALUE='" . (isset($arrDetails['pword'])?$arrDetails['pword']:'')  . "'></td>
-          <td align='right'><font color='gray'>Time Active:</font></td><td><INPUT TYPE='text' NAME='next_run' ID='next_run' READONLY VALUE='" . (isset($arrDetails['next_run'])?$arrDetails['next_run']:'')  . "' STYLE=\"color:gray;border:none;\"></td>
-          </tr><tr>
-          <td align='right'>Hour/Minute:</td>
-          <td><INPUT TYPE='text' NAME='hour' ID='hour' SIZE='6' title='values: 0-23' VALUE='" . (isset($arrDetails['hour'])?$arrDetails['hour']:'*')  . "'> <INPUT TYPE='text' NAME='min' ID='min' SIZE='6' title='values: 0-59' VALUE='" . (isset($arrDetails['min'])?$arrDetails['min']:'*')  . "'></td>
-          <td align='right'>Day of Week:</td>
-          <td><INPUT TYPE='text' NAME='d_of_w' ID='d_of_w' title='values: 0-7 (0 or 7 is Sunday, or names)' VALUE='" . (isset($arrDetails['d_of_w'])?$arrDetails['d_of_w']:'*')  . "'></td>
+          <td align='right'>Repeat every:</td>
+          <td colspan=5><INPUT TYPE='text' NAME='month' ID='month' SIZE='1' title='values: 0-12' VALUE='" . (isset($arrDetails['month'])?$arrDetails['month']:'0')  . "'> months,
+			<INPUT TYPE='text' NAME='day' ID='day' SIZE='1' title='values: 0-31' VALUE='" . (isset($arrDetails['day'])?$arrDetails['day']:'0')  . "'> days, 
+			<INPUT TYPE='text' NAME='hour' ID='hour' SIZE='1' title='values: 0-23' VALUE='" . (isset($arrDetails['hour'])?$arrDetails['hour']:'0')  . "'> hours, 
+			<INPUT TYPE='text' NAME='min' ID='min' SIZE='1' title='values: 0-59' VALUE='" . (isset($arrDetails['min'])?$arrDetails['min']:'0')  . "'> minutes</td>
           </td>
-          </tr><tr>
-          <td align='right'>Day of Month:</td>
-          <td><INPUT TYPE='text' NAME='d_of_m' ID='d_of_m' title='values: 1-31' VALUE='" . (isset($arrDetails['d_of_m'])?$arrDetails['d_of_m']:'*')  . "'></td>
-          <td>Month of Year:</td>
-          <td><INPUT TYPE='text' NAME='m_of_y' ID='m_of_y'  title='values: 1-12 (or names)' VALUE='" . (isset($arrDetails['m_of_y'])?$arrDetails['m_of_y']:'*')  . "'></td>
           </tr>
         </table>";
 
