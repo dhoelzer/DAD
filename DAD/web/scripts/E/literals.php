@@ -190,3 +190,4 @@ $gaLiterals['View'] = 'View';
 $gaLiterals['Welcome'] = 'Welcome';
 $gaLiterals['When Created'] = 'When Created';
 $gaLiterals['with resetting password for'] = 'with resetting password for';
+$gaLiterals['Unacknowledged Alerts Pending'] = 'Unacknowledged Alerts Pending';
