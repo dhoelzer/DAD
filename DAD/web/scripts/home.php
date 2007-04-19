@@ -26,9 +26,9 @@ function showHomePage() {
     $strHTMLTable .= '<COLGROUP>';
     $strHTMLTable .= '  <COL align=right width="10%">';    //Descriptions
     $strHTMLTable .= '  <COL align=left width="5%">';      //Counts
-    $strHTMLTable .= '  <COL align=left width="85%">';     //remainder of white space on page
+    //$strHTMLTable .= '  <COL align=left width="85%">';     //remainder of white space on page
     $strHTMLTable .= '</COLGROUP>';
-    $strHTMLTable .= '<tr><td>&nbsp;</td><td></td><td></td></tr>';
+    $strHTMLTable .= '<tr><td>&nbsp;</td><td></td></tr>';
 
 
     /*Get the number of new folder that have shown up*/
@@ -41,7 +41,12 @@ function showHomePage() {
     $rows = runQueryReturnArray( $strSQL );
     $strHTMLTable .= '<tr><td nowrap><b><a href=' . getOptionURL(OPTIONID_SYSTEM_LOGS) . ">${gaLiterals['System']} ${gaLiterals['Events']}:</a></b></td><td>&nbsp;" . $rows[0][0] . '</td></tr>';
 
-    $strHTMLTable .= '</table>';
+	/* Pending alerts */
+	$strSQL = "SELECT COUNT(*) FROM dad_alerts WHERE acknowledged=FALSE";
+	$rows = runQueryReturnArray($strSQL);
+	$strHTMLTable .= "<tr><td nowrap><b><a href=" . getOptionURL(OPTIONID_LOG_ANALYSIS) . ">${gaLiterals['Unacknowledged Alerts Pending']}:</a></b></td><td>&nbsp;" . $rows[0][0] . "</td></tr>";
+    
+	$strHTMLTable .= '</table>';
 
     $strHTML .= $strHTMLTable;
 
