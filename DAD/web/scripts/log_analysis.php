@@ -75,7 +75,8 @@ function show_log_stats()
 {
 
     global $gaLiterals;
-
+	global	$Global;
+	
     $strSQL   = 'SELECT COUNT(*) FROM dad_sys_events';;
     $events = runQueryReturnArray( $strSQL );
 	$num_events = $events[0][0];
@@ -97,7 +98,48 @@ function show_log_stats()
 	$strHTML .= "<p>The database volume currently has ".number_format($FreeSpace)." bytes free (".
 		$PercentFree."%).  ".
 	    "This should be enough space for approximately ".number_format($MoreEvents)." more events.";
-	$strHTML .= "<p><h3>Aggregate Log Statistics</h3><img src='/Stats/Aggregate.gif'>";
+// Alerts
+	if(isset($Global['AckMarker']) && $Global['AckMarker'] == '1')
+	{
+		acknowledge_events();
+	}
+	$strURL  = getOptionURL(OPTIONID_LOG_ANALYSIS);
+	$strHTML .=<<<endHTML
+		<form id='acknowledge_alerts' action='$strURL' method='post'>
+		<input type='hidden' name='AckMarker' value='1'></input>
+		<p><h3>Pending Alerts</h3><input type='submit' value='Acknowledge Marked'></input></h3>
+		<table border='0' cellpadding='5'>
+			<tr><th>Ack</th><th>Alert Time</th><th>Event Time</th><th>Alert</th></tr>
+endHTML;
+	$strSQL = "SELECT FROM_UNIXTIME(Alert_Time) as 'Alerted at', ".
+		"FROM_UNIXTIME(Event_Time) as 'Event Timestamp', Event_Data as 'Alert', ".
+		"Severity, dad_alert_id from dad_alerts WHERE Acknowledged=FALSE ORDER BY Alert_Time,Event_Time";
+	$alerts = runQueryReturnArray($strSQL);
+	if(! $alerts)
+	{
+		$strHTML .= "<tr><td colspan='4'><center><H4>No Pending Alerts</h4></td></tr>";
+	}
+	else
+	{
+		foreach($alerts as $alert)
+		{
+			switch($alert[3])
+			{
+				case '0' : $bgcolor="#dddddd"; $fgcolor="#000000"; break; // Informational
+				case '1' : $bgcolor="#10a010"; $fgcolor="#000000"; break; // Minor
+				case '2' : $bgcolor="#c0c000"; $fgcolor="#000000"; break; //Important
+				case '3' : $bgcolor="#ffff00"; $fgcolor="#000000"; break; //Medium
+				case '4' : $bgcolor="#ff10aa"; $fgcolor="#000000"; break; //Serious
+				case '5' : $bgcolor="#ff0000"; $fgcolor="#000000"; break; //Critical
+			}
+			$strHTML .=<<<endHTML
+				<tr bgcolor='$bgcolor'><td><input name='ack_$alert[4]' type='checkbox' value='$alert[4]'></input></td><td>$alert[0]</td><td>$alert[1]</td><td>$alert[2]</td></tr>
+endHTML;
+		}
+	}
+	$strHTML .= "</table>";
+// Stats
+	$strHTML .= "<p><h3>Aggregate Log Statistics</h3><img src='/Stats/Aggregate.gif'>";	
 	if($systems) 
 	{
 		foreach($systems as $row)
@@ -110,6 +152,25 @@ function show_log_stats()
 		$strHTML .= "<p><h3>No systems are currently being monitored.</h3>";
 	}
     add_element($strHTML);
+}
+
+/*
+ *	acknowledge_events takes care of updating the dad_alerts table to mark events as handled.
+ *	4/07 - DSH
+ */
+function acknowledge_events()
+{
+	global $Global;
+	
+	foreach($Global as $var => $value)
+	{  
+		if(substr($var, 0, 4) == "ack_")
+		{
+			$strSQL = "update dad_alerts set Acknowledged=TRUE, Acknowledged_by='".
+				$Global['UserID']."', Acknowledged_Time=UNIX_TIMESTAMP(NOW()) WHERE dad_alert_id='".$value."'";
+			runSQLReturnAffected($strSQL);
+		}
+	}
 }
 
 /*
