@@ -401,7 +401,7 @@ function show_sql_query()
     $txtQueryCategory = isset($Global["txtQueryCategory"]) ? $Global["txtQueryCategory"] : NULL;
 	$intSelectedQuery = isset($Global["SelectedQuery"]) ? $Global["SelectedQuery"] : NULL;
 	$txtPostbackValue = isset($Global["PostbackValue"]) ? $Global["PostbackValue"] : NULL;
-	$aResults = runQueryReturnArray("SELECT Query_ID,Name,Description,Category,Query FROM dad_sys_queries");
+	$aResults = runQueryReturnArray("SELECT Query_ID,Name,Description,Category,Query FROM dad_sys_queries ORDER BY Category,Name");
 	$ExistingQueriesOptions = "";
 	foreach($aResults as $row)
 	{
@@ -415,13 +415,13 @@ function show_sql_query()
 				{
 					$strSQLQuery = $row[4];
 					$txtQueryName = $row[1];
-					$txtQueryDescription == $row[2];
+					$txtQueryDescription = $row[2];
 					$txtQueryCategory = $row[3];
 				}
 			}
 		}
-		$tmpString = "$row[1] - $row[2]";
-		$tmpString = substr($tmpString, 0, 80);
+		$tmpString = "$row[3]: $row[1] - $row[2]";
+		$tmpString = substr($tmpString, 0, 100);
 		$ExistingQueriesOptions .= "<option value=\"$row[0]\"$selected>$tmpString";
 
 	}
