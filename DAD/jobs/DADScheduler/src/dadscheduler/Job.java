@@ -20,6 +20,7 @@ public class Job {
     private String arg1;
     private String arg2;
     private int runtime;
+    private String last_run;
     private int db_job_ID;
     private boolean exists;
     
@@ -32,6 +33,17 @@ public class Job {
         db_job_ID = -1;
         runtime = 0;
         exists = false;
+    }
+    
+    public String SetLastExecTime(String x)
+    {
+        last_run = x;
+        return last_run;
+    }
+    
+    public String GetLastExecTime()
+    {
+        return last_run;
     }
     
     public boolean exists()

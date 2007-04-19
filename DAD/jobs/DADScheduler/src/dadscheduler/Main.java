@@ -41,7 +41,7 @@ public class Main {
     
     private static void JobFinished(int job)
     {
-        System.out.println("Killing JobID: " + job);
+//        System.out.println("Killing JobID: " + job);
         schedule.SetFinished(job);
         schedule.Reschedule(job);
     }
@@ -51,16 +51,18 @@ public class Main {
     public static void main(String[] args) {
         // TODO code application logic here
         Job DoThis;
+        SpawnProcess process;
         ArrayList<SpawnProcess> processes = new ArrayList<SpawnProcess>();
                 
         schedule = new ScheduleDBInterface();
-        System.out.printf("Starting\n");
+        System.out.println("Copyright (C) 2007, David Hoelzer/Cyber-Defense.org");
+        System.out.println("DAD Scheduler now operational.");
         while(1==1)
         {
             DoThis = schedule.GetNextJob();
             if(DoThis.exists())
             {
-                SpawnProcess process = new SpawnProcess(DoThis);
+                process = new SpawnProcess(DoThis);
                 process.start();
                 processes.add(process);
             }
@@ -82,20 +84,19 @@ public class Main {
     {
         SpawnProcess aProcessList[] = new SpawnProcess[ProcessList.size()];
         aProcessList = ProcessList.toArray(aProcessList);
-        System.out.println("Running jobs: " + ProcessList.size());
+//        System.out.println("Running jobs: " + ProcessList.size());
         for(SpawnProcess i : aProcessList)
         {
-            System.out.println("\t" + i.QueryJobID() + ": " + 
-                    i.QueryDescription() + 
-                    " is " + (i.IsRunning() == true ? "running" : "dead"));
+//            System.out.println("\t" + i.QueryJobID() + ": " + 
+//                    i.QueryDescription() + 
+//                    " is " + (i.IsRunning() == true ? "running" : "dead"));
             if(! i.IsRunning())
             {
                 JobFinished(i.QueryJobID());
                 ProcessList.remove(i);
             }
         }
-        System.out.println("------------------");
-        
+//        System.out.println("------------------");
     }
     
 }

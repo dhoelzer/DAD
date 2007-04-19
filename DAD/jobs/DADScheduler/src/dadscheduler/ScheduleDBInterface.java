@@ -41,6 +41,7 @@ public class ScheduleDBInterface {
         {
             if(!rs.next()) { return thisJob; }
             thisJob.SetExecutable(rs.getString("path"));
+            thisJob.SetLastExecTime(rs.getString("last_ran"));
             thisJob.SetName(rs.getString("descrip"));
             thisJob.SetRuntime(rs.getInt("next_start"));
             job_ID = rs.getInt("id_dad_adm_job");
@@ -76,9 +77,7 @@ public class ScheduleDBInterface {
         rs = dbo.SQLQuery(SQL);
         try
         {
-            System.out.println("Resetting JobID in DB");
             if(!rs.next()) { return; } // Job deleted while running?
-            System.out.println("Found the job");
             last_started = rs.getInt("next_start");
             if(last_started == 0)
             {
@@ -89,13 +88,15 @@ public class ScheduleDBInterface {
             days = rs.getInt("day") * 86400;
             rs.close();
             next_start_time = last_started + minutes + hours + days;
-            System.out.println("After reschedule.");
+            while(next_start_time < (now.getTime()/1000))
+            {
+                next_start_time += minutes + hours + days;
+            }
             SQL = "UPDATE dad_adm_job SET "+
                     "is_running=FALSE, last_ran=" + last_started +
                     ", next_start=" + next_start_time + " WHERE " +
                     "id_dad_adm_job='" + job + "'";
             dbo.SQLQueryNoResult(SQL);
-            System.out.println("Finished reset");
         }
         catch (java.sql.SQLException e)
         {

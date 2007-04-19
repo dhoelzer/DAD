@@ -58,10 +58,10 @@ public class SpawnProcess extends Thread implements Runnable {
  
     public void run()
     {
-        System.out.printf("Starting process: %s\n", thisJob.GetExecutable());
         try 
         {
-            SpawnedProcess = new ProcessBuilder(thisJob.GetExecutable()).start();
+            SpawnedProcess = new ProcessBuilder(thisJob.GetExecutable(),
+                    thisJob.GetLastExecTime()).start();
             // The following should be changed to real error checking - TODO
             TimeStarted = new Date();
 /*            try
@@ -93,7 +93,7 @@ public class SpawnProcess extends Thread implements Runnable {
     {
         try
         {
-            if(SpawnedProcess.exitValue() == 0)
+            if(SpawnedProcess.exitValue() >= 0)
             {
                 return false;
             }
