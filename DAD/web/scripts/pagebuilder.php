@@ -336,7 +336,7 @@ function _body()
 
    $_html_body .= "<body class=\"cols-$intNumberOfColumns\">\n";
    $_html_body .= "<div id=\"header\">\n";
-   $_html_body .= "<h1 id=\"sitename\"><span class=\"sitename-sm\">" . $gaLiterals['DADLine1'] . "</span><br />\n";
+   $_html_body .= "<h1 id=\"sitename\"><span class=\"sitename-sm\">" . $gaLiterals['DADLine1'] . " <img src='images/UStatus.jpg'></span><br />\n";
    $_html_body .= $gaLiterals['DADLine2'] . "</h1>\n";
    $_html_body .= "<ul id=\"sitelinks\">\n";
    $_html_body .= "<li><a href=\"". $strHelpURL . "\">" . $gaLiterals['Help'] . "</a></li>\n";
