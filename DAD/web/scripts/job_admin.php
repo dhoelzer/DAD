@@ -72,7 +72,10 @@ function edit_job() {
 
             $strSQL = "DELETE dad_adm_job FROM dad_adm_job WHERE id_dad_adm_job = '${Global['id_dad_adm_job']}'";
             $strAff = runSQLReturnAffected( $strSQL );
-
+			// Right now there is almost NO validation of this information to ensure that it is a valid date!!!  TODO
+			list($hour, $minute) = split(":",$Global['start_time']);
+			list($year, $month, $day) = split("-", $Global['start_date']);
+			$first_start_time = mktime($hour, $minute, 0, $month, $day, $year);
             $strSQL = "INSERT INTO dad_adm_job( 
                 id_dad_adm_job,
                 descrip,
@@ -104,7 +107,7 @@ function edit_job() {
                 '${Global['path']}',
                 '${Global['package_name']}',
                 '${Global['calleractive']}',
-                UNIX_TIMESTAMP(NOW()),
+                $first_start_time,
                 '${Global['user_name']}',
                 '${Global['distinguishedname']}',
                 '${Global['pword']}',
