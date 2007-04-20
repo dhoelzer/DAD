@@ -201,6 +201,7 @@ CREATE TABLE `dad_adm_job` (
   `day` int(10) unsigned default NULL,
   `month` int(10) unsigned default NULL,
   `is_running` tinyint(1) NOT NULL default '0',
+  `persistent` tinyint(1) NOT NULL default '0',
   PRIMARY KEY  (`id_dad_adm_job`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 

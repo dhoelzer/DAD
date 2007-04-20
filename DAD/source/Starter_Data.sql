@@ -35,7 +35,7 @@ CREATE TABLE `userstat` (
 
 /*!40000 ALTER TABLE `userstat` DISABLE KEYS */;
 LOCK TABLES `userstat` WRITE;
-INSERT INTO `userstat` VALUES (1,1,90,'2007-04-19 19:02:51'),(2,2,167,'2006-11-18 19:36:19'),(3,6,154,'2007-03-12 15:22:27'),(4,8,1,'2005-06-30 14:18:57'),(5,12,1,'2005-06-30 14:38:22'),(6,13,1,'2005-06-30 17:58:52'),(7,14,1,'2005-06-30 18:01:56'),(8,19,1,'2005-06-30 20:27:24'),(9,3,424,'2007-03-12 13:29:05'),(10,22,3,'2005-07-01 17:41:56'),(11,23,25,'2006-02-01 20:19:50'),(12,32,2,'2005-07-27 14:01:15'),(13,33,12,'2006-03-02 15:47:40'),(14,34,2,'2006-03-21 15:43:20'),(15,35,17,'2007-01-23 21:21:34'),(16,36,1,'2006-06-02 13:53:27'),(17,37,7,'2007-01-23 20:16:29');
+INSERT INTO `userstat` VALUES (1,1,93,'2007-04-19 23:52:27'),(2,2,167,'2006-11-18 19:36:19'),(3,6,154,'2007-03-12 15:22:27'),(4,8,1,'2005-06-30 14:18:57'),(5,12,1,'2005-06-30 14:38:22'),(6,13,1,'2005-06-30 17:58:52'),(7,14,1,'2005-06-30 18:01:56'),(8,19,1,'2005-06-30 20:27:24'),(9,3,424,'2007-03-12 13:29:05'),(10,22,3,'2005-07-01 17:41:56'),(11,23,25,'2006-02-01 20:19:50'),(12,32,2,'2005-07-27 14:01:15'),(13,33,12,'2006-03-02 15:47:40'),(14,34,2,'2006-03-21 15:43:20'),(15,35,17,'2007-01-23 21:21:34'),(16,36,1,'2006-06-02 13:53:27'),(17,37,7,'2007-01-23 20:16:29');
 UNLOCK TABLES;
 /*!40000 ALTER TABLE `userstat` ENABLE KEYS */;
 
@@ -119,6 +119,7 @@ CREATE TABLE `dad_adm_job` (
   `day` int(10) unsigned default NULL,
   `month` int(10) unsigned default NULL,
   `is_running` tinyint(1) NOT NULL default '0',
+  `persistent` tinyint(1) NOT NULL default '0',
   PRIMARY KEY  (`id_dad_adm_job`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
@@ -129,7 +130,7 @@ CREATE TABLE `dad_adm_job` (
 
 /*!40000 ALTER TABLE `dad_adm_job` DISABLE KEYS */;
 LOCK TABLES `dad_adm_job` WRITE;
-INSERT INTO `dad_adm_job` VALUES (1,'Generate Statistics',NULL,'DAD Internals','C:\\\\dad\\\\jobs\\\\log parser\\\\run_stats.bat','','',1177022181,'','','',NULL,0,'2007-04-16','00:00:00',1177021581,10,0,0,0,0),(3,'Prune events from database',NULL,'DAD Internals','C:\\\\dad\\\\jobs\\\\log parser\\\\run_groomer.bat',NULL,NULL,1177768081,NULL,NULL,NULL,0,0,'2007-04-16',NULL,0,0,0,10,NULL,0),(4,'Alert on Domain Joins',NULL,'Alert','C:\\\\dad\\\\jobs\\\\alerts\\\\DomainJoins.bat',NULL,NULL,1177022198,NULL,NULL,NULL,NULL,NULL,'2007-04-16',NULL,1177021898,5,NULL,NULL,NULL,0),(5,'Alert on Audit Log Cleared',NULL,'Alert','C:\\\\dad\\\\jobs\\\\alerts\\\\AuditLogCleared.bat',NULL,NULL,1177022077,NULL,NULL,NULL,NULL,NULL,'2007-04-16',NULL,1177021777,5,NULL,NULL,NULL,0),(6,'Alert on Remote Desktop connections',NULL,'Alert','C:\\\\dad\\\\jobs\\\\alerts\\\\RemoteDesktop.bat',NULL,NULL,1177022520,NULL,NULL,NULL,0,NULL,'2007-04-16',NULL,1177021920,10,0,0,0,0);
+INSERT INTO `dad_adm_job` VALUES (1,'Generate Statistics',NULL,'DAD Internals','C:\\\\dad\\\\jobs\\\\log parser\\\\run_stats.bat','','',1177031781,'','','',NULL,0,'2007-04-16','00:00:00',1177031181,10,0,0,0,0,0),(3,'Prune events from database',NULL,'DAD Internals','C:\\\\dad\\\\jobs\\\\log parser\\\\run_groomer.bat',NULL,NULL,1177768081,NULL,NULL,NULL,0,0,'2007-04-16',NULL,0,0,0,10,NULL,0,0),(4,'Alert on Domain Joins',NULL,'Alert','C:\\\\dad\\\\jobs\\\\alerts\\\\DomainJoins.bat',NULL,NULL,1177031498,NULL,NULL,NULL,NULL,NULL,'2007-04-16',NULL,1177031198,5,NULL,NULL,NULL,0,0),(5,'Alert on Audit Log Cleared',NULL,'Alert','C:\\\\dad\\\\jobs\\\\alerts\\\\AuditLogCleared.bat',NULL,NULL,1177031377,NULL,NULL,NULL,NULL,NULL,'2007-04-16',NULL,1177031077,5,NULL,NULL,NULL,1,0),(6,'Alert on Remote Desktop connections',NULL,'Alert','C:\\\\dad\\\\jobs\\\\alerts\\\\RemoteDesktop.bat',NULL,NULL,1177031520,NULL,NULL,NULL,0,NULL,'2007-04-16',NULL,1177030920,10,0,0,0,0,0),(7,'Start Aggregator',NULL,'DAD Internals','C:\\\\dad\\\\jobs\\\\log parser\\\\run_aggregator.bat','','',1177026772,'','','',NULL,0,'2007-04-19','16:52:00',NULL,0,0,0,0,0,1);
 UNLOCK TABLES;
 /*!40000 ALTER TABLE `dad_adm_job` ENABLE KEYS */;
 
@@ -499,7 +500,7 @@ CREATE TABLE `session` (
 
 /*!40000 ALTER TABLE `session` DISABLE KEYS */;
 LOCK TABLES `session` WRITE;
-INSERT INTO `session` VALUES ('HWOm.X7aZ66icvCFv26KYMdu8vvo6sIqrj|6jjLeiaOsu~~HsT$miCBtD8WvwwWo',1,'192.168.254.114',1177030643,0),('15.S~_PAk73TY_RWNsVqaofF50ziGDSBWkLd9Bjs9kb0e6s2nIHfTM10v_YSGrF~',2,'10.245.31.158',1163887791,0),('OrTw5lwItQMo|IlmMB7n4oDmeP2Xqispt$8o8A5ExybugjHSykDtszWSlJ$vH1sM',32,'10.1.194.102',1122459828,0),('5y79KbLsPUQru0SkDTnKqVB3$YZTQjB~qoIJLluWoJmNd|zUvUW8gkeO1FW5WaKj',8,'10.1.194.102',1120127637,0),('t2gCJTsDROFlmd84.SJX3Ug2I$w9|r.dL23o4U6Foslzjo5Zo5f94E6.YZfYdFi|',12,'10.1.194.102',1120128802,0),('8FMv3u~9PQbbng|K~r_aWOp|JG75H4RGJ5lcjv$7e|nYcOuRybboR4x9ospL4C3O',13,'10.1.194.102',1120140832,0),('Vdy6HZQpngm|x6OfiN2kHQVT|VWJKQ4HFKR~mx0I$PAbQYetHGTq46Z|Lu6a7xvF',14,'10.1.194.102',1120141966,0),('4XOZJtEBMPriT9VX|F0|xAsYNMi7QlsFSqG2r7QeDIbo20_aFKXejABd~wt~Mbvy',19,'10.1.194.102',1120149744,0),('MvXf9W|xBIM_cW6QSAndEV4ugmblfLrF5O4RhWMw1FTkyZewYpM4K~Uj6LxCKX9W',22,'10.1.194.102',1120226441,0),('VBmyTm4Kmy6thHF$Mm4ZxJP_hQE~5W~qeAPpdDwsfVRBSRV2J8dS.C70U8ySkHuw',33,'10.1.56.113',1141307184,0),('.2SaN_ZIwM4N|Rd55KzlYrpm6xE0H.x6.Im~uxLhhgB1jd4.hmJemr~z2Grlhwer',34,'10.1.194.98',1142946878,0),('LtpavdNDafJA2obDH3LUqWfW0seQxvHaQn4.7Ycf1vNEOZETaCg4qiFKbof6ML6C',35,'10.1.182.95',1169597068,0),('Bi5wKpIm92YUOhB2n24c2l8vb68i9kWDgWTWS2Q$oj9K29yJg5xyinUaHQY9vAyf',3,'127.0.0.1',1173735943,0),('_M6WwkpAWFhPIaQNKXzdkiDomiB2_oAcCz|P2eqZ_q2owAYmRGTzu|Rcj3u5HKVe',6,'10.1.195.113',1173723972,0);
+INSERT INTO `session` VALUES ('15.S~_PAk73TY_RWNsVqaofF50ziGDSBWkLd9Bjs9kb0e6s2nIHfTM10v_YSGrF~',2,'10.245.31.158',1163887791,0),('OrTw5lwItQMo|IlmMB7n4oDmeP2Xqispt$8o8A5ExybugjHSykDtszWSlJ$vH1sM',32,'10.1.194.102',1122459828,0),('5y79KbLsPUQru0SkDTnKqVB3$YZTQjB~qoIJLluWoJmNd|zUvUW8gkeO1FW5WaKj',8,'10.1.194.102',1120127637,0),('t2gCJTsDROFlmd84.SJX3Ug2I$w9|r.dL23o4U6Foslzjo5Zo5f94E6.YZfYdFi|',12,'10.1.194.102',1120128802,0),('8FMv3u~9PQbbng|K~r_aWOp|JG75H4RGJ5lcjv$7e|nYcOuRybboR4x9ospL4C3O',13,'10.1.194.102',1120140832,0),('Vdy6HZQpngm|x6OfiN2kHQVT|VWJKQ4HFKR~mx0I$PAbQYetHGTq46Z|Lu6a7xvF',14,'10.1.194.102',1120141966,0),('4XOZJtEBMPriT9VX|F0|xAsYNMi7QlsFSqG2r7QeDIbo20_aFKXejABd~wt~Mbvy',19,'10.1.194.102',1120149744,0),('MvXf9W|xBIM_cW6QSAndEV4ugmblfLrF5O4RhWMw1FTkyZewYpM4K~Uj6LxCKX9W',22,'10.1.194.102',1120226441,0),('VBmyTm4Kmy6thHF$Mm4ZxJP_hQE~5W~qeAPpdDwsfVRBSRV2J8dS.C70U8ySkHuw',33,'10.1.56.113',1141307184,0),('.2SaN_ZIwM4N|Rd55KzlYrpm6xE0H.x6.Im~uxLhhgB1jd4.hmJemr~z2Grlhwer',34,'10.1.194.98',1142946878,0),('LtpavdNDafJA2obDH3LUqWfW0seQxvHaQn4.7Ycf1vNEOZETaCg4qiFKbof6ML6C',35,'10.1.182.95',1169597068,0),('Bi5wKpIm92YUOhB2n24c2l8vb68i9kWDgWTWS2Q$oj9K29yJg5xyinUaHQY9vAyf',3,'127.0.0.1',1173735943,0),('_M6WwkpAWFhPIaQNKXzdkiDomiB2_oAcCz|P2eqZ_q2owAYmRGTzu|Rcj3u5HKVe',6,'10.1.195.113',1173723972,0);
 UNLOCK TABLES;
 /*!40000 ALTER TABLE `session` ENABLE KEYS */;
 
