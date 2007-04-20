@@ -60,14 +60,17 @@ public class Main {
         System.out.println("---------------------------------------------------");
         System.out.println("Starting persistent jobs");
         
+        schedule.ClearIsRunning();
         DoThis = schedule.GetNextJob("TRUE");
         while(DoThis.exists())
         {
+            System.out.println("\tStarting "+DoThis.GetName());
             process = new SpawnProcess(DoThis);
             process.start();
             processes.add(process);
             DoThis = schedule.GetNextJob("True");
         }
+        System.out.println("Normal operation begins.");
         // Persistent jobs started.  Clear the running flag for restart.
         schedule.ClearIsRunning();
         while(1==1)

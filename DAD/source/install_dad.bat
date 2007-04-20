@@ -60,3 +60,16 @@ call %INSTALL_DIR%\Java\jre-6u1-windows-i586-p-iftw.exe
 echo Installing MySQL Java ODBC Connector...
 copy %INSTALL_DIR%\Java\mysql-connector-java-5.0.5-bin.jar "C:\Program Files\Java\jre1.6.0_01\lib\ext"
 echo Installation Completed!
+echo -----------------------------------------------------------------
+echo At this point you should log in using your web interface and add
+echo servers to monitor!
+echo In the future, until the scheduler is installed as a service, be
+echo sure to run "C:\dad\jobs\start_scheduler.bat" if this window is
+echo closed or the system restarted.
+echo -----------------------------------------------------------------
+echo Starting Scheduler.
+@echo off
+c:
+cd \dad\jobs
+call start_scheduler.bat
+

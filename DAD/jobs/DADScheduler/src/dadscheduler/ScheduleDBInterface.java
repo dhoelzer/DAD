@@ -32,13 +32,11 @@ public class ScheduleDBInterface {
     {
         Job thisJob = new Job();
         ResultSet rs;
-        String RunningState;
         int job_ID;
         ResultSetMetaData columns;
         String data;
         java.util.Date now = new java.util.Date();
         
-        RunningState = " ";
         if(PersistentState != "TRUE")
         {
             PersistentState = "FALSE";

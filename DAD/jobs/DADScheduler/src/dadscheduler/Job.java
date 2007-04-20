@@ -32,12 +32,13 @@ public class Job {
         arg2 = "";
         db_job_ID = -1;
         runtime = 0;
+        last_run = "0";
         exists = false;
     }
     
     public String SetLastExecTime(String x)
     {
-        last_run = x;
+        last_run = (x==null? "0" : x);
         return last_run;
     }
     
