@@ -25,7 +25,6 @@ function edit_job() {
         dispatch( OPTIONID_LOGOUT );
         return;
     }
-
     add_element( "<b><font size=2>${gaLiterals['Jobs']}</font></b><br><br>" );
     $strURL  = getOptionURL(OPTIONID_JOBS);
 
@@ -121,7 +120,7 @@ function edit_job() {
                 '${Global['day']}',
                 '${Global['month']}',
 				FALSE, ".
-				(isset($Global['persistent']) ? (($Global['persistent'] == '1') ? "TRUE" : "FALSE") : "FALSE") . "
+				(isset($Global['persistent']) ? (($Global['persistent'] == 'on') ? "TRUE" : "FALSE") : "FALSE") . "
               )";
 
             $strID = runInsertReturnID( $strSQL );
@@ -203,7 +202,7 @@ function edit_job() {
 			<INPUT TYPE='text' NAME='hour' ID='hour' SIZE='1' title='values: 0-23' VALUE='" . (isset($arrDetails['hour'])?$arrDetails['hour']:'0')  . "'> hours, 
 			<INPUT TYPE='text' NAME='min' ID='min' SIZE='1' title='values: 0-59' VALUE='" . (isset($arrDetails['min'])?$arrDetails['min']:'0')  . "'> minutes</td>
 		</td>
-		<td align='right'>Persistent: <input type='checkbox' name=persistent value='" . (isset($arrDetails['persistent']) ? $arrDetails['persistent'] : '0') . "'>
+		<td align='right'>Persistent: <input type='checkbox' name=persistent " . (isset($arrDetails['persistent']) ? ($arrDetails['persistent']==1 ? 'CHECKED' : '') : '') . ">
         </tr>
         </table>";
 
