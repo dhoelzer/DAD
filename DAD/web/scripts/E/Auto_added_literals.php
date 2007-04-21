@@ -41,3 +41,4 @@ $gaLiterals['Computer Groups Admin'] = 'Computer Groups Admin';
 $gaLiterals['Alert User Admin'] = 'Alert User Admin';
 $gaLiterals['Alert Group Admin'] = 'Alert Group Admin';
 $gaLiterals['Alert Admin'] = 'Alert Admin';
+$gaLiterals['MANAGE_CARVER'] = 'Manage Carver Rules';

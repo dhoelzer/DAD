@@ -66,6 +66,12 @@ my	$dsn, 						# Database connection
 	%Service_IDs,				# Holds known and used Service IDs from the database
 	%System_IDs;				# Holds known and used System IDs from the database
 
+# Check for command line args:
+if($ARGV[0])
+{
+	print "args: $ARGV[0] - $ARGV[1] - $ARGV[2]\n";
+	exit(0);
+}
 # Open connection to the database:
 #Read in and evaluate the configuration values
 open(FILE,"../dbconfig.ph") or die "Could not find configuration file!\n";
