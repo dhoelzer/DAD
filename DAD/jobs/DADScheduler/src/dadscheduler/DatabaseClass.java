@@ -23,15 +23,29 @@ public class DatabaseClass {
     
     /** Creates a new instance of DatabaseClass */
     public DatabaseClass() {
+        
         try
         {
             Class.forName("com.mysql.jdbc.Driver").newInstance();
             conn = DriverManager.getConnection(connectionURL, username, password);
         }
-        catch (Exception e)
+        catch(IllegalAccessException e)
         {
-            System.err.println("Could not connect to database server:" + e.getMessage());
+            System.err.println("Illegal access exception:"+e.getMessage());
         }
+        catch(InstantiationException e)
+        {
+            System.err.println("Could not instantiate driver:" + e.getMessage());
+        }
+        catch(ClassNotFoundException e)
+        {
+            System.err.println("Could not find class:" + e.getMessage());
+        }
+        catch(SQLException e)
+        {
+            System.err.println("Could not connect to database:" + e.getMessage());
+        }
+              
     }
     
     public int SQLQueryNoResult(String theQuery)

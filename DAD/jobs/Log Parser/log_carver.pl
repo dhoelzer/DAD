@@ -76,17 +76,28 @@ $dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
 	or die ("Could not connect to DB server to process syslogs.\n");
 
 # Grab the log file names
-print "Grabbing log paths\n";
+if($DEBUG)
+{
+	print "Grabbing log paths\n";
+}
 @logfiles = &Get_Unprocessed_Log_Paths($PENDING_LOG_LOCATION);
-print "Getting carving rules\n";
+if($DEBUG)
+{
+	print "Getting carving rules\n";
+}
 &Get_Rules();
-print "Processing logs:\n";
+if($DEBUG)
+{
+	print "Processing logs:\n";
+}
 foreach $log (@logfiles)
 {
-	print "\tProcessing: $log\n";
+	if($DEBUG)
+	{
+		print "\tProcessing: $log\n";
+	}
 	&process_syslog($log);
 }
-print "Done!\n";
 
 ##################################################
 #
@@ -123,7 +134,10 @@ sub Get_Unprocessed_Log_Paths
 	my $file, @unprocessed, @row;
 	my @entries = glob("$path/*");
 	if(!$depth) { $depth = 0; }
-	print "Processing $path $depth\n";
+	if($DEBUG)
+	{
+		print "Processing $path $depth\n";
+	}
 	foreach $file (@entries)
 	{
 		if( -d $file) { &Get_Unprocessed_Log_Paths($file, $depth+1) };
@@ -137,7 +151,10 @@ sub Get_Unprocessed_Log_Paths
 			if(!(@row)) # Not processed
 			{
 				$unprocessed[++$#unprocessed] = $file;
-				print "\tWill process $file\n";
+				if($DEBUG)
+				{
+					print "\tWill process $file\n";
+				}
 			}
 		}
 	}

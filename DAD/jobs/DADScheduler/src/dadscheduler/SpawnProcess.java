@@ -58,26 +58,14 @@ public class SpawnProcess extends Thread implements Runnable {
  
     public void run()
     {
-        try 
+        try
         {
             SpawnedProcess = new ProcessBuilder(thisJob.GetExecutable(),
                     thisJob.GetLastExecTime()).start();
             // The following should be changed to real error checking - TODO
             TimeStarted = new Date();
-/*            try
-            {
-                System.out.println("Waiting");
-                SpawnedProcess.waitFor();
-                System.out.println("Done");
-                is_running = false;
-            }
-            catch (Exception e)
-            {
-                SpawnedProcess.destroy();
-            }
-*/
         }
-        catch (Exception err)
+        catch(IOException err)
         {
             err.printStackTrace();
         }

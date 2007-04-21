@@ -23,9 +23,15 @@ public class ScheduleDBInterface {
     public ScheduleDBInterface() {
         dbo = new DatabaseClass();
     }
+    
+    public Job GetPersistentJobs()
+    {
+        return GetNextJob("AND persistent=TRUE");
+    }
+    
     public Job GetNextJob()
     {
-        return GetNextJob("FALSE");
+        return GetNextJob("");
     }
     
     public Job GetNextJob(String PersistentState)
@@ -37,14 +43,10 @@ public class ScheduleDBInterface {
         String data;
         java.util.Date now = new java.util.Date();
         
-        if(PersistentState != "TRUE")
-        {
-            PersistentState = "FALSE";
-        }
         now.getTime();
         String SQL = "SELECT * FROM dad_adm_job WHERE next_start<" +
                 (now.getTime()/1000) + " AND is_running=FALSE " +
-                "AND persistent="+PersistentState;
+                PersistentState;
         rs = dbo.SQLQuery(SQL);
         try
         {
@@ -77,15 +79,13 @@ public class ScheduleDBInterface {
     void ClearIsRunning()
     {
         String SQL;
-        try
         {
             SQL = "UPDATE dad_adm_job SET "+
                     "is_running=FALSE";
             dbo.SQLQueryNoResult(SQL);
         }
-        catch (Exception e)
         {
-            System.err.println("SQL error has occurred: " + e.getMessage());
+            //System.err.println("SQL error has occurred: " + e.getMessage());
             System.err.println("Could not mark job as completed!");
             return;
         }

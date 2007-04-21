@@ -34,7 +34,7 @@ import java.util.*;
 public class Main {
     
     static private ScheduleDBInterface schedule;
-
+    static private String Version="0.1";
     /** Creates a new instance of Main */
     public Main() {
     }
@@ -53,48 +53,80 @@ public class Main {
         Job DoThis;
         SpawnProcess process;
         ArrayList<SpawnProcess> processes = new ArrayList<SpawnProcess>();
-                
-        schedule = new ScheduleDBInterface();
-        System.out.println("Copyright (C) 2007, David Hoelzer/Cyber-Defense.org");
-        System.out.println("DAD Scheduler now operational.");
-        System.out.println("---------------------------------------------------");
-        System.out.println("Starting persistent jobs");
-        
-        schedule.ClearIsRunning();
-        DoThis = schedule.GetNextJob("TRUE");
-        while(DoThis.exists())
+
+        try
         {
-            System.out.println("\tStarting "+DoThis.GetName());
-            process = new SpawnProcess(DoThis);
-            process.start();
-            processes.add(process);
-            DoThis = schedule.GetNextJob("True");
-        }
-        System.out.println("Normal operation begins.");
-        // Persistent jobs started.
-        while(1==1)
-        {
-            DoThis = schedule.GetNextJob();
-            if(DoThis.exists())
+            schedule = new ScheduleDBInterface();
+            System.out.println("Copyright (C) 2007, David Hoelzer/Cyber-Defense.org");
+            System.out.println("DAD Scheduler (v"+Version+") now operational.");
+            System.out.println("---------------------------------------------------");
+            System.out.println("Starting persistent jobs");
+
+            schedule.ClearIsRunning();
+            DoThis = schedule.GetPersistentJobs();
+            while(DoThis.exists())
             {
+                System.out.println("\tStarting "+DoThis.GetName());
                 process = new SpawnProcess(DoThis);
                 process.start();
                 processes.add(process);
+                DoThis = schedule.GetPersistentJobs();
             }
-            else
+            System.out.println("Normal operation begins.");
+            // Persistent jobs started.
+            while(1==1)
             {
-                try
+                DoThis = schedule.GetNextJob();
+                if(DoThis.exists())
                 {
-                    DoThis=null;
-                    Thread.sleep(10000);
+                    process = new SpawnProcess(DoThis);
+                    process.start();
+                    processes.add(process);
                 }
-                catch (Exception e)
-                { ; }
+                else
+                {
+                    try
+                    {
+                        DoThis=null;
+                        Thread.sleep(10000);
+                    }
+                    catch (InterruptedException e)
+                    { 
+                        System.out.print("Process Interrupted");
+                        throw(e); 
+                    }
+                }
+                PruneDeadJobs(processes);
             }
-            PruneDeadJobs(processes);
+        }
+        catch(InterruptedException e)
+        {
+            System.out.println("Caught exception: "+e.getMessage());
+        }
+        finally
+        {
+            System.out.println("Terminating running jobs:");
+            KillAllJobs(processes);            
         }
     }
-    
+
+    private static void KillAllJobs(ArrayList<SpawnProcess> ProcessList)
+    {
+        SpawnProcess aProcessList[] = new SpawnProcess[ProcessList.size()];
+        aProcessList = ProcessList.toArray(aProcessList);
+        System.out.println("Running jobs: " + ProcessList.size());
+        for(SpawnProcess i : aProcessList)
+        {
+            System.out.println("\t" + i.QueryJobID() + ": " + 
+                    i.QueryDescription() + 
+                    " is " + (i.IsRunning() == true ? "running" : "dead"));
+            i.KillProcess();
+            JobFinished(i.QueryJobID());
+            ProcessList.remove(i);
+        }
+        System.out.println("All Jobs Killed");
+    }
+
     private static void PruneDeadJobs(ArrayList<SpawnProcess> ProcessList)
     {
         SpawnProcess aProcessList[] = new SpawnProcess[ProcessList.size()];
