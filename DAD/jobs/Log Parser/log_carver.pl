@@ -176,6 +176,7 @@ my	$line, 						# Temp var for lines being processed
 		@field_1 = split(/ +/, $line);		# Break out standard Syslog timestamps and convert
 		$syslog_timestamp=&timestring_to_unix($field_1[1]."/".$field_1[2]."/".$field_1[5],$field_1[3]);
 		$syslog_reporting_system = $field_1[6];			# Grab system name
+		$syslog_reporting_system =~ s/[^a-zA-Z0-9._\-]//g;
 		$syslog_service = $field_1[7];					# Normally the service
 		$syslog_service =~ s/[^a-zA-Z\- ]//g;			# Strip it
 		my $matched = 0;
@@ -244,13 +245,13 @@ sub record_event
 	}
 	
 	# Now insert a new event with the correct system and service IDs
-	&SQL_Insert("INSERT INTO dad_sys_events (SystemID, TimeWritten, ServiceID, ".
+	&SQL_Insert("INSERT INTO dad_sys_events (SystemID, TimeWritten, ServiceID,Source, Computer, ".
 		"Field_0, Field_1, Field_2, Field_3, Field_4, Field_5, Field_6, Field_7, Field_8, Field_9,".
 		"Field_10, Field_11, Field_12, Field_13, Field_14, Field_15, Field_16, Field_17, Field_18, Field_19,".
 		"Field_20, Field_21, Field_22, Field_23, Field_24) ".
 		"VALUES (". $System_IDs{"$system"} .", ".
 		"'$time', ".
-		$Service_IDs{"$service"}.", ".
+		$Service_IDs{"$service"}.", 'Log Carver', '$system', ".
 		"'$values[0]', '$values[1]', '$values[2]', '$values[3]', '$values[4]', ".
 		"'$values[5]', '$values[6]', '$values[7]', '$values[8]', '$values[9]', ".
 		"'$values[10]', '$values[11]', '$values[12]', '$values[13]', '$values[14]', ".
