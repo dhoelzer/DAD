@@ -71,8 +71,7 @@ public class Main {
             DoThis = schedule.GetNextJob("True");
         }
         System.out.println("Normal operation begins.");
-        // Persistent jobs started.  Clear the running flag for restart.
-        schedule.ClearIsRunning();
+        // Persistent jobs started.
         while(1==1)
         {
             DoThis = schedule.GetNextJob();

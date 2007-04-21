@@ -78,7 +78,7 @@ $dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
 # Grab the log file names
 print "Grabbing log paths\n";
 @logfiles = &Get_Unprocessed_Log_Paths($PENDING_LOG_LOCATION);
-print "Getting carving rules";
+print "Getting carving rules\n";
 &Get_Rules();
 print "Processing logs:\n";
 foreach $log (@logfiles)
@@ -97,15 +97,16 @@ print "Done!\n";
 sub Get_Rules
 {
 	my $SQL = "SELECT match_rule, carve_rule FROM dad_adm_carvers";
-	my $result_set, @row;
+	my $result_set, $row;
 	my $i;
 	
 	$i = 0;
-	@result_set = &SQL_Query($SQL);
-	while(@row = shift(@$result_set))
+	$result_set = &SQL_Query_ref($SQL);
+	foreach $row (@$result_set)
 	{
-		$LineMatches[$i] = $row[0];
-		$FieldCutters{"$row[0]"} = $row[1];
+		my @this_row = @$row;
+		$LineMatches[$i] = $this_row[0];
+		$FieldCutters{"$this_row[0]"} = $this_row[1];
 	}
 }
 
@@ -131,15 +132,16 @@ sub Get_Unprocessed_Log_Paths
 	if($depth == 0) # Only true if we're the first iteration and not a recursion
 	{
 		foreach $file (@_file_array)
-		{
+		{ 
 			@row = &SQL_Query("SELECT CIS_Imported_ID FROM dad_sys_cis_imported WHERE Log_Name = '$file'");
 			if(!(@row)) # Not processed
 			{
 				$unprocessed[++$#unprocessed] = $file;
+				print "\tWill process $file\n";
 			}
 		}
 	}
-	return @unprocessed
+	return @unprocessed;
 }
 
 sub mark_log_processed
@@ -171,13 +173,28 @@ my	$line, 						# Temp var for lines being processed
 	{
 		chomp($line);
 		$line =~ s/(['"`])/\\\1/g;		# Escape quotes
-		@fields = split(/,/, $line);
-		@field_1 = split(/ +/, $fields[0]);
-		$syslog_timestamp=&timestring_to_unix("$field_1[0]/$field_1[1]/[0-9]{4}",$field_1[2]);
-		$syslog_reporting_system = $field_1[3];
-		$syslog_service = $field_1[4];
-		$syslog_service =~ s/[^a-zA-Z\- ]//g;
-		$fields[0] = $field_1[5]; #Moves the domain ID from the @field_1 set to position zero of @fields.
+		@field_1 = split(/ +/, $line);		# Break out standard Syslog timestamps and convert
+		$syslog_timestamp=&timestring_to_unix($field_1[1]."/".$field_1[2]."/".$field_1[5],$field_1[3]);
+		$syslog_reporting_system = $field_1[3];			# Grab system name
+		$syslog_service = $field_1[4];					# Normally the service
+		$syslog_service =~ s/[^a-zA-Z\- ]//g;			# Strip it
+		my $matched = 0;
+		foreach $match_regex (@LineMatches)
+		{
+			$_ = $line;
+			if( /$match_regex/ )
+			{	
+				$matched = 1;
+				/$FieldCutters{"$match_regex"}/;
+				@fields = ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 
+					$13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25);
+				last;	# Only one match please!
+			}
+		}
+		if(!$matched)
+		{
+			@fields = split(/,/, $line);
+		}
 		&record_event($syslog_timestamp, $syslog_reporting_system, $syslog_service, @fields);
 	}
 	close(LOG);
@@ -228,12 +245,17 @@ sub record_event
 	
 	# Now insert a new event with the correct system and service IDs
 	&SQL_Insert("INSERT INTO dad_sys_events (SystemID, TimeWritten, ServiceID, ".
-		"Field_0, Field_1, Field_2, Field_3, Field_4, Field_5, Field_6, Field_7, Field_9, Field_10) ".
+		"Field_0, Field_1, Field_2, Field_3, Field_4, Field_5, Field_6, Field_7, Field_8, Field_9,".
+		"Field_10, Field_11, Field_12, Field_13, Field_14, Field_15, Field_16, Field_17, Field_18, Field_19,".
+		"Field_20, Field_21, Field_22, Field_23, Field_24) ".
 		"VALUES (". $System_IDs{"$system"} .", ".
 		"'$time', ".
 		$Service_IDs{"$service"}.", ".
 		"'$values[0]', '$values[1]', '$values[2]', '$values[3]', '$values[4]', ".
-		"'0', '$values[6]', '$values[5]', '$values[7]', '$values[8]')");
+		"'$values[5]', '$values[6]', '$values[7]', '$values[8]', '$values[9]', ".
+		"'$values[10]', '$values[11]', '$values[12]', '$values[13]', '$values[14]', ".
+		"'$values[15]', '$values[16]', '$values[17]', '$values[18]', '$values[19]', ".
+		"'$values[20]', '$values[21]', '$values[22]', '$values[23]', '$values[24]')");
 }
 
 ##################################################
@@ -251,6 +273,16 @@ sub SQL_Query
 	my @result_set = $query->fetchrow_array();
 	$query->finish();
 	return @result_set;
+}
+sub SQL_Query_ref
+{
+	my $SQL = $_[0];
+	
+	my $query = $dbh->prepare($SQL);
+	$query -> execute();
+	my $result_set = $query->fetchall_arrayref();
+	$query->finish();
+	return $result_set;
 }
 
 ##################################################

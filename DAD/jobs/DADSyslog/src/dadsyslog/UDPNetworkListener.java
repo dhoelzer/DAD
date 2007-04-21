@@ -115,7 +115,7 @@ public class UDPNetworkListener {
                 {
                     dsSocket.receive(dpPacket);
                     String lsMessage = new String(bBuffer, 0, 0, dpPacket.getLength());
-                    LogSuccess = dlo.LogData(dpPacket.getSocketAddress()+" "+lsMessage);
+                    LogSuccess = dlo.LogData(dpPacket.getAddress()+" "+lsMessage);
                     if(!LogSuccess)
                     {
                         System.out.println("Log subsystem failure!");

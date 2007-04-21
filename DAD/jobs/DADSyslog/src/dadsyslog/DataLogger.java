@@ -35,15 +35,28 @@ import java.util.*;
 public class DataLogger {
     
     private long Mark;
-    
+    private String filename;
+    private File DataFile;
+    private FileWriter OutputStream;
     /** Creates a new instance of DataLogger */
     public DataLogger() 
     {
         Date timestamp = new Date();
-    // Generate a file name
-    // Open the file
     // Mark the time
-     Mark = timestamp.getTime();
+        Mark = timestamp.getTime();
+    // Generate a file name
+        filename = "syslog." + Mark;
+    // Open the file
+        DataFile = new File("C:\\DAD\\jobs\\LogStaging\\", filename);
+        try
+        {
+            DataFile.createNewFile();
+            OutputStream = new FileWriter(DataFile);
+        }
+        catch (Exception e) // Lazy TODO
+        {
+            System.out.println("Error opening file:" + e.getMessage());
+        }
     }
     
 
@@ -51,14 +64,35 @@ public class DataLogger {
     {
         Date Timestamp = new Date();
         // Spew data
-        System.out.print(Timestamp.getTime() + " " + Message);
-        // Check time
-        if((Timestamp.getTime() - Mark > 300000))
+        try
         {
-            System.out.println(" -- Time to carve the log --");
-            Mark = Timestamp.getTime();
+            OutputStream.write(Timestamp.toString()+" "+Message);
+            //System.out.print(Timestamp.getTime() + " " + Message);
+            // Check time
+            if((Timestamp.getTime() - Mark > 300000))
+            {
+                Mark = Timestamp.getTime();
+                OutputStream.close();
+                File rename = new File("C:\\DAD\\jobs\\LogsToProcess\\"+filename);
+                DataFile.renameTo(rename);
+                filename = "syslog." + Mark;
+            // Open the file
+                DataFile = new File("C:\\DAD\\jobs\\LogStaging\\", filename);
+                try
+                {
+                    DataFile.createNewFile();
+                    OutputStream = new FileWriter(DataFile);
+                }
+                catch (Exception e) // Lazy TODO
+                {
+                    System.out.println("Error opening file:" + e.getMessage());
+                }
+            }
+            // Elapsed?  New file, spawn carver
+            return true;
         }
-        // Elapsed?  New file, spawn carver
-        return true;
+        catch(Exception e) // Lazy TODO
+        { ; }
+        return false;
     }
 }
