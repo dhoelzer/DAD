@@ -175,8 +175,8 @@ my	$line, 						# Temp var for lines being processed
 		$line =~ s/(['"`])/\\\1/g;		# Escape quotes
 		@field_1 = split(/ +/, $line);		# Break out standard Syslog timestamps and convert
 		$syslog_timestamp=&timestring_to_unix($field_1[1]."/".$field_1[2]."/".$field_1[5],$field_1[3]);
-		$syslog_reporting_system = $field_1[3];			# Grab system name
-		$syslog_service = $field_1[4];					# Normally the service
+		$syslog_reporting_system = $field_1[6];			# Grab system name
+		$syslog_service = $field_1[7];					# Normally the service
 		$syslog_service =~ s/[^a-zA-Z\- ]//g;			# Strip it
 		my $matched = 0;
 		foreach $match_regex (@LineMatches)
