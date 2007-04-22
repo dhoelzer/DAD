@@ -18,4 +18,6 @@ call ppm install GD.ppd
 call ppm install GDtextutil.ppd
 call ppm install GDGraph.ppd
 cd ..
+call ppm install YAPE-Regex-Explain
+call ppm install YAPE-Regex
 echo Done!

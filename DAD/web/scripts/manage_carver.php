@@ -183,7 +183,32 @@ function manage_carver() {
 		  </tr>
         </table>
 		<center><INPUT type=submit name=bt id=bt value='Test'></center>";
-
+		$strHTML .= "<table><tr><th>Matching Rule Explanation</th></tr><tr><td><pre>";
+// By this point $arrDetails should have more current information than $Global
+		$match_rule = $arrDetails['match_rule'];
+		$carve_rule = $arrDetails['carve_rule'];
+		$match_rule = preg_replace('/[\\\]{2}/', '\\', $match_rule);
+		$carve_rule = preg_replace('/[\\\]{2}/', '\\', $carve_rule);
+		
+		$Output = null;
+		exec("perl \"../../jobs/Log Parser/explain.pl\" \"${match_rule}\"", $Output);
+		if(isset($Output))
+		{
+			foreach ($Output as $line)
+			{
+				$strHTML .= "${line}\n";
+			}
+		}
+		$strHTML .= "</pre></td></tr><tr><th>Carving Rule Explanation</th></tr><tr><td><pre>";
+		exec("perl \"../../jobs/Log Parser/explain.pl\" \"${carve_rule}\"", $Output);
+		if(isset($Output))
+		{
+			foreach ($Output as $line)
+			{
+				$strHTML .= "${line}\n";
+			}
+		}
+		$strHTML .= "</pre></td></tr></table>";
 
     add_element( $strHTML );
 
