@@ -64,14 +64,70 @@ my	$dsn, 						# Database connection
 	@logfiles,					# Array of logs requiring processing
 	$log,
 	%Service_IDs,				# Holds known and used Service IDs from the database
-	%System_IDs;				# Holds known and used System IDs from the database
+	%System_IDs,				# Holds known and used System IDs from the database
+	@fields;					# Cutter fields
 
 # Check for command line args:
 if($ARGV[0])
 {
-	print "args: $ARGV[0] - $ARGV[1] - $ARGV[2]\n";
+	#print "args: $ARGV[0] - $ARGV[1] - $ARGV[2]\n";
+	$match_regex = $ARGV[0];
+	$FieldCutter = $ARGV[1];
+	$filename = $ARGV[2];
+	print "<table><tr>".
+			"<th>Field 0</th>".
+			"<th>Field 1</th>".
+			"<th>Field 2</th>".
+			"<th>Field 3</th>".
+			"<th>Field 4</th>".
+			"<th>Field 5</th>".
+			"<th>Field 6</th>".
+			"<th>Field 7</th>".
+			"<th>Field 8</th>".
+			"<th>Field 9</th>".
+			"<th>Field 10</th>".
+			"<th>Field 11</th>".
+			"<th>Field 12</th>".
+			"<th>Field 13</th>".
+			"<th>Field 14</th>".
+			"<th>Field 15</th>".
+			"<th>Field 16</th>".
+			"<th>Field 17</th>".
+			"<th>Field 18</th>".
+			"<th>Field 19</th>".
+			"<th>Field 20</th>".
+			"<th>Field 21</th>".
+			"<th>Field 22</th>".
+			"<th>Field 23</th>".
+			"<th>Field 24</th>".
+		"</tr>\n";
+	open(FILE, $filename);
+	foreach $line (<FILE>)
+	{
+		$matched = 0;
+		$_ = $line;
+		if( /$match_regex/ )
+		{	
+			$matched = 1;
+			/$FieldCutter/;
+			@fields = ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 
+				$13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25);
+		}
+		if(!$matched)
+		{
+			@fields = split(/,/, $line);
+		}
+		print "<tr>\n";
+		for($i=0;$i!=24;$i++)
+		{
+			print "<td>".$fields[$i]."</td>\n";
+		}
+		print "</tr>\n";
+	}
+	print "</table>\n";
 	exit(0);
 }
+
 # Open connection to the database:
 #Read in and evaluate the configuration values
 open(FILE,"../dbconfig.ph") or die "Could not find configuration file!\n";
