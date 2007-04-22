@@ -35,62 +35,9 @@ CREATE TABLE `userstat` (
 
 /*!40000 ALTER TABLE `userstat` DISABLE KEYS */;
 LOCK TABLES `userstat` WRITE;
-INSERT INTO `userstat` VALUES (1,1,95,'2007-04-20 17:33:09'),(2,2,167,'2006-11-18 19:36:19'),(3,6,154,'2007-03-12 15:22:27'),(4,8,1,'2005-06-30 14:18:57'),(5,12,1,'2005-06-30 14:38:22'),(6,13,1,'2005-06-30 17:58:52'),(7,14,1,'2005-06-30 18:01:56'),(8,19,1,'2005-06-30 20:27:24'),(9,3,424,'2007-03-12 13:29:05'),(10,22,3,'2005-07-01 17:41:56'),(11,23,25,'2006-02-01 20:19:50'),(12,32,2,'2005-07-27 14:01:15'),(13,33,12,'2006-03-02 15:47:40'),(14,34,2,'2006-03-21 15:43:20'),(15,35,17,'2007-01-23 21:21:34'),(16,36,1,'2006-06-02 13:53:27'),(17,37,7,'2007-01-23 20:16:29');
+INSERT INTO `userstat` VALUES (1,1,101,'2007-04-22 04:32:17'),(2,2,167,'2006-11-18 19:36:19'),(3,6,154,'2007-03-12 15:22:27'),(4,8,1,'2005-06-30 14:18:57'),(5,12,1,'2005-06-30 14:38:22'),(6,13,1,'2005-06-30 17:58:52'),(7,14,1,'2005-06-30 18:01:56'),(8,19,1,'2005-06-30 20:27:24'),(9,3,424,'2007-03-12 13:29:05'),(10,22,3,'2005-07-01 17:41:56'),(11,23,25,'2006-02-01 20:19:50'),(12,32,2,'2005-07-27 14:01:15'),(13,33,12,'2006-03-02 15:47:40'),(14,34,2,'2006-03-21 15:43:20'),(15,35,17,'2007-01-23 21:21:34'),(16,36,1,'2006-06-02 13:53:27'),(17,37,7,'2007-01-23 20:16:29');
 UNLOCK TABLES;
 /*!40000 ALTER TABLE `userstat` ENABLE KEYS */;
-
---
--- Table structure for table `dad_adm_action`
---
-
-DROP TABLE IF EXISTS `dad_adm_action`;
-CREATE TABLE `dad_adm_action` (
-  `id_dad_adm_action` mediumint(8) unsigned NOT NULL auto_increment,
-  `abbreviation` char(1) default NULL,
-  `name` varchar(50) NOT NULL default '',
-  `description` text,
-  `activeyesno` tinyint(1) unsigned NOT NULL default '0',
-  `timeactive` datetime NOT NULL default '0000-00-00 00:00:00',
-  PRIMARY KEY  (`id_dad_adm_action`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
-
---
--- Dumping data for table `dad_adm_action`
---
-
-
-/*!40000 ALTER TABLE `dad_adm_action` DISABLE KEYS */;
-LOCK TABLES `dad_adm_action` WRITE;
-UNLOCK TABLES;
-/*!40000 ALTER TABLE `dad_adm_action` ENABLE KEYS */;
-
---
--- Table structure for table `userrole`
---
-
-DROP TABLE IF EXISTS `userrole`;
-CREATE TABLE `userrole` (
-  `UserRoleID` int(10) unsigned NOT NULL auto_increment,
-  `UserID` int(10) unsigned NOT NULL default '0',
-  `RoleID` int(10) unsigned NOT NULL default '0',
-  `OrgUnitID` int(10) unsigned NOT NULL default '0',
-  `CreatedDatetime` datetime NOT NULL default '0000-00-00 00:00:00',
-  `DeletedDatetime` datetime NOT NULL default '0000-00-00 00:00:00',
-  `LatestChangeUserID` int(10) unsigned NOT NULL default '0',
-  `LatestChangeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
-  PRIMARY KEY  (`UserRoleID`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-
---
--- Dumping data for table `userrole`
---
-
-
-/*!40000 ALTER TABLE `userrole` DISABLE KEYS */;
-LOCK TABLES `userrole` WRITE;
-INSERT INTO `userrole` VALUES (49,3,1,0,'0000-00-00 00:00:00','0000-00-00 00:00:00',0,'2005-07-02 15:37:58'),(50,2,1,0,'0000-00-00 00:00:00','0000-00-00 00:00:00',0,'2005-07-02 15:38:23'),(51,1,1,0,'0000-00-00 00:00:00','0000-00-00 00:00:00',3,'2005-07-02 15:40:50'),(52,6,1,0,'0000-00-00 00:00:00','0000-00-00 00:00:00',3,'2005-07-02 15:40:57'),(53,23,1,0,'0000-00-00 00:00:00','0000-00-00 00:00:00',3,'2005-07-16 13:03:11'),(66,34,1,0,'0000-00-00 00:00:00','0000-00-00 00:00:00',0,'2006-03-21 14:05:31'),(64,32,1,0,'0000-00-00 00:00:00','0000-00-00 00:00:00',3,'2005-07-27 14:01:06'),(56,26,4,0,'0000-00-00 00:00:00','0000-00-00 00:00:00',3,'2005-09-22 14:57:56'),(63,22,3,0,'0000-00-00 00:00:00','0000-00-00 00:00:00',3,'2005-07-22 19:31:33'),(65,33,1,0,'0000-00-00 00:00:00','0000-00-00 00:00:00',3,'2005-09-22 00:20:01'),(59,29,5,0,'0000-00-00 00:00:00','0000-00-00 00:00:00',0,'2005-07-22 12:47:36'),(60,30,5,0,'0000-00-00 00:00:00','0000-00-00 00:00:00',0,'2005-07-22 12:55:37'),(62,21,3,0,'0000-00-00 00:00:00','0000-00-00 00:00:00',3,'2005-07-22 17:48:52'),(67,35,1,0,'0000-00-00 00:00:00','0000-00-00 00:00:00',0,'2006-06-02 13:43:49'),(68,36,1,0,'0000-00-00 00:00:00','0000-00-00 00:00:00',0,'2006-06-02 13:53:16');
-UNLOCK TABLES;
-/*!40000 ALTER TABLE `userrole` ENABLE KEYS */;
 
 --
 -- Table structure for table `dad_adm_job`
@@ -130,9 +77,62 @@ CREATE TABLE `dad_adm_job` (
 
 /*!40000 ALTER TABLE `dad_adm_job` DISABLE KEYS */;
 LOCK TABLES `dad_adm_job` WRITE;
-INSERT INTO `dad_adm_job` VALUES (1,'Generate Statistics',NULL,'DAD Internals','C:\\\\dad\\\\jobs\\\\log parser\\\\run_stats.bat','','',1177094181,'','','',NULL,0,'2007-04-16','00:00:00',1177093581,10,0,0,0,0,0),(3,'Prune events from database',NULL,'DAD Internals','C:\\\\dad\\\\jobs\\\\log parser\\\\run_groomer.bat',NULL,NULL,1177768081,NULL,NULL,NULL,0,0,'2007-04-16',NULL,0,0,0,10,NULL,0,0),(4,'Alert on Domain Joins',NULL,'Alert','C:\\\\dad\\\\jobs\\\\alerts\\\\DomainJoins.bat',NULL,NULL,1177094198,NULL,NULL,NULL,NULL,NULL,'2007-04-16',NULL,1177093898,5,NULL,NULL,NULL,0,0),(5,'Alert on Audit Log Cleared',NULL,'Alert','C:\\\\dad\\\\jobs\\\\alerts\\\\AuditLogCleared.bat',NULL,NULL,1177094377,NULL,NULL,NULL,NULL,NULL,'2007-04-16',NULL,1177094077,5,NULL,NULL,NULL,0,0),(6,'Alert on Remote Desktop connections',NULL,'Alert','C:\\\\dad\\\\jobs\\\\alerts\\\\RemoteDesktop.bat',NULL,NULL,1177094520,NULL,NULL,NULL,0,NULL,'2007-04-16',NULL,1177093920,10,0,0,0,0,0),(7,'Start Aggregator',NULL,'DAD Internals','C:\\\\dad\\\\jobs\\\\log parser\\\\run_aggregator.bat','','',1177026720,'','','',NULL,0,'2007-04-19','16:52:00',NULL,0,0,0,0,0,1),(8,'DAD Update Status',NULL,'DAD Internals','c:\\\\dad\\\\jobs\\\\alerts\\\\updates.bat','','',1177094760,'','','',NULL,0,'2007-04-19','22:31:00',1177047060,15,0,0,0,0,0);
+INSERT INTO `dad_adm_job` VALUES (1,'Generate Statistics',NULL,'DAD Internals','C:\\\\dad\\\\jobs\\\\log parser\\\\run_stats.bat','','',1177217181,'','','',NULL,0,'2007-04-16','00:00:00',1177216581,10,0,0,0,0,0),(3,'Prune events from database',NULL,'DAD Internals','C:\\\\dad\\\\jobs\\\\log parser\\\\run_groomer.bat',NULL,NULL,1177768081,NULL,NULL,NULL,0,0,'2007-04-16',NULL,0,0,0,10,NULL,0,0),(4,'Alert on Domain Joins',NULL,'Alert','C:\\\\dad\\\\jobs\\\\alerts\\\\DomainJoins.bat',NULL,NULL,1177217198,NULL,NULL,NULL,NULL,NULL,'2007-04-16',NULL,1177216898,5,NULL,NULL,NULL,0,0),(5,'Alert on Audit Log Cleared',NULL,'Alert','C:\\\\dad\\\\jobs\\\\alerts\\\\AuditLogCleared.bat',NULL,NULL,1177217377,NULL,NULL,NULL,NULL,NULL,'2007-04-16',NULL,1177217077,5,NULL,NULL,NULL,0,0),(6,'Alert on Remote Desktop connections',NULL,'Alert','C:\\\\dad\\\\jobs\\\\alerts\\\\RemoteDesktop.bat',NULL,NULL,1177217520,NULL,NULL,NULL,0,NULL,'2007-04-16',NULL,1177216920,10,0,0,0,0,0),(7,'Start Aggregator',NULL,'DAD Internals','C:\\\\dad\\\\jobs\\\\log parser\\\\run_aggregator.bat','','',1177026720,'','','',NULL,0,'2007-04-19','16:52:00',NULL,0,0,0,0,1,1),(9,'Run Log Carver',NULL,'DAD Internals','c:\\\\dad\\\\jobs\\\\log parser\\\\run_carver.bat','','',1177217400,'','','',NULL,0,'2007-04-20','20:00:00',1177217100,5,0,0,0,0,0),(8,'DAD Update Status',NULL,'DAD Internals','c:\\\\dad\\\\jobs\\\\alerts\\\\updates.bat','','',1177217160,'','','',NULL,0,'2007-04-19','22:31:00',1177216260,15,0,0,0,0,0),(10,'Run Syslog Service',NULL,'DAD Internals','c:\\\\dad\\\\jobs\\\\start_syslog.bat','','',1177124340,'','','',NULL,0,'2007-04-20','19:59:00',NULL,5,0,0,0,1,1);
 UNLOCK TABLES;
 /*!40000 ALTER TABLE `dad_adm_job` ENABLE KEYS */;
+
+--
+-- Table structure for table `userrole`
+--
+
+DROP TABLE IF EXISTS `userrole`;
+CREATE TABLE `userrole` (
+  `UserRoleID` int(10) unsigned NOT NULL auto_increment,
+  `UserID` int(10) unsigned NOT NULL default '0',
+  `RoleID` int(10) unsigned NOT NULL default '0',
+  `OrgUnitID` int(10) unsigned NOT NULL default '0',
+  `CreatedDatetime` datetime NOT NULL default '0000-00-00 00:00:00',
+  `DeletedDatetime` datetime NOT NULL default '0000-00-00 00:00:00',
+  `LatestChangeUserID` int(10) unsigned NOT NULL default '0',
+  `LatestChangeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
+  PRIMARY KEY  (`UserRoleID`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+--
+-- Dumping data for table `userrole`
+--
+
+
+/*!40000 ALTER TABLE `userrole` DISABLE KEYS */;
+LOCK TABLES `userrole` WRITE;
+INSERT INTO `userrole` VALUES (49,3,1,0,'0000-00-00 00:00:00','0000-00-00 00:00:00',0,'2005-07-02 15:37:58'),(50,2,1,0,'0000-00-00 00:00:00','0000-00-00 00:00:00',0,'2005-07-02 15:38:23'),(51,1,1,0,'0000-00-00 00:00:00','0000-00-00 00:00:00',3,'2005-07-02 15:40:50'),(52,6,1,0,'0000-00-00 00:00:00','0000-00-00 00:00:00',3,'2005-07-02 15:40:57'),(53,23,1,0,'0000-00-00 00:00:00','0000-00-00 00:00:00',3,'2005-07-16 13:03:11'),(66,34,1,0,'0000-00-00 00:00:00','0000-00-00 00:00:00',0,'2006-03-21 14:05:31'),(64,32,1,0,'0000-00-00 00:00:00','0000-00-00 00:00:00',3,'2005-07-27 14:01:06'),(56,26,4,0,'0000-00-00 00:00:00','0000-00-00 00:00:00',3,'2005-09-22 14:57:56'),(63,22,3,0,'0000-00-00 00:00:00','0000-00-00 00:00:00',3,'2005-07-22 19:31:33'),(65,33,1,0,'0000-00-00 00:00:00','0000-00-00 00:00:00',3,'2005-09-22 00:20:01'),(59,29,5,0,'0000-00-00 00:00:00','0000-00-00 00:00:00',0,'2005-07-22 12:47:36'),(60,30,5,0,'0000-00-00 00:00:00','0000-00-00 00:00:00',0,'2005-07-22 12:55:37'),(62,21,3,0,'0000-00-00 00:00:00','0000-00-00 00:00:00',3,'2005-07-22 17:48:52'),(67,35,1,0,'0000-00-00 00:00:00','0000-00-00 00:00:00',0,'2006-06-02 13:43:49'),(68,36,1,0,'0000-00-00 00:00:00','0000-00-00 00:00:00',0,'2006-06-02 13:53:16');
+UNLOCK TABLES;
+/*!40000 ALTER TABLE `userrole` ENABLE KEYS */;
+
+--
+-- Table structure for table `dad_adm_action`
+--
+
+DROP TABLE IF EXISTS `dad_adm_action`;
+CREATE TABLE `dad_adm_action` (
+  `id_dad_adm_action` mediumint(8) unsigned NOT NULL auto_increment,
+  `abbreviation` char(1) default NULL,
+  `name` varchar(50) NOT NULL default '',
+  `description` text,
+  `activeyesno` tinyint(1) unsigned NOT NULL default '0',
+  `timeactive` datetime NOT NULL default '0000-00-00 00:00:00',
+  PRIMARY KEY  (`id_dad_adm_action`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+
+--
+-- Dumping data for table `dad_adm_action`
+--
+
+
+/*!40000 ALTER TABLE `dad_adm_action` DISABLE KEYS */;
+LOCK TABLES `dad_adm_action` WRITE;
+UNLOCK TABLES;
+/*!40000 ALTER TABLE `dad_adm_action` ENABLE KEYS */;
 
 --
 -- Table structure for table `rolemenuoption`
@@ -154,56 +154,9 @@ CREATE TABLE `rolemenuoption` (
 
 /*!40000 ALTER TABLE `rolemenuoption` DISABLE KEYS */;
 LOCK TABLES `rolemenuoption` WRITE;
-INSERT INTO `rolemenuoption` VALUES (42,1,8,'2005-07-27 14:05:04'),(2,1,1,'2005-06-29 20:20:34'),(3,1,2,'2005-06-29 20:20:34'),(4,1,3,'2005-06-29 20:20:34'),(5,1,4,'2005-06-29 20:20:34'),(6,1,5,'2005-06-29 20:20:34'),(7,1,6,'2005-06-29 20:20:34'),(8,1,7,'2005-06-29 20:21:07'),(9,1,10,'2005-06-30 12:35:38'),(69,1,11,'2005-10-20 15:45:15'),(43,1,12,'2005-07-27 14:05:19'),(45,1,13,'2005-07-27 14:05:52'),(46,1,14,'2005-07-27 14:06:02'),(47,1,21,'2005-07-27 14:06:15'),(48,1,22,'2005-07-27 14:06:32'),(49,1,23,'2005-07-27 14:06:45'),(50,1,24,'2005-07-27 14:06:57'),(70,1,25,'2005-10-20 15:45:30'),(52,1,26,'2005-07-27 14:07:38'),(41,1,41,'2005-07-27 13:58:05'),(40,3,28,'2005-07-07 13:04:00'),(39,1,28,'2005-07-07 13:04:00'),(23,1,29,'2005-07-06 19:29:54'),(24,1,30,'2005-07-06 19:30:08'),(25,1,31,'2005-07-06 19:33:36'),(26,1,32,'2005-07-06 19:33:57'),(27,1,33,'2005-07-06 19:36:34'),(28,1,34,'2005-07-06 19:38:52'),(29,1,35,'2005-07-06 19:48:44'),(30,1,36,'2005-07-06 19:49:12'),(31,1,37,'2005-07-06 19:49:24'),(32,1,38,'2005-07-06 19:49:51'),(33,1,39,'2005-07-06 19:53:15'),(34,5,39,'2005-07-06 19:53:15'),(54,2,40,'2005-07-27 14:07:49'),(53,1,40,'2005-07-27 14:07:49'),(78,1,42,'2005-10-24 19:08:20'),(58,1,43,'2005-07-27 19:35:56'),(62,1,44,'2005-08-11 19:08:44'),(63,1,46,'2005-08-11 19:14:02'),(119,1,47,'2007-02-19 19:26:53'),(118,1,48,'2007-02-19 19:26:40'),(73,1,49,'2005-10-24 18:44:17'),(105,1,50,'2007-02-14 21:07:47'),(75,1,52,'2005-10-24 18:57:33'),(79,1,53,'2005-10-24 19:10:32'),(81,1,54,'2005-10-24 19:13:07'),(83,1,55,'2005-10-24 19:19:44'),(84,1,56,'2005-10-24 19:21:25'),(85,1,57,'2006-05-29 12:20:16'),(86,2,57,'2006-05-29 12:20:16'),(87,5,57,'2006-05-29 12:20:16'),(88,6,57,'2006-05-29 12:20:16'),(89,1,59,'2006-05-29 12:29:41'),(90,2,59,'2006-05-29 12:29:41'),(91,5,59,'2006-05-29 12:29:41'),(92,6,59,'2006-05-29 12:29:41'),(93,1,60,'2006-05-29 12:31:35'),(94,2,60,'2006-05-29 12:31:35'),(95,5,60,'2006-05-29 12:31:35'),(96,6,60,'2006-05-29 12:31:35'),(97,2,58,'2006-05-29 12:33:18'),(98,5,58,'2006-05-29 12:33:18'),(99,6,58,'2006-05-29 12:33:18'),(100,1,58,'2006-05-29 12:34:37'),(101,1,61,'2006-06-15 18:29:49'),(103,1,62,'2006-10-05 20:54:40'),(107,1,63,'2007-02-14 21:33:25'),(106,1,64,'2007-02-14 21:31:50'),(116,1,66,'2007-02-16 19:26:34'),(128,1,65,'2007-02-28 20:44:44'),(127,1,67,'2007-02-28 20:44:33'),(126,1,68,'2007-02-28 20:44:20'),(130,1,69,'2007-02-28 20:45:56');
+INSERT INTO `rolemenuoption` VALUES (42,1,8,'2005-07-27 14:05:04'),(2,1,1,'2005-06-29 20:20:34'),(3,1,2,'2005-06-29 20:20:34'),(4,1,3,'2005-06-29 20:20:34'),(5,1,4,'2005-06-29 20:20:34'),(6,1,5,'2005-06-29 20:20:34'),(7,1,6,'2005-06-29 20:20:34'),(8,1,7,'2005-06-29 20:21:07'),(9,1,10,'2005-06-30 12:35:38'),(69,1,11,'2005-10-20 15:45:15'),(43,1,12,'2005-07-27 14:05:19'),(45,1,13,'2005-07-27 14:05:52'),(46,1,14,'2005-07-27 14:06:02'),(47,1,21,'2005-07-27 14:06:15'),(48,1,22,'2005-07-27 14:06:32'),(49,1,23,'2005-07-27 14:06:45'),(50,1,24,'2005-07-27 14:06:57'),(70,1,25,'2005-10-20 15:45:30'),(52,1,26,'2005-07-27 14:07:38'),(41,1,41,'2005-07-27 13:58:05'),(40,3,28,'2005-07-07 13:04:00'),(39,1,28,'2005-07-07 13:04:00'),(23,1,29,'2005-07-06 19:29:54'),(24,1,30,'2005-07-06 19:30:08'),(25,1,31,'2005-07-06 19:33:36'),(26,1,32,'2005-07-06 19:33:57'),(27,1,33,'2005-07-06 19:36:34'),(28,1,34,'2005-07-06 19:38:52'),(29,1,35,'2005-07-06 19:48:44'),(30,1,36,'2005-07-06 19:49:12'),(31,1,37,'2005-07-06 19:49:24'),(32,1,38,'2005-07-06 19:49:51'),(33,1,39,'2005-07-06 19:53:15'),(34,5,39,'2005-07-06 19:53:15'),(54,2,40,'2005-07-27 14:07:49'),(53,1,40,'2005-07-27 14:07:49'),(78,1,42,'2005-10-24 19:08:20'),(58,1,43,'2005-07-27 19:35:56'),(62,1,44,'2005-08-11 19:08:44'),(63,1,46,'2005-08-11 19:14:02'),(119,1,47,'2007-02-19 19:26:53'),(118,1,48,'2007-02-19 19:26:40'),(73,1,49,'2005-10-24 18:44:17'),(105,1,50,'2007-02-14 21:07:47'),(75,1,52,'2005-10-24 18:57:33'),(79,1,53,'2005-10-24 19:10:32'),(81,1,54,'2005-10-24 19:13:07'),(83,1,55,'2005-10-24 19:19:44'),(84,1,56,'2005-10-24 19:21:25'),(85,1,57,'2006-05-29 12:20:16'),(86,2,57,'2006-05-29 12:20:16'),(87,5,57,'2006-05-29 12:20:16'),(88,6,57,'2006-05-29 12:20:16'),(89,1,59,'2006-05-29 12:29:41'),(90,2,59,'2006-05-29 12:29:41'),(91,5,59,'2006-05-29 12:29:41'),(92,6,59,'2006-05-29 12:29:41'),(93,1,60,'2006-05-29 12:31:35'),(94,2,60,'2006-05-29 12:31:35'),(95,5,60,'2006-05-29 12:31:35'),(96,6,60,'2006-05-29 12:31:35'),(97,2,58,'2006-05-29 12:33:18'),(98,5,58,'2006-05-29 12:33:18'),(99,6,58,'2006-05-29 12:33:18'),(100,1,58,'2006-05-29 12:34:37'),(101,1,61,'2006-06-15 18:29:49'),(103,1,62,'2006-10-05 20:54:40'),(107,1,63,'2007-02-14 21:33:25'),(106,1,64,'2007-02-14 21:31:50'),(116,1,66,'2007-02-16 19:26:34'),(128,1,65,'2007-02-28 20:44:44'),(127,1,67,'2007-02-28 20:44:33'),(126,1,68,'2007-02-28 20:44:20'),(130,1,69,'2007-02-28 20:45:56'),(131,1,70,'2007-04-21 17:41:21'),(132,2,70,'2007-04-21 17:41:21'),(133,5,70,'2007-04-21 17:41:21'),(134,6,70,'2007-04-21 17:41:21');
 UNLOCK TABLES;
 /*!40000 ALTER TABLE `rolemenuoption` ENABLE KEYS */;
-
---
--- Table structure for table `dad_sys_services`
---
-
-DROP TABLE IF EXISTS `dad_sys_services`;
-CREATE TABLE `dad_sys_services` (
-  `Service_ID` int(10) unsigned NOT NULL auto_increment,
-  `Service_Name` varchar(45) NOT NULL default '',
-  `Contact_Information` varchar(80) NOT NULL default '',
-  `log_these_id` int(11) default NULL,
-  PRIMARY KEY  (`Service_ID`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1 COMMENT='Tracks services reported on';
-
---
--- Dumping data for table `dad_sys_services`
---
-
-
-/*!40000 ALTER TABLE `dad_sys_services` DISABLE KEYS */;
-LOCK TABLES `dad_sys_services` WRITE;
-INSERT INTO `dad_sys_services` VALUES (1988,'newsyslog','',NULL),(1989,'sshd','',NULL),(1990,'mysqld','',NULL),(1991,'shutdown','',NULL),(1992,'saslauthd','',NULL),(1993,'su','',NULL),(1994,'CIS-WEBAPP','',NULL),(1995,'sudo','',NULL),(1996,'syslogd','',NULL),(1997,'last','',NULL),(1998,'inetd','',NULL),(1999,'Security','',2),(2000,'System','',4),(2001,'Application','',1),(2005,'CIS-XFER','',NULL),(2004,'watch','',NULL),(2006,'CIS-WEB','',NULL),(2007,'DNS Server','',8),(2008,'DHCP Server','',16),(2009,'Directory Service','',32),(2010,'File Replication Service','',64);
-UNLOCK TABLES;
-/*!40000 ALTER TABLE `dad_sys_services` ENABLE KEYS */;
-
---
--- Table structure for table `orggroup`
---
-
-DROP TABLE IF EXISTS `orggroup`;
-CREATE TABLE `orggroup` (
-  `OrgGroupID` int(10) unsigned NOT NULL auto_increment,
-  `OrgGroupTypeID` int(10) unsigned NOT NULL default '0',
-  `IdentifyingOrgUnitID` int(10) unsigned NOT NULL default '0',
-  `LatestChangeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
-  PRIMARY KEY  (`OrgGroupID`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-
---
--- Dumping data for table `orggroup`
---
-
-
-/*!40000 ALTER TABLE `orggroup` DISABLE KEYS */;
-LOCK TABLES `orggroup` WRITE;
-UNLOCK TABLES;
-/*!40000 ALTER TABLE `orggroup` ENABLE KEYS */;
 
 --
 -- Table structure for table `dad_adm_computer_group`
@@ -230,76 +183,28 @@ UNLOCK TABLES;
 /*!40000 ALTER TABLE `dad_adm_computer_group` ENABLE KEYS */;
 
 --
--- Table structure for table `orggroupmember`
+-- Table structure for table `dad_sys_events_aging`
 --
 
-DROP TABLE IF EXISTS `orggroupmember`;
-CREATE TABLE `orggroupmember` (
-  `OrgGroupMemberID` int(10) unsigned NOT NULL auto_increment,
-  `OrgGroupID` int(10) unsigned NOT NULL default '0',
-  `MemberOrgUnitID` int(10) unsigned NOT NULL default '0',
-  `LatestChangeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
-  PRIMARY KEY  (`OrgGroupMemberID`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+DROP TABLE IF EXISTS `dad_sys_events_aging`;
+CREATE TABLE `dad_sys_events_aging` (
+  `Aging_ID` int(10) unsigned NOT NULL auto_increment,
+  `Event_ID` int(10) unsigned NOT NULL,
+  `Explanation` varchar(255) NOT NULL,
+  `Retention_Time` int(10) unsigned NOT NULL,
+  PRIMARY KEY  (`Aging_ID`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1 COMMENT='Aging schedule for various Windows events';
 
 --
--- Dumping data for table `orggroupmember`
+-- Dumping data for table `dad_sys_events_aging`
 --
 
 
-/*!40000 ALTER TABLE `orggroupmember` DISABLE KEYS */;
-LOCK TABLES `orggroupmember` WRITE;
+/*!40000 ALTER TABLE `dad_sys_events_aging` DISABLE KEYS */;
+LOCK TABLES `dad_sys_events_aging` WRITE;
+INSERT INTO `dad_sys_events_aging` VALUES (1,0,'Default',3888000),(2,560,'Object Access Events',604800),(3,592,'Process Tracking Events',172800),(4,632,'Group Changes',60480000),(5,633,'Group Changes',60480000),(6,636,'Group Changes',60480000),(7,637,'Group Changes',60480000),(8,660,'Group Changes',60480000),(9,661,'Group Changes',60480000),(10,565,'Audited Object Access',86400),(11,576,'Rights Assigned',0);
 UNLOCK TABLES;
-/*!40000 ALTER TABLE `orggroupmember` ENABLE KEYS */;
-
---
--- Table structure for table `menu`
---
-
-DROP TABLE IF EXISTS `menu`;
-CREATE TABLE `menu` (
-  `MenuID` int(10) unsigned NOT NULL auto_increment,
-  `MenuName` char(40) collate utf8_unicode_ci NOT NULL default '',
-  `LevelNum` tinyint(3) unsigned NOT NULL default '0',
-  `SequenceNum` tinyint(3) unsigned NOT NULL default '0',
-  `ParentMenuOptionID` int(10) unsigned NOT NULL default '0',
-  `LatestChangeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
-  PRIMARY KEY  (`MenuID`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-
---
--- Dumping data for table `menu`
---
-
-
-/*!40000 ALTER TABLE `menu` DISABLE KEYS */;
-LOCK TABLES `menu` WRITE;
-INSERT INTO `menu` VALUES (1,'Tabs',1,1,0,'2005-06-28 17:34:05'),(2,'Users',2,1,2,'2005-06-29 20:27:39'),(3,'Maintenance',2,1,10,'2005-06-30 12:34:24'),(5,'Preferences',2,2,5,'2005-07-05 12:32:49'),(6,'Resources',2,1,3,'2005-07-27 15:12:24'),(7,'Directory Service',2,1,4,'2005-10-24 19:55:52'),(8,'Log Analysis',2,1,57,'2006-05-29 12:28:12');
-UNLOCK TABLES;
-/*!40000 ALTER TABLE `menu` ENABLE KEYS */;
-
---
--- Table structure for table `system`
---
-
-DROP TABLE IF EXISTS `system`;
-CREATE TABLE `system` (
-  `SystemID` int(10) unsigned NOT NULL auto_increment,
-  `AttributeName` char(15) collate utf8_unicode_ci NOT NULL default '',
-  `AttributeValue` char(40) collate utf8_unicode_ci NOT NULL default '',
-  `LatestChangeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
-  PRIMARY KEY  (`SystemID`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-
---
--- Dumping data for table `system`
---
-
-
-/*!40000 ALTER TABLE `system` DISABLE KEYS */;
-LOCK TABLES `system` WRITE;
-UNLOCK TABLES;
-/*!40000 ALTER TABLE `system` ENABLE KEYS */;
+/*!40000 ALTER TABLE `dad_sys_events_aging` ENABLE KEYS */;
 
 --
 -- Table structure for table `dad_sys_queries`
@@ -327,31 +232,27 @@ UNLOCK TABLES;
 /*!40000 ALTER TABLE `dad_sys_queries` ENABLE KEYS */;
 
 --
--- Table structure for table `menuoption`
+-- Table structure for table `orggroupmember`
 --
 
-DROP TABLE IF EXISTS `menuoption`;
-CREATE TABLE `menuoption` (
-  `MenuOptionID` int(10) unsigned NOT NULL auto_increment,
-  `OptionName` char(40) collate utf8_unicode_ci NOT NULL default '',
-  `MenuID` int(10) unsigned NOT NULL default '0',
-  `SequenceNum` smallint(5) unsigned NOT NULL default '0',
-  `ContentPathName` char(128) collate utf8_unicode_ci NOT NULL default '',
-  `FunctionName` char(40) collate utf8_unicode_ci NOT NULL default '',
+DROP TABLE IF EXISTS `orggroupmember`;
+CREATE TABLE `orggroupmember` (
+  `OrgGroupMemberID` int(10) unsigned NOT NULL auto_increment,
+  `OrgGroupID` int(10) unsigned NOT NULL default '0',
+  `MemberOrgUnitID` int(10) unsigned NOT NULL default '0',
   `LatestChangeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
-  PRIMARY KEY  (`MenuOptionID`)
+  PRIMARY KEY  (`OrgGroupMemberID`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 --
--- Dumping data for table `menuoption`
+-- Dumping data for table `orggroupmember`
 --
 
 
-/*!40000 ALTER TABLE `menuoption` DISABLE KEYS */;
-LOCK TABLES `menuoption` WRITE;
-INSERT INTO `menuoption` VALUES (1,'Home',1,1,'home.php','showHomePage','2005-07-27 14:16:12'),(2,'Users',1,7,'','','2005-07-27 14:53:47'),(3,'Resources',1,2,'','','2005-10-24 19:56:55'),(4,'Directory Service',1,4,'','','2005-10-24 19:52:52'),(5,'Preferences',1,5,'','','2005-06-28 17:36:32'),(6,'Login Page',0,0,'login.php','showLoginPage','2005-07-27 14:16:12'),(7,'Submit Login Page',0,0,'login.php','loginUser','2005-07-27 14:16:12'),(8,'User Creation',2,1,'useradmin.php','CreateUserForm','2005-07-27 14:05:04'),(12,'User Deletion',2,2,'useradmin.php','DeleteUserForm','2005-07-27 14:05:19'),(10,'Maintenance',1,6,'','','2005-06-30 12:33:43'),(11,'Manage Menus',3,3,'MenuAdmin.php','ShowMenuOptions','2005-10-20 15:45:15'),(13,'Change Own Password',2,3,'useradmin.php','ChangeOwnPasswordForm','2005-07-27 14:05:52'),(14,'Reset User Password',2,4,'useradmin.php','ResetUserPasswordForm','2005-07-27 14:06:02'),(20,'LogoutUser',0,0,'login.php','LogoutUser','2005-07-27 14:17:01'),(21,'Change User Role',2,5,'useradmin.php','ChangeUserRoleForm','2005-07-27 14:06:15'),(22,'Change User Details',2,6,'useradmin.php','ChangeUserDetailsForm','2005-07-27 14:06:32'),(23,'Language Preference',5,1,'languagepref.php','showLanguagePrefs','2005-07-27 14:06:45'),(24,'Change Language Pref',5,0,'languagepref.php','setLanguagePrefs','2005-07-27 14:06:57'),(25,'Add Menu Option',3,2,'MenuAdmin.php','CreateNewOptionPage','2005-10-20 15:45:30'),(26,'Submit New Menu Option',3,0,'MenuAdmin.php','SubmitNewOption','2005-07-27 14:07:38'),(46,'fs_detail_edit',6,0,'fs_detail.php','fs_detail_edit','2005-08-11 19:10:40'),(54,'New Public Folder Entries',6,22,'pf_detail.php','pf_new_show','2005-10-24 19:13:07'),(53,'Public Folder<bold>',6,20,'pf_detail.php','pf_detail_show','2005-10-24 19:10:32'),(52,'New File System Entries',6,12,'fs_detail.php','fs_new_show','2005-10-24 18:57:33'),(50,'DAD System Events',3,1,'system.php','system_log_display','2007-02-14 21:07:47'),(49,'File System History',6,11,'fs_detail.php','fs_detail_history_show','2005-10-24 18:44:17'),(48,'Remove Alert Group - DELETE',3,0,'rs_admin.php','RemoveAlertGroup','2007-02-19 19:26:40'),(47,'Add Alert Group - DELETE',3,0,'rs_admin.php','AddAlertGroup','2007-02-19 19:26:53'),(44,'fs_detail_show',6,0,'fs_detail.php','fs_detail_show','2005-08-11 19:08:44'),(40,'Submit Modified Menu',3,0,'MenuAdmin.php','SubmitOptionEdit','2005-07-27 14:07:49'),(42,'File System<bold>',6,10,'fs_tree.php','DisplayFS','2005-10-24 19:08:20'),(55,'Public Folder History',6,21,'pf_detail.php','pf_detail_history_show','2005-10-24 19:19:44'),(56,'pf_detail_edit',6,0,'pf_detail.php','pf_detail_edit','2005-10-24 19:21:25'),(57,'Log Analysis',1,3,'log_analysis.php','show_log_stats','2006-05-29 13:00:18'),(58,'Existing Queries',8,1,'log_analysis.php','show_existing_queries','2006-05-29 12:29:02'),(59,'Query Builder',8,2,'log_analysis.php','show_query_builder','2006-05-29 17:39:53'),(60,'SQL Query',8,3,'log_analysis.php','show_sql_query','2006-05-29 12:31:35'),(61,'Jobs',3,4,'job_admin.php','edit_job','2006-06-15 18:29:49'),(62,'File Audit Search',8,10,'sys_events.php','FileAuditSearch','2006-10-05 20:54:40'),(63,'SQL Process List',3,6,'sql_admin.php','sql_processlist','2007-02-14 21:33:25'),(64,'Systems',3,5,'systems.php','systems_edit','2007-02-14 21:31:50'),(65,'Alert Group Admin',3,10,'alert_admin.php','alert_group_admin','2007-02-28 20:44:44'),(66,'junk',5,10,'junk','junk','2007-02-16 19:26:34'),(67,'Alert User Admin',3,11,'alert_admin.php','alert_user_admin','2007-02-28 20:44:33'),(68,'Computer Groups Admin',3,12,'systems.php','computer_group_admin','2007-02-28 20:44:20'),(69,'Alert Admin',3,9,'dev.php','alert_admin','2007-02-28 20:45:56');
+/*!40000 ALTER TABLE `orggroupmember` DISABLE KEYS */;
+LOCK TABLES `orggroupmember` WRITE;
 UNLOCK TABLES;
-/*!40000 ALTER TABLE `menuoption` ENABLE KEYS */;
+/*!40000 ALTER TABLE `orggroupmember` ENABLE KEYS */;
 
 --
 -- Table structure for table `dad_sys_filtered_events`
@@ -375,6 +276,108 @@ LOCK TABLES `dad_sys_filtered_events` WRITE;
 INSERT INTO `dad_sys_filtered_events` VALUES (1,562,'Object access auditing:  Handle Closed'),(2,565,'Object access auditing:  Undetermined.  Relat'),(3,592,'Process Tracking:  Process Created'),(4,593,'Process Tracking:  Process Destroyed'),(5,600,'Process Tracking:  Process assigned primary t'),(6,673,'Kerberos:  Service Ticket Granted'),(7,674,'Kerberos:  Ticket Granted Renewed'),(8,677,'Kerberos:  Service ticket request failed'),(9,576,'Rights Assigned:  Only noted at login, not us');
 UNLOCK TABLES;
 /*!40000 ALTER TABLE `dad_sys_filtered_events` ENABLE KEYS */;
+
+--
+-- Table structure for table `system`
+--
+
+DROP TABLE IF EXISTS `system`;
+CREATE TABLE `system` (
+  `SystemID` int(10) unsigned NOT NULL auto_increment,
+  `AttributeName` char(15) collate utf8_unicode_ci NOT NULL default '',
+  `AttributeValue` char(40) collate utf8_unicode_ci NOT NULL default '',
+  `LatestChangeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
+  PRIMARY KEY  (`SystemID`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+--
+-- Dumping data for table `system`
+--
+
+
+/*!40000 ALTER TABLE `system` DISABLE KEYS */;
+LOCK TABLES `system` WRITE;
+UNLOCK TABLES;
+/*!40000 ALTER TABLE `system` ENABLE KEYS */;
+
+--
+-- Table structure for table `dad_sys_services`
+--
+
+DROP TABLE IF EXISTS `dad_sys_services`;
+CREATE TABLE `dad_sys_services` (
+  `Service_ID` int(10) unsigned NOT NULL auto_increment,
+  `Service_Name` varchar(45) NOT NULL default '',
+  `Contact_Information` varchar(80) NOT NULL default '',
+  `log_these_id` int(11) default NULL,
+  PRIMARY KEY  (`Service_ID`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1 COMMENT='Tracks services reported on';
+
+--
+-- Dumping data for table `dad_sys_services`
+--
+
+
+/*!40000 ALTER TABLE `dad_sys_services` DISABLE KEYS */;
+LOCK TABLES `dad_sys_services` WRITE;
+INSERT INTO `dad_sys_services` VALUES (1988,'newsyslog','',NULL),(1989,'sshd','',NULL),(1990,'mysqld','',NULL),(1991,'shutdown','',NULL),(1992,'saslauthd','',NULL),(1993,'su','',NULL),(1994,'CIS-WEBAPP','',NULL),(1995,'sudo','',NULL),(1996,'syslogd','',NULL),(1997,'last','',NULL),(1998,'inetd','',NULL),(1999,'Security','',2),(2000,'System','',4),(2001,'Application','',1),(2005,'CIS-XFER','',NULL),(2004,'watch','',NULL),(2006,'CIS-WEB','',NULL),(2007,'DNS Server','',8),(2008,'DHCP Server','',16),(2009,'Directory Service','',32),(2010,'File Replication Service','',64),(2011,'PDT','',NULL),(2012,'postfixsmtpd','',NULL),(2013,'postfixcleanup','',NULL),(2014,'spamd','',NULL),(2015,'postfixpickup','',NULL),(2016,'postfixpipe','',NULL),(2017,'postfixlocal','',NULL),(2018,'postfixsmtp','',NULL),(2019,'CRON','',NULL),(2020,'USRSBINCRON','',NULL),(2021,'named','',NULL),(2022,'--','',NULL),(2023,'checkpc','',NULL),(2024,'squid','',NULL),(2025,'exiting','',NULL),(2026,'kernel','',NULL);
+UNLOCK TABLES;
+/*!40000 ALTER TABLE `dad_sys_services` ENABLE KEYS */;
+
+--
+-- Table structure for table `menuoption`
+--
+
+DROP TABLE IF EXISTS `menuoption`;
+CREATE TABLE `menuoption` (
+  `MenuOptionID` int(10) unsigned NOT NULL auto_increment,
+  `OptionName` char(40) collate utf8_unicode_ci NOT NULL default '',
+  `MenuID` int(10) unsigned NOT NULL default '0',
+  `SequenceNum` smallint(5) unsigned NOT NULL default '0',
+  `ContentPathName` char(128) collate utf8_unicode_ci NOT NULL default '',
+  `FunctionName` char(40) collate utf8_unicode_ci NOT NULL default '',
+  `LatestChangeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
+  PRIMARY KEY  (`MenuOptionID`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+--
+-- Dumping data for table `menuoption`
+--
+
+
+/*!40000 ALTER TABLE `menuoption` DISABLE KEYS */;
+LOCK TABLES `menuoption` WRITE;
+INSERT INTO `menuoption` VALUES (1,'Home',1,1,'home.php','showHomePage','2005-07-27 14:16:12'),(2,'Users',1,7,'','','2005-07-27 14:53:47'),(3,'Resources',1,2,'','','2005-10-24 19:56:55'),(4,'Directory Service',1,4,'','','2005-10-24 19:52:52'),(5,'Preferences',1,5,'','','2005-06-28 17:36:32'),(6,'Login Page',0,0,'login.php','showLoginPage','2005-07-27 14:16:12'),(7,'Submit Login Page',0,0,'login.php','loginUser','2005-07-27 14:16:12'),(8,'User Creation',2,1,'useradmin.php','CreateUserForm','2005-07-27 14:05:04'),(12,'User Deletion',2,2,'useradmin.php','DeleteUserForm','2005-07-27 14:05:19'),(10,'Maintenance',1,6,'','','2005-06-30 12:33:43'),(11,'Manage Menus',3,3,'MenuAdmin.php','ShowMenuOptions','2005-10-20 15:45:15'),(13,'Change Own Password',2,3,'useradmin.php','ChangeOwnPasswordForm','2005-07-27 14:05:52'),(14,'Reset User Password',2,4,'useradmin.php','ResetUserPasswordForm','2005-07-27 14:06:02'),(20,'LogoutUser',0,0,'login.php','LogoutUser','2005-07-27 14:17:01'),(21,'Change User Role',2,5,'useradmin.php','ChangeUserRoleForm','2005-07-27 14:06:15'),(22,'Change User Details',2,6,'useradmin.php','ChangeUserDetailsForm','2005-07-27 14:06:32'),(23,'Language Preference',5,1,'languagepref.php','showLanguagePrefs','2005-07-27 14:06:45'),(24,'Change Language Pref',5,0,'languagepref.php','setLanguagePrefs','2005-07-27 14:06:57'),(25,'Add Menu Option',3,2,'MenuAdmin.php','CreateNewOptionPage','2005-10-20 15:45:30'),(26,'Submit New Menu Option',3,0,'MenuAdmin.php','SubmitNewOption','2005-07-27 14:07:38'),(46,'fs_detail_edit',6,0,'fs_detail.php','fs_detail_edit','2005-08-11 19:10:40'),(54,'New Public Folder Entries',6,22,'pf_detail.php','pf_new_show','2005-10-24 19:13:07'),(53,'Public Folder<bold>',6,20,'pf_detail.php','pf_detail_show','2005-10-24 19:10:32'),(52,'New File System Entries',6,12,'fs_detail.php','fs_new_show','2005-10-24 18:57:33'),(50,'DAD System Events',3,1,'system.php','system_log_display','2007-02-14 21:07:47'),(49,'File System History',6,11,'fs_detail.php','fs_detail_history_show','2005-10-24 18:44:17'),(48,'Remove Alert Group - DELETE',3,0,'rs_admin.php','RemoveAlertGroup','2007-02-19 19:26:40'),(47,'Add Alert Group - DELETE',3,0,'rs_admin.php','AddAlertGroup','2007-02-19 19:26:53'),(44,'fs_detail_show',6,0,'fs_detail.php','fs_detail_show','2005-08-11 19:08:44'),(40,'Submit Modified Menu',3,0,'MenuAdmin.php','SubmitOptionEdit','2005-07-27 14:07:49'),(42,'File System<bold>',6,10,'fs_tree.php','DisplayFS','2005-10-24 19:08:20'),(55,'Public Folder History',6,21,'pf_detail.php','pf_detail_history_show','2005-10-24 19:19:44'),(56,'pf_detail_edit',6,0,'pf_detail.php','pf_detail_edit','2005-10-24 19:21:25'),(57,'Log Analysis',1,3,'log_analysis.php','show_log_stats','2006-05-29 13:00:18'),(58,'Existing Queries',8,1,'log_analysis.php','show_existing_queries','2006-05-29 12:29:02'),(59,'Query Builder',8,2,'log_analysis.php','show_query_builder','2006-05-29 17:39:53'),(60,'SQL Query',8,3,'log_analysis.php','show_sql_query','2006-05-29 12:31:35'),(61,'Jobs',3,4,'job_admin.php','edit_job','2006-06-15 18:29:49'),(62,'File Audit Search',8,10,'sys_events.php','FileAuditSearch','2006-10-05 20:54:40'),(63,'SQL Process List',3,6,'sql_admin.php','sql_processlist','2007-02-14 21:33:25'),(64,'Systems',3,5,'systems.php','systems_edit','2007-02-14 21:31:50'),(65,'Alert Group Admin',3,10,'alert_admin.php','alert_group_admin','2007-02-28 20:44:44'),(66,'junk',5,10,'junk','junk','2007-02-16 19:26:34'),(67,'Alert User Admin',3,11,'alert_admin.php','alert_user_admin','2007-02-28 20:44:33'),(68,'Computer Groups Admin',3,12,'systems.php','computer_group_admin','2007-02-28 20:44:20'),(69,'Alert Admin',3,9,'dev.php','alert_admin','2007-02-28 20:45:56'),(70,'MANAGE_CARVER',8,5,'manage_carver.php','manage_carver','2007-04-21 17:41:21');
+UNLOCK TABLES;
+/*!40000 ALTER TABLE `menuoption` ENABLE KEYS */;
+
+--
+-- Table structure for table `dad_adm_carvers`
+--
+
+DROP TABLE IF EXISTS `dad_adm_carvers`;
+CREATE TABLE `dad_adm_carvers` (
+  `dad_adm_carvers_id` int(10) unsigned NOT NULL auto_increment,
+  `match_rule` varchar(768) NOT NULL default '',
+  `carve_rule` varchar(768) NOT NULL default '',
+  `creator_id` int(10) unsigned NOT NULL default '0',
+  `last_edited_by` int(10) unsigned NOT NULL default '0',
+  `creation_date` int(10) unsigned NOT NULL default '0',
+  `last_edit_date` int(10) unsigned NOT NULL default '0',
+  `rule_name` varchar(45) NOT NULL default '',
+  PRIMARY KEY  (`dad_adm_carvers_id`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1 COMMENT='Contains matching and carving rules for log extraction';
+
+--
+-- Dumping data for table `dad_adm_carvers`
+--
+
+
+/*!40000 ALTER TABLE `dad_adm_carvers` DISABLE KEYS */;
+LOCK TABLES `dad_adm_carvers` WRITE;
+INSERT INTO `dad_adm_carvers` VALUES (1,'.*postfix.*from=','.*postfix.*from=([<>a-zA-Z0-9._@]+) .*',1,0,0,0,'Sample Postfix Rule'),(2,'.*MAC.*SRC.*DST','.*SRC=([0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}) DST=([0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}) .*TTL=([0-9]+).*PROTO=([0-9A-Za-z]+) SPT=([0-9]+) DPT=([0-9]+)',1,0,0,0,'IPTables Blocked Packets');
+UNLOCK TABLES;
+/*!40000 ALTER TABLE `dad_adm_carvers` ENABLE KEYS */;
 
 --
 -- Table structure for table `role`
@@ -403,28 +406,30 @@ UNLOCK TABLES;
 /*!40000 ALTER TABLE `role` ENABLE KEYS */;
 
 --
--- Table structure for table `language`
+-- Table structure for table `menu`
 --
 
-DROP TABLE IF EXISTS `language`;
-CREATE TABLE `language` (
-  `LanguageID` int(10) unsigned NOT NULL auto_increment,
-  `LanguageCode` char(3) collate utf8_unicode_ci NOT NULL default '',
-  `LanguageName` char(40) collate utf8_unicode_ci NOT NULL default '',
+DROP TABLE IF EXISTS `menu`;
+CREATE TABLE `menu` (
+  `MenuID` int(10) unsigned NOT NULL auto_increment,
+  `MenuName` char(40) collate utf8_unicode_ci NOT NULL default '',
+  `LevelNum` tinyint(3) unsigned NOT NULL default '0',
+  `SequenceNum` tinyint(3) unsigned NOT NULL default '0',
+  `ParentMenuOptionID` int(10) unsigned NOT NULL default '0',
   `LatestChangeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
-  PRIMARY KEY  (`LanguageID`)
+  PRIMARY KEY  (`MenuID`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 --
--- Dumping data for table `language`
+-- Dumping data for table `menu`
 --
 
 
-/*!40000 ALTER TABLE `language` DISABLE KEYS */;
-LOCK TABLES `language` WRITE;
-INSERT INTO `language` VALUES (1,'E','English','2005-06-28 17:08:24'),(2,'S','Spanish','2005-06-30 14:11:26'),(3,'DE','German','2007-03-15 02:35:26'),(4,'FR','French','2007-03-15 02:35:26'),(5,'J','Japanese','2007-03-15 02:35:26'),(6,'RU','Russian','2007-03-15 02:35:26');
+/*!40000 ALTER TABLE `menu` DISABLE KEYS */;
+LOCK TABLES `menu` WRITE;
+INSERT INTO `menu` VALUES (1,'Tabs',1,1,0,'2005-06-28 17:34:05'),(2,'Users',2,1,2,'2005-06-29 20:27:39'),(3,'Maintenance',2,1,10,'2005-06-30 12:34:24'),(5,'Preferences',2,2,5,'2005-07-05 12:32:49'),(6,'Resources',2,1,3,'2005-07-27 15:12:24'),(7,'Directory Service',2,1,4,'2005-10-24 19:55:52'),(8,'Log Analysis',2,1,57,'2006-05-29 12:28:12');
 UNLOCK TABLES;
-/*!40000 ALTER TABLE `language` ENABLE KEYS */;
+/*!40000 ALTER TABLE `menu` ENABLE KEYS */;
 
 --
 -- Table structure for table `orgunittype`
@@ -453,6 +458,30 @@ UNLOCK TABLES;
 /*!40000 ALTER TABLE `orgunittype` ENABLE KEYS */;
 
 --
+-- Table structure for table `language`
+--
+
+DROP TABLE IF EXISTS `language`;
+CREATE TABLE `language` (
+  `LanguageID` int(10) unsigned NOT NULL auto_increment,
+  `LanguageCode` char(3) collate utf8_unicode_ci NOT NULL default '',
+  `LanguageName` char(40) collate utf8_unicode_ci NOT NULL default '',
+  `LatestChangeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
+  PRIMARY KEY  (`LanguageID`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+--
+-- Dumping data for table `language`
+--
+
+
+/*!40000 ALTER TABLE `language` DISABLE KEYS */;
+LOCK TABLES `language` WRITE;
+INSERT INTO `language` VALUES (1,'E','English','2005-06-28 17:08:24'),(2,'S','Spanish','2005-06-30 14:11:26'),(3,'DE','German','2007-03-15 02:35:26'),(4,'FR','French','2007-03-15 02:35:26'),(5,'J','Japanese','2007-03-15 02:35:26'),(6,'RU','Russian','2007-03-15 02:35:26');
+UNLOCK TABLES;
+/*!40000 ALTER TABLE `language` ENABLE KEYS */;
+
+--
 -- Table structure for table `orgunit`
 --
 
@@ -478,31 +507,6 @@ CREATE TABLE `orgunit` (
 LOCK TABLES `orgunit` WRITE;
 UNLOCK TABLES;
 /*!40000 ALTER TABLE `orgunit` ENABLE KEYS */;
-
---
--- Table structure for table `session`
---
-
-DROP TABLE IF EXISTS `session`;
-CREATE TABLE `session` (
-  `SessionID` binary(64) NOT NULL default '\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0',
-  `UserID` int(10) unsigned NOT NULL default '0',
-  `IPAddress` char(15) collate utf8_unicode_ci NOT NULL default '',
-  `ExpireTime` int(10) unsigned NOT NULL default '0',
-  `LastOptionID` int(10) unsigned NOT NULL default '0',
-  PRIMARY KEY  (`SessionID`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-
---
--- Dumping data for table `session`
---
-
-
-/*!40000 ALTER TABLE `session` DISABLE KEYS */;
-LOCK TABLES `session` WRITE;
-INSERT INTO `session` VALUES ('H56JwAjtiYF1ERnJBvkDNFVagwTnIOCG$I13~0hURPqeRZIBcCZTzuyy2QjB7jDu',1,'192.168.254.114',1177103068,0),('15.S~_PAk73TY_RWNsVqaofF50ziGDSBWkLd9Bjs9kb0e6s2nIHfTM10v_YSGrF~',2,'10.245.31.158',1163887791,0),('OrTw5lwItQMo|IlmMB7n4oDmeP2Xqispt$8o8A5ExybugjHSykDtszWSlJ$vH1sM',32,'10.1.194.102',1122459828,0),('5y79KbLsPUQru0SkDTnKqVB3$YZTQjB~qoIJLluWoJmNd|zUvUW8gkeO1FW5WaKj',8,'10.1.194.102',1120127637,0),('t2gCJTsDROFlmd84.SJX3Ug2I$w9|r.dL23o4U6Foslzjo5Zo5f94E6.YZfYdFi|',12,'10.1.194.102',1120128802,0),('8FMv3u~9PQbbng|K~r_aWOp|JG75H4RGJ5lcjv$7e|nYcOuRybboR4x9ospL4C3O',13,'10.1.194.102',1120140832,0),('Vdy6HZQpngm|x6OfiN2kHQVT|VWJKQ4HFKR~mx0I$PAbQYetHGTq46Z|Lu6a7xvF',14,'10.1.194.102',1120141966,0),('4XOZJtEBMPriT9VX|F0|xAsYNMi7QlsFSqG2r7QeDIbo20_aFKXejABd~wt~Mbvy',19,'10.1.194.102',1120149744,0),('MvXf9W|xBIM_cW6QSAndEV4ugmblfLrF5O4RhWMw1FTkyZewYpM4K~Uj6LxCKX9W',22,'10.1.194.102',1120226441,0),('VBmyTm4Kmy6thHF$Mm4ZxJP_hQE~5W~qeAPpdDwsfVRBSRV2J8dS.C70U8ySkHuw',33,'10.1.56.113',1141307184,0),('.2SaN_ZIwM4N|Rd55KzlYrpm6xE0H.x6.Im~uxLhhgB1jd4.hmJemr~z2Grlhwer',34,'10.1.194.98',1142946878,0),('LtpavdNDafJA2obDH3LUqWfW0seQxvHaQn4.7Ycf1vNEOZETaCg4qiFKbof6ML6C',35,'10.1.182.95',1169597068,0),('Bi5wKpIm92YUOhB2n24c2l8vb68i9kWDgWTWS2Q$oj9K29yJg5xyinUaHQY9vAyf',3,'127.0.0.1',1173735943,0),('_M6WwkpAWFhPIaQNKXzdkiDomiB2_oAcCz|P2eqZ_q2owAYmRGTzu|Rcj3u5HKVe',6,'10.1.195.113',1173723972,0);
-UNLOCK TABLES;
-/*!40000 ALTER TABLE `session` ENABLE KEYS */;
 
 --
 -- Table structure for table `orggrouptype`
@@ -552,28 +556,29 @@ UNLOCK TABLES;
 /*!40000 ALTER TABLE `dad_event_log_types` ENABLE KEYS */;
 
 --
--- Table structure for table `dad_sys_events_aging`
+-- Table structure for table `session`
 --
 
-DROP TABLE IF EXISTS `dad_sys_events_aging`;
-CREATE TABLE `dad_sys_events_aging` (
-  `Aging_ID` int(10) unsigned NOT NULL auto_increment,
-  `Event_ID` int(10) unsigned NOT NULL,
-  `Explanation` varchar(255) NOT NULL,
-  `Retention_Time` int(10) unsigned NOT NULL,
-  PRIMARY KEY  (`Aging_ID`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1 COMMENT='Aging schedule for various Windows events';
+DROP TABLE IF EXISTS `session`;
+CREATE TABLE `session` (
+  `SessionID` binary(64) NOT NULL default '\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0',
+  `UserID` int(10) unsigned NOT NULL default '0',
+  `IPAddress` char(15) collate utf8_unicode_ci NOT NULL default '',
+  `ExpireTime` int(10) unsigned NOT NULL default '0',
+  `LastOptionID` int(10) unsigned NOT NULL default '0',
+  PRIMARY KEY  (`SessionID`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 --
--- Dumping data for table `dad_sys_events_aging`
+-- Dumping data for table `session`
 --
 
 
-/*!40000 ALTER TABLE `dad_sys_events_aging` DISABLE KEYS */;
-LOCK TABLES `dad_sys_events_aging` WRITE;
-INSERT INTO `dad_sys_events_aging` VALUES (1,0,'Default',3888000),(2,560,'Object Access Events',604800),(3,592,'Process Tracking Events',172800),(4,632,'Group Changes',60480000),(5,633,'Group Changes',60480000),(6,636,'Group Changes',60480000),(7,637,'Group Changes',60480000),(8,660,'Group Changes',60480000),(9,661,'Group Changes',60480000),(10,565,'Audited Object Access',86400),(11,576,'Rights Assigned',0);
+/*!40000 ALTER TABLE `session` DISABLE KEYS */;
+LOCK TABLES `session` WRITE;
+INSERT INTO `session` VALUES ('rsQv_ePYQMXE_ZMjEipb3Nu3GR6ZrsKLG$BDbNehmVO15rPoyWmMKd$PXW$K2V0f',1,'192.168.254.114',1177225808,0),('15.S~_PAk73TY_RWNsVqaofF50ziGDSBWkLd9Bjs9kb0e6s2nIHfTM10v_YSGrF~',2,'10.245.31.158',1163887791,0),('OrTw5lwItQMo|IlmMB7n4oDmeP2Xqispt$8o8A5ExybugjHSykDtszWSlJ$vH1sM',32,'10.1.194.102',1122459828,0),('5y79KbLsPUQru0SkDTnKqVB3$YZTQjB~qoIJLluWoJmNd|zUvUW8gkeO1FW5WaKj',8,'10.1.194.102',1120127637,0),('t2gCJTsDROFlmd84.SJX3Ug2I$w9|r.dL23o4U6Foslzjo5Zo5f94E6.YZfYdFi|',12,'10.1.194.102',1120128802,0),('8FMv3u~9PQbbng|K~r_aWOp|JG75H4RGJ5lcjv$7e|nYcOuRybboR4x9ospL4C3O',13,'10.1.194.102',1120140832,0),('Vdy6HZQpngm|x6OfiN2kHQVT|VWJKQ4HFKR~mx0I$PAbQYetHGTq46Z|Lu6a7xvF',14,'10.1.194.102',1120141966,0),('4XOZJtEBMPriT9VX|F0|xAsYNMi7QlsFSqG2r7QeDIbo20_aFKXejABd~wt~Mbvy',19,'10.1.194.102',1120149744,0),('MvXf9W|xBIM_cW6QSAndEV4ugmblfLrF5O4RhWMw1FTkyZewYpM4K~Uj6LxCKX9W',22,'10.1.194.102',1120226441,0),('VBmyTm4Kmy6thHF$Mm4ZxJP_hQE~5W~qeAPpdDwsfVRBSRV2J8dS.C70U8ySkHuw',33,'10.1.56.113',1141307184,0),('.2SaN_ZIwM4N|Rd55KzlYrpm6xE0H.x6.Im~uxLhhgB1jd4.hmJemr~z2Grlhwer',34,'10.1.194.98',1142946878,0),('LtpavdNDafJA2obDH3LUqWfW0seQxvHaQn4.7Ycf1vNEOZETaCg4qiFKbof6ML6C',35,'10.1.182.95',1169597068,0),('Bi5wKpIm92YUOhB2n24c2l8vb68i9kWDgWTWS2Q$oj9K29yJg5xyinUaHQY9vAyf',3,'127.0.0.1',1173735943,0),('_M6WwkpAWFhPIaQNKXzdkiDomiB2_oAcCz|P2eqZ_q2owAYmRGTzu|Rcj3u5HKVe',6,'10.1.195.113',1173723972,0);
 UNLOCK TABLES;
-/*!40000 ALTER TABLE `dad_sys_events_aging` ENABLE KEYS */;
+/*!40000 ALTER TABLE `session` ENABLE KEYS */;
 
 --
 -- Table structure for table `dad_sys_linked_queries`
@@ -598,6 +603,29 @@ LOCK TABLES `dad_sys_linked_queries` WRITE;
 INSERT INTO `dad_sys_linked_queries` VALUES (1,'SELECT Field_10 as \'count_User\',Field_15 as \'IP Address\' FROM dad_sys_events WHERE  Field_8=\'675\' AND Field_14=\'0x18\') and field_15 = \'~0\'',0,'Takes an IP address and returns all usernames reported in authentication failures from that IP address');
 UNLOCK TABLES;
 /*!40000 ALTER TABLE `dad_sys_linked_queries` ENABLE KEYS */;
+
+--
+-- Table structure for table `orggroup`
+--
+
+DROP TABLE IF EXISTS `orggroup`;
+CREATE TABLE `orggroup` (
+  `OrgGroupID` int(10) unsigned NOT NULL auto_increment,
+  `OrgGroupTypeID` int(10) unsigned NOT NULL default '0',
+  `IdentifyingOrgUnitID` int(10) unsigned NOT NULL default '0',
+  `LatestChangeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
+  PRIMARY KEY  (`OrgGroupID`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+--
+-- Dumping data for table `orggroup`
+--
+
+
+/*!40000 ALTER TABLE `orggroup` DISABLE KEYS */;
+LOCK TABLES `orggroup` WRITE;
+UNLOCK TABLES;
+/*!40000 ALTER TABLE `orggroup` ENABLE KEYS */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;

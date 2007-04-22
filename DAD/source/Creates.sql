@@ -133,6 +133,23 @@ CREATE TABLE `dad_adm_alertuser` (
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1 ROW_FORMAT=DYNAMIC;
 
 --
+-- Table structure for table `dad_adm_carvers`
+--
+
+DROP TABLE IF EXISTS `dad_adm_carvers`;
+CREATE TABLE `dad_adm_carvers` (
+  `dad_adm_carvers_id` int(10) unsigned NOT NULL auto_increment,
+  `match_rule` varchar(768) NOT NULL default '',
+  `carve_rule` varchar(768) NOT NULL default '',
+  `creator_id` int(10) unsigned NOT NULL default '0',
+  `last_edited_by` int(10) unsigned NOT NULL default '0',
+  `creation_date` int(10) unsigned NOT NULL default '0',
+  `last_edit_date` int(10) unsigned NOT NULL default '0',
+  `rule_name` varchar(45) NOT NULL default '',
+  PRIMARY KEY  (`dad_adm_carvers_id`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1 COMMENT='Contains matching and carving rules for log extraction';
+
+--
 -- Table structure for table `dad_adm_computer_group`
 --
 
