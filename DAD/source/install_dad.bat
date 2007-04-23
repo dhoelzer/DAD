@@ -9,8 +9,11 @@ echo Installing Apache
 echo Please accept all defaults.
 call msiexec /i %INSTALL_DIR%\apache\apache_2.0.58-win32-x86-no_ssl.msi
 echo -----------------------------------------------------------------
-echo Replacing Apache configuration file...
-copy /Y %INSTALL_DIR%\apache\httpd.conf "c:\program files\Apache group\apache2\conf"
+echo Modifying the Apache configuration file...
+echo AddType application/x-httpd-php .php .html .htm >> "C:\Program Files\Apache Group\Apache2\conf\httpd.conf"
+echo Overriding Document Root in httpd.conf
+echo DocumentRoot "C:/DAD/web/html" >> "C:\Program Files\Apache Group\Apache2\conf\httpd.conf"
+@rem copy /Y %INSTALL_DIR%\apache\httpd.conf "c:\program files\Apache group\apache2\conf"
 echo -----------------------------------------------------------------
 echo Before proceeding, you should have ALREADY downloaded and instal-
 echo led MySQL and ActivePerl.  If you have not yet completed the
@@ -36,6 +39,8 @@ echo MySQL restarted.
 echo -----------------------------------------------------------------
 echo MySQL configuration completed
 echo -----------------------------------------------------------------
+echo Copying PHP ini file to the Windows directory.
+copy "C:\program files\php\php.ini" C:\windows
 rem Removed 4/23/07 - New PHP installer should take care of this.
 rem echo Beginning PHP configuration
 rem copy %INSTALL_DIR%\php\libmysql.dll "C:\program files\apache group\apache2\bin"
