@@ -5,10 +5,22 @@ pause
 set INSTALL_DIR=C:\DAD\Source
 echo Installing from %INSTALL_DIR%...
 echo -----------------------------------------------------------------
+echo Installing Apache
+echo Please accept all defaults.
+call msiexec /i %INSTALL_DIR%\apache\apache_2.0.58-win32-x86-no_ssl.msi
+echo -----------------------------------------------------------------
+echo Replacing Apache configuration file...
+copy /Y %INSTALL_DIR%\apache\httpd.conf "c:\program files\Apache group\apache2\conf"
+echo -----------------------------------------------------------------
 echo Before proceeding, you should have ALREADY downloaded and instal-
-echo led MySQL, ActivePerl and PHP.  If you have not yet completed the
+echo led MySQL and ActivePerl.  If you have not yet completed the
 echo installation of these packages, please STOP NOW!  Go and install
 echo these tools and then start this installation script.
+echo " "
+echo Please run the PHP installer that you downloaded at this point.
+echo Please make sure to enable the "MySQL" and "MySQLi" modules.  You
+echo must also configure the PHP installer to support an Apache 2.0.x
+echo family server!!!
 echo -----------------------------------------------------------------
 echo Please hit enter AFTER you have installed the required packages.
 pause
@@ -24,19 +36,13 @@ echo MySQL restarted.
 echo -----------------------------------------------------------------
 echo MySQL configuration completed
 echo -----------------------------------------------------------------
-echo Installing Apache
-echo Please accept all defaults.
-call msiexec /i %INSTALL_DIR%\apache\apache_2.0.58-win32-x86-no_ssl.msi
-echo -----------------------------------------------------------------
-echo Replacing Apache configuration file...
-copy /Y %INSTALL_DIR%\apache\httpd.conf "c:\program files\Apache group\apache2\conf"
-echo -----------------------------------------------------------------
-echo Beginning PHP configuration
-copy %INSTALL_DIR%\php\libmysql.dll "C:\program files\apache group\apache2\bin"
-copy %INSTALL_DIR%\php\php*.dll c:\php
-copy %INSTALL_DIR%\php\php.ini c:\php
-erase c:\windows\php.ini
-echo PHP configuration completed.
+rem Removed 4/23/07 - New PHP installer should take care of this.
+rem echo Beginning PHP configuration
+rem copy %INSTALL_DIR%\php\libmysql.dll "C:\program files\apache group\apache2\bin"
+rem copy %INSTALL_DIR%\php\php*.dll c:\php
+rem copy %INSTALL_DIR%\php\php.ini c:\php
+rem erase c:\windows\php.ini
+rem echo PHP configuration completed.
 echo -----------------------------------------------------------------
 echo Please left click the Apache icon in the icon tray and restart the 
 echo Apache service.
