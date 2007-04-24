@@ -24,7 +24,7 @@ echo installation of these packages, please STOP NOW!  Go and install
 echo these tools and then start this installation script.
 echo " "
 echo Please run the PHP installer that you downloaded at this point.
-echo Please make sure to enable the "MySQL" and "MySQLi" modules.  You
+echo Please make sure to enable the "GD2", "MySQL" and "MySQLi" modules.  You
 echo must also configure the PHP installer to support an Apache 2.0.x
 echo family server!!!
 echo -----------------------------------------------------------------
