@@ -11,6 +11,9 @@ call msiexec /i %INSTALL_DIR%\apache\apache_2.0.58-win32-x86-no_ssl.msi
 echo -----------------------------------------------------------------
 echo Modifying the Apache configuration file...
 echo AddType application/x-httpd-php .php .html .htm >> "C:\Program Files\Apache Group\Apache2\conf\httpd.conf"
+echo AddHandler application/x-httpd-php .php >> "C:\Program Files\Apache Group\Apache2\conf\httpd.conf"
+echo AddHandler application/x-httpd-php .html >> "C:\Program Files\Apache Group\Apache2\conf\httpd.conf"
+echo AddHandler application/x-httpd-php .htm >> "C:\Program Files\Apache Group\Apache2\conf\httpd.conf"
 echo Overriding Document Root in httpd.conf
 echo DocumentRoot "C:/DAD/web/html" >> "C:\Program Files\Apache Group\Apache2\conf\httpd.conf"
 @rem copy /Y %INSTALL_DIR%\apache\httpd.conf "c:\program files\Apache group\apache2\conf"

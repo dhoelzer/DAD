@@ -1,4 +1,4 @@
-<?
+<?php
 #   This file is a part of the DAD Log Aggregation and Analysis tool
 #    Copyright (C) 2006, David Hoelzer/Cyber-Defense.org
 #

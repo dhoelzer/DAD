@@ -186,3 +186,4 @@ function modify_global($strKey, $strValue)
    $Global[$strKey] = (string)$strValue;
    return $Global;
 }
+?>
