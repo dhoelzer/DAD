@@ -1,4 +1,5 @@
 <?php
+
 #   This file is a part of the DAD Log Aggregation and Analysis tool
 #    Copyright (C) 2006, David Hoelzer/Cyber-Defense.org
 #
@@ -19,6 +20,7 @@
 
 require_once("../lib/strings.php");
 
+
 function systems_edit() {
 
     global $gaLiterals;
@@ -28,7 +30,7 @@ function systems_edit() {
         dispatch( OPTIONID_LOGOUT );
         return;
     }
-    add_element( "<b><font size=2>${gaLiterals['Systems']}</font></b><br><br>" );
+    add_element( "<div class=\"page_head_name\">${gaLiterals['Systems']}</div>" );
 
     $arrLogThese = array();
     $arrServices = array();
@@ -45,7 +47,7 @@ function systems_edit() {
     if( (isset( $Global['bt'] ) && $Global['bt'] === $gaLiterals['Update']) || (isset( $Global['form_action'] ) && $Global['form_action'] === 'saveasnew') ) {
 
         if( !isset( $Global['system_name'] ) || $Global['system_name'] == '' ) {
-            add_element( "<font color=red>${gaLiterals['Description']} ${gaLiterals['Required']}</font><br>" );
+            add_element( "<div class=\"response_text\">${gaLiterals['Description']} ${gaLiterals['Required']}</div>" );
             $flgBad = 1;
         }
 
@@ -61,9 +63,11 @@ function systems_edit() {
             }
 
             /*we delete and then re-insert; if there's no id to be begin with, then nothing can be delete - by design*/
-            $strSQL = "DELETE FROM dad_sys_event_import_from WHERE system_name='${Global['system_name']}'";
+            $strSQL = "DELETE dad_sys_event_import_from FROM dad_sys_event_import_from WHERE system_name='${Global['system_name']}'";
             $strAff = runSQLReturnAffected( $strSQL );
-            $strSQL = "DELETE FROM dad_sys_systems WHERE system_id = '${Global['system_id']}'";
+            $strSQL = "DELETE dad_sys_systems FROM dad_sys_systems WHERE system_id = '${Global['system_id']}'";
+            $strAff = runSQLReturnAffected( $strSQL );
+            $strSQL = "DELETE dad_adm_computer_group_member FROM dad_adm_computer_group_member WHERE system_id = '${Global['system_id']}'";
             $strAff = runSQLReturnAffected( $strSQL );
 
             $strSQL = "INSERT INTO dad_sys_systems( 
@@ -91,7 +95,7 @@ function systems_edit() {
             $strID = runInsertReturnID( $strSQL );
             
             /*split Computer Group entries*/
-            $arr = explode(',',$Global['selectedgroups_list']);
+            $arr = explode('~~~',$Global['selectedgroups_list']);
             foreach( $arr as $a ){
                 if( isset($a) && $a >=1 ){
                     /*will check for the existance of this group membership*/
@@ -107,7 +111,7 @@ function systems_edit() {
                 }
             }
 
-            add_element( "<font color=red><b>Successfully added \"${Global['system_name']}\"</b></font>" );
+            add_element( "<div class=\"response_text\">${gaLiterals['Successfully added']} \"${Global['system_name']}\"</div>" );
 
             /* LOGGING
              logger( "JOB CREATION SUCCESS: UserID: $strUserID; UserName: ${Global['username']}; FirstName: ${Global['firstname']}'; LastName: ${Global['lastname']}; Email: ${Global['email']}; RoleID: ${Global['role']}; " );*/
@@ -117,19 +121,19 @@ function systems_edit() {
     }
 
     if( isset( $Global['form_action'] ) && $Global['form_action'] === 'delete' ) {
-        $strSQL = "DELETE FROM dad_sys_event_import_from WHERE system_name='${Global['system_name']}'";
+        $strSQL = "DELETE dad_sys_event_import_from FROM dad_sys_event_import_from WHERE system_name='${Global['system_name']}'";
         $strAff = runSQLReturnAffected( $strSQL );
-        $strSQL = "DELETE FROM dad_sys_systems WHERE system_id='${Global['system_id']}'";
+        $strSQL = "DELETE dad_sys_systems FROM dad_sys_systems WHERE system_id='${Global['system_id']}'";
         $strAff = runSQLReturnAffected( $strSQL );
         if( $strAff ){
-            add_element( "<font color=red><b>DELETED \"${Global['system_name']}\"</b></font>" );
+            add_element( "<div class=\"response_text\">${gaLiterals['Deleted']} \"${Global['system_name']}\"</div>" );
         }else{
-            add_element( '<font color=red><b>Error deleting job</b></font>' );
+            add_element( "<div class=\"response_text\">${gaLiterals['Error Deleting']}</div>" );
         }
     }
 
     if( isset( $Global['form_action'] ) && ($Global['form_action'] === 'lookup' || $Global['bt'] === $gaLiterals['Update'] || $Global['form_action'] === 'saveasnew') ) {
-	$strSQL = "SELECT sys.system_id, sys.system_name, loc.location_name, sys.timezone, os.os_name, sys.ip_address, sys.contact_information, import.log_these, import.priority, import.next_run
+        $strSQL = "SELECT sys.system_id, sys.system_name, loc.location_name, sys.timezone, os.os_name, sys.ip_address, sys.contact_information, import.log_these, import.priority, import.next_run
                    FROM dad_sys_systems AS sys
                      LEFT JOIN dad_sys_location AS loc ON sys.location_id = loc.location_id
                      LEFT JOIN dad_sys_os AS os ON sys.os_id = os.os_id
@@ -137,7 +141,7 @@ function systems_edit() {
                    WHERE sys.system_id=${Global['system_id']}";
         $arrDetails = runQueryReturnArray( $strSQL );
         if( isset($arrDetails) ){
-            $arrDetails = $arrDetails[0];
+            $arrDetails = array_shift( $arrDetails );
             $arrLogThese = bitmask_to_array($arrDetails['log_these'],$arrServices);
         }
     }
@@ -184,7 +188,7 @@ function systems_edit() {
                 'SELECT id_dad_adm_computer_group, group_name FROM dad_adm_computer_group ORDER BY group_name DESC',
                 'allgroups',
                 '',
-                "MULTIPLE style=\"width:100%\" ondblclick=\"copy_node_to(this,selectedgroups,selectedgroups_list);\" onkeypress=\"select_keypress_copy(this,selectedgroups,selectedgroups_list);\" "
+                "MULTIPLE style=\"width:100%\" ondblclick=\"copy_node(this,selectedgroups);record_list(selectedgroups,selectedgroups_list,'~~~');\" onkeypress=\"select_keypress_copy(this,selectedgroups,selectedgroups_list,'~~~');\" "
             )
          . "</td>
             <td colspan=2><b>Current Member Of</b><br>" . 
@@ -195,7 +199,7 @@ function systems_edit() {
                  WHERE m.system_id = ${Global['system_id']} ORDER BY group_name DESC",
                 'selectedgroups',
                 '',
-                "MULTIPLE style=\"width:100%\" ondblclick=\"remove_node(this);\" "
+                "MULTIPLE style=\"width:100%\" ondblclick=\"remove_node(this);record_list(this,selectedgroups_list,'~~~');\" "
             )
          . "</td>
           </tr><tr>
@@ -211,9 +215,7 @@ function systems_edit() {
           </tr>
         </table></form>";
 
-    if( isset( $arrVals['calleractive'] ) && $Global['calleractive'] != '' ) {
-        $strHTML .="<tr><td align='right'>Who added: </td><td>${Global['calleractive']} on ${Global['timeactive']}</td></tr>";
-    }
+    $strHTML .= "<script>record_list('selectedgroups','selectedgroups_list','~~~')</script>";
 
     add_element( $strHTML );
 
@@ -229,7 +231,7 @@ function computer_group_admin(){
         dispatch( OPTIONID_LOGOUT );
         return;
     }
-    add_element( "<b><font size=2>${gaLiterals['Computer Groups']}</font></b><br><br>" );
+    add_element( "<div class=\"page_head_name\">${gaLiterals['Computer Groups']}</div>" );
 
     $arr = array();
     $flg_lookup = 0;
@@ -240,9 +242,9 @@ function computer_group_admin(){
         $strAff = runSQLReturnAffected( "DELETE dad_adm_computer_group_member FROM dad_adm_computer_group_member WHERE id_dad_adm_computer_group = ${Global['group_id']}" );
         $strAff = runSQLReturnAffected( "DELETE dad_adm_computer_group FROM dad_adm_computer_group WHERE id_dad_adm_computer_group = ${Global['group_id']}" );
         if( $strAff ){
-            add_element( "Deleted \"${Global['groupname']}\"" );
+            add_element( "<div class=\"response_text\">${gaLiterals['Successfully Deleted']} \"${Global['groupname']}\"</div>" );
         }else{
-            add_element( "<font color=red>ERROR deleting \"${Global['groupname']}\"</font>" );
+            add_element( "<div class=\"response_text\">${gaLiterals['Error Deleting']} \"${Global['groupname']}\"</div>" );
         }
     }
 
@@ -252,7 +254,7 @@ function computer_group_admin(){
             $strID = runInsertReturnID( "INSERT INTO dad_adm_computer_group( group_name, description, calleractive, timeactive)VALUES( '${Global['groupname']}', '${Global['descrip']}', '${Global['txtUserName']}', unix_timestamp() )" );
             if( $strID ){
                 //ADD computer membership
-                $arr = explode(',',$Global['selectedcomputers_list']);
+                $arr = explode('~~~',$Global['selectedcomputers_list']);
                 foreach( $arr as $a ){
                     if( isset($a) && $a >=1 ){
                         /*will check for the existance of this group membership*/
@@ -268,27 +270,27 @@ function computer_group_admin(){
                     }
                 }
                 $Global['group_id'] = $strID;
-                add_element( "Added \"${Global['groupname']}\"" );
+                add_element( "<div class=\"response_text\">${gaLiterals['Successfully Added']} \"${Global['groupname']}\"</div>" );
             }else{
-                add_element( "<font color=red>ERROR adding \"${Global['groupname']}\"</font>" );
+                add_element( "<div class=\"response_text\">${gaLiterals['Error Adding']} \"${Global['groupname']}\"</div>" );
             }
             $flg_lookup = 1;
         }else{
-            add_element("<font color=red>ERROR adding \"${Global['groupname']}\". No description supplied.</font>");
+            add_element("<div class=\"response_text\">${gaLiterals['Error Adding']} \"${Global['groupname']}\". ${gaLiterals['Description Required']}</div>");
         }
     }
 
     if ( isset($Global['form_action']) && $Global['form_action'] === 'update' ){
         if( isset($Global['groupname']) && preg_match( '/\S/', $Global['groupname'] ) ){
             /*NEED INPUT VALIDATION*/
-            $strAff = runSQLReturnAffected( "DELETE FROM dad_adm_computer_group WHERE id_dad_adm_computer_group = ${Global['group_id']}" );
+            $strAff = runSQLReturnAffected( "DELETE dad_adm_computer_group FROM dad_adm_computer_group WHERE id_dad_adm_computer_group = ${Global['group_id']}" );
             if( is_int($strAff) && $stAff >= 0 ){
                 $strSQL = "INSERT INTO dad_adm_computer_group( id_dad_adm_computer_group, group_name, description, calleractive, timeactive)VALUES( '${Global['group_id']}', '${Global['groupname']}', '${Global['groupdesc']}', '${Global['txtUserName']}', unix_timestamp() )";
                 $strID = runInsertReturnID( $strSQL );
 
                 if( $strID ){
                     // remove email addresses
-                    runSQLReturnAffected( "DELETE FROM dad_adm_computer_group_member WHERE id_dad_adm_computer_group = ${Global['group_id']}" );
+                    runSQLReturnAffected( "DELETE dad_adm_computer_group_member FROM dad_adm_computer_group_member WHERE id_dad_adm_computer_group = ${Global['group_id']}" );
                     // ADD email address
                     $arr = explode(',',$Global['selectedcomputers_list']);
                     foreach( $arr as $a ){
@@ -305,20 +307,23 @@ function computer_group_admin(){
                             }
                         }
                     }
-                    add_element( "Updated \"${Global['groupname']}\"" );
+                    add_element( "<div class=\"response_text\">${gaLiterals['Updated']} \"${Global['groupname']}\"</div>" );
                 }else{
                     if( isset($Global['group_id']) && $Global['group_id'] != '' ){
-                        add_element( "<font color=red>ERROR updating \"${Global['groupname']}\". Can't insert new data</font>" );
+                        add_element( "<div class=\"response_text\">${gaLiterals['Error Updating']} \"${Global['groupname']}\". ${gaLiterals['Internal Error']}</div>" );
+//NEED INTERNAL LOGGING... SOMETHING BAD HAPPENED; COULD NOT INSERT NEW DATA
                     }else{
-                        add_element( "<font color=red>ERROR updating \"${Global['groupname']}\". Group does not exist</font>" );
+                        add_element( "<div class=\"response_text\">${gaLiterals['Error Updating']} \"${Global['groupname']}\". ${gaLiterals['Does Not Exist']}</div>" );
+//NEED INTERNAL LOGGING... SOMETHING BAD HAPPENED - IS THE USER PLAYING AROUND, PASSING WRONG GROUP ID'S??????? HACKING????
                     }
                 }
             }else{
-                add_element( "<font color=red>ERROR updating \"${Global['groupname']}\". Can't remove old entry</font>" );
+                add_element( "<div class=\"response_text\">${gaLiterals['Error Updating']} \"${Global['groupname']}\". ${gaLiterals['Internal Error']}</div>" );
+//NEED INTERNAL LOGGING... SOMETHING BAD HAPPENED, COULD NOT DELETE
             }
             $flg_lookup = 1;
         }else{
-            add_element("<font color=red>ERROR updating \"${Global['groupname']}\". No description supplied.</font>");
+            add_element("<div class=\"response_text\">${gaLiterals['Error Updating']} \"${Global['groupname']}\". ${gaLiterals['Description Required']}</div>");
         }
     }
 
@@ -363,11 +368,11 @@ function computer_group_admin(){
             <td align='right' id='groupid'><font color='gray'>" . $gaLiterals['Group ID'] . ":</font></td><td><font color='gray'>" . ( isset($arr['id_dad_adm_computer_group']) ? $arr['id_dad_adm_computer_group'] : '') . "</font></td>
           </tr><tr>
             <td colspan=2>
-            <b>All Users</b>";
-    $strHTML .= build_drop_down( "SELECT system_id, system_name  FROM dad_sys_systems ORDER BY system_name ASC", 'allcomputers', '', "MULTIPLE style=\"width:100%\" ondblclick='copy_node_to(this,selectedcomputers,selectedcomputers_list);' onkeypress='select_keypress_copy(this,selectedcomputers,selectedcomputers_list);'");
+            <b>${gaLiterals['All Computers']}</b>";
+    $strHTML .= build_drop_down( "SELECT system_id, system_name  FROM dad_sys_systems ORDER BY system_name ASC", 'allcomputers', '', "MULTIPLE style=\"width:100%\" ondblclick='copy_node(this,selectedcomputers);record_list(selectedcomputers,selectedcomputers_list,'~~~');' onkeypress='select_keypress_copy(this,selectedcomputers,selectedcomputers_list,'~~~');'");
     $strHTML .= "</td>
             <td colspan=2>
-            <b>Current Members</b>";
+            <b>${gaLiterals['Current Members']}</b>";
     $strSQL = "SELECT c.system_id, c.system_name
                FROM dad_sys_systems AS c 
                INNER JOIN dad_adm_computer_group_member AS m ON c.system_id = m.system_id 
@@ -375,7 +380,7 @@ function computer_group_admin(){
                ORDER BY c.system_name ASC";
     $strHTML .= build_drop_down( $strSQL, 'selectedcomputers', '', "MULTIPLE style=\"width:100%\" ondblclick='remove_node(this);'");
     $strHTML .= "</td></tr></table></form>";
-    $strHTML .= "<script>record_list('selectedcomputers','selectedcomputers_list')</script>";
+    $strHTML .= "<script>record_list('selectedcomputers','selectedcomputers_list','~~~')</script>";
 
     add_element( $strHTML );
 }
