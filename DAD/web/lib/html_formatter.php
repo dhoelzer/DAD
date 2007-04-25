@@ -185,7 +185,11 @@ function build_drop_down ( $strSQL, $strNamePrefix, $strSelected=NULL, $strOptio
         return "ERROR: second paramenter for build_drop_down() is required";
     }
 
-    $strHTML = "<DIV style='height:100pt;overflow:scroll;'>";
+	if( preg_match( '/height:/i', $strOptions ) > 0 ){
+        $strHTML = "<DIV style='overflow:scroll;' $strOptions>";
+    }else{
+        $strHTML = "<DIV style='height:100pt;' style='overflow:scroll;'>";
+    }
 
     $arr = runQueryReturnArray( $strSQL );
     if( is_array($arr) ){
