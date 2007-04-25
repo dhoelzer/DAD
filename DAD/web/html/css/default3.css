@@ -1073,3 +1073,18 @@ select.long{
 td.readonly{
     color: #A9A9A9;
 }
+table.event_table{
+    color: #A9A9A9;
+    font-size: 14px;
+}
+
+div.response_text{
+    color:  #FF0000;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+div.page_head_name{
+    font-weight: bold;
+    font-size: 20px;
+}
