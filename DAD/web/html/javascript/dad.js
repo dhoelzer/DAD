@@ -1,3 +1,5 @@
+var xmlhttp;
+
 //----------------------------------//
 // delete_bt_click(oVerify);
 //   oVerify - object - field that will be examined to ensure that actual item is select before trying 
@@ -29,33 +31,27 @@ function delete_bt_click(oVerify){
 function remove_node(oFrom){
     var oWidth = oFrom.style.width;
     if( oFrom.selectedIndex >= 0 ){
+        var str = oFrom.offsetWidth;
         var oSelected  = oFrom.children(oFrom.selectedIndex);
         oSelected.removeNode;
         oFrom.children(oFrom.selectedIndex).removeNode(true);
+        oFrom.style.width = str;
     }
-    oFrom.style.width = (oFrom.parentElement.offsetWidth - 3);
 
 }
 
-function copy_node_to(oFrom, oTo, oFullList){
-    var obj;
-    var i;
-    var str = '';
+
+function copy_node(oFrom, oTo){
     var oSelected  = oFrom.children(oFrom.selectedIndex);
     var oNewNode   = document.createElement(oSelected.nodeName);
     var children = oFrom.children;
+    var str = oTo.offsetWidth;
     oNewNode.value = oSelected.value;
     oNewNode.innerHTML = oSelected.innerHTML;
     oTo.appendChild(oNewNode);
-    //make comma separated list in hidden field
-    for( i=0; i<oTo.length; i++ ){
-        obj = oTo.children(i);
-        if( obj.value !== '' ){
-            str = str + ',' + obj.value;
-        }
-    }
-    oFullList.value = str;
+    oTo.style.width = str;
 }
+
 
 function record_action_and_submit(oAction,oPrompt){
     var flg_cont = 0;
@@ -74,13 +70,19 @@ function record_action_and_submit(oAction,oPrompt){
     }
 }
 
-function select_keypress_copy(oFrom, oTo, oFullList){
+
+function select_keypress_copy(oFrom, oTo, oFullList, strSep){
+    if( typeof(strSep) == 'undefined' ){
+        strSep = ',';
+    }
     var page = document.forms[0].document.all;
     var key = window.event.keyCode;
     if( key == 13 ){
-        copy_node_to(oFrom, oTo, oFullList);
+        copy_node(oFrom, oTo);
+        record_list(oTo,oFullList,strSep);
     }
 }
+
 
 function select_keypress_record_action(oAction){
     var key = window.event.keyCode;
@@ -88,6 +90,7 @@ function select_keypress_record_action(oAction){
         record_action_and_submit(oAction);
     }
 }
+
 
 //----------------------------------//
 //  record_list(oFrom,oTo,oSep);
@@ -104,23 +107,36 @@ function record_list(oFrom,oTo,oSep){
         oSep = ',';
     }
     if( typeof(oFrom) == 'string' ){
-        for( i=0; i<page[oFrom].length; i++ ){
-            obj = page[oFrom].children(i);
-            if( obj.value !== '' ){
-                str += oSep + obj.value;
-            }
-        }
-        page[oTo].value = str;
+        oFrom = document.getElementById(oFrom);
     }
-    if( typeof(oFrom) === 'object' ){
-        for( i=0; i<oFrom.length; i++ ){
-            obj = oFrom.children(i);
-            if( obj.value !== '' ){
-                str += oSep + obj.value;
-            }
-        }
-        oTo.value = str;
+    if( typeof(oTo) == 'string' ){
+        oTo = document.getElementById(oTo);
     }
+    for( i=0; i<oFrom.length; i++ ){
+        obj = oFrom.children(i);
+        if( obj.value !== '' ){
+            str += oSep + obj.value;
+        }
+    }
+    oTo.value = str;
+    // if( typeof(oFrom) == 'string' ){
+        // for( i=0; i<page[oFrom].length; i++ ){
+            // obj = page[oFrom].children(i);
+            // if( obj.value !== '' ){
+                // str += oSep + obj.value;
+            // }
+        // }
+        // page[oTo].value = str;
+    // }
+    // if( typeof(oFrom) === 'object' ){
+        // for( i=0; i<oFrom.length; i++ ){
+            // obj = oFrom.children(i);
+            // if( obj.value !== '' ){
+                // str += oSep + obj.value;
+            // }
+        // }
+        // oTo.value = str;
+    // }
 }
 
 //----------------------------------//
@@ -139,6 +155,39 @@ function unlock_input_fields(){
         if( name == 'input' && type == 'text' ){
             //alert(document.forms[0].elements[i].value);
             document.forms[0].elements[i].readOnly = false;
+        }
+    }
+}
+
+
+
+function loadXMLDoc(url,dest){
+    xmlhttp=null
+    // code for Mozilla, etc.
+    if (window.XMLHttpRequest){
+        xmlhttp=new XMLHttpRequest()
+    }
+    // code for IE
+    else if (window.ActiveXObject){
+        xmlhttp=new ActiveXObject("Microsoft.XMLHTTP")
+    }
+    if (xmlhttp!=null){
+        xmlhttp.onreadystatechange=state_Change(dest)
+        xmlhttp.open("GET",url,true)
+        xmlhttp.send(null)
+    }else{
+        alert("Your browser does not support XMLHTTP.")
+    }
+}
+
+function state_Change(dest){
+// if xmlhttp shows "loaded"
+    if (xmlhttp.readyState==4){
+        // if "OK"
+        if (xmlhttp.status==200){
+            document.getElementById(dest).innerHTML=xmlhttp.responseText
+        }else{
+            alert("Problem retrieving data:" + xmlhttp.statusText)
         }
     }
 }
