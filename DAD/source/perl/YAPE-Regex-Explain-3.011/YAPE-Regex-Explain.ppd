@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SOFTPKG NAME="YAPE-Regex-Explain" VERSION="3,011,0,0">
+  <ABSTRACT>explanation of a regular expression</ABSTRACT>
+  <AUTHOR>Jeff Pinyan (japhy.734+CPAN@gmail.com)</AUTHOR>
+  <IMPLEMENTATION>
+    <ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.8" />
+    <CODEBASE HREF="MSWin32-x86-multi-thread-5.8/YAPE-Regex-Explain-3.011.tar.gz" />
+    <OS NAME="MSWin32" />
+    <PROVIDE NAME="YAPE::Regex::Explain" VERSION="3.011" />
+  </IMPLEMENTATION>
+  <TITLE>YAPE-Regex-Explain</TITLE>
+</SOFTPKG>
