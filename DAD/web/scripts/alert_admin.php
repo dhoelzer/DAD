@@ -1,4 +1,5 @@
 <?php
+
 #   This file is a part of the DAD Log Aggregation and Analysis tool
 #    Copyright (C) 2006, David Hoelzer/Cyber-Defense.org
 #
@@ -36,9 +37,9 @@ function alert_group_admin(){
         $strAff = runSQLReturnAffected( "DELETE dad_adm_alert_group_member FROM dad_adm_alert_group_member WHERE id_dad_adm_alertgroup = ${Global['alertgroup_id']}" );
         $strAff = runSQLReturnAffected( "DELETE dad_adm_alert_group FROM dad_adm_alert_group WHERE id_dad_adm_alertgroup = ${Global['alertgroup_id']}" );
         if( $strAff ){
-            add_element( "Deleted \"${Global['groupname']}\"" );
+            add_element( "<div class='response_text'>${gaLiterals['Deleted']} \"${Global['groupname']}\"</div>" );
         }else{
-            add_element( "<font color=red>ERROR deleting \"${Global['groupname']}\"</font>" );
+            add_element( "<div class='response_text'>${gaLiterals['ERROR']} ${gaLiterals['Deleting']} \"${Global['groupname']}\"</div>" );
         }
     }
 
@@ -48,7 +49,7 @@ function alert_group_admin(){
             $strID = runInsertReturnID( "INSERT INTO dad_adm_alert_group( name, description, calleractive, timeactive)VALUES( '${Global['groupname']}', '${Global['descrip']}', '${Global['txtUserName']}', unix_timestamp() )" );
             if( $strID ){
                 //ADD email address
-                $arr = explode(',',$Global['selectedusers_list']);
+                $arr = explode('~~~',$Global['selectedusers_list']);
                 foreach( $arr as $a ){
                     if( isset($a) && $a >=1 ){
                         /*will check for the existance of this group membership*/
@@ -64,9 +65,9 @@ function alert_group_admin(){
                     }
                 }
                 $Global['alertgroup_id'] = $strID;
-                add_element( "Added \"${Global['groupname']}\"" );
+                add_element( "<div class='response_text'>${gaLiterals['Added']} \"${Global['groupname']}\"</div>" );
             }else{
-                add_element( "<font color=red>ERROR adding \"${Global['groupname']}\"</font>" );
+                add_element( "<div class='response_text'>${gaLiterals['ERROR']} ${gaLiterals['Adding']} \"${Global['groupname']}\"</div>" );
             }
             $flg_lookup = 1;
         }
@@ -84,7 +85,7 @@ function alert_group_admin(){
                     // remove email addresses
                     runSQLReturnAffected( "DELETE dad_adm_alert_group_member FROM dad_adm_alert_group_member WHERE id_dad_adm_alertgroup = ${Global['alertgroup_id']}" );
                     // ADD email address
-                    $arr = explode(',',$Global['selectedusers_list']);
+                    $arr = explode('~~~',$Global['selectedusers_list']);
                     foreach( $arr as $a ){
                         if( isset($a) && $a >=1 ){
                             /*will check for the existance of this group membership*/
@@ -99,16 +100,16 @@ function alert_group_admin(){
                             }
                         }
                     }
-                    add_element( "Updated \"${Global['groupname']}\"" );
+                    add_element( "<div class='response_text'>${gaLiterals['Updated']} \"${Global['groupname']}\"</div>" );
                 }else{
                     if( isset($Global['alertgroup_id']) && $Global['alertgroup_id'] != '' ){
-                        add_element( "<font color=red>ERROR updating \"${Global['groupname']}\". Can't insert new data</font>" );
+                        add_element( "<div class='response_text'>${gaLiterals['ERROR']} ${gaLiterals['Updating']} \"${Global['groupname']}\". Can't insert new data</div>" );
                     }else{
-                        add_element( "<font color=red>ERROR updating \"${Global['groupname']}\". Group does not exist</font>" );
+                        add_element( "<div class='response_text'>${gaLiterals['ERROR']} ${gaLiterals['Updating']} \"${Global['groupname']}\". Group does not exist</div>" );
                     }
                 }
             }else{
-                add_element( "<font color=red>ERROR updating \"${Global['groupname']}\". Can't remove old entry</font>" );
+                add_element( "<div class='response_text'>${gaLiterals['ERROR']} ${gaLiterals['Updating']} \"${Global['groupname']}\". Can't remove old entry</div>" );
             }
             $flg_lookup = 1;
         }
@@ -160,22 +161,32 @@ function alert_group_admin(){
             <td align='right' id='groupid'><font color='gray'>" . $gaLiterals['Group ID'] . ":</font></td><td><font color='gray'>" . ( isset($arr['id_dad_adm_alertgroup']) ? $arr['id_dad_adm_alertgroup'] : '') . "</font></td>
           </tr><tr>
             <td colspan=2>
-            <b>All Users</b>";
-    $strHTML .= build_drop_down( "SELECT id_dad_adm_alertuser, concat(lastname, ', ', firstname) as fullname FROM dad_adm_alertuser ORDER BY concat(lastname, ', ', firstname) ASC", 'allusers', '', "MULTIPLE style=\"width:100%\" ondblclick=\"copy_node_to(this,selectedusers,selectedusers_list);\" onkeypress=\"select_keypress_copy(this,selectedusers,selectedusers_list);\" ");  
+            <b>${gaLiterals['All Users']}</b>";
+    $strHTML .= build_drop_down( 
+        "SELECT id_dad_adm_alertuser, concat(lastname, ', ', firstname) as fullname FROM dad_adm_alertuser ORDER BY concat(lastname, ', ', firstname) ASC", 
+        'allusers', 
+        '', 
+        "MULTIPLE style=\"width:100%\" ondblclick=\"copy_node(this,selectedusers);record_list(selectedusers,selectedusers_list,'~~~');\" onkeypress=\"select_keypress_copy(this,selectedusers,selectedusers_list,'~~~');\" 
+    ");  
     $strHTML .= "</td>
             <td colspan=2>
-            <b>Current Members</b>";
+            <b>${gaLiterals['Current Members']}</b>";
     $strSQL = "SELECT u.id_dad_adm_alertuser, concat(u.lastname, ', ', u.firstname) as fullname 
                FROM dad_adm_alertuser as u 
                INNER JOIN dad_adm_alert_group_member m ON u.id_dad_adm_alertuser = m.id_dad_adm_alertuser 
                WHERE m.id_dad_adm_alertgroup = ${Global['alertgroup_id']} 
                ORDER BY concat(lastname, ', ', firstname) ASC";
-    $strHTML .= build_drop_down( $strSQL, 'selectedusers', '', "MULTIPLE style=\"width:100%\" ondblclick=\"remove_node(this);\"");
+    $strHTML .= build_drop_down( 
+        $strSQL, 
+        'selectedusers', 
+        '', 
+        "MULTIPLE style=\"width:100%\" ondblclick=\"remove_node(this);record_list('selectedusers','selectedusers_list','~~~');\"
+    ");
     $strHTML .= "</td>
           </tr></table>";
     $strHTML .= "</form>";
     //$strHTML .= "<SCRIPT>record_list(document.forms[0].selectedusers);</SCRIPT>";
-    $strHTML .= "<script>record_list('selectedusers','selectedusers_list')</script>";
+    $strHTML .= "<script>record_list('selectedusers','selectedusers_list','~~~')</script>";
 
     add_element( $strHTML );
 }
@@ -201,9 +212,9 @@ function alert_user_admin(){
         $strAff = runSQLReturnAffected( "DELETE dad_adm_alert_group_member FROM dad_adm_alert_group_member WHERE id_dad_adm_alertuser = ${Global['alertuser_id']}" );
         $strAff = runSQLReturnAffected( "DELETE dad_adm_alertuser FROM dad_adm_alertuser WHERE id_dad_adm_alertuser = ${Global['alertuser_id']}" );
         if( is_int($strAff) ){
-            add_element( "${gaLiterals['Deleted']} \"${Global['lastname']}, ${Global['firstname']}\"" );
+            add_element( "<div class='response_text'>${gaLiterals['Deleted']} \"${Global['lastname']}, ${Global['firstname']}\"</div>" );
         }else{
-            add_element( "<font color=red>${gaLiterals['ERROR']} ${gaLiterals['Deleting']} \"${Global['lastname']}, ${Global['firstname']}\"</font>" );
+            add_element( "<div class='response_text'>${gaLiterals['ERROR']} ${gaLiterals['Deleting']} \"${Global['lastname']}, ${Global['firstname']}\"</div>" );
         }
     }
 
@@ -215,7 +226,7 @@ function alert_user_admin(){
             $Global['alertuser_id'] = $strID;
             if( is_int($strID) ){
                 /*add groups*/
-                $arr = explode(',',$Global['selectedgroups_list']);
+                $arr = explode('~~~',$Global['selectedgroups_list']);
                 foreach( $arr as $a ){
                     if( isset($a) && $a >=1 ){
                         /*will check for the existance of this group membership, just in case the group appears twice in the submitted list*/
@@ -230,9 +241,9 @@ function alert_user_admin(){
                         }
                     }
                 }
-                add_element( "${gaLiterals['Added']} \"${Global['lastname']}, ${Global['firstname']}\"" );
+                add_element( "<div class='response_text'>${gaLiterals['Added']} \"${Global['lastname']}, ${Global['firstname']}\"</div>" );
             }else{
-                add_element( "<font color=red>${gaLiterals['ERROR']} ${gaLiterals['Adding']} \"${Global['lastname']}, ${Global['firstname']}\"</font>" );
+                add_element( "<div class='response_text'>${gaLiterals['ERROR']} ${gaLiterals['Adding']} \"${Global['lastname']}, ${Global['firstname']}\"</div>" );
             }
             $flg_lookup = 1;
         }
@@ -248,7 +259,7 @@ function alert_user_admin(){
                 $strID = runInsertReturnID( $strSQL );
                 if( is_int($strID) ){
                     /*add groups*/
-                    $arr = explode(',',$Global['selectedgroups_list']);
+                    $arr = explode('~~~',$Global['selectedgroups_list']);
                     foreach( $arr as $a ){
                         if( isset($a) && $a >=1 ){
                             /*will check for the existance of this group membership, just in case the group appears twice in the submitted list*/
@@ -263,12 +274,12 @@ function alert_user_admin(){
                             }
                         }
                     }
-                    add_element( "${gaLiterals['Updated']} \"${Global['lastname']}, ${Global['firstname']}\"" );
+                    add_element( "<div class='response_text'>${gaLiterals['Updated']} \"${Global['lastname']}, ${Global['firstname']}\"</div>" );
                 }else{
-                    add_element( "<font color=red>ERROR updating \"${Global['lastname']}, ${Global['firstname']}\". Can't insert new data</font>" );
+                    add_element( "<div class='response_text'>${gaLiterals['ERROR']} ${gaLiterals['Updating']} \"${Global['lastname']}, ${Global['firstname']}\". Can't insert new data</div>" );
                 }
             }else{
-                add_element( "<font color=red>ERROR updating \"${Global['lastname']}, ${Global['firstname']}\". Can't remove old entry</font>" );
+                add_element( "<div class='response_text'>${gaLiterals['ERROR']} ${gaLiterals['Updating']} \"${Global['lastname']}, ${Global['firstname']}\". Can't remove old entry</div>" );
             }
             $flg_lookup = 1;
         }
@@ -332,16 +343,16 @@ function alert_user_admin(){
             <td><font color='gray'>${gaLiterals['Last Changed On']}:</font></td><td><font color='gray'>${arr['timeactive']}</font></td>
           </tr><tr>
             <td colspan=2>
-            <b>${gaLiterals['All']} ${gaLiterals['Groups']}</b>";
+            <b>${gaLiterals['All Groups']}</b>";
     $strHTML .= build_drop_down( 
                     "SELECT id_dad_adm_alertgroup, name FROM dad_adm_alert_group ORDER BY name ASC", 
                     'allgroups', 
                     '', 
-                    "MULTIPLE style=\"width:100%\" ondblclick=\"copy_node_to(this,selectedgroups,selectedgroups_list);\" onkeypress=\"select_keypress_copy(this,selectedusers,selectedusers_list);\" "
+                    "MULTIPLE style=\"width:100%\" ondblclick=\"copy_node(this,selectedgroups);record_list(selectedgroups,selectedgroups_list,'~~~');\" onkeypress=\"select_keypress_copy(this,selectedgroups,selectedgroups_list,'~~~');\" "
                 );
     $strHTML .= "</td>
-            <td colspan=2>
-            <b>${gaLiterals['Current']} ${gaLiterals['Member Of']}</b>";
+            <td colspan=2 nowrap>
+            <b>${gaLiterals['Current Member Of']}</b><br>";
     $strSQL = "SELECT g.id_dad_adm_alertgroup, name 
                FROM dad_adm_alert_group as g
                INNER JOIN dad_adm_alert_group_member m ON g.id_dad_adm_alertgroup = m.id_dad_adm_alertgroup
@@ -351,7 +362,7 @@ function alert_user_admin(){
                     $strSQL, 
                     'selectedgroups',
                     '', 
-                    "MULTIPLE style=\"width:100%\" ondblclick=\"remove_node(this);\" "
+                    "MULTIPLE style=\"width:100%\" ondblclick=\"remove_node(this);record_list(this,selectedgroups_list,'~~~');\" "
                 );
     $strHTML .= "</td>
           </tr></table></form>";
@@ -359,7 +370,10 @@ function alert_user_admin(){
     if( isset($arr['custom_entry']) && $arr['custom_entry'] == 1){
         $strHTML .= "\n<SCRIPT>unlock_input_fields();</SCRIPT>\n";
     }
-    $strHTML .= "<SCRIPT>window.alert_user_admin.alertuser_id.focus();</SCRIPT>";
+    $strHTML .= "<SCRIPT>
+                    window.alert_user_admin.alertuser_id.focus();
+                    record_list('selectedgroups','selectedgroups_list','~~~');
+                </SCRIPT>";
     add_element( $strHTML );
 }
 
@@ -373,12 +387,13 @@ function alert_admin(){
         dispatch( OPTIONID_LOGOUT );
         return;
     }
-    add_element( "<b><font size=2>${gaLiterals['Alerts']}</font></b><br><br>" );
+    add_element( "<b><font size=2>${gaLiterals['Alert Admin']}</font></b><br><br>" );
 
     $strURL  = getOptionURL(OPTIONID_ALERT_ADMIN);
     $a    = '';
     $arr  = array();
     $arr2 = array();
+    $arrMessage = array();
     $arrSupress = array();
     $flg_lookup = 0;
     $strCriteria = '';
@@ -388,16 +403,23 @@ function alert_admin(){
         $strAff = runSQLReturnAffected( "DELETE dad_adm_alert FROM dad_adm_alert WHERE id_dad_adm_alert = ${Global['alert_id']}" );
         $strAff = runSQLReturnAffected( "DELETE dad_adm_alert_criteria FROM dad_adm_alert_criteria WHERE id_dad_adm_alert = ${Global['alert_id']}" );
         $strAff = runSQLReturnAffected( "DELETE dad_adm_alert_supress FROM dad_adm_alert_supress WHERE id_dad_adm_alert = ${Global['alert_id']}" );
+        $strAff = runSQLReturnAffected( "DELETE dad_adm_alert_message FROM dad_adm_alert_message WHERE id_dad_adm_alert_message = (SELECT id_dad_adm_alert_message FROM dad_adm_alert WHERE id_dad_adm_alert = ${Global['alert_id']}) AND template !=1" );
         if( is_int($strAff) ){
-            add_element( "${gaLiterals['Deleted']} \"${Global['description']}\"" );
+            add_element( "<div class='response_text'>${gaLiterals['Deleted']} \"${Global['description']}\"</div>" );
         }else{
-            add_element( "<font color=red>${gaLiterals['ERROR']} ${gaLiterals['Deleting']} \"${Global['description']}\"</font>" );
+            add_element( "<div class='response_text'>${gaLiterals['ERROR']} ${gaLiterals['Deleting']} \"${Global['description']}\"</div" );
         }
     }
 
     if ( isset($Global['form_action']) && $Global['form_action'] === 'saveasnew' ){
         if( isset($Global['description']) && preg_match( '/\S/', $Global['description'] ) ){
-            $strSQL = "INSERT INTO dad_adm_alert( description, active, notes, calleractive, timeactive, supress_interval, id_dad_adm_action ) 
+            /*save message details first, since we need the resultant ID in the next INSERT*/
+            if( isset($Global['message_dirty']) && $Global['message_dirty'] == 1 ){
+                $strSQL = "INSERT INTO dad_adm_alert_message( subject, body, template, calleractive, timeactive ) VALUES ( '${Global['message_subject']}', '${Global['message_body']}', 0, '${Global['txtUserName']}', unix_timestamp() )";
+                $Global['message_template'] = runInsertReturnID( $strSQL );
+            }
+
+            $strSQL = "INSERT INTO dad_adm_alert( description, active, notes, calleractive, timeactive, supress_interval, id_dad_adm_action, id_dad_adm_computer_group, id_dad_adm_alert_group, id_dad_adm_alert_message ) 
                        VALUES ( 
                            '${Global['description']}', 
                            " . (isset($Global['cbactive']) && strtolower($Global['cbactive'])==='on' ? 1 : 0) . ", 
@@ -405,7 +427,10 @@ function alert_admin(){
                            '${Global['txtUserName']}', 
                            unix_timestamp(), 
                            " . (isset($Global['supress_interval']) && (preg_match( '/[\D]*\d[\D]*/', $Global['supress_interval'])===1) ? $Global['supress_interval'] : 'NULL') . ", 
-                           " . (isset($Global['id_dad_adm_action']) && (preg_match( '/[\D]*\d[\D]*/', $Global['id_dad_adm_action'])===1) ? $Global['id_dad_adm_action'] : 'NULL') . "
+                           " . (isset($Global['id_dad_adm_action']) && (preg_match( '/[\D]*\d[\D]*/', $Global['id_dad_adm_action'])===1) ? $Global['id_dad_adm_action'] : 'NULL') . ",
+                           " . (isset($Global['computer_group']) && (preg_match( '/[\D]*\d[\D]*/', $Global['computer_group'])===1) ? $Global['computer_group'] : 'NULL') . ",
+                           " . (isset($Global['alert_group']) && (preg_match( '/[\D]*\d[\D]*/', $Global['alert_group'])===1) ? $Global['alert_group'] : 'NULL') . ",
+                           ${Global['message_template']}
                        )";
             $strID = runInsertReturnID( $strSQL );
             $Global['alert_id'] = $strID;
@@ -430,8 +455,9 @@ function alert_admin(){
                     runSQLReturnAffected( $strSQL );
                 }
             }
+            add_element("<div class='response_text'>${gaLiterals['Success']}</div>");
         }else{
-            add_element('<font color=red><b>Description is required</b></font>');
+            add_element("<div class='response_text'>${gaLiterals['Description is required']}</div>");
         }
         $flg_lookup = 1;
     }
@@ -442,8 +468,17 @@ function alert_admin(){
             $strAff = runSQLReturnAffected( "DELETE dad_adm_alert FROM dad_adm_alert WHERE id_dad_adm_alert = ${Global['alert_id']}" );
             $strAff = runSQLReturnAffected( "DELETE dad_adm_alert_criteria FROM dad_adm_alert_criteria WHERE id_dad_adm_alert = ${Global['alert_id']}" );
             $strAff = runSQLReturnAffected( "DELETE dad_adm_alert_supress FROM dad_adm_alert_supress WHERE id_dad_adm_alert = ${Global['alert_id']}" );
+            $strAff = runSQLReturnAffected( "DELETE dad_adm_alert_message FROM dad_adm_alert_message WHERE id_dad_adm_alert_message = (SELECT id_dad_adm_alert_message FROM dad_adm_alert WHERE id_dad_adm_alert = ${Global['alert_id']}) AND template !=1" );
             /*in with the new...*/
-            $strSQL = "INSERT INTO dad_adm_alert( id_dad_adm_alert, description, active, notes, calleractive, timeactive, supress_interval, id_dad_adm_action ) 
+            
+            /*save message details first, since we need the resultant ID in the next INSERT*/
+            if( isset($Global['message_dirty']) && $Global['message_dirty'] == 1 ){
+                $strSQL = "INSERT INTO dad_adm_alert_message( subject, body, template, calleractive, timeactive ) VALUES ( '${Global['message_subject']}', '${Global['message_body']}', 0, '${Global['txtUserName']}', unix_timestamp() )";
+                $Global['message_template'] = runInsertReturnID( $strSQL );
+            }
+
+            /*INSERT alert details*/
+            $strSQL = "INSERT INTO dad_adm_alert( id_dad_adm_alert, description, active, notes, calleractive, timeactive, supress_interval, id_dad_adm_action, id_dad_adm_computer_group, id_dad_adm_alert_group, id_dad_adm_alert_message ) 
                        VALUES ( 
                            " . (isset($Global['alert_id']) && (preg_match( '/[\D]*\d[\D]*/', $Global['alert_id'])===1) ? $Global['alert_id'] : 'NULL') . ", 
                            '${Global['description']}', 
@@ -452,10 +487,15 @@ function alert_admin(){
                            '${Global['txtUserName']}', 
                            unix_timestamp(), 
                            " . (isset($Global['supress_interval']) && (preg_match( '/[\D]*\d[\D]*/', $Global['supress_interval'])===1) ? $Global['supress_interval'] : 'NULL') . ", 
-                           " . (isset($Global['id_dad_adm_action']) && (preg_match( '/[\D]*\d[\D]*/', $Global['id_dad_adm_action'])===1) ? $Global['id_dad_adm_action'] : 'NULL') . "
+                           " . (isset($Global['id_dad_adm_action']) && (preg_match( '/[\D]*\d[\D]*/', $Global['id_dad_adm_action'])===1) ? $Global['id_dad_adm_action'] : 'NULL') . ",
+                           " . (isset($Global['computer_group']) && (preg_match( '/[\D]*\d[\D]*/', $Global['computer_group'])===1) ? $Global['computer_group'] : 'NULL') . ",
+                           " . (isset($Global['alert_group']) && (preg_match( '/[\D]*\d[\D]*/', $Global['alert_group'])===1) ? $Global['alert_group'] : 'NULL') . ",
+                           ${Global['message_template']}
                        )";
+                       //print $strSQL;
             $strID = runInsertReturnID( $strSQL );
 
+            /*INSERT alert criteria*/
             if( isset($Global['criteria_list']) && preg_match( '/\S/', $Global['criteria_list'] ) ){
                 $arr = explode('~~~',$Global['criteria_list']);
                 if( is_array($arr) ){
@@ -478,14 +518,15 @@ function alert_admin(){
                 }
             }
 
+            add_element("<div class='response_text'>${gaLiterals['Success']}</div>");
         }else{
-            add_element('<font color=red><b>Description is required</b></font>');
+            add_element("<div class='response_text'>${gaLiterals['Description is required']}</div>");
         }
         $flg_lookup = 1;
     }
 
     if ( (isset($Global['form_action']) && $Global['form_action'] === 'lookup') || $flg_lookup ){
-        $strSQL  = "SELECT id_dad_adm_alert, id_dad_adm_action, description, notes, calleractive, from_unixtime(timeactive) as timeactive, supress_interval, active FROM dad_adm_alert WHERE id_dad_adm_alert = ${Global['alert_id']} ";
+        $strSQL  = "SELECT id_dad_adm_alert, id_dad_adm_action, description, notes, calleractive, from_unixtime(timeactive) as timeactive, supress_interval, active, id_dad_adm_computer_group, id_dad_adm_alert_group, id_dad_adm_alert_message FROM dad_adm_alert WHERE id_dad_adm_alert = ${Global['alert_id']} ";
         $arr = runQueryReturnArray( $strSQL );
         if( is_array($arr) ){
             $arr = array_shift($arr);
@@ -511,6 +552,14 @@ function alert_admin(){
                 array_push( $arrSupress, $a[0] );
             }
         }
+        
+        /*look up message pieces*/
+        $arr2 = runQueryReturnArray( "SELECT subject, body, template FROM dad_adm_alert_message WHERE id_dad_adm_alert_message = ${arr['id_dad_adm_alert_message']}" );
+        if( is_array($arr2) ){
+            $arrMessage = array_shift($arr2);
+        }else{
+            $arrMessage = array();
+        }
         $a ='';
         $arr2 = '';
     }
@@ -534,7 +583,9 @@ function alert_admin(){
                 cri_val = oSelected.innerHTML + '=~/' + cri_val + '/';
                 oNewNode.innerHTML = cri_val;
                 oNewNode.value     = cri_val;
+                str = page.criteria_built.offsetWidth;
                 page.criteria_built.appendChild(oNewNode);
+                page.criteria_built.style.width = str;
 
                 /*clean up fields*/
                 record_list('criteria_built','criteria_list','~~~');
@@ -547,23 +598,111 @@ function alert_admin(){
                     add_criteria();
                 }
             }
+
+            function fetch_data(option,criteria,dest_name){
+                var xmlhttp = new ActiveXObject('Microsoft.XMLHTTP');
+                var dest = document.getElementById(dest_name);
+                var session_id = '" . $Global['SessionID'] . "';
+                var url = 'content.html?option_id=' + option + '&criteria=' + criteria + '&session=' + session_id;
+                xmlhttp.onreadystatechange=function(){display_fetch_data(xmlhttp,dest);};
+                xmlhttp.open('GET',url,false);
+                xmlhttp.send(null);
+                dest = null;
+                dest_name = null;
+                url = null;
+                xmlhttp = null;
+            }
+
+            function display_fetch_data(oxmlhttp,odest){
+                var flg = 0;
+                if (oxmlhttp.readyState==4 ){
+                    if ( oxmlhttp.status==200 ){
+                        for( var prop in odest ){
+                            if( prop.toLowerCase() == 'value' ){
+                                odest[prop] = oxmlhttp.responseText;
+                                flg = 1;
+                            }
+                        }
+                        if( flg == 0 ){
+                            for( var prop in odest ){
+                                if( prop.toLowerCase() == 'innerhtml' ){
+                                    odest[prop] = oxmlhttp.responseText;
+                                    flg = 1;
+                                }
+                            }
+                        }
+                    }else{
+                        alert('Problem retrieving data:'+ oxmlhttp.statusText)
+                    }
+                }
+                flg      = null;
+                odest    = null;
+                oxmlhttp = null;
+            }
+
+            function edit_template_click(){
+                var page = document.forms[0].document.all;
+                page.message_body.readOnly = false;
+                page.message_subject.readOnly = false;
+                page.message_template.selectedIndex = 0;
+                page.message_dirty.value = 1;
+                page.message_subject.focus();
+                
+            }
+
+            function template_select(){
+                var page = document.forms[0].document.all;
+                var session_id = '" . $Global['SessionID'] . "';
+                var template_id = page.message_template[page.message_template.selectedIndex].value;
+                var flg_complete = 0;
+                page.message_dirty.value = 0;
+                page.message_body.readOnly = true;
+                page.message_subject.readOnly = true;
+                if( template_id != '' ){
+                    while( flg_complete == 0 ){
+                        flg_complete = fetch_data('2', template_id ,'message_subject');
+                        flg_complete = fetch_data('3', template_id ,'message_body');
+                    }
+                }else{
+                    page.message_body.innerHTML = '';
+                    page.message_subject.value = '';
+                }
+            }
             
+            function select_keypress_call_function(func){
+                var key = window.event.keyCode;
+                if( key == 13 ){
+                    function(){func;};
+                }
+            }
+            
+            function lookup_event(){
+                var key = window.event.keyCode;
+                if( key == 13 ){
+                    fetch_data( 1, document.getElementById('event_number').value, 'event_details', 'event_table' );
+                }
+            }
 
         </SCRIPT>
         <form id='alert_admin' action='$strURL' method='post'>
         <input type='hidden' name='form_action' id='form_action'>
         <input type='hidden' name='criteria_list' id='criteria_list' value='$strCriteriaHidden'>
+        <input type='hidden' name='message_dirty' id='message_dirty' value='" . ( isset($arrMessage['template']) && $arrMessage['template'] != 1 ? '1' : '') . "'>
         <table>
           <tr>
-            <td rowspan=10 valign='top'><b>${gaLiterals['Current Alerts']}</b><br>" . 
+          <td valign=top>
+        <table>
+          <tr>
+            <td colspan=6 valign='top'><b>${gaLiterals['Current Alerts']}</b><br>" . 
                 build_drop_down( 
                     'SELECT id_dad_adm_alert, description FROM dad_adm_alert ORDER BY description ASC', 
                     'alert_id', 
                     $arr['id_dad_adm_alert'], 
-                    "MULTIPLE size=18 class=\"long\" ondblclick=\"record_action_and_submit('lookup');\"" 
+                    "MULTIPLE class=\"wide\" ondblclick=\"record_action_and_submit('lookup');\"" 
                 )
          . "</td>
-            <td colspan=4>";
+          </tr><tr>
+            <td colspan=5>";
     if( isset($Global['alert_id']) ){
         $strHTML .= "<INPUT type=button name=bt id=bt value='${gaLiterals['Update']}' onclick=\"record_action_and_submit('update');\">";
     }
@@ -572,27 +711,60 @@ function alert_admin(){
               <INPUT type=button name=bt id=bt value='${gaLiterals['Delete']}' onclick=\"delete_bt_click(alert_id);\">
               <INPUT type=button name=bt id=bt value='${gaLiterals['New']}' onclick=\"window.navigate('$strURL');\">
               <INPUT type=button name=bt id=bt value='${gaLiterals['Refresh']}' onclick=\"record_action_and_submit('lookup');\">
-              ${gaLiterals['Active']}: <input type=checkbox id=\"cbactive\" name=\"cbactive\" " . (isset($arr['active']) && $arr['active'] == 1 ? 'CHECKED' : '') . ">
+              ${gaLiterals['Active']}: <input type=checkbox id=\"cbactive\" name=\"cbactive\" " . (isset($arr['active']) && $arr['active'] == 1 || $arr['id_dad_adm_action'] == '' ? 'CHECKED' : '') . ">
             </td>
           </tr><tr>
             <td align=right>${gaLiterals['Description']}:</td>
             <td colspan=3><input type=text name=description id=description size=45 maxlength=45 value='" . ( isset($arr['description']) ? $arr['description'] : '') . "'></td>
+            <td nowrap><b>${gaLiterals['Suppress Duplicates']}</b></td>
           </tr><tr>
             <td align=right>${gaLiterals['Action']}:</td>
             <td>" . 
                 build_drop_down(
-                    'SELECT id_dad_adm_action, name FROM dad.dad_adm_action WHERE activeyesno = 1 ORDER BY name desc',
+                    'SELECT id_dad_adm_action, name FROM dad.dad_adm_action WHERE activeyesno = 1 ORDER BY name ASC',
                     'id_dad_adm_action',
                     ( isset($arr['id_dad_adm_action']) ? $arr['id_dad_adm_action'] : '')
                 )
           . "</td>
             <td nowrap align='right' class='readonly'>${gaLiterals['Last Changed By']}:</td>
             <td class='readonly'>" . ( isset($arr['calleractive']) ? $arr['calleractive'] : '') . "</td>
+            <td>
+              ${gaLiterals['Interval']}:
+              <input type='text' name='supress_interval' id='supress_interval' title='The number of minutes between each event' size=3 value='" . ( isset($arr['supress_interval']) ? $arr['supress_interval'] : '') . "'>
+            </td>
           </tr><tr>
-            <td align=right>${gaLiterals['Notes']}:</td>
-            <td><textarea id='notes' name='notes'>${arr['notes']}</textarea></td>
+            <td align=right>${gaLiterals['Alert Group']}:</td>
+            <td>" . 
+              build_drop_down(
+                  'SELECT id_dad_adm_alertgroup, name FROM dad_adm_alert_group ORDER BY name ASC',
+                  'alert_group',
+                  ( isset($arr['id_dad_adm_alert_group']) ? $arr['id_dad_adm_alert_group'] : '')
+              )
+          ."</td>
             <td nowrap align=right class=\"readonly\">${gaLiterals['Last Changed On']}:</td>
             <td class=\"readonly\">" . ( isset($arr['timeactive']) ? $arr['timeactive'] : '') . "</td>
+            <td rowspan=5 nowrap>${gaLiterals['Duplicate Fields']}:
+            " . 
+              build_check_box_scroll( 
+                 'SHOW COLUMNS FROM dad_sys_events', 
+                 'cb_supress_',
+                 $arrSupress,
+                 'style="height:150pt"',
+                 0,
+                 0
+                )
+         . "</td>
+          </tr><tr>
+            <td align=right>${gaLiterals['Computer Group']}:</td>
+            <td>" . 
+              build_drop_down(
+                  'SELECT id_dad_adm_computer_group, group_name FROM dad_adm_computer_group ORDER BY group_name ASC',
+                  'computer_group',
+                  ( isset($arr['id_dad_adm_computer_group']) ? $arr['id_dad_adm_computer_group'] : '')
+              )
+          ."</td>
+            <td align=right>${gaLiterals['Notes']}:</td>
+            <td><textarea id='notes' name='notes'>${arr['notes']}</textarea></td>
           </tr><tr>
             <td colspan=4><b>Criteria</b></td>
           </tr><tr>
@@ -617,24 +789,36 @@ function alert_admin(){
                 <input type='button' id='bt' name='bt' value=\"${gaLiterals['Remove']}\" onclick=\"remove_node(criteria_built);record_list(criteria_built,criteria_list,'~~~');\">
                 <select id='criteria_built' name='criteria_built' size=5 MULTIPLE class=\"wide\" ondblclick=\"remove_node(this);record_list(this,criteria_list,'~~~');\">$strCriteria</select></td>
           </tr><tr>
-            <td colspan=4><b>Supress Duplicate Alerts</b></td>
+            <td colspan=5 valign=\"top\" nowrap>
+              <b>${gaLiterals['Message']}</b><br>
+              ${gaLiterals['Subject']}: <input type='text' id='message_subject' name='message_subject' " . ( isset($arrMessage['template']) && $arrMessage['template'] < 1 ? '' : 'READONLY') . " size=\"100%\" value=\"${arrMessage['subject']}\">
+            </td>
           </tr><tr>
-            <td align='right' nowrap>${gaLiterals['Interval']}:</td>
-            <td colspan=3><input type='text' name='supress_interval' id='supress_interval' title='The number of seconds between each event' value='" . ( isset($arr['supress_interval']) ? $arr['supress_interval'] : '') . "'></td>
-          </tr><tr>
-            <td nowrap colspan='4' valign='top'>${gaLiterals['Duplicate Fields']}:<br>" . 
-               build_check_box_table ( 
-                 'SHOW COLUMNS FROM dad_sys_events', 
-                 5, 
-                 1, 
-                 'cb_supress_',
-                 $arrSupress,
-                 0,
-                 0
-               )
-         . "</td>          
+            <td colspan=5 rowspan=2 valign=\"top\" nowrap>
+              <div align=\"right\">
+                ${gaLiterals['Templates']}: " .
+              build_drop_down(
+                  'SELECT id_dad_adm_alert_message, description FROM dad_adm_alert_message WHERE template = 1 ORDER BY description ASC',
+                  'message_template',
+                  (isset($arr[id_dad_adm_alert_message]) ? $arr[id_dad_adm_alert_message] : null),
+                  "onchange='template_select();'"
+              )
+              ." 
+                <input type=button value=\"${gaLiterals['Edit']}\" onclick=\"edit_template_click();\">
+              </div>
+              ${gaLiterals['Body']}:<br>
+              <textarea id='message_body' name='message_body' " . ( isset($arrMessage['template']) && $arrMessage['template'] < 1 ? '' : 'READONLY') . " rows=10 cols=\"82%\" title=\"For variables, use a field name with a dollar sign on each side of it - e.g. \$field_2$. \">${arrMessage['body']}</textarea>
+            </td>
           </tr>";
-    $strHTML .="</table></form>";
+    $strHTML .="</table>
+    </td>
+      <td rowspan=1000 valign='top' class='readonly' width='225pt' nowrap>
+        <b>${gaLiterals['Event Lookup']}:</b><br>
+        <input type='text' id='event_number' size='20' onkeypress=\"lookup_event();\" onblur=\"fetch_data( 1, document.getElementById('event_number').value, 'event_details', 'event_table' )\">
+        <div id='event_details'><div>
+      </td>
+    </tr>      
+    <table></form>";
     
     add_element($strHTML);
 
