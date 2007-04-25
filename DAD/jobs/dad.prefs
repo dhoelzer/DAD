@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<dad_prefs>
+    <domain_account>
+        <name></name>
+        <dn></dn>
+        <pw></pw>
+    </domain_account>
+    <db_account_read>
+        <name>root</name>
+        <pw>All4Fun</pw>
+    </db_account_read>
+    <db_account_change>
+        <name>root</name>
+        <pw>All4Fun</pw>
+    </db_account_change>
+    <db_account_root>
+        <name>root</name>
+        <pw>All4Fun</pw>
+    </db_account_root>
+    <db>
+        <name>DAD</name>
+        <server>localhost</server>
+        <port>3306</port>
+        <conn_retries>15</conn_retries>
+    </db>
+    <perl_debug>
+        <level>1</level>
+    </perl_debug>
+</dad_prefs>
