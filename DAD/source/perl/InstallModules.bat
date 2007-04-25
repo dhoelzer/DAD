@@ -17,7 +17,10 @@ cd "..\GD Stuff"
 call ppm install GD.ppd
 call ppm install GDtextutil.ppd
 call ppm install GDGraph.ppd
-cd ..
-call ppm install YAPE-Regex-Explain
-call ppm install YAPE-Regex
+cd ..\YAPE-Regex-3.03
+call ppm install YAPE-Regex.ppd
+cd ..\YAPE-Regex-Explain-3.011
+call ppm install YAPE-Regex-Explain.ppd
+cd ..\Net-Telnet
+call ppm install Net-Telnet.ppd 
 echo Done!
