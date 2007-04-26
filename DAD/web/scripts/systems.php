@@ -146,15 +146,15 @@ function systems_edit() {
         }
     }
 
-    $strHTML .= "<SCRIPT ID='clientEventHandlersJS' LANGUAGE='javascript' TYPE='text/javascript' src='javascript/dad.js'></SCRIPT>";
+    $strHTML .= "<SCRIPT ID=\"clientEventHandlersJS\" LANGUAGE=\"javascript\" TYPE=\"text/javascript\" src=\"javascript/dad.js\"></SCRIPT>";
     $strHTML .="
-      <form id='system_edit' action='$strURL' method='post'>\n
-        <input type='hidden' name='form_action' id='form_action'>
-        <input type='hidden' name='selectedgroups_list' id='selectedgroups_list'>
+      <form id=\"system_edit\" action=\"$strURL\" method=\"post\">\n
+        <input type=\"hidden\" name=\"form_action\" id=\"form_action\">
+        <input type=\"hidden\" name=\"selectedgroups_list\" id=\"selectedgroups_list\">
         <table>
           <colgroup valign=top></colgroup>
           <tr>
-            <td align='right'>${gaLiterals['Systems']}:</td>
+            <td align=\"right\">${gaLiterals['Systems']}:</td>
             <td colspan=3>";
     $strHTML .= build_drop_down( 
                     'SELECT system_id, system_name FROM dad_sys_systems ORDER BY system_name ASC', 
@@ -163,25 +163,25 @@ function systems_edit() {
                     "onchange=\"record_action_and_submit('lookup');\""
                 );
     $strHTML .="
-            <INPUT type=submit name=bt id=bt value='${gaLiterals['Update']}'>
-            <INPUT type=button name=bt id=bt value='${gaLiterals['Save as New']}' onclick=\"record_action_and_submit('saveasnew');\">
-            <INPUT type=button name=bt id=bt value='${gaLiterals['Delete']}' onclick=\"delete_bt_click(system_id);\">
-            <INPUT type=button name=bt id=bt value='${gaLiterals['New']}' onclick=\"window.navigate('$strURL');\">
-            <INPUT type=button name=bt id=bt value='${gaLiterals['Refresh']}' onclick=\"record_action_and_submit('lookup');\">
+            <INPUT type=submit name=bt id=bt value=\"${gaLiterals['Update']}\">
+            <INPUT type=button name=bt id=bt value=\"${gaLiterals['Save as New']}\" onclick=\"record_action_and_submit('saveasnew');\">
+            <INPUT type=button name=bt id=bt value=\"${gaLiterals['Delete']}\" onclick=\"delete_bt_click(system_id);\">
+            <INPUT type=button name=bt id=bt value=\"${gaLiterals['New']}\" onclick=\"window.navigate('$strURL');\">
+            <INPUT type=button name=bt id=bt value=\"${gaLiterals['Refresh']}\" onclick=\"record_action_and_submit('lookup');\">
             </td>
           </tr><tr>
-            <td align='right' nowrap>System Name: </td><td><INPUT TYPE='text' NAME='system_name' ID='system_name' VALUE='" . (isset($arrDetails['system_name'])?$arrDetails['system_name']:'')  . "'></td>
-            <td align='right' nowrap>Location Info: </td><td><INPUT TYPE='text' NAME='location_name' ID='location_name' SIZE=32 VALUE='" . (isset($arrDetails['location_name'])?$arrDetails['location_name']:'')  . "'></td>
+            <td align=\"right\" nowrap>System Name: </td><td><INPUT TYPE=\"text\" NAME=\"system_name\" ID=\"system_name\" VALUE=\"" . (isset($arrDetails['system_name'])?$arrDetails['system_name']:'')  . "\"></td>
+            <td align=\"right\" nowrap>Location Info: </td><td><INPUT TYPE=\"text\" NAME=\"location_name\" ID=\"location_name\" SIZE=32 VALUE=\"" . (isset($arrDetails['location_name'])?$arrDetails['location_name']:'')  . "\"></td>
           </tr><tr>
-            <td align='right'><font color='gray'>System ID:</font></td><td><font color='gray'>" . (isset($arrDetails['system_id'])?$arrDetails['system_id']:'')  . "</font></td>
-            <td align='right' nowrap>Time Zone: </td><td><INPUT TYPE='text' NAME='timezone' ID='timezone' SIZE=32 VALUE='" . (isset($arrDetails['timezone'])?$arrDetails['timezone']:'')  . "'></td>
+            <td align=\"right\"><font color=\"gray\">System ID:</font></td><td><font color=\"gray\">" . (isset($arrDetails['system_id'])?$arrDetails['system_id']:'')  . "</font></td>
+            <td align=\"right\" nowrap>Time Zone: </td><td><INPUT TYPE=\"text\" NAME=\"timezone\" ID=\"timezone\" SIZE=32 VALUE=\"" . (isset($arrDetails['timezone'])?$arrDetails['timezone']:'')  . "\"></td>
           </tr><tr>
-            <td align='right'><font color='gray'>OS:</font></td><td><font color='gray'>" . (isset($arrDetails['os_name'])?$arrDetails['os_name']:'')  . "</font></td>
-            <td align='right' nowrap rowspan=2>Contact Info: </td><td rowspan=2><TEXTAREA NAME='contact_information' ID='contact_information' ROWS=2 TITLE=\"maximum 80 characters\" COLS=30 STYLE=\"font-size:8pt\">" . (isset($arrDetails['contact_information'])?$arrDetails['contact_information']:'')  . "</TEXTAREA></td>
+            <td align=\"right\"><font color=\"gray\">OS:</font></td><td><font color=\"gray\">" . (isset($arrDetails['os_name'])?$arrDetails['os_name']:'')  . "</font></td>
+            <td align=\"right\" nowrap rowspan=2>Contact Info: </td><td rowspan=2><TEXTAREA NAME=\"contact_information\" ID=\"contact_information\" ROWS=2 TITLE=\"maximum 80 characters\" COLS=30 STYLE=\"font-size:8pt\">" . (isset($arrDetails['contact_information'])?$arrDetails['contact_information']:'')  . "</TEXTAREA></td>
           </tr><tr>
-            <td align='right'><font color='gray'>IP Address:</font></td><td><font color='gray'>" . (isset($arrDetails['ip_address'])?$arrDetails['ip_address']:'')  . "</font></td>
+            <td align=\"right\"><font color=\"gray\">IP Address:</font></td><td><font color=\"gray\">" . (isset($arrDetails['ip_address'])?$arrDetails['ip_address']:'')  . "</font></td>
           </tr><tr>
-            <td align='right' nowrap>Priority: </td><td><INPUT TYPE='text' NAME='priority' ID='priority' VALUE='" . (isset($arrDetails['priority'])?$arrDetails['priority']:'0')  . "'></td>
+            <td align=\"right\" nowrap>Priority: </td><td><INPUT TYPE=\"text\" NAME=\"priority\" ID=\"priority\" VALUE=\"" . (isset($arrDetails['priority'])?$arrDetails['priority']:'0')  . "\"></td>
           </tr><tr>
             <td colspan=2><b>All Computer Groups</b><br>" .
             build_drop_down( 
@@ -337,39 +337,39 @@ function computer_group_admin(){
         }
     }
 
-    $strHTML .= "<SCRIPT ID='clientEventHandlersJS' LANGUAGE='javascript' TYPE='text/javascript' src='javascript/dad.js'></SCRIPT>";
-    $strHTML .= "<form id='computer_group_admin' action='$strURL' method='post'>
-        <input type='hidden' name='form_action' id='form_action'>
-        <input type='hidden' name='selectedcomputers_list' id='selectedusers_list'>
+    $strHTML .= "<SCRIPT ID=\"clientEventHandlersJS\" LANGUAGE=\"javascript\" TYPE=\"text/javascript\" src=\"javascript/dad.js\"></SCRIPT>";
+    $strHTML .= "<form id=\"computer_group_admin\" action=\"$strURL\" method=\"post\">
+        <input type=\"hidden\" name=\"form_action\" id=\"form_action\">
+        <input type=\"hidden\" name=\"selectedcomputers_list\" id=\"selectedusers_list\">
         <table>
           <colgroup valign=top></colgroup>
           <tr>
-            <td align='right' nowrap><b>${gaLiterals['Computer Groups']}:</b></td>
+            <td align=\"right\" nowrap><b>${gaLiterals['Computer Groups']}:</b></td>
             <td>";
     $strHTML .= build_drop_down( 'SELECT id_dad_adm_computer_group, group_name FROM dad_adm_computer_group ORDER BY group_name ASC', 'group_id', $arr['id_dad_adm_computer_group'], "onchange=\"record_action_and_submit('lookup');\"" );
     $strHTML .="
             </td><td colspan=3 nowrap>";
     if( isset($Global['group_id']) ){
-        $strHTML .= "<INPUT type=button name=bt id=bt value='${gaLiterals['Update']}' onclick=\"record_action_and_submit('update',1);\">";
+        $strHTML .= "<INPUT type=button name=bt id=bt value=\"${gaLiterals['Update']}\" onclick=\"record_action_and_submit('update',1);\">";
     }
     $strHTML .= "
-            <INPUT type=button name=bt id=bt value='${gaLiterals['Save as New']}' onclick=\"record_action_and_submit('saveasnew',1);\">
-            <INPUT type=button name=bt id=bt value='${gaLiterals['Delete']}' onclick=\"delete_bt_click(group_id);\">
-            <INPUT type=button name=bt id=bt value='${gaLiterals['New']}' onclick=\"window.navigate('$strURL');\">
-            <INPUT type=button name=bt id=bt value='${gaLiterals['Refresh']}' onclick=\"record_action_and_submit('lookup');\">
+            <INPUT type=button name=bt id=bt value=\"${gaLiterals['Save as New']}\" onclick=\"record_action_and_submit('saveasnew',1);\">
+            <INPUT type=button name=bt id=bt value=\"${gaLiterals['Delete']}\" onclick=\"delete_bt_click(group_id);\">
+            <INPUT type=button name=bt id=bt value=\"${gaLiterals['New']}\" onclick=\"window.navigate('$strURL');\">
+            <INPUT type=button name=bt id=bt value=\"${gaLiterals['Refresh']}\" onclick=\"record_action_and_submit('lookup');\">
             </td>
           </tr><tr>
-            <td align='right'>" . $gaLiterals['Group Name'] . ":</td><td><input type=text name=groupname id=groupname maxlength=30 value='" . ( isset($arr['group_name']) ? $arr['group_name'] : '') . "'></td>
-            <td><font color='gray'>${gaLiterals['Last Changed By']}:</font></td><td><font color='gray'>${arr['calleractive']}</font></td>
+            <td align=\"right\">" . $gaLiterals['Group Name'] . ":</td><td><input type=text name=groupname id=groupname maxlength=30 value=\"" . ( isset($arr['group_name']) ? $arr['group_name'] : '') . "\"></td>
+            <td><font color=\"gray\">${gaLiterals['Last Changed By']}:</font></td><td><font color=\"gray\">${arr['calleractive']}</font></td>
           </tr><tr>
-            <td align='right'>" . $gaLiterals['Group Desc'] . ":</td><td><input type=text name=groupdesc id=groupdesc maxlength=100 value='" . ( isset($arr['description']) ? $arr['description'] : '') . "'></td>
-            <td><font align='right' color='gray'>${gaLiterals['Last Changed On']}:</font></td><td><font color='gray'>${arr['timeactive']}</font></td>
+            <td align=\"right\">" . $gaLiterals['Group Desc'] . ":</td><td><input type=text name=groupdesc id=groupdesc maxlength=100 value=\"" . ( isset($arr['description']) ? $arr['description'] : '') . "\"></td>
+            <td><font align=\"right\" color=\"gray\">${gaLiterals['Last Changed On']}:</font></td><td><font color=\"gray\">${arr['timeactive']}</font></td>
           </tr><tr>
-            <td align='right' id='groupid'><font color='gray'>" . $gaLiterals['Group ID'] . ":</font></td><td><font color='gray'>" . ( isset($arr['id_dad_adm_computer_group']) ? $arr['id_dad_adm_computer_group'] : '') . "</font></td>
+            <td align=\"right\" id=\"groupid\"><font color=\"gray\">" . $gaLiterals['Group ID'] . ":</font></td><td><font color=\"gray\">" . ( isset($arr['id_dad_adm_computer_group']) ? $arr['id_dad_adm_computer_group'] : '') . "</font></td>
           </tr><tr>
             <td colspan=2>
             <b>${gaLiterals['All Computers']}</b>";
-    $strHTML .= build_drop_down( "SELECT system_id, system_name  FROM dad_sys_systems ORDER BY system_name ASC", 'allcomputers', '', "MULTIPLE style=\"width:100%\" ondblclick='copy_node(this,selectedcomputers);record_list(selectedcomputers,selectedcomputers_list,'~~~');' onkeypress='select_keypress_copy(this,selectedcomputers,selectedcomputers_list,'~~~');'");
+    $strHTML .= build_drop_down( "SELECT system_id, system_name  FROM dad_sys_systems ORDER BY system_name ASC", 'allcomputers', '', "MULTIPLE style=\"width:100%\" ondblclick=\"copy_node(this,selectedcomputers);record_list(selectedcomputers,selectedcomputers_list,'~~~');\" onkeypress=\"select_keypress_copy(this,selectedcomputers,selectedcomputers_list,'~~~');\"");
     $strHTML .= "</td>
             <td colspan=2>
             <b>${gaLiterals['Current Members']}</b>";
@@ -378,7 +378,7 @@ function computer_group_admin(){
                INNER JOIN dad_adm_computer_group_member AS m ON c.system_id = m.system_id 
                WHERE m.id_dad_adm_computer_group = ${Global['group_id']} 
                ORDER BY c.system_name ASC";
-    $strHTML .= build_drop_down( $strSQL, 'selectedcomputers', '', "MULTIPLE style=\"width:100%\" ondblclick='remove_node(this);'");
+    $strHTML .= build_drop_down( $strSQL, 'selectedcomputers', '', "MULTIPLE style=\"width:100%\" ondblclick=\"remove_node(this);\"");
     $strHTML .= "</td></tr></table></form>";
     $strHTML .= "<script>record_list('selectedcomputers','selectedcomputers_list','~~~')</script>";
 
