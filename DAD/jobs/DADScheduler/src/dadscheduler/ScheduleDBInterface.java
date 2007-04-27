@@ -21,7 +21,7 @@ public class ScheduleDBInterface {
     
     /** Creates a new instance of ScheduleDBInterface */
     public ScheduleDBInterface() {
-        dbo = new DatabaseClass();
+        dbo = null;
     }
     
     public Job GetPersistentJobs()
@@ -37,98 +37,79 @@ public class ScheduleDBInterface {
     public Job GetNextJob(String PersistentState)
     {
         Job thisJob = new Job();
-        ResultSet rs;
-        int job_ID;
-        ResultSetMetaData columns;
         String data;
         java.util.Date now = new java.util.Date();
+        String SQL;
         
+        dbo = new DatabaseClass();
         now.getTime();
-        String SQL = "SELECT * FROM dad_adm_job WHERE next_start<" +
+        SQL = "SELECT * FROM dad_adm_job WHERE next_start<" +
                 (now.getTime()/1000) + " AND is_running=FALSE " +
                 PersistentState;
-        rs = dbo.SQLQuery(SQL);
-        try
+        thisJob = dbo.SQLQuery(SQL);
+        if(thisJob == null)
         {
-            if(!rs.next()) { return thisJob; }
-            thisJob.SetExecutable(rs.getString("path"));
-            thisJob.SetLastExecTime(rs.getString("last_ran"));
-            thisJob.SetName(rs.getString("descrip"));
-            thisJob.SetRuntime(rs.getInt("next_start"));
-            job_ID = rs.getInt("id_dad_adm_job");
-            thisJob.SetJobID(job_ID);
-            rs.close();
-            SQL = "UPDATE dad_adm_job SET is_running=TRUE WHERE " +
-                    "id_dad_adm_job='" + job_ID + "'";
-            dbo.SQLQueryNoResult(SQL);
+            dbo = null;
+            return null; 
         }
-        catch (java.sql.SQLException e)
-        {
-            System.err.println("SQL error has occurred: " + e.getMessage());
-        }
+        SQL = "UPDATE dad_adm_job SET is_running=TRUE WHERE " +
+                "id_dad_adm_job='" + thisJob.QueryJobID() + "'";
+        dbo.SQLQueryNoResult(SQL);
+        dbo = null;
         return thisJob;
     }
 
     void SetFinished(int job)
     {
+        dbo = new DatabaseClass();
         String SQL = "UPDATE dad_adm_job SET is_running=FALSE WHERE " +
                 "id_dad_adm_job='" + job + "'";
         dbo.SQLQueryNoResult(SQL);
+        dbo = null;
     }
 
     void ClearIsRunning()
     {
         String SQL;
-        {
-            SQL = "UPDATE dad_adm_job SET "+
-                    "is_running=FALSE";
-            dbo.SQLQueryNoResult(SQL);
-        }
-        {
-            //System.err.println("SQL error has occurred: " + e.getMessage());
-            System.err.println("Could not mark job as completed!");
-            return;
-        }
+        dbo = new DatabaseClass();
+        SQL = "UPDATE dad_adm_job SET "+
+                "is_running=FALSE";
+        dbo.SQLQueryNoResult(SQL);
+        dbo = null;
+        return;
     }
     
     void Reschedule(int job)
     {
-        ResultSet rs;
+        JobSQLResults RetrievedJob;
         long last_started, next_start_time, minutes, hours, days;
         java.util.Date now = new java.util.Date();
+        dbo = new DatabaseClass();
         
         now.getTime();
         String SQL = "SELECT * FROM dad_adm_job WHERE id_dad_adm_job='" + 
                 job + "'";
-        rs = dbo.SQLQuery(SQL);
-        try
+        Job thisResult = dbo.SQLQuery(SQL);
+        last_started = thisResult.GetNextStart();
+        if(last_started == 0)
         {
-            if(!rs.next()) { return; } // Job deleted while running?
-            last_started = rs.getInt("next_start");
-            if(last_started == 0)
-            {
-                last_started = (now.getTime()/1000);
-            }
-            minutes = rs.getInt("min") * 60;
-            hours = rs.getInt("hour") * 3600;
-            days = rs.getInt("day") * 86400;
-            rs.close();
-            next_start_time = last_started + minutes + hours + days;
-            while(next_start_time < (now.getTime()/1000))
-            {
-                next_start_time += minutes + hours + days;
-            }
-            SQL = "UPDATE dad_adm_job SET "+
-                    "is_running=FALSE, last_ran=" + last_started +
-                    ", next_start=" + next_start_time + " WHERE " +
-                    "id_dad_adm_job='" + job + "'";
-            dbo.SQLQueryNoResult(SQL);
+            last_started = (now.getTime()/1000);
         }
-        catch (java.sql.SQLException e)
+        minutes = thisResult.GetMin() * 60;
+        hours = thisResult.GetHour() * 3600;
+        days = thisResult.GetDay() * 86400;
+        next_start_time = last_started + minutes + hours + days;
+
+        while(next_start_time < (now.getTime()/1000))
         {
-            System.err.println("SQL error has occurred: " + e.getMessage());
-            System.err.println("Could not mark job as completed!");
-            return;
+            next_start_time += minutes + hours + days;
         }
+        SQL = "UPDATE dad_adm_job SET "+
+                "is_running=FALSE, last_ran=" + last_started +
+                ", next_start=" + next_start_time + " WHERE " +
+                "id_dad_adm_job='" + job + "'";
+        dbo.SQLQueryNoResult(SQL);
+        now = null;
+        dbo = null;
     }
 }

@@ -51,9 +51,10 @@ public class DatabaseClass {
     public int SQLQueryNoResult(String theQuery)
     {
         int affected;
+        Statement s;
         try
         {
-            Statement s = conn.createStatement();
+            s = conn.createStatement();
             affected = s.executeUpdate(theQuery);
             s.close();
         }
@@ -62,20 +63,44 @@ public class DatabaseClass {
             System.err.println("SQL Exception occurred: " + e.getMessage());
             affected = -1;
         }
+        finally
+        {
+            s = null;
+        }
         return(affected);
     }
     
-    public ResultSet SQLQuery(String theQuery)
+    public Job SQLQuery(String theQuery)
     {
+        Job ThisJob;
+        
+        ThisJob = new Job();
         try
         {
             Statement s = conn.createStatement();
+            ResultSet rs;
             s.executeQuery(theQuery);
-            return(s.getResultSet());
+            rs = s.getResultSet();
+            if(!rs.next()) { return null; } // Job deleted while running?
+            ThisJob.SetDay(rs.getInt("day"));
+            ThisJob.SetHour(rs.getInt("hour"));
+            ThisJob.SetMin(rs.getInt("min"));
+            ThisJob.SetMonth(rs.getInt("month"));
+            ThisJob.SetNextStart(rs.getInt("next_start"));
+            ThisJob.SetExecutable(rs.getString("path"));
+            ThisJob.SetName(rs.getString("descrip"));
+            ThisJob.SetJobID(rs.getInt("id_dad_adm_job"));
+            
+            rs.close();
+            s.close();
+            rs = null;
+            s = null;
+            return(ThisJob);
         }
         catch(java.sql.SQLException e)
         {
             System.err.println("SQL Exception occurred: " + e.getMessage());
+            e.printStackTrace();
             return(null);
         }
     }

@@ -33,8 +33,9 @@ import java.util.*;
  */
 public class Main {
     
+    static private boolean DEBUG = false;
     static private ScheduleDBInterface schedule;
-    static private String Version="0.1";
+    static private String Version="0.1.2";
     /** Creates a new instance of Main */
     public Main() {
     }
@@ -64,8 +65,12 @@ public class Main {
 
             schedule.ClearIsRunning();
             DoThis = schedule.GetPersistentJobs();
-            while(DoThis.exists())
+            while(DoThis != null)
             {
+                if(DEBUG)
+                {
+                    System.out.println("In persistent loop");
+                }
                 System.out.println("\tStarting "+DoThis.GetName());
                 process = new SpawnProcess(DoThis);
                 process.start();
@@ -76,9 +81,18 @@ public class Main {
             // Persistent jobs started.
             while(1==1)
             {
-                DoThis = schedule.GetNextJob();
-                if(DoThis.exists())
+                if(DEBUG)
                 {
+                    System.out.println("Main while loop");
+                }
+
+                DoThis = schedule.GetNextJob();
+                if(DoThis != null)
+                {
+                    if(DEBUG)
+                    {
+                        System.out.println("\tJob triggered");
+                    }
                     process = new SpawnProcess(DoThis);
                     process.start();
                     processes.add(process);
@@ -89,9 +103,18 @@ public class Main {
                     {
                         DoThis=null;
                         Thread.sleep(10000);
+                        if(DEBUG)
+                        {
+                            System.out.println("Sleeping");
+                        }
                     }
                     catch (InterruptedException e)
                     { 
+                        if(DEBUG)
+                        {
+                            System.out.println("Inner catch in main.  Throws exception");
+                        }
+                        
                         System.out.print("Process Interrupted");
                         throw(e); 
                     }
@@ -103,10 +126,24 @@ public class Main {
         {
             System.out.println("Caught exception: "+e.getMessage());
         }
+        catch(Exception e)
+        {
+            System.out.println("Caught unhandled exception: "+e.getMessage());
+            e.printStackTrace();
+        }
         finally
         {
+            if(DEBUG)
+            {
+                System.out.append("In finally for main");
+            }
             System.out.println("Terminating running jobs:");
             KillAllJobs(processes);            
+            if(DEBUG)
+            {
+                System.out.append("All jobs killed");
+            }
+            
         }
     }
 
