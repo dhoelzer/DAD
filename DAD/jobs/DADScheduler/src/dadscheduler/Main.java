@@ -33,16 +33,24 @@ import java.util.*;
  */
 public class Main {
     
-    static private boolean DEBUG = false;
+    static private boolean DEBUG = true;
     static private ScheduleDBInterface schedule;
     static private String Version="0.1.2";
+    static private ArrayList<SpawnProcess> processes;
+    static private boolean KeepRunning;
+    
+    public static void StopRunning()
+    {
+        KeepRunning = false;
+    }
+    
     /** Creates a new instance of Main */
     public Main() {
     }
     
     private static void JobFinished(int job)
     {
-//        System.out.println("Killing JobID: " + job);
+        System.out.println("Killing JobID: " + job);
         schedule.SetFinished(job);
         schedule.Reschedule(job);
     }
@@ -53,10 +61,12 @@ public class Main {
         // TODO code application logic here
         Job DoThis;
         SpawnProcess process;
-        ArrayList<SpawnProcess> processes = new ArrayList<SpawnProcess>();
+        processes = new ArrayList<SpawnProcess>();
 
+        KeepRunning = true;
         try
         {
+            new Shutdown().runProgram();
             schedule = new ScheduleDBInterface();
             System.out.println("Copyright (C) 2007, David Hoelzer/Cyber-Defense.org");
             System.out.println("DAD Scheduler (v"+Version+") now operational.");
@@ -79,7 +89,7 @@ public class Main {
             }
             System.out.println("Normal operation begins.");
             // Persistent jobs started.
-            while(1==1)
+            while(KeepRunning)
             {
                 if(DEBUG)
                 {
@@ -135,52 +145,62 @@ public class Main {
         {
             if(DEBUG)
             {
-                System.out.append("In finally for main");
+                System.out.println("In finally for main");
             }
             System.out.println("Terminating running jobs:");
-            KillAllJobs(processes);            
+            KillAllJobs();            
             if(DEBUG)
             {
-                System.out.append("All jobs killed");
+                System.out.println("All jobs killed");
             }
             
         }
     }
 
-    private static void KillAllJobs(ArrayList<SpawnProcess> ProcessList)
+    public static void KillAllJobs()
     {
-        SpawnProcess aProcessList[] = new SpawnProcess[ProcessList.size()];
-        aProcessList = ProcessList.toArray(aProcessList);
-        System.out.println("Running jobs: " + ProcessList.size());
+        SpawnProcess aProcessList[] = new SpawnProcess[processes.size()];
+        aProcessList = processes.toArray(aProcessList);
+        System.out.println("Jobs to kill: " + processes.size());
         for(SpawnProcess i : aProcessList)
         {
-            System.out.println("\t" + i.QueryJobID() + ": " + 
+            System.out.println("\tPreparing to kill " + i.QueryJobID() + ": " + 
                     i.QueryDescription() + 
                     " is " + (i.IsRunning() == true ? "running" : "dead"));
             i.KillProcess();
             JobFinished(i.QueryJobID());
-            ProcessList.remove(i);
+            processes.remove(i);
         }
         System.out.println("All Jobs Killed");
     }
-
+    
+    public static boolean isDebug()
+    {
+        return DEBUG;
+    }
     private static void PruneDeadJobs(ArrayList<SpawnProcess> ProcessList)
     {
         SpawnProcess aProcessList[] = new SpawnProcess[ProcessList.size()];
         aProcessList = ProcessList.toArray(aProcessList);
-//        System.out.println("Running jobs: " + ProcessList.size());
+        if(DEBUG)
+        {
+            System.out.println("------------------");
+            System.out.println("Running jobs: " + ProcessList.size());            
+        }
         for(SpawnProcess i : aProcessList)
         {
-//            System.out.println("\t" + i.QueryJobID() + ": " + 
-//                    i.QueryDescription() + 
-//                    " is " + (i.IsRunning() == true ? "running" : "dead"));
+            if(DEBUG)
+            {
+                System.out.println("\t" + i.QueryJobID() + ": " + i.TimeRunning() +
+                   " seconds : "+ i.QueryDescription() + 
+                   " is " + (i.IsRunning() == true ? "running" : "dead"));
+            }
             if(! i.IsRunning())
             {
                 JobFinished(i.QueryJobID());
                 ProcessList.remove(i);
             }
         }
-//        System.out.println("------------------");
     }
     
 }

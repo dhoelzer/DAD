@@ -25,6 +25,7 @@
 
 package dadscheduler;
 
+
 import java.io.*;
 import java.util.*;
 
@@ -54,16 +55,19 @@ public class SpawnProcess extends Thread implements Runnable {
      */
     public SpawnProcess(Job DoThis) {
         thisJob = DoThis;
+        TimeStarted = new Date();
     }
  
     public void run()
     {
         try
         {
+            if(Main.isDebug())
+            {
+                System.out.println("\tSpawning "+ thisJob.GetExecutable() + " with "+ thisJob.GetLastExecTime());
+            }
             SpawnedProcess = new ProcessBuilder(thisJob.GetExecutable(),
                     thisJob.GetLastExecTime()).start();
-            // The following should be changed to real error checking - TODO
-            TimeStarted = new Date();
         }
         catch(IOException err)
         {
@@ -81,8 +85,12 @@ public class SpawnProcess extends Thread implements Runnable {
     {
         try
         {
-            if(SpawnedProcess.exitValue() >= 0)
+            if(SpawnedProcess.exitValue() != -999)
             {
+                if(Main.isDebug())
+                {
+                    System.out.println("Exit Value for "+this.QueryDescription()+" is " + SpawnedProcess.exitValue());
+                }
                 return false;
             }
             else // Throws exception - should never run this code
@@ -114,7 +122,15 @@ public class SpawnProcess extends Thread implements Runnable {
      */
     public void KillProcess()
     {
+        if(Main.isDebug())
+        {
+            System.out.println("\t\tKilling Process...");
+        }
         SpawnedProcess.destroy();
+        if(Main.isDebug())
+        {
+            System.out.println("\t\tProcess killed.");
+        }
     }
     
     /* TimeRunning returns the number of seconds that have elapsed since the

@@ -90,6 +90,7 @@ public class DatabaseClass {
             ThisJob.SetExecutable(rs.getString("path"));
             ThisJob.SetName(rs.getString("descrip"));
             ThisJob.SetJobID(rs.getInt("id_dad_adm_job"));
+            ThisJob.SetLastExecTime(rs.getString("last_ran"));
             
             rs.close();
             s.close();

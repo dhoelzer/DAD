@@ -26,7 +26,10 @@ open(FILE,"Aggregator.ph") or die "Could not find configuration file!\n";
 foreach (<FILE>) { eval(); }
 close(FILE);
 
+$Output = 1;
+if($ARGV[0]) { $Output = 0; }
 &_groomer;
+exit(0);
 
 sub _groomer
 {
@@ -35,7 +38,10 @@ sub _groomer
 	my %Explanations, %Retention_Times;
 	
 	$Groomer_Running = 1;
-	print "Groomer running.\n";
+	if($Output)
+	{
+		print "Groomer running.\n";
+	}
 	&_get_events_to_prune();
 	&_prune_events($event);
 	&_prune_stats;
@@ -54,24 +60,30 @@ sub _groomer
 		$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
 			or die ("Could not connect to DB server to groom.\n");
 	
-		print "Pruning statistics\n";
+		if($Output)
+		{
+			print "Pruning statistics\n";
+		}
 	
 		my $mark = time()-$days_of_history;
 		$SQL = "DELETE FROM dad_sys_events_groomed WHERE Timestamp<$mark";
-		print "Executing $SQL\n";
 		my $start_time = time();
 		if($DEBUG!=1) { $deleted = (($dbh->do($SQL)) * 1); } else { $deleted=0; }
-		print "Deleted $deleted rows.  Pruning took ".(time()-$start_time)." seconds.\n";
+		if($Output)
+		{
+			print "Deleted $deleted rows.  Pruning took ".(time()-$start_time)." seconds.\n";
+		}
 		$SQL = "DELETE FROM dad_sys_event_stats WHERE Stat_Time<$mark";
-		print "Executing $SQL\n";
 		my $start_time = time();
 		if($DEBUG!=1) { $deleted = (($dbh->do($SQL)) * 1); } else { $deleted=0; }
-		print "Deleted $deleted rows.  Pruning took ".(time()-$start_time)." seconds.\n";
-		print "Optimizing table to remove holes.\n";
+		if($Output)
+		{
+			print "Deleted $deleted rows.  Pruning took ".(time()-$start_time)." seconds.\n";
+			print "Optimizing table to remove holes.\n";
+		}
 		my $start_time = time();
 		$SQL = "OPTIMIZE TABLE dad_sys_event_stats";
 		$dbh->do($SQL);
-		print "Table optimized.  Optimization took ".(time()-$start_time)." seconds.\n";
 	}
 	
 	
@@ -153,7 +165,10 @@ sub _groomer
 		foreach $event (@Events_To_Prune)
 		{
 			if($event == 0) { next; } # Don't try to process default rule
-			print "Pruning event ID $event\n";
+			if($Output)
+			{
+				print "Pruning event ID $event\n";
+			}
 		$SQL = "INSERT INTO dad_sys_events (SystemID, ServiceID, TimeWritten, TimeGenerated, Source, ".
 				"Category, SID, Computer, EventID, EventType, Field_0, Field_1, Field_2, Field_3, Field_4, Field_5, ".
 				"Field_6, Field_7, Field_8, Field_9, Field_10, Field_11, Field_12, Field_13, Field_14, Field_15, Field_16, ".
@@ -167,7 +182,10 @@ sub _groomer
 			$query->execute() or die("Error pruning!  Could not complete prune for $event.");
 			$query->finish();
 		}
-		print "Pruning default rule\n";
+		if($Output)
+		{
+			print "Pruning default rule\n";
+		}
 		$SQL = "INSERT INTO dad_sys_events (SystemID, ServiceID, TimeWritten, TimeGenerated, Source, ".
 				"Category, SID, Computer, EventID, EventType, Field_0, Field_1, Field_2, Field_3, Field_4, Field_5, ".
 				"Field_6, Field_7, Field_8, Field_9, Field_10, Field_11, Field_12, Field_13, Field_14, Field_15, Field_16, ".
@@ -188,16 +206,22 @@ sub _groomer
 		my $query = $dbh->prepare($SQL);
 		$query->execute() or die("Error pruning!  Could not complete default rule.");
 		$query->finish();
-		print "Pruning Complete.  Pruning took ".(time()-$start_time)." seconds.\n";
+		if($Output)
+		{
+			print "Pruning Complete.  Pruning took ".(time()-$start_time)." seconds.\n";
+		}
 		$SQL = "DROP TABLE dad_sys_events_pruning";
 		$dbh->do($SQL);
 
 	$results_ref = &SQL_Query("SELECT COUNT(*) FROM dad_sys_events");
 	$row = shift(@$results_ref);
 	$ending_number = @$row[0];
-	print "There were $starting_number events, there are now $ending_number events.  Groomed ".($starting_number - $ending_number).".\n";
-
+	if($Output)
+	{
+		print "There were $starting_number events, there are now $ending_number events.  Groomed ".($starting_number - $ending_number).".\n";
 	}
+
+}
 	
 	##########################
 	# Grabs the numbers of the events to process
