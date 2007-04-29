@@ -33,9 +33,9 @@ import java.util.*;
  */
 public class Main {
     
-    static private boolean DEBUG = true;
+    static private boolean DEBUG = false;
     static private ScheduleDBInterface schedule;
-    static private String Version="0.1.2";
+    static private String Version="0.2";
     static private ArrayList<SpawnProcess> processes;
     static private boolean KeepRunning;
     
