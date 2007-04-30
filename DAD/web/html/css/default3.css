@@ -1,3 +1,31 @@
+<<<<<<< .mine
+/**** Scrolling area ****/
+#Scrollable{
+	height:250px;
+	width:800px;
+	overflow:auto;
+}		
+
+#ScrollableStats{
+	height:200px;
+	width:425px;
+	overflow:auto;
+}		
+
+BODY
+{
+    PADDING-RIGHT: 0px;
+    PADDING-LEFT: 0px;
+    FONT-SIZE: 80%;
+    BACKGROUND-IMAGE: url(../images/bgbody.gif);
+    PADDING-BOTTOM: 0px;
+    MARGIN: 0px;
+    COLOR: black;
+    PADDING-TOP: 0px;
+    BACKGROUND-REPEAT: repeat-y;
+    FONT-FAMILY: "lucida grande", verdana, arial, helvetica, sans-serif;
+    BACKGROUND-COLOR: #ffffff
+=======
 /* for all W3C conforming browsers */
 
 /****  DEFAULTS ****/
@@ -10,6 +38,7 @@ body {
 	background-repeat: repeat-y;
 	font-size: 80%;
 	font-family: arial, geneva, "lucida grande", verdana, helvetica, sans-serif;
+>>>>>>> .r128
 }
 h1, h2, h3, h4, h5, h6 { 
 	font-family: arial, geneva, "lucida grande", helvetica, sans-serif;
@@ -161,11 +190,22 @@ ul li.selecteditem {
 	background:url("../images/active_02.gif") no-repeat top right;
 	padding-bottom: 4px;
 }
+<<<<<<< .mine
+#header
+{
+    BACKGROUND-POSITION: left bottom;
+    FLOAT: left;
+    BACKGROUND-IMAGE: url(../images/topgradient.jpg);
+    WIDTH: 100%;
+    BACKGROUND-REPEAT: repeat-x;
+    BACKGROUND-COLOR: #a0a0ff
+=======
 #sitemenu li.selectedtab a:link, 
 #sitemenu li.selectedtab a:visited, 
 #sitemenu li.selectedtab a:hover, 
 #sitemenu li.selectedtab a:active {
 	color: #000000;
+>>>>>>> .r128
 }
 
 /**** SECTION LABEL ****/
