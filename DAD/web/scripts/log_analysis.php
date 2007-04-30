@@ -22,16 +22,20 @@ function show_existing_queries()
 global $Global;
 global $_GET;
     $strURL  = getOptionURL(OPTIONID_EXISTING_QUERIES);
-	$strSQL = 'SELECT Query_ID, Query, Name, Description, Category FROM dad_sys_queries ORDER BY Category,Name';
+	$strSQL = 'SELECT Query_ID, Query, Name, Description, Category, Roles FROM dad_sys_queries ORDER BY Category,Name';
 	$Queries = runQueryReturnArray( $strSQL );
 	$strHTML = <<<END
 		<form id=frmExistingQueries name="ExistingQueries" action="$strURL" method="post" style="position:relative; top:25px;">
 		<table cellspacing=4 border=1>
 END;
+PrintGlobal();
 	$last_category = "None";
 	$column=0;
 	foreach($Queries as $Query)
 	{
+		$RolesWithAccess = null;  // Make sure there aren't any leftovers
+		$RolesWithAccess = ExtractQueryRoles($Query["Roles"]);
+		//if($RolesWithAccess[$Global[
 		if($last_category != $Query["Category"])
 		{
 			$last_category = $Query["Category"];

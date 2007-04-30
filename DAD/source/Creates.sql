@@ -66,7 +66,8 @@ CREATE TABLE `dad_adm_alert` (
   `timeactive` int(10) unsigned default NULL,
   `active` tinyint(1) unsigned default NULL,
   `supress_interval` smallint(5) unsigned default NULL,
-  `supress_criteria` int(10) unsigned default NULL,
+  `id_dad_adm_alert_group` int(10) unsigned default NULL,
+  `id_dad_adm_alert_message` int(10) default NULL,
   PRIMARY KEY  (`id_dad_adm_alert`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
@@ -107,7 +108,35 @@ CREATE TABLE `dad_adm_alert_group_member` (
   `id_dad_adm_alertuser` int(10) unsigned NOT NULL default '0',
   `calleractive` varchar(45) NOT NULL default '',
   `timeactive` int(10) unsigned default NULL,
-  KEY `idx_dad_adm_alertgroupmember_idperson` USING BTREE (`id_dad_adm_alertgroup`,`id_dad_adm_alertuser`)
+  PRIMARY KEY  (`id_dad_adm_alertgroup`,`id_dad_adm_alertuser`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+
+--
+-- Table structure for table `dad_adm_alert_message`
+--
+
+DROP TABLE IF EXISTS `dad_adm_alert_message`;
+CREATE TABLE `dad_adm_alert_message` (
+  `id_dad_adm_alert_message` int(10) unsigned NOT NULL auto_increment,
+  `description` varchar(100) default NULL,
+  `subject` varchar(100) default NULL,
+  `body` varchar(1000) default NULL,
+  `template` tinyint(4) default NULL,
+  `timeactive` int(10) unsigned default NULL,
+  `calleractive` varchar(45) default NULL,
+  PRIMARY KEY  (`id_dad_adm_alert_message`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+
+--
+-- Table structure for table `dad_adm_alert_supress`
+--
+
+DROP TABLE IF EXISTS `dad_adm_alert_supress`;
+CREATE TABLE `dad_adm_alert_supress` (
+  `id_dad_adm_alert_supress` int(10) unsigned NOT NULL auto_increment,
+  `id_dad_adm_alert` int(10) unsigned default NULL,
+  `field_name` varchar(100) default NULL,
+  PRIMARY KEY  (`id_dad_adm_alert_supress`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 --
@@ -632,8 +661,8 @@ CREATE TABLE `dad_sys_event_stats` (
   `Number_Inserted` int(10) unsigned NOT NULL,
   `Stat_Time` int(10) unsigned NOT NULL,
   PRIMARY KEY  (`Stats_ID`),
-  KEY `Stats Type` (`Stat_Type`),
-  KEY `Systems` (`System_Name`)
+  KEY `Systems` (`System_Name`),
+  KEY `Stats_Type` (`Stat_Type`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1 COMMENT='Tracks event log gathering statistics';
 
 --
