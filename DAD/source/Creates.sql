@@ -869,6 +869,7 @@ CREATE TABLE `dad_sys_queries` (
   `Description` varchar(1024) NOT NULL,
   `Name` varchar(45) NOT NULL,
   `Category` varchar(45) NOT NULL,
+  `Roles` varchar(256) NOT NULL default '',
   PRIMARY KEY  (`Query_ID`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1 COMMENT='Used for stored queries';
 

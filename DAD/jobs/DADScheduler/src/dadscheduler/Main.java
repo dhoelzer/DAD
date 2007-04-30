@@ -50,7 +50,10 @@ public class Main {
     
     private static void JobFinished(int job)
     {
-        System.out.println("Killing JobID: " + job);
+        if(DEBUG)
+        {
+            System.out.println("Killing JobID: " + job);
+        }
         schedule.SetFinished(job);
         schedule.Reschedule(job);
     }
