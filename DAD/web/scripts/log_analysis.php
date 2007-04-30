@@ -28,7 +28,7 @@ global $_GET;
 		<form id=frmExistingQueries name="ExistingQueries" action="$strURL" method="post" style="position:relative; top:25px;">
 		<table cellspacing=4 border=1>
 END;
-PrintGlobal();
+//PrintGlobal();
 	$last_category = "None";
 	$column=0;
 	foreach($Queries as $Query)
