@@ -1,5 +1,4 @@
 <?php
-
 #   This file is a part of the DAD Log Aggregation and Analysis tool
 #    Copyright (C) 2006, David Hoelzer/Cyber-Defense.org
 #
@@ -16,7 +15,6 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program; if not, write to the Free Software
 #    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
-
 
 function alert_group_admin(){
     global $gaLiterals;
@@ -430,7 +428,7 @@ function alert_admin(){
                            " . (isset($Global['id_dad_adm_action']) && (preg_match( '/[\D]*\d[\D]*/', $Global['id_dad_adm_action'])===1) ? $Global['id_dad_adm_action'] : 'NULL') . ",
                            " . (isset($Global['computer_group']) && (preg_match( '/[\D]*\d[\D]*/', $Global['computer_group'])===1) ? $Global['computer_group'] : 'NULL') . ",
                            " . (isset($Global['alert_group']) && (preg_match( '/[\D]*\d[\D]*/', $Global['alert_group'])===1) ? $Global['alert_group'] : 'NULL') . ",
-                           ${Global['message_template']}
+                           " . (isset($Global['message_template']) && (preg_match( '/[\D]*\d[\D]*/', $Global['message_template'])===1) ? $Global['message_template'] : 'NULL') . "
                        )";
             $strID = runInsertReturnID( $strSQL );
             $Global['alert_id'] = $strID;
