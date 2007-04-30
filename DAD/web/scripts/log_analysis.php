@@ -465,8 +465,8 @@ function show_sql_query()
     $txtQueryCategory = isset($Global["txtQueryCategory"]) ? $Global["txtQueryCategory"] : NULL;
 	$intSelectedQuery = isset($Global["SelectedQuery"]) ? $Global["SelectedQuery"] : NULL;
 	$txtPostbackValue = isset($Global["PostbackValue"]) ? $Global["PostbackValue"] : NULL;
-	$aResults = runQueryReturnArray("SELECT Query_ID,Name,Description,Category,Query FROM dad_sys_queries ORDER BY Category,Name");
-	$ExistingQueriesOptions = "";
+	$aResults = runQueryReturnArray("SELECT Query_ID,Name,Description,Category,Query,Roles FROM dad_sys_queries ORDER BY Category,Name");
+	$ExistingQueriesOptions = "<option value=''>";
 	foreach($aResults as $row)
 	{
 		$selected = "";
@@ -481,6 +481,7 @@ function show_sql_query()
 					$txtQueryName = $row[1];
 					$txtQueryDescription = $row[2];
 					$txtQueryCategory = $row[3];
+					$txtRolesWithAccess = $row[5];
 				}
 			}
 		}
@@ -514,7 +515,8 @@ function show_sql_query()
 	}
 	$strSQLQuery = stripslashes($strSQLQuery);
 	$output = (isset($Global["btnProcess"]) ? 1 : 0);
-	if(!$strSQLQuery) { $strSQLQuery = "SELECT COUNT(*) FROM dad_sys_events"; }
+	$Roles = GetRoleTable(ExtractQueryRoles($txtRolesWithAccess));
+	if(!$strSQLQuery) { $strSQLQuery = "Enter your query here"; }
 # Set the javascript preamble for postbacks
 # The JavaScript below is intended to simulate the "Postback" functionality that ASP.NET has
 	$strHTML = <<<END
@@ -552,9 +554,11 @@ function show_sql_query()
 					<center>
 						<input type="submit" name="btnProcess" value="Process This Query">
 						<input type="submit" name="btnSave" value="Save as New Query">
+						<input type="submit" name="btnUpdate" value="Save Modified Query">
 					</center>
 				</td>
 			</tr>
+			<tr><td colspan=2>$Roles</td></tr>
 			</table>               
 		</form><br>
 END;
@@ -566,6 +570,46 @@ END;
 	add_element($strHTML);
 }
 
+function ExtractQueryRoles($QueryRoleString)
+{
+	if(isset($QueryRoleString))
+	{
+		$RoleArray = split(",", $QueryRoleString);
+		foreach ($RoleArray as $RoleID)
+		{
+			$RolesWithAccess[$RoleID] = 1;
+		}
+	}
+	else
+	{
+		return null;
+	}
+	return $RolesWithAccess;
+}
+
+function GetRoleTable($RolesWithAccess)
+{
+  $sql = "SELECT
+            ro.RoleID,
+            ro.RoleName,
+            ro.RoleDescr
+          FROM DAD.Role ro";
+  $RoleResults = runQueryReturnArray($sql);
+  $RoleTable = "";
+  foreach($RoleResults as $row)
+  {
+    $Checked = "";
+    $RoleName = $row['RoleName'];
+    $RoleID = $row['RoleID'];
+    $RoleDesc = $row['RoleDescr'];
+    if(isset($RolesWithAccess[$RoleID]))
+    {
+      $Checked = "checked";
+    }
+    $RoleTable .= "<input type=\"checkbox\" $Checked name=\"$RoleName\" value=\"$RoleID\">$RoleDesc</input><br>";
+  }
+  return($RoleTable);
+}
 /*
   query_to_table(SQL Expression[, Quiet[, TableClass]])
   
