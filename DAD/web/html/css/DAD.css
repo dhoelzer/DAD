@@ -31,10 +31,12 @@ BODY.cols-1
 }
 TD
 {
+    border-width: 1px;
     FONT-FAMILY: "lucida grande", verdana, arial, helvetica, sans-serif
 }
 TH
 {
+    border-width: 1px;
     FONT-FAMILY: "lucida grande", verdana, arial, helvetica, sans-serif
 }
 P
@@ -405,6 +407,7 @@ UNKNOWN
 #content TABLE
 {
     BORDER-COLLAPSE: collapse;
+    border-width: 1px;
     empty-cells: show
 }
 FORM
@@ -443,6 +446,7 @@ LEGEND
 TD LABEL
 {
     FONT-WEIGHT: normal;
+    border-width: 1px;
     FLOAT: right;
     COLOR: #000000;
     WHITE-SPACE: nowrap
@@ -463,47 +467,6 @@ INPUT
 {
     PADDING-BOTTOM: 3px;
     WHITE-SPACE: nowrap
-}
-#frmS-1 TABLE
-{
-    BORDER-RIGHT: #d4d4bf 1px solid;
-    BORDER-TOP: #d4d4bf 1px solid;
-    MARGIN: 0px 0px 1em;
-    BORDER-LEFT: #d4d4bf 1px solid;
-    BORDER-BOTTOM: #d4d4bf 1px solid
-}
-#frmS-1 CAPTION
-{
-    BORDER-RIGHT: #d4d4bf 1px solid;
-    PADDING-RIGHT: 3px;
-    BORDER-TOP: #d4d4bf 1px solid;
-    PADDING-LEFT: 3px;
-    FONT-WEIGHT: bold;
-    FONT-SIZE: 110%;
-    PADDING-BOTTOM: 2px;
-    BORDER-LEFT: #d4d4bf 1px solid;
-    COLOR: #000000;
-    PADDING-TOP: 2px;
-    BORDER-BOTTOM: #d4d4bf 1px solid;
-    BACKGROUND-COLOR: #c7d2a1;
-    TEXT-ALIGN: left
-}
-#frmS-1 TH
-{
-    BORDER-RIGHT: #d4d4bf 1px solid;
-    BORDER-TOP: #d4d4bf 1px solid;
-    MARGIN: 0px;
-    BORDER-LEFT: #d4d4bf 1px solid;
-    BORDER-BOTTOM: #d4d4bf 1px solid;
-    BACKGROUND-COLOR: #e6e6cf
-}
-#frmS-1 TD
-{
-    BORDER-RIGHT: #d4d4bf 1px solid;
-    BORDER-TOP: #d4d4bf 1px solid;
-    BORDER-LEFT: #d4d4bf 1px solid;
-    BORDER-BOTTOM: #d4d4bf 1px solid;
-    TEXT-ALIGN: center
 }
 A:link
 {
