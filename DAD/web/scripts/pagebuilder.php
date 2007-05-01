@@ -295,7 +295,7 @@ function _header()
    $_header .= "<head>\n";
    $_header .= "<title>". $gaLiterals['DAD']. "</title>\n";
    $_header .= "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />\n";
-   $_header .= "<link rel=\"stylesheet\" type=\"text/css\" href=\"css/default3.css\" />\n";
+   $_header .= "<link rel=\"stylesheet\" type=\"text/css\" href=\"css/DAD.css\" />\n";
    $_header .= "</head>\n";
    modify_global("page_header", $_header, $gbTrustContents);
    return $Global["page_header"];
@@ -336,7 +336,7 @@ function _body()
 
    $_html_body .= "<body class=\"cols-$intNumberOfColumns\">\n";
    $_html_body .= "<div id=\"header\">\n";
-   $_html_body .= "<h1 id=\"sitename\"><span class=\"sitename-sm\">" . $gaLiterals['DADLine1'] . " <img src='images/UStatus.jpg'></span><br />\n";
+   $_html_body .= "<h1 id=\"sitename\"><span class=\"sitename-sm\">" . $gaLiterals['DADLine1'] . " <img align=right src='images/UStatus.gif'></span><br />\n";
    $_html_body .= $gaLiterals['DADLine2'] . "</h1>\n";
    $_html_body .= "<ul id=\"sitelinks\">\n";
    $_html_body .= "<li><a href=\"". $strHelpURL . "\">" . $gaLiterals['Help'] . "</a></li>\n";
