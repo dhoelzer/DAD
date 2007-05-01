@@ -193,7 +193,6 @@ DISPLAY: block;
     BACKGROUND: url(../images/inactiveright.gif) no-repeat right top;
     FLOAT: left;
     PADDING-BOTTOM: 3px;
-#    WIDTH: 0.1em;
     PADDING-TOP: 7px;
     WHITE-SPACE: nowrap
 }
