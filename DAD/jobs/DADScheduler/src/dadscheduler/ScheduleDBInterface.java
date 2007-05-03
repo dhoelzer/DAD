@@ -81,7 +81,7 @@ public class ScheduleDBInterface {
     
     void Reschedule(int job)
     {
-        JobSQLResults RetrievedJob;
+        //JobSQLResults RetrievedJob;
         long last_started, next_start_time, minutes, hours, days;
         java.util.Date now = new java.util.Date();
         dbo = new DatabaseClass();
