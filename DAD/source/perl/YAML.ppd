@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SOFTPKG NAME="YAML" VERSION="0,62,0,0">
+  <ABSTRACT>YAML Ain't Markup Language (tm)</ABSTRACT>
+  <AUTHOR>Ingy döt Net (INGY@cpan.org)</AUTHOR>
+  <IMPLEMENTATION>
+    <ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.8" />
+    <CODEBASE HREF="MSWin32-x86-multi-thread-5.8/YAML-0.62.tar.gz" />
+    <OS NAME="MSWin32" />
+    <PROVIDE NAME="Test::YAML" VERSION="0.57" />
+    <PROVIDE NAME="YAML" VERSION="0.62" />
+    <PROVIDE NAME="YAML::Base" VERSION="undef" />
+    <PROVIDE NAME="YAML::Dumper" VERSION="undef" />
+    <PROVIDE NAME="YAML::Dumper::Base" VERSION="undef" />
+    <PROVIDE NAME="YAML::Error" VERSION="undef" />
+    <PROVIDE NAME="YAML::Family" VERSION="undef" />
+    <PROVIDE NAME="YAML::Loader" VERSION="undef" />
+    <PROVIDE NAME="YAML::Loader::Base" VERSION="undef" />
+    <PROVIDE NAME="YAML::Marshall" VERSION="undef" />
+    <PROVIDE NAME="YAML::Node" VERSION="undef" />
+    <PROVIDE NAME="YAML::Tag" VERSION="undef" />
+    <PROVIDE NAME="YAML::Transfer" VERSION="undef" />
+    <PROVIDE NAME="YAML::Types" VERSION="undef" />
+    <REQUIRE NAME="perl" VERSION="5.6.1" />
+  </IMPLEMENTATION>
+  <TITLE>YAML</TITLE>
+</SOFTPKG>

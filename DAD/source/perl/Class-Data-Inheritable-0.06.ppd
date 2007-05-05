@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SOFTPKG NAME="Class-Data-Inheritable" VERSION="0,06,0,0">
+  <ABSTRACT>Inheritable, overridable class data</ABSTRACT>
+  <AUTHOR>Tony Bowden (tony@tmtm.com)</AUTHOR>
+  <IMPLEMENTATION>
+    <ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.8" />
+    <CODEBASE HREF="MSWin32-x86-multi-thread-5.8/Class-Data-Inheritable-0.06.tar.gz" />
+    <OS NAME="MSWin32" />
+    <PROVIDE NAME="Class::Data::Inheritable" VERSION="0.06" />
+  </IMPLEMENTATION>
+  <TITLE>Class-Data-Inheritable</TITLE>
+</SOFTPKG>

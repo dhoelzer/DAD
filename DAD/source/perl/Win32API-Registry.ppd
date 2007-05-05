@@ -1,0 +1,15 @@
+<SOFTPKG NAME="Win32API-Registry" VERSION="0,27,0,0">
+	<TITLE>Win32API-Registry</TITLE>
+	<ABSTRACT>Low-level access to Win32 system API calls from WINREG.H</ABSTRACT>
+	<AUTHOR>Tye McQueen (tye@metronet.com)</AUTHOR>
+	<IMPLEMENTATION>
+		<OS NAME="MSWin32" />
+		<ARCHITECTURE NAME="MSWin32-x86-multi-thread" />
+		<CODEBASE HREF="MSWin32-x86-multi-thread-5.8/Win32API-Registry-0.27-PPM56.tar.gz" />
+	</IMPLEMENTATION>
+	<IMPLEMENTATION>
+    <OS NAME="MSWin32" />
+    <ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.8" />
+    <CODEBASE HREF="MSWin32-x86-multi-thread-5.8/Win32API-Registry-0.27-PPM58.tar.gz" />
+  </IMPLEMENTATION>
+</SOFTPKG>

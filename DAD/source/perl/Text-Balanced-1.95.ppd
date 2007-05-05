@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SOFTPKG NAME="Text-Balanced" VERSION="1,95,0,0">
+  <IMPLEMENTATION>
+    <CODEBASE HREF="MSWin32-x86-multi-thread-5.8/Text-Balanced-1.95.tar.gz" />
+    <ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.8" />
+    <OS NAME="MSWin32" />
+  </IMPLEMENTATION>
+  <ABSTRACT>Extract delimited text sequences from strings.</ABSTRACT>
+  <AUTHOR>Damian Conway (damian@conway.org)</AUTHOR>
+  <TITLE>Text-Balanced</TITLE>
+</SOFTPKG>
