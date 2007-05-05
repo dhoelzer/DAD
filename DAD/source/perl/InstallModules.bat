@@ -23,4 +23,6 @@ cd ..\YAPE-Regex-Explain-3.011
 call ppm install YAPE-Regex-Explain.ppd
 cd ..\Net-Telnet
 call ppm install Net-Telnet.ppd 
+cd ..
+call install.bat
 echo Done!
