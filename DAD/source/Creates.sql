@@ -24,19 +24,6 @@ CREATE DATABASE /*!32312 IF NOT EXISTS*/ `dad` /*!40100 DEFAULT CHARACTER SET la
 USE `dad`;
 
 --
--- Table structure for table `a2ksystem`
---
-
-DROP TABLE IF EXISTS `a2ksystem`;
-CREATE TABLE `a2ksystem` (
-  `A2KSystemID` int(10) unsigned NOT NULL auto_increment,
-  `BranchNum` int(11) NOT NULL default '0',
-  `LatestTransferDatetime` datetime NOT NULL default '0000-00-00 00:00:00',
-  `LatestChangeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
-  PRIMARY KEY  (`A2KSystemID`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-
---
 -- Table structure for table `dad_adm_action`
 --
 
@@ -108,7 +95,7 @@ CREATE TABLE `dad_adm_alert_group_member` (
   `id_dad_adm_alertuser` int(10) unsigned NOT NULL default '0',
   `calleractive` varchar(45) NOT NULL default '',
   `timeactive` int(10) unsigned default NULL,
-  PRIMARY KEY  (`id_dad_adm_alertgroup`,`id_dad_adm_alertuser`)
+  KEY `idx_dad_adm_alertgroupmember_idperson` USING BTREE (`id_dad_adm_alertgroup`,`id_dad_adm_alertuser`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 --
@@ -168,15 +155,15 @@ CREATE TABLE `dad_adm_alertuser` (
 DROP TABLE IF EXISTS `dad_adm_carvers`;
 CREATE TABLE `dad_adm_carvers` (
   `dad_adm_carvers_id` int(10) unsigned NOT NULL auto_increment,
-  `match_rule` varchar(768) NOT NULL default '',
-  `carve_rule` varchar(768) NOT NULL default '',
+  `match_rule` text NOT NULL,
+  `carve_rule` text NOT NULL,
   `creator_id` int(10) unsigned NOT NULL default '0',
   `last_edited_by` int(10) unsigned NOT NULL default '0',
   `creation_date` int(10) unsigned NOT NULL default '0',
   `last_edit_date` int(10) unsigned NOT NULL default '0',
   `rule_name` varchar(45) NOT NULL default '',
   PRIMARY KEY  (`dad_adm_carvers_id`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1 COMMENT='Contains matching and carving rules for log extraction';
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 --
 -- Table structure for table `dad_adm_computer_group`
@@ -289,7 +276,7 @@ CREATE TABLE `dad_alerts` (
   `dad_alert_id` int(10) unsigned NOT NULL auto_increment,
   `Alert_Time` int(10) unsigned NOT NULL default '0',
   `Event_Time` int(10) unsigned NOT NULL default '0',
-  `Event_Data` varchar(200) collate latin1_general_ci NOT NULL default '',
+  `Event_Data` varchar(200) NOT NULL default '',
   `Acknowledged` tinyint(1) NOT NULL default '0',
   `Acknowledged_by` int(10) unsigned NOT NULL default '0',
   `Acknowledged_Time` int(10) unsigned NOT NULL default '0',
@@ -297,7 +284,7 @@ CREATE TABLE `dad_alerts` (
   PRIMARY KEY  (`dad_alert_id`),
   KEY `Acknowledged_idx` (`Acknowledged`),
   KEY `Time_idx` (`Alert_Time`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1 COLLATE=latin1_general_ci COMMENT='Generated alerts go here';
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 --
 -- Table structure for table `dad_cl_classification`
@@ -634,6 +621,23 @@ CREATE TABLE `dad_sys_cis_imported` (
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 --
+-- Table structure for table `dad_sys_event_desc`
+--
+
+DROP TABLE IF EXISTS `dad_sys_event_desc`;
+CREATE TABLE `dad_sys_event_desc` (
+  `id` int(10) unsigned NOT NULL auto_increment,
+  `event_id` int(10) unsigned default NULL,
+  `event_log` varchar(100) default NULL,
+  `event_source` varchar(100) default NULL,
+  `event_type` varchar(100) default NULL,
+  `message` varchar(3500) default NULL,
+  `os_name` varchar(100) default NULL,
+  `os_ver` varchar(20) default NULL,
+  PRIMARY KEY  (`id`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+
+--
 -- Table structure for table `dad_sys_event_import_from`
 --
 
@@ -662,7 +666,7 @@ CREATE TABLE `dad_sys_event_stats` (
   `Stat_Time` int(10) unsigned NOT NULL,
   PRIMARY KEY  (`Stats_ID`),
   KEY `Systems` (`System_Name`),
-  KEY `Stats_Type` (`Stat_Type`)
+  KEY `Stats_Type` USING BTREE (`Stat_Type`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1 COMMENT='Tracks event log gathering statistics';
 
 --
@@ -746,57 +750,6 @@ CREATE TABLE `dad_sys_events_groomed` (
   `Number_Groomed` int(10) unsigned NOT NULL,
   PRIMARY KEY  (`Groomed_ID`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1 COMMENT='Groomed Event Stats';
-
---
--- Table structure for table `dad_sys_events_old`
---
-
-DROP TABLE IF EXISTS `dad_sys_events_old`;
-CREATE TABLE `dad_sys_events_old` (
-  `Event_ID` bigint(20) unsigned NOT NULL auto_increment,
-  `System_ID` int(10) unsigned NOT NULL default '0',
-  `Timestamp` int(10) unsigned NOT NULL default '0',
-  `Service_ID` int(10) unsigned NOT NULL default '0',
-  `Field_0` varchar(64) default NULL,
-  `Field_1` varchar(768) default NULL,
-  `Field_2` varchar(64) default NULL,
-  `Field_3` varchar(64) default NULL,
-  `Field_4` varchar(768) default NULL,
-  `Field_5` int(10) unsigned default '0',
-  `Field_6` varchar(512) default NULL,
-  `Field_7` varchar(64) default NULL,
-  `Field_8` int(10) unsigned default '0',
-  `Field_9` varchar(768) default NULL,
-  `Field_10` varchar(512) default NULL,
-  `Field_11` varchar(512) default NULL,
-  `Field_12` varchar(768) default NULL,
-  `Field_13` varchar(512) default NULL,
-  `Field_14` varchar(64) default NULL,
-  `Field_15` varchar(64) default NULL,
-  `Field_16` varchar(64) default NULL,
-  `Field_17` varchar(64) default NULL,
-  `Field_18` varchar(64) default NULL,
-  `Field_19` varchar(64) default NULL,
-  `Field_20` varchar(64) default NULL,
-  `Field_21` varchar(64) default NULL,
-  `Field_22` varchar(64) default NULL,
-  `Field_23` varchar(64) default NULL,
-  `Field_24` varchar(64) default NULL,
-  `Field_25` varchar(64) default NULL,
-  PRIMARY KEY  (`Event_ID`),
-  KEY `System` (`System_ID`),
-  KEY `Timestamp` (`Timestamp`),
-  KEY `Service` (`Service_ID`),
-  KEY `WindowsEventID` (`Field_8`),
-  KEY `Username` (`Field_10`(255)),
-  KEY `TimeGenerated` (`Field_5`),
-  KEY `LogonID_Filename` (`Field_12`(255)),
-  KEY `SystemName` (`Field_7`),
-  KEY `Username2` (`Field_11`(255)),
-  KEY `KerberosMsgNumber` (`Field_13`(255)),
-  KEY `KerberosMsgNumber2` (`Field_14`),
-  KEY `FileType` (`Field_25`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='Contains actual event data';
 
 --
 -- Table structure for table `dad_sys_field_descriptions`
@@ -898,7 +851,7 @@ CREATE TABLE `dad_sys_queries` (
   `Description` varchar(1024) NOT NULL,
   `Name` varchar(45) NOT NULL,
   `Category` varchar(45) NOT NULL,
-  `Roles` varchar(256) NOT NULL default '',
+  `Roles` varchar(256) default NULL,
   PRIMARY KEY  (`Query_ID`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1 COMMENT='Used for stored queries';
 
@@ -977,79 +930,6 @@ CREATE TABLE `menuoption` (
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 --
--- Table structure for table `orggroup`
---
-
-DROP TABLE IF EXISTS `orggroup`;
-CREATE TABLE `orggroup` (
-  `OrgGroupID` int(10) unsigned NOT NULL auto_increment,
-  `OrgGroupTypeID` int(10) unsigned NOT NULL default '0',
-  `IdentifyingOrgUnitID` int(10) unsigned NOT NULL default '0',
-  `LatestChangeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
-  PRIMARY KEY  (`OrgGroupID`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-
---
--- Table structure for table `orggroupmember`
---
-
-DROP TABLE IF EXISTS `orggroupmember`;
-CREATE TABLE `orggroupmember` (
-  `OrgGroupMemberID` int(10) unsigned NOT NULL auto_increment,
-  `OrgGroupID` int(10) unsigned NOT NULL default '0',
-  `MemberOrgUnitID` int(10) unsigned NOT NULL default '0',
-  `LatestChangeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
-  PRIMARY KEY  (`OrgGroupMemberID`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-
---
--- Table structure for table `orggrouptype`
---
-
-DROP TABLE IF EXISTS `orggrouptype`;
-CREATE TABLE `orggrouptype` (
-  `OrgGroupTypeID` int(10) unsigned NOT NULL auto_increment,
-  `OrgGroupTypeName` char(40) collate utf8_unicode_ci NOT NULL default '',
-  `IdentifyingOrgUnitTypeID` int(10) unsigned NOT NULL default '0',
-  `MemberOrgUnitTypeID` int(10) unsigned NOT NULL default '0',
-  `LatestChangeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
-  PRIMARY KEY  (`OrgGroupTypeID`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-
---
--- Table structure for table `orgunit`
---
-
-DROP TABLE IF EXISTS `orgunit`;
-CREATE TABLE `orgunit` (
-  `OrgUnitID` int(10) unsigned NOT NULL auto_increment,
-  `OrgUnitTypeID` int(10) unsigned NOT NULL default '0',
-  `OrgUnitName` char(40) collate utf8_unicode_ci NOT NULL default '',
-  `DomainLoginName` char(15) collate utf8_unicode_ci NOT NULL default '',
-  `OrgUnitUserKey` char(10) collate utf8_unicode_ci NOT NULL default '',
-  `DefaultLanguageID` int(10) unsigned NOT NULL default '0',
-  `SourceA2KSystemID` int(10) unsigned NOT NULL default '0',
-  `LatestChangeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
-  PRIMARY KEY  (`OrgUnitID`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-
---
--- Table structure for table `orgunittype`
---
-
-DROP TABLE IF EXISTS `orgunittype`;
-CREATE TABLE `orgunittype` (
-  `OrgUnitTypeID` int(10) unsigned NOT NULL auto_increment,
-  `OrgUnitTypeName` char(40) collate utf8_unicode_ci NOT NULL default '',
-  `OrgUnitUserKeyLabel` char(40) collate utf8_unicode_ci NOT NULL default '',
-  `LoginDomainFlag` tinyint(1) NOT NULL default '0',
-  `UserNameLabel` char(40) collate utf8_unicode_ci NOT NULL default '',
-  `MaxUserNum` smallint(5) unsigned NOT NULL default '0',
-  `LatestChangeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
-  PRIMARY KEY  (`OrgUnitTypeID`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-
---
 -- Table structure for table `role`
 --
 
@@ -1089,19 +969,6 @@ CREATE TABLE `session` (
   `ExpireTime` int(10) unsigned NOT NULL default '0',
   `LastOptionID` int(10) unsigned NOT NULL default '0',
   PRIMARY KEY  (`SessionID`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-
---
--- Table structure for table `system`
---
-
-DROP TABLE IF EXISTS `system`;
-CREATE TABLE `system` (
-  `SystemID` int(10) unsigned NOT NULL auto_increment,
-  `AttributeName` char(15) collate utf8_unicode_ci NOT NULL default '',
-  `AttributeValue` char(40) collate utf8_unicode_ci NOT NULL default '',
-  `LatestChangeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
-  PRIMARY KEY  (`SystemID`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 --
