@@ -33,7 +33,7 @@ import java.util.*;
  */
 public class Main {
     
-    static private boolean DEBUG = false;
+    static private boolean DEBUG = true;
     static private ScheduleDBInterface schedule;
     static private String Version="0.2";
     static private ArrayList<SpawnProcess> processes;

@@ -87,7 +87,9 @@ public class DatabaseClass {
             ThisJob.SetMin(rs.getInt("min"));
             ThisJob.SetMonth(rs.getInt("month"));
             ThisJob.SetNextStart(rs.getInt("next_start"));
-            ThisJob.SetExecutable(rs.getString("path"));
+            ThisJob.SetWorkingDirectory(rs.getString("path"));
+            ThisJob.SetExecutable(rs.getString("package_name"));
+            ThisJob.SetArgs(rs.getString("argument_1"));
             ThisJob.SetName(rs.getString("descrip"));
             ThisJob.SetJobID(rs.getInt("id_dad_adm_job"));
             ThisJob.SetLastExecTime(rs.getString("last_ran"));
