@@ -60,14 +60,17 @@ public class SpawnProcess extends Thread implements Runnable {
  
     public void run()
     {
+        ProcessBuilder proc;
         try
         {
             if(Main.isDebug())
             {
                 System.out.println("\tSpawning "+ thisJob.GetExecutable() + " with "+ thisJob.GetLastExecTime());
             }
-            SpawnedProcess = new ProcessBuilder(thisJob.GetExecutable(),
-                    thisJob.GetLastExecTime()).start();
+            proc = new ProcessBuilder(thisJob.GetExecutable(), thisJob.GetArg1(),
+                    thisJob.GetLastExecTime());
+            proc.directory(thisJob.GetWorkingDirectory());
+            SpawnedProcess = proc.start();
         }
         catch(IOException err)
         {

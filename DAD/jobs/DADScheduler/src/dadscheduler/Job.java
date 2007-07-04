@@ -6,8 +6,9 @@
  * To change this template, choose Tools | Template Manager
  * and open the template in the editor.
  */
-
 package dadscheduler;
+import java.io.*;
+
 
 /**
  *
@@ -27,6 +28,8 @@ public class Job {
     private String last_run;
     private int db_job_ID;
     private boolean exists;
+    private File WorkingDirectory;
+
     
     /** Creates a new instance of Job */
     public Job() {
@@ -38,6 +41,7 @@ public class Job {
         next_start = 0;
         last_run = "0";
         exists = false;
+        WorkingDirectory = new File(".");
     }
     public void SetNextStart(int x)
     {
@@ -151,6 +155,16 @@ public class Job {
         return name;
     }
     
+    public File SetWorkingDirectory(String x)
+    {
+        WorkingDirectory= new File(x);
+        return WorkingDirectory;
+    }
+    
+    public File GetWorkingDirectory()
+    {
+        return WorkingDirectory;
+    }
     public String GetExecutable()
     {
         return executable;
