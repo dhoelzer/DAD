@@ -29,7 +29,7 @@ close(FILE);
 $LastChecked = $ARGV[0];
 
 # Grab all matching events that have occured since last alert job ran.
-$SQL = "SELECT TimeGenerated as 'Time', Field_0 as 'User name', Field_1 as 'Domain', Field_2 as 'Logon type', Computer FROM dad_sys_events WHERE EventID='534'";
+$SQL = "SELECT TimeGenerated as 'Time', Field_0 as 'User name', Field_1 as 'Domain', Field_2 as 'Logon type', Computer FROM dad_sys_events WHERE EventID='534' AND TimeWritten>'$LastChecked";
 
 $dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
 $dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")

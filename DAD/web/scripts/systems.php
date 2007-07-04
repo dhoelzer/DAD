@@ -86,7 +86,7 @@ function systems_edit() {
             /*e.g. - cbservice1 and cbservices4: 1 + 4 = 5;*/
             while( list($k,$v) = each($Global) ){
                 $arr = explode('cbservices',$k);
-                if( $arr[1] ){
+                if( isset($arr[1]) ){
                     $bitmask += $arr[1];
                 }
             }
@@ -111,7 +111,7 @@ function systems_edit() {
                 }
             }
 
-            add_element( "<div class=\"response_text\">${gaLiterals['Successfully added']} \"${Global['system_name']}\"</div>" );
+            add_element( "<div class=\"response_text\">Successfully added</div>" );
 
             /* LOGGING
              logger( "JOB CREATION SUCCESS: UserID: $strUserID; UserName: ${Global['username']}; FirstName: ${Global['firstname']}'; LastName: ${Global['lastname']}; Email: ${Global['email']}; RoleID: ${Global['role']}; " );*/
@@ -132,7 +132,7 @@ function systems_edit() {
         }
     }
 
-    if( isset( $Global['form_action'] ) && ($Global['form_action'] === 'lookup' || $Global['bt'] === $gaLiterals['Update'] || $Global['form_action'] === 'saveasnew') ) {
+    if( isset( $Global['form_action'] ) && ($Global['form_action'] === 'lookup' || (isset($Global['bt']) && $Global['bt'] === $gaLiterals['Update']) || $Global['form_action'] === 'saveasnew') ) {
         $strSQL = "SELECT sys.system_id, sys.system_name, loc.location_name, sys.timezone, os.os_name, sys.ip_address, sys.contact_information, import.log_these, import.priority, import.next_run
                    FROM dad_sys_systems AS sys
                      LEFT JOIN dad_sys_location AS loc ON sys.location_id = loc.location_id
@@ -146,7 +146,7 @@ function systems_edit() {
         }
     }
 
-    $strHTML .= "<SCRIPT ID=\"clientEventHandlersJS\" LANGUAGE=\"javascript\" TYPE=\"text/javascript\" src=\"javascript/dad.js\"></SCRIPT>";
+    $strHTML = "<SCRIPT ID=\"clientEventHandlersJS\" LANGUAGE=\"javascript\" TYPE=\"text/javascript\" src=\"javascript/dad.js\"></SCRIPT>";
     $strHTML .="
       <form id=\"system_edit\" action=\"$strURL\" method=\"post\">\n
         <input type=\"hidden\" name=\"form_action\" id=\"form_action\">
@@ -159,7 +159,7 @@ function systems_edit() {
     $strHTML .= build_drop_down( 
                     'SELECT system_id, system_name FROM dad_sys_systems ORDER BY system_name ASC', 
                     'system_id', 
-                    $arrDetails['system_id'], 
+                    (isset($arrDetails)? $arrDetails['system_id'] : ""), 
                     "onchange=\"record_action_and_submit('lookup');\""
                 );
     $strHTML .="
@@ -196,7 +196,8 @@ function systems_edit() {
                 "SELECT g.id_dad_adm_computer_group, g.group_name 
                  FROM dad_adm_computer_group as g 
                  INNER JOIN dad_adm_computer_group_member as m ON g.id_dad_adm_computer_group = m.id_dad_adm_computer_group
-                 WHERE m.system_id = ${Global['system_id']} ORDER BY group_name DESC",
+                 WHERE m.system_id = '".(isset($Global['system_id'])? $Global['system_id'] : '').
+					"' ORDER BY group_name DESC",
                 'selectedgroups',
                 '',
                 "MULTIPLE style=\"width:100%\" ondblclick=\"remove_node(this);record_list(this,selectedgroups_list,'~~~');\" "

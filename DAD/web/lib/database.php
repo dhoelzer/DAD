@@ -32,8 +32,8 @@ require_once '../config/dbconfig.php';
 
 define('KEY_ROWNUM', 0);
 define('KEY_COLUMN1', 1);
-define('MYSQL_BOTH', 1);
-define('MYSQL_ASSOC', 2);
+//define('MYSQL_BOTH', 1);
+//define('MYSQL_ASSOC', 2);
 
 /*
    Should we exit or return null on error?

@@ -130,7 +130,7 @@ function system_log_display() {
 
     $strHTML .= '</table></form>';
 
-    add_element( $msg );
+//    add_element( $msg );
     add_element( $strHTML );
 }
 

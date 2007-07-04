@@ -224,8 +224,11 @@ sub _event_thread
 		if($idxID_Kerb =~ /.*[^\\]\\$/) { chop($idxID_Kerb); }
 		$idxID_NTLM = substr("$eventid $values[3]",0,64);
 		if($idxID_NTLM =~ /.*[^\\]\\$/) { chop($idxID_NTLM); }
+		# Rather than adding a new field to the schema, we are changing the meaning of TimeWritten - It is now the time that the event is
+		# Inserted rather than the time that the event was generated - This is appropriate since the two timestamps always match in Windows
+		# and we still have the Generated timestamp.
 		$SQL_Queue->enqueue("('". $System_IDs{"$system"} ."', ". $Service_IDs{"$service"} .", ".
-			"'$timewritten', '$timegenerated', '$source', '$category', '$sid', '$computer', '$eventid', '$eventtype', ".
+			"UNIX_TIMESTAMP(NOW()), '$timegenerated', '$source', '$category', '$sid', '$computer', '$eventid', '$eventtype', ".
 			"'$values[0]', '$values[1]', '$values[2]', '$values[3]', '$values[4]', ".
 			"'$values[5]', '$values[6]', '$values[7]', '$values[8]', '$values[9]', ".
 			"'$values[10]', '$values[11]', '$values[12]', '$values[13]', '$values[14]', '$values[15]', '$values[16]', ".

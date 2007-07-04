@@ -194,11 +194,11 @@ function build_drop_down ( $strSQL, $strNamePrefix, $strSelected=NULL, $strOptio
     $arr = runQueryReturnArray( $strSQL );
     if( is_array($arr) ){
         foreach( $arr as $row ){
+            $checked='';
             if( in_array($row[$strColValue], $arrChecked) ){
                 $checked = 'checked';
             }
             $strHTML .= "<input type=\"checkbox\" $checked id=\"$strNamePrefix" . $row[$strColValue] . "\" name=\"$strNamePrefix" . $row[$strColValue] . "\">" . $row[$strColDisplay] . "<br>";
-            $checked='';
         }
     }
     $strHTML .= "</DIV>";

@@ -18,8 +18,10 @@ require_once "../lib/html_formatter.php";
     option_id = 2 - message lookup
 
 */
-
-get_content(0,560,0);
+	$option_id = 1;
+	$criteria = $_GET['criteria'];
+	//print "$option_id - $criteria<br>";
+get_content(1,$criteria,0);
 /*---------------------------------------------------------------------
  * get_content( $option_id, $criteria, $session );
  *---------------------------------------------------------------------
@@ -43,8 +45,7 @@ function get_content( $option_id, $criteria, $session ){
     global $Global;
     $Global['SessionID'] = $_GET['session'];                 //have to use $_GET since this was not loaded through index.php, nor are we going to mimic all that stuff; this file needs to be fast since it is feeding user's clicks....
     $tmp = '';
-
-	$option_id = $_GET['option'];
+	$html = "";
     //if( validateSessionID($session) == -1 ){     /*validateSessionID() returns zero on success, -1 on failure*/
         /*not a valid session, thus halting*/
     //    break;
@@ -60,7 +61,8 @@ function get_content( $option_id, $criteria, $session ){
         /* LOOKUP WINDOWS EVENT ID DETAILS */
         if( $criteria!='' ){
             $tmp = $criteria;
-            preg_replace( '/[^0-9]/', '', $tmp );       /*checking to see if there are non-digits in the criteria field; if so, then this is not an event ID*/
+            $tmp = preg_replace( '/[^\d]/', '', $tmp );       /*checking to see if there are non-digits in the criteria field; if so, then this is not an event ID*/
+			//print "$criteria - $tmp<br>";
             if( $tmp === $criteria ){
                 /*strings are the same, which means its all digits; will match against event id field*/
                 $strSQL  = "SELECT event_id, event_log, event_source, event_type, os_name, os_ver, message FROM dad_sys_event_desc WHERE event_id = $criteria ORDER BY event_id ASC";

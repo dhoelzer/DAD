@@ -3,12 +3,21 @@
 	height:250px;
 	width:800px;
 	overflow:auto;
+	border: 1px solid #000000; 
 }		
+
+#ScrollableEventDesc{
+	height:400px;
+	width:200px;
+	overflow:auto;
+	border: 1px solid #000000; 
+}
 
 #ScrollableStats{
 	height:200px;
 	width:425px;
 	overflow:auto;
+	border: 1px solid #000000; 
 }		
 
 BODY

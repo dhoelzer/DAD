@@ -598,10 +598,34 @@ function alert_admin(){
             }
 
             function fetch_data(option,criteria,dest_name){
-                var xmlhttp = new ActiveXObject('Microsoft.XMLHTTP');
+			  var xmlhttp;
                 var dest = document.getElementById(dest_name);
                 var session_id = '" . $Global['SessionID'] . "';
                 var url = 'content.html?option_id=' + option + '&criteria=' + criteria + '&session=' + session_id;
+			try
+				{    // Firefox, Opera 8.0+, Safari    
+					xmlhttp=new XMLHttpRequest();
+				}
+			catch (e)
+				{    // Internet Explorer    
+					try
+						{      
+							xmlhttp=new ActiveXObject('Msxml2.XMLHTTP');      
+						}
+					catch (e)
+						{      
+							try
+								{
+									xmlhttp=new ActiveXObject('Microsoft.XMLHTTP');        
+								}
+							catch (e)
+								{
+									alert('Your browser does not support AJAX!');        
+									return false;
+								}      
+						}    
+				}
+				
                 xmlhttp.onreadystatechange=function(){display_fetch_data(xmlhttp,dest);};
                 xmlhttp.open('GET',url,false);
                 xmlhttp.send(null);
@@ -668,17 +692,33 @@ function alert_admin(){
             }
             
             function select_keypress_call_function(func){
-                var key = window.event.keyCode;
+                /*var key = window.event.keyCode;
                 if( key == 13 ){
                     function(){func;};
-                }
+                }*/
             }
             
-            function lookup_event(){
-                var key = window.event.keyCode;
+            function lookup_event(e){
+                var key;
+				if(window.event)
+					{
+						key = e.keyCode;
+					}
+				else
+					{
+						key = e.which;
+					}
+				
                 if( key == 13 ){
-                    fetch_data( 1, document.getElementById('event_number').value, 'event_details', 'event_table' );
+					fetch_data( 1, document.getElementById('event_number').value,
+					'ScrollableEventDesc', 'event_table' );
                 }
+				var text = document.getElementById('event_number').value;
+				if(text == (text * 1))
+				{
+					fetch_data( 1, document.getElementById('event_number').value,
+					'ScrollableEventDesc', 'event_table' );
+				}				
             }
 
         </SCRIPT>
@@ -686,16 +726,16 @@ function alert_admin(){
         <input type='hidden' name='form_action' id='form_action'>
         <input type='hidden' name='criteria_list' id='criteria_list' value='$strCriteriaHidden'>
         <input type='hidden' name='message_dirty' id='message_dirty' value='" . ( isset($arrMessage['template']) && $arrMessage['template'] != 1 ? '1' : '') . "'>
-        <table>
+        <table width=900px>
           <tr>
           <td valign=top>
-        <table>
+        <table width=600px>
           <tr>
             <td colspan=6 valign='top'><b>${gaLiterals['Current Alerts']}</b><br>" . 
                 build_drop_down( 
                     'SELECT id_dad_adm_alert, description FROM dad_adm_alert ORDER BY description ASC', 
                     'alert_id', 
-                    $arr['id_dad_adm_alert'], 
+                    (isset($arr['id_dad_adm_alert'])?$arr['id_dad_adm_alert'] : ''), 
                     "MULTIPLE class=\"wide\" ondblclick=\"record_action_and_submit('lookup');\"" 
                 )
          . "</td>
@@ -709,7 +749,7 @@ function alert_admin(){
               <INPUT type=button name=bt id=bt value='${gaLiterals['Delete']}' onclick=\"delete_bt_click(alert_id);\">
               <INPUT type=button name=bt id=bt value='${gaLiterals['New']}' onclick=\"window.navigate('$strURL');\">
               <INPUT type=button name=bt id=bt value='${gaLiterals['Refresh']}' onclick=\"record_action_and_submit('lookup');\">
-              ${gaLiterals['Active']}: <input type=checkbox id=\"cbactive\" name=\"cbactive\" " . (isset($arr['active']) && $arr['active'] == 1 || $arr['id_dad_adm_action'] == '' ? 'CHECKED' : '') . ">
+              ${gaLiterals['Active']}: <input type=checkbox id=\"cbactive\" name=\"cbactive\" " . ((isset($arr['active']) && $arr['active'] == 1) || (isset($arr['id_dad_adm_action']) && $arr['id_dad_adm_action'] == '') ? 'CHECKED' : '') . ">
             </td>
           </tr><tr>
             <td align=right>${gaLiterals['Description']}:</td>
@@ -724,7 +764,7 @@ function alert_admin(){
                     ( isset($arr['id_dad_adm_action']) ? $arr['id_dad_adm_action'] : '')
                 )
           . "</td>
-            <td nowrap align='right' class='readonly'>${gaLiterals['Last Changed By']}:</td>
+            <td align='right' class='readonly'>${gaLiterals['Last Changed By']}:</td>
             <td class='readonly'>" . ( isset($arr['calleractive']) ? $arr['calleractive'] : '') . "</td>
             <td>
               ${gaLiterals['Interval']}:
@@ -762,7 +802,8 @@ function alert_admin(){
               )
           ."</td>
             <td align=right>${gaLiterals['Notes']}:</td>
-            <td><textarea id='notes' name='notes'>${arr['notes']}</textarea></td>
+            <td><textarea id='notes' name='notes'>".
+			(isset($arr['notes']) ? $arr['notes'] : '')."</textarea></td>
           </tr><tr>
             <td colspan=4><b>Criteria</b></td>
           </tr><tr>
@@ -789,7 +830,8 @@ function alert_admin(){
           </tr><tr>
             <td colspan=5 valign=\"top\" nowrap>
               <b>${gaLiterals['Message']}</b><br>
-              ${gaLiterals['Subject']}: <input type='text' id='message_subject' name='message_subject' " . ( isset($arrMessage['template']) && $arrMessage['template'] < 1 ? '' : 'READONLY') . " size=\"100%\" value=\"${arrMessage['subject']}\">
+              ${gaLiterals['Subject']}: <input type='text' id='message_subject' name='message_subject' " . ( isset($arrMessage['template']) && $arrMessage['template'] < 1 ? '' : 'READONLY') . " size=\"100%\" value=\"".
+			  (isset($arrMessage['subject']) ? $arrMessage['subject'] : '') ."\">
             </td>
           </tr><tr>
             <td colspan=5 rowspan=2 valign=\"top\" nowrap>
@@ -798,22 +840,24 @@ function alert_admin(){
               build_drop_down(
                   'SELECT id_dad_adm_alert_message, description FROM dad_adm_alert_message WHERE template = 1 ORDER BY description ASC',
                   'message_template',
-                  (isset($arr[id_dad_adm_alert_message]) ? $arr[id_dad_adm_alert_message] : null),
+                  (isset($arr['id_dad_adm_alert_message']) ? $arr['id_dad_adm_alert_message'] : null),
                   "onchange='template_select();'"
               )
               ." 
                 <input type=button value=\"${gaLiterals['Edit']}\" onclick=\"edit_template_click();\">
               </div>
               ${gaLiterals['Body']}:<br>
-              <textarea id='message_body' name='message_body' " . ( isset($arrMessage['template']) && $arrMessage['template'] < 1 ? '' : 'READONLY') . " rows=10 cols=\"82%\" title=\"For variables, use a field name with a dollar sign on each side of it - e.g. \$field_2$. \">${arrMessage['body']}</textarea>
+              <textarea id='message_body' name='message_body' " . ( isset($arrMessage['template']) && $arrMessage['template'] < 1 ? '' : 'READONLY') . " rows=10 cols=\"82%\" title=\"For variables, use a field name with a dollar sign on each side of it - e.g. \$field_2$. \">".
+			  (isset($arrMessage['body'])?$arrMessage['body'] : '')."</textarea>
             </td>
           </tr>";
     $strHTML .="</table>
     </td>
-      <td rowspan=1000 valign='top' class='readonly' width='225pt' nowrap>
+      <td valign='top' class='readonly' width='225pt'>
         <b>${gaLiterals['Event Lookup']}:</b><br>
-        <input type='text' id='event_number' size='20' onkeypress=\"lookup_event();\" onblur=\"fetch_data( 1, document.getElementById('event_number').value, 'event_details', 'event_table' )\">
-        <div id='event_details'><div>
+        <input type='text' id='event_number' size='20' onkeyup=\"lookup_event(event);\" onBlur=\"fetch_data( 1, document.getElementById('event_number').value, 'ScrollableEventDesc', 'event_table' )\">
+		<div id='ScrollableEventDesc'>
+		</div>
       </td>
     </tr>      
     <table></form>";

@@ -9,7 +9,7 @@ var xmlhttp;
 //    - verify that something is selected
 //    - record 'delete' as the action and then submit the form
 function delete_bt_click(oVerify){
-    var page = document.forms[0].document.all;
+    var page = document.forms[0];
     var val = '';
     if( oVerify.nodeName == 'SELECT' ){
         val = oVerify[oVerify.selectedIndex].value;
@@ -64,7 +64,7 @@ function record_action_and_submit(oAction,oPrompt){
         flg_cont = 1;
     }
     if( flg_cont == 1 ){
-        var page = document.forms[0].document.all;
+        var page = document.forms[0];
         page.form_action.value = oAction;
         document.forms[0].submit();
     }
@@ -75,7 +75,7 @@ function select_keypress_copy(oFrom, oTo, oFullList, strSep){
     if( typeof(strSep) == 'undefined' ){
         strSep = ',';
     }
-    var page = document.forms[0].document.all;
+    var page = document.forms[0];
     var key = window.event.keyCode;
     if( key == 13 ){
         copy_node(oFrom, oTo);
@@ -100,7 +100,7 @@ function select_keypress_record_action(oAction){
 //     oTo   - object | string - (see oFrom), only difference is that this is where the data will be stored
 //     oSep  - string - the string that will be used as a separater for the values. Default is comma (,)
 function record_list(oFrom,oTo,oSep){
-    var page = document.forms[0].document.all;
+    var page = document.forms[0];
     var i;
     var str = '';
     if( typeof(oSep) == 'undefined' ){
@@ -143,7 +143,7 @@ function record_list(oFrom,oTo,oSep){
 //  unlock_input_fields();
 //    will unmark all fields that are currently 'readonly', so that the end user can change the data
 function unlock_input_fields(){
-    var page = document.forms[0].document.all;
+    var page = document.forms[0];
     var i = 0;
     var type;
     var name;
@@ -176,7 +176,7 @@ function loadXMLDoc(url,dest){
         xmlhttp.open("GET",url,true)
         xmlhttp.send(null)
     }else{
-        alert("Your browser does not support XMLHTTP.")
+        alert("Your browser does not support AJAX style requests.  These are required for this page to work properly.")
     }
 }
 

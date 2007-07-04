@@ -32,7 +32,7 @@ $LastChecked = $ARGV[0];
 
 $SQL = "SELECT TimeGenerated, Computer, Field_3 as 'User', Field_0 ".
 	"as 'Added', Field_1 as 'Domain' FROM dad_sys_events WHERE EventID='645' ".
-	"AND TimeGenerated>'$LastChecked' ORDER BY TimeGenerated";
+	"AND TimeWritten>'$LastChecked' ORDER BY TimeGenerated";
 
 $dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
 $dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
