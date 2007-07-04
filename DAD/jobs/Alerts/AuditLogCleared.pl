@@ -35,7 +35,7 @@ $SQL = "SELECT dad_sys_events.TimeGenerated, dad_sys_systems.System_Name, ".
 	"Field_4 as 'Client Domain', Field_5 as 'Client Logon' ".
 	"FROM dad_sys_events, dad_sys_systems WHERE EventID='517' AND ".
 	"dad_sys_events.SystemID=dad_sys_systems.System_ID AND ".
-	"TimeWritten>'$LastChecked' ".
+	"TimeWritten>'$LastChecked' AND Source='Security' ".
 	"ORDER BY dad_sys_events.TimeGenerated";
 
 $dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
