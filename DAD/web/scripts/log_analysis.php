@@ -95,13 +95,14 @@ function show_log_stats()
 	$MoreEvents = $FreeSpace/(($TotalSpace-$FreeSpace) / ($num_events + 1)+1);
 	$PercentFree = round((($FreeSpace/($TotalSpace + 1)) * 100), 2);
 	$PercentUsed = 100 - $PercentFree;
-	
-	$strHTML = "Disk Utilization: <img src='/images/percent.php?percent=$PercentUsed' valign=top halign=left> $PercentFree% Free";
-	$strHTML .= "<br />There are a total of ".number_format($events[0][0])." events from ".
-		number_format($num_systems[0][0])." systems reporting on ".number_format($num_services[0][0])." services.";
-	$strHTML .= "<p>The database volume currently has ".number_format($FreeSpace)." bytes free (".
-		$PercentFree."%).  ".
-	    "This should be enough space for approximately ".number_format($MoreEvents)." more events.";
+
+	$strHTML = "Disk Utilization: $PercentFree% Free";
+	$top_talkers = file("../TopTalkers.html");
+	foreach($top_talkers as $line)
+	{
+		$strHTML .= $line;
+	}
+
 // Alerts
 	if(isset($Global['AckMarker']) && $Global['AckMarker'] == '1')
 	{
@@ -109,10 +110,12 @@ function show_log_stats()
 	}
 	$strURL  = getOptionURL(OPTIONID_LOG_ANALYSIS);
 	$strHTML .=<<<endHTML
-		<form id='acknowledge_alerts' action='$strURL' method='post'>
+		<iframe src='/stats/stats.html' width=300px height=390px align=right></iframe>
+		<form id='acknowledge_alerts' align=left action='$strURL' method='post'>
 		<input type='hidden' name='AckMarker' value='1'></input>
 		<p><h3>Pending Alerts</h3><input type='submit' value='Acknowledge Marked'></input></h3>
-<div id="Scrollable">
+<div id="Scrollable" height=350px>
+		<font size=-2>
 		<table border='0' cellpadding='5'>
 			<tr><th>Ack</th><th>Alert Time</th><th>Event Time</th><th>Alert</th></tr>
 endHTML;
@@ -142,7 +145,7 @@ endHTML;
 endHTML;
 		}
 	}
-	$strHTML .= "</table></div>";
+	$strHTML .= "</table></font></div>";
 // Stats
 	$strHTML .= "<p><table><tr><td><h3>Aggregate Log Statistics</h3><img src='/Stats/Aggregate.gif'></td>".
 		"<td><div id='ScrollableStats'>";	
@@ -150,7 +153,7 @@ endHTML;
 	{
 		foreach($systems as $row)
 		{
-			$strHTML .= "<p><h3>".$row[0]." Log Statistics</h3><img src='/Stats/".$row[0].".gif'>";
+			$strHTML .= "<p><h3>".$row[0]." Log Statistics</h3><img src='/Stats/".$row[0].".gif'><hr>";
 		}
 	}
 	else 

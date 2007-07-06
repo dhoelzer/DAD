@@ -82,6 +82,7 @@ function edit_job() {
                 job_type,
                 path,
                 package_name,
+				argument_1,
                 calleractive,
                 next_start,
                 user_name,
@@ -105,11 +106,12 @@ function edit_job() {
                 '${Global['job_type']}',
                 '${Global['path']}',
                 '${Global['package_name']}',
-                '${Global['calleractive']}',
+				'${Global['argument_1']}', 
+                '".(isset($Global['calleractive'])?$Global['calleractive']:'')."',
                 $first_start_time,
-                '${Global['user_name']}',
-                '${Global['distinguishedname']}',
-                '${Global['pword']}',
+                '".(isset($Global['user_name'])?$$Global['user_name']:'')."',
+                '".(isset($Global['distinguishedname'])?$Global['distinguishedname']:'')."',
+                '".(isset($Global['pword'])?$Global['pword']:'')."',
                 " . (isset($Global['times_to_run']) && $Global['times_to_run'] > 0 ? "'${Global['times_to_run']}'":'NULL') . ",
                 '0',
                 " . (isset($Global['start_date']) && strlen($Global['start_date']) > 1 ? "'${Global['start_date']}'":'NULL') . ",
@@ -143,8 +145,8 @@ function edit_job() {
         }
     }
 
-    if( isset( $Global['form_action'] ) && ($Global['form_action'] === 'lookup' || $Global['bt'] === $gaLiterals['Update'] || $Global['form_action'] === 'delete') ) {
-        $strSQL = "SELECT id_dad_adm_job, descrip, length, job_type, path, package_name, calleractive, from_unixtime(next_start) as 'next_start', user_name, 
+    if( isset( $Global['form_action'] ) && ($Global['form_action'] === 'lookup' || (isset($Global['bt']) && $Global['bt'] === $gaLiterals['Update']) || $Global['form_action'] === 'delete') ) {
+        $strSQL = "SELECT id_dad_adm_job, descrip, length, job_type, path, package_name, argument_1, calleractive, from_unixtime(next_start) as 'next_start', user_name, 
                      distinguishedname, pword, times_to_run, times_ran, start_date, start_time, from_unixtime(last_ran) as 'last_ran', min, hour, day, month, persistent 
                    FROM dad_adm_job WHERE id_dad_adm_job='${Global['id_dad_adm_job']}'";
         $arrDetails = runQueryReturnArray( $strSQL );
@@ -192,10 +194,17 @@ function edit_job() {
           <td align='right'>First Start Date: </td><td><INPUT TYPE='text' NAME='start_date' ID='start_date' Title='Format: YYYY-MM-DD' VALUE='" . (isset($arrDetails['start_date'])?$arrDetails['start_date']:date("Y-m-d",time())) . "'></td>
           <td align='right'><font color='gray'>Times Ran:</font></td><td><INPUT TYPE='text' NAME='times_ran' ID='times_ran' READONLY VALUE='" . (isset($arrDetails['times_ran'])?$arrDetails['times_ran']:'')  . "' STYLE=\"color:gray;border:none;\"></td>
           </tr><tr>
-          <td align='right'>Path to Script: </td><td><INPUT TYPE='text' NAME='path' ID='path' VALUE='" . (isset($arrDetails['path'])?$arrDetails['path']:'') . "'></td>
+          <td align='right'>Working Directory: </td><td><INPUT TYPE='text' NAME='path' ID='path' VALUE='" . (isset($arrDetails['path'])?$arrDetails['path']:'') . "'></td>
           <td align='right'>Times to Run: </td><td><INPUT TYPE='text' NAME='times_to_run' ID='times_to_run' VALUE='" . (isset($arrDetails['time_to_run'])?$arrDetails['time_to_run']:'')  . "'></td>
           <td align='right'><font color='gray'>Last Ran:</font></td><td><INPUT TYPE='text' NAME='last_ran' ID='last_ran' READONLY VALUE='" . (isset($arrDetails['last_ran'])?$arrDetails['last_ran']:'')  . "' STYLE=\"color:gray;border:none;\"></td>
-          </tr><tr>
+          </tr>
+		  <tr>
+		  <td align='right'>Command: </td><td><INPUT TYPE='text' NAME='package_name' ID='package_name' VALUE='" . (isset($arrDetails['package_name'])?$arrDetails['package_name']:''). "'></td><td></td><td></td><td></td>
+		  </tr>
+		  <tr>
+		  <td align='right'>Argument: </td><td><INPUT TYPE='text' NAME='argument_1' ID='argument_1' VALUE='" . (isset($arrDetails['argument_1'])?$arrDetails['argument_1']:''). "'></td><td></td><td></td><td></td>
+		  </tr>
+		  <tr>
           <td align='right'>Repeat every:</td>
           <td colspan=4><INPUT TYPE='text' NAME='month' ID='month' SIZE='1' title='values: 0-12' VALUE='" . (isset($arrDetails['month'])?$arrDetails['month']:'0')  . "'> months,
 			<INPUT TYPE='text' NAME='day' ID='day' SIZE='1' title='values: 0-31' VALUE='" . (isset($arrDetails['day'])?$arrDetails['day']:'0')  . "'> days, 

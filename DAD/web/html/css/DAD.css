@@ -1,7 +1,7 @@
 /**** Scrolling area ****/
 #Scrollable{
-	height:250px;
-	width:800px;
+	height:300px;
+	width:500px;
 	overflow:auto;
 	border: 1px solid #000000; 
 }		
@@ -10,7 +10,8 @@
 	height:400px;
 	width:200px;
 	overflow:auto;
-	border: 1px solid #000000; 
+	border: 1px solid #000000;
+	
 }
 
 #ScrollableStats{
@@ -18,8 +19,61 @@
 	width:425px;
 	overflow:auto;
 	border: 1px solid #000000; 
+	padding: 10px;
 }		
 
+/**** Two Column Forms Without Tables ****/
+div.row {
+  clear:both;
+  }
+
+div.row span.label {
+  float: left;
+  width: 100px;
+  text-align: right;
+  }
+
+div.row span.formw {
+  float: right;
+  width: 235px;
+  text-align: left;
+  }
+
+div.row span.left {
+  float: left;
+  text-align: left;
+  font-weight: bold;
+  color: #fff;
+  width: 49%;
+  }
+
+div.row span.right {
+  float: right;
+  text-align: right;
+  font-weight: bold;
+  color: #fff;
+  width: 49%;
+  }
+
+
+
+div.row {
+  clear: both;
+  padding-top: 10px;
+  }
+
+div.row span.label {
+  float: left;
+  width: 100px;
+  text-align: right;
+  }
+
+div.row span.formw {
+  float: right;
+  width: 335px;
+  text-align: left;
+  } 
+  
 BODY
 {
     PADDING-RIGHT: 0px;
