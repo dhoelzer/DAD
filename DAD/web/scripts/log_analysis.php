@@ -84,7 +84,7 @@ function show_log_stats()
     $strSQL   = 'SELECT COUNT(*) FROM dad_sys_events';;
     $events = runQueryReturnArray( $strSQL );
 	$num_events = $events[0][0];
-    $strSQL   = 'SELECT COUNT(*) FROM dad_sys_systems';
+    $strSQL   = 'SELECT COUNT(*) FROM dad_sys_event_import_from';
     $num_systems = runQueryReturnArray( $strSQL );
     $strSQL   = 'SELECT System_Name FROM dad_sys_event_import_from';
     $systems = runQueryReturnArray( $strSQL );
@@ -96,7 +96,7 @@ function show_log_stats()
 	$PercentFree = round((($FreeSpace/($TotalSpace + 1)) * 100), 2);
 	$PercentUsed = 100 - $PercentFree;
 
-	$strHTML = "Disk Utilization: $PercentFree% Free";
+	$strHTML = "Disk Utilization: $PercentFree% Free -- $num_events events available from ".$num_systems[0][0]." systems";
 	$top_talkers = file("../TopTalkers.html");
 	foreach($top_talkers as $line)
 	{

@@ -436,7 +436,7 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2007-07-04 13:41:23
+-- Dump completed on 2007-07-04 15:17:31
 --
 -- Dumping data for table `userrole`
 --

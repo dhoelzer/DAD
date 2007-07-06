@@ -41,7 +41,7 @@ $num_results = @$results_ref;
 if($num_results)
 {
 	open(OUTPUT, "> ../../web/TopTalkers.html");
-	print OUTPUT "<table width=300px border=0>";
+	print OUTPUT "<table><tr><th colspan=2>Top Talkers</th></tr><tr><td><table width=300px border=0>";
 	print OUTPUT "<tr><th colspan=2>Most Active Servers</th></tr>";
 	print OUTPUT "<tr><th>Server</th><th>Event Count</th></tr>\n";
 	while($row = shift(@$results_ref))
@@ -49,7 +49,7 @@ if($num_results)
 		@this_row = @$row;
 		print OUTPUT "<tr><td><center><font size=-1>".$this_row[0]."</font></center></td><td><center><font size=-1>".$this_row[1]."</font></center></td></tr>\n";
 	}
-	print OUTPUT "</table>\n";
+	print OUTPUT "</table></td>\n";
 	close OUTPUT;
 }
 	
@@ -60,7 +60,7 @@ $num_results = @$results_ref;
 if($num_results)
 {
 	open(OUTPUT, ">> ../../web/TopTalkers.html");
-	print OUTPUT "<table width=300px border=0>";
+	print OUTPUT "<td><table width=300px border=0>";
 	print OUTPUT "<tr><th colspan=2>Most Common Events</th></tr>";
 	print OUTPUT "<tr><th>Event ID</th><th>Event Count</th></tr>\n";
 	while($row = shift(@$results_ref))
@@ -68,7 +68,7 @@ if($num_results)
 		@this_row = @$row;
 		print OUTPUT "<tr><td><center><font size=-1>".$this_row[0]."</font></center></td><td><center><font size=-1>".$this_row[1]."</font></center></td></tr>\n";
 	}
-	print OUTPUT "</table>\n";
+	print OUTPUT "</table></td></tr></table>\n";
 	close OUTPUT;
 }
 
