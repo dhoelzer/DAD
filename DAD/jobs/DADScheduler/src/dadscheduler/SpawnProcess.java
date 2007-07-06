@@ -94,6 +94,10 @@ public class SpawnProcess extends Thread implements Runnable {
                 {
                     System.out.println("Exit Value for "+this.QueryDescription()+" is " + SpawnedProcess.exitValue());
                 }
+                if(SpawnedProcess.exitValue() != 0)
+                {
+                    
+                }
                 return false;
             }
             else // Throws exception - should never run this code
