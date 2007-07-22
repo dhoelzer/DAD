@@ -83,7 +83,7 @@ CREATE TABLE `dad_adm_alert_group` (
   `calleractive` varchar(45) NOT NULL default '',
   `timeactive` int(10) unsigned default NULL,
   PRIMARY KEY  (`id_dad_adm_alertgroup`)
-) ENGINE=MyISAM AUTO_INCREMENT=30 DEFAULT CHARSET=latin1 ROW_FORMAT=DYNAMIC;
+) ENGINE=MyISAM AUTO_INCREMENT=31 DEFAULT CHARSET=latin1 ROW_FORMAT=DYNAMIC;
 
 --
 -- Table structure for table `dad_adm_alert_group_member`
@@ -238,7 +238,7 @@ CREATE TABLE `dad_adm_job` (
   `persistent` tinyint(1) NOT NULL default '0',
   `argument_1` varchar(45) NOT NULL,
   PRIMARY KEY  (`id_dad_adm_job`)
-) ENGINE=MyISAM AUTO_INCREMENT=12 DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM AUTO_INCREMENT=18 DEFAULT CHARSET=latin1;
 
 --
 -- Table structure for table `dad_adm_log`
@@ -286,7 +286,7 @@ CREATE TABLE `dad_alerts` (
   PRIMARY KEY  (`dad_alert_id`),
   KEY `Acknowledged_idx` (`Acknowledged`),
   KEY `Time_idx` (`Alert_Time`)
-) ENGINE=MyISAM AUTO_INCREMENT=796 DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM AUTO_INCREMENT=1968 DEFAULT CHARSET=latin1;
 
 --
 -- Table structure for table `dad_cl_classification`
@@ -620,7 +620,7 @@ CREATE TABLE `dad_sys_cis_imported` (
   `System_Name` varchar(45) default NULL,
   `LastLogEntry` bigint(20) unsigned default NULL,
   PRIMARY KEY  (`CIS_Imported_ID`)
-) ENGINE=MyISAM AUTO_INCREMENT=96 DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM AUTO_INCREMENT=517 DEFAULT CHARSET=latin1;
 
 --
 -- Table structure for table `dad_sys_event_desc`
@@ -669,7 +669,7 @@ CREATE TABLE `dad_sys_event_stats` (
   PRIMARY KEY  (`Stats_ID`),
   KEY `Systems` (`System_Name`),
   KEY `Stats_Type` USING BTREE (`Stat_Type`)
-) ENGINE=MyISAM AUTO_INCREMENT=50601 DEFAULT CHARSET=latin1 COMMENT='Tracks event log gathering statistics';
+) ENGINE=MyISAM AUTO_INCREMENT=3544236 DEFAULT CHARSET=latin1 COMMENT='Tracks event log gathering statistics';
 
 --
 -- Table structure for table `dad_sys_events`
@@ -725,7 +725,7 @@ CREATE TABLE `dad_sys_events` (
   KEY `idxIDbyKerb` (`idxID_Kerb`(15)),
   KEY `idxIDbyNTLM` (`idxID_NTLM`(10)),
   KEY `idxNTLMCode` (`Field_3`(15))
-) ENGINE=MyISAM AUTO_INCREMENT=3241686 DEFAULT CHARSET=utf8 COMMENT='Normalized Windows Events';
+) ENGINE=MyISAM AUTO_INCREMENT=51650839 DEFAULT CHARSET=utf8 COMMENT='Normalized Windows Events';
 
 --
 -- Table structure for table `dad_sys_events_aging`
@@ -738,7 +738,7 @@ CREATE TABLE `dad_sys_events_aging` (
   `Explanation` varchar(255) NOT NULL,
   `Retention_Time` int(10) unsigned NOT NULL,
   PRIMARY KEY  (`Aging_ID`)
-) ENGINE=MyISAM AUTO_INCREMENT=12 DEFAULT CHARSET=latin1 COMMENT='Aging schedule for various Windows events';
+) ENGINE=MyISAM AUTO_INCREMENT=14 DEFAULT CHARSET=latin1 COMMENT='Aging schedule for various Windows events';
 
 --
 -- Table structure for table `dad_sys_events_groomed`
@@ -790,7 +790,7 @@ CREATE TABLE `dad_sys_filtered_events` (
   `Event_ID` int(10) unsigned NOT NULL,
   `Description` varchar(45) NOT NULL,
   PRIMARY KEY  (`Filtered_ID`)
-) ENGINE=MyISAM AUTO_INCREMENT=10 DEFAULT CHARSET=latin1 COMMENT='Event IDs that are filtered from incoming logs';
+) ENGINE=MyISAM AUTO_INCREMENT=12 DEFAULT CHARSET=latin1 COMMENT='Event IDs that are filtered from incoming logs';
 
 --
 -- Table structure for table `dad_sys_linked_queries`
@@ -1077,7 +1077,7 @@ CREATE TABLE `user` (
   `LatestChangeUserID` int(10) unsigned NOT NULL default '0',
   `LatestChangeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
   PRIMARY KEY  (`UserID`)
-) ENGINE=MyISAM AUTO_INCREMENT=2 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=5 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 --
 -- Table structure for table `userrole`
@@ -1094,7 +1094,7 @@ CREATE TABLE `userrole` (
   `LatestChangeUserID` int(10) unsigned NOT NULL default '0',
   `LatestChangeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
   PRIMARY KEY  (`UserRoleID`)
-) ENGINE=MyISAM AUTO_INCREMENT=69 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=72 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 --
 -- Table structure for table `userstat`
@@ -1107,7 +1107,7 @@ CREATE TABLE `userstat` (
   `LoginCount` int(10) unsigned NOT NULL default '0',
   `LatestLoginStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
   PRIMARY KEY  (`UserStatID`)
-) ENGINE=MyISAM AUTO_INCREMENT=18 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=19 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -1118,4 +1118,4 @@ CREATE TABLE `userstat` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2007-07-04 13:41:16
+-- Dump completed on 2007-07-22 15:21:22

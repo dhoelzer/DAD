@@ -1,6 +1,6 @@
 @echo off
 echo Backing up initial tables from %1
-mysqldump -u root -p -h %1 --databases dad --tables dad_adm_action --tables dad_adm_carvers --tables dad_adm_computer_group --tables dad_adm_job --tables dad_event_log_types --tables dad_sys_events_aging --tables dad_sys_event_desc --tables dad_sys_filtered_events --tables dad_sys_linked_queries --tables dad_sys_queries --tables language --tables menu --tables menuoption --tables role --tables rolemenuoption --tables user -q > Starter_Data.sql
+mysqldump -u root --password="All4Fun" -h 127.0.0.1 --databases dad --tables dad_adm_action --tables dad_adm_carvers --tables dad_adm_computer_group --tables dad_adm_job --tables dad_event_log_types --tables dad_sys_events_aging --tables dad_sys_event_desc --tables dad_sys_filtered_events --tables dad_sys_linked_queries --tables dad_sys_queries --tables language --tables menu --tables menuoption --tables role --tables rolemenuoption --tables user -q > Starter_Data.sql
 
 ECHO -->> Starter_Data.sql
 ECHO -- Dumping data for table `userrole`>> Starter_Data.sql

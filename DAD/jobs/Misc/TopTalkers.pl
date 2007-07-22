@@ -30,7 +30,9 @@ $LastChecked = $ARGV[0];
 
 #Grab the 5 top talkers
 
-$SQL = "select Computer, count(SystemID) as 'Event Count' FROM dad.dad_sys_events group by Computer order by count(SystemID) DESC LIMIT 5";
+$HTML = "";
+
+$SQL = "select Computer, count(SystemID) as 'Event Count' FROM dad.dad_sys_events WHERE TimeWritten>(UNIX_TIMESTAMP(NOW())-86400) group by Computer order by count(SystemID) DESC LIMIT 5";
 
 $dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
 $dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
@@ -40,33 +42,36 @@ $results_ref = &SQL_Query($SQL);
 $num_results = @$results_ref;
 if($num_results)
 {
-	open(OUTPUT, "> ../../web/TopTalkers.html");
-	print OUTPUT "<table><tr><th colspan=2>Top Talkers</th></tr><tr><td><table width=300px border=0>";
-	print OUTPUT "<tr><th colspan=2>Most Active Servers</th></tr>";
-	print OUTPUT "<tr><th>Server</th><th>Event Count</th></tr>\n";
+	$HTML .="<table><tr><th colspan=2>Top Talkers</th></tr><tr><td><table width=300px border=0>";
+	$HTML .="<tr><th colspan=2>Most Active Servers</th></tr>";
+	$HTML .="<tr><th>Server</th><th>Event Count</th></tr>\n";
 	while($row = shift(@$results_ref))
 	{
 		@this_row = @$row;
-		print OUTPUT "<tr><td><center><font size=-1>".$this_row[0]."</font></center></td><td><center><font size=-1>".$this_row[1]."</font></center></td></tr>\n";
+		$EventCount = $this_row[1];
+		$EventCount =~ s/(?<=\d)(?=(\d\d\d)+$)/,/g;
+		$HTML .="<tr><td><center><font size=-1>".$this_row[0]."</font></center></td><td><center><font size=-1>".$EventCount."</font></center></td></tr>\n";
 	}
-	print OUTPUT "</table></td>\n";
-	close OUTPUT;
+	$HTML .="</table></td>\n";
 }
 	
-	$SQL="select EventID, count(EventID) as 'Event Count' FROM dad_sys_events group by EventID ORDER BY Count(EventID) DESC LIMIT 5";
+	$SQL="select EventID, count(EventID) as 'Event Count' FROM dad_sys_events WHERE TimeWritten>(UNIX_TIMESTAMP(NOW())-86400) group by EventID ORDER BY Count(EventID) DESC LIMIT 5";
 
 	$results_ref = &SQL_Query($SQL);
 $num_results = @$results_ref;
 if($num_results)
 {
-	open(OUTPUT, ">> ../../web/TopTalkers.html");
+	open(OUTPUT, "> ../../web/TopTalkers.html");
+	print OUTPUT "$HTML";
 	print OUTPUT "<td><table width=300px border=0>";
 	print OUTPUT "<tr><th colspan=2>Most Common Events</th></tr>";
 	print OUTPUT "<tr><th>Event ID</th><th>Event Count</th></tr>\n";
 	while($row = shift(@$results_ref))
 	{
 		@this_row = @$row;
-		print OUTPUT "<tr><td><center><font size=-1>".$this_row[0]."</font></center></td><td><center><font size=-1>".$this_row[1]."</font></center></td></tr>\n";
+		$EventCount = $this_row[1];
+		$EventCount =~ s/(?<=\d)(?=(\d\d\d)+$)/,/g;
+		print OUTPUT "<tr><td><center><font size=-1>".$this_row[0]."</font></center></td><td><center><font size=-1>".$EventCount."</font></center></td></tr>\n";
 	}
 	print OUTPUT "</table></td></tr></table>\n";
 	close OUTPUT;
