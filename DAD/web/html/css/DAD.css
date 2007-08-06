@@ -319,7 +319,7 @@ UNKNOWN
 {
     CLEAR: both;
     MARGIN: 0px;
-    WIDTH: 410px;
+    WIDTH: 380px;
     BACKGROUND-COLOR: #ffffff;
     TEXT-ALIGN: center
 }
@@ -350,7 +350,7 @@ UNKNOWN
     FLOAT: left;
     PADDING-BOTTOM: 20px;
     MARGIN: 0px;
-    WIDTH: 200px;
+    WIDTH: 130px;
     PADDING-TOP: 0px
 }
 .cols-1 #sectionmenu
@@ -398,7 +398,7 @@ UNKNOWN
 }
 #content
 {
-    PADDING-LEFT: 220px;
+    PADDING-LEFT: 150px;
     MARGIN: 0px 20px 20px
 }
 .cols-1 #content

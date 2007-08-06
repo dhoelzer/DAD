@@ -458,11 +458,21 @@ $Win32::EventLog::GetMessageText = 0;	# If this is off, there should be no ntdll
 # And then read in all of the events.
 			if($DEBUG) {print "\t\t\t$who_am_i:$system Processing $new events from $log log...\n";}
 			{
+# Sometimes, when the log has wrapped, the logs will advance faster than we can read them off.  Here we loop until we find an event
+# that exists.  Since touching the event log generates events itself, we'll jump ahead 50 events at a time.
 				$continue = $handle->Read(EVENTLOG_FORWARDS_READ|EVENTLOG_SEEK_READ,
 					$base, $hashRef);
+				while (!$continue && $base < $total)
+				{
+					$handle->GetOldest($base);
+					$base+=50;
+					$continue = $handle->Read(EVENTLOG_FORWARDS_READ|EVENTLOG_SEEK_READ,
+					$base, $hashRef);
+				}
 			}
 			while($continue)
 			{
+			
 				$TotalEvents++;
 				$Status{"log $who_am_i"} = "$system -> $log -> $TotalEvents -> $collected : $my_execution_time";
 				$Record{"System"} = $system;
@@ -496,7 +506,7 @@ $Win32::EventLog::GetMessageText = 0;	# If this is off, there should be no ntdll
 					}
 					else
 					{
-						$Record{"Field_25"} = substr($pieces[($num_pieces-1)], 0, $Field_Lengths[25]);
+						$Record{"Field_25"} = substr($pieces[($num_pieces-1)], 0, 10);
 					}
 				}
 
