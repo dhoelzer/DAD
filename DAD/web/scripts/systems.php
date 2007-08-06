@@ -206,7 +206,10 @@ function systems_edit() {
           </tr><tr>
             <td colspan=4><b>Services to Monitor:</b>" . 
             build_check_box_table ( 
-                'SELECT log_these_id, service_name FROM dad_sys_services WHERE log_these_id > 0 ORDER BY service_name ASC', 
+//
+// Someone duplicated an existing table and created this select.  Trying to point at the correct data.  Subject to deletion.
+//                'SELECT log_these_id, service_name FROM dad_sys_services WHERE log_these_id > 0 ORDER BY service_name ASC', 
+		'SELECT Log_Type_Value, Log_Type FROM dad_event_log_types ORDER BY Log_Type ASC',
                 4, 
                 2, 
                 'cbservices', 
