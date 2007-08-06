@@ -38,7 +38,7 @@ function systems_edit() {
     $strURL = getOptionURL(OPTIONID_SYSTEMS);
 
     /*build list of bitmasks for different services*/
-    $arr = runQueryReturnArray( 'SELECT log_these_id FROM dad_sys_services WHERE log_these_id > 0' );
+    $arr = runQueryReturnArray( 'SELECT log_these_id FROM dad_event_log_types' );
     foreach( $arr as $a ){
         array_push( $arrServices, $a[0] );
     }
