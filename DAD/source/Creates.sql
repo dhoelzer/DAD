@@ -669,7 +669,7 @@ CREATE TABLE `dad_sys_event_stats` (
   PRIMARY KEY  (`Stats_ID`),
   KEY `Systems` (`System_Name`),
   KEY `Stats_Type` USING BTREE (`Stat_Type`)
-) ENGINE=MyISAM AUTO_INCREMENT=7184975 DEFAULT CHARSET=latin1 COMMENT='Tracks event log gathering statistics';
+) ENGINE=MyISAM AUTO_INCREMENT=7187986 DEFAULT CHARSET=latin1 COMMENT='Tracks event log gathering statistics';
 
 --
 -- Table structure for table `dad_sys_events`
@@ -725,7 +725,7 @@ CREATE TABLE `dad_sys_events` (
   KEY `idxIDbyKerb` (`idxID_Kerb`(15)),
   KEY `idxIDbyNTLM` (`idxID_NTLM`(10)),
   KEY `idxNTLMCode` (`Field_3`(15))
-) ENGINE=MyISAM AUTO_INCREMENT=19922484 DEFAULT CHARSET=utf8 COMMENT='Normalized Windows Events';
+) ENGINE=MyISAM AUTO_INCREMENT=21257638 DEFAULT CHARSET=utf8 COMMENT='Normalized Windows Events';
 
 --
 -- Table structure for table `dad_sys_events_aging`
@@ -1174,4 +1174,4 @@ CREATE TABLE `userstat` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2007-08-07 19:21:36
+-- Dump completed on 2007-08-07 19:40:25
