@@ -121,7 +121,7 @@ CREATE TABLE `dad_adm_job` (
   `persistent` tinyint(1) NOT NULL default '0',
   `argument_1` varchar(45) NOT NULL,
   PRIMARY KEY  (`id_dad_adm_job`)
-) ENGINE=MyISAM AUTO_INCREMENT=18 DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM AUTO_INCREMENT=19 DEFAULT CHARSET=latin1;
 
 --
 -- Dumping data for table `dad_adm_job`
@@ -129,7 +129,7 @@ CREATE TABLE `dad_adm_job` (
 
 LOCK TABLES `dad_adm_job` WRITE;
 /*!40000 ALTER TABLE `dad_adm_job` DISABLE KEYS */;
-INSERT INTO `dad_adm_job` VALUES (1,'Generate Statistics',NULL,'DAD Internals','C:\\\\dad\\\\jobs\\\\log parser\\\\','perl.exe','',1185117981,'','','',NULL,0,'2007-04-16','00:00:00',1185117381,10,0,0,0,0,0,'Stats.pl'),(17,'Prune events from database',NULL,'DAD Internals','C:/dad/jobs/log parser/','perl.exe','',1185159600,'','','',NULL,0,'2007-07-16','23:00:00',1185073200,0,0,1,0,0,0,'run_groomer.pl'),(4,'Alert on Domain Joins',NULL,'Alert','C:\\\\dad\\\\jobs\\\\alerts\\\\','perl.exe',NULL,1185117998,NULL,NULL,NULL,NULL,NULL,'2007-04-16',NULL,1185117698,5,NULL,NULL,NULL,0,0,'DomainJoins.pl'),(5,'Alert on Audit Log Cleared',NULL,'Alert','C:\\dad\\jobs\\alerts\\','perl.exe','',1185118320,'','','',NULL,0,'2007-04-16','13:02:00',1185117720,10,0,0,0,0,0,'AuditLogCleared.pl'),(7,'Start Aggregator',NULL,'DAD Internals','C:\\\\dad\\\\jobs\\\\log parser\\\\','perl.exe','',1177026720,'','','',NULL,0,'2007-04-19','16:52:00',0,0,0,0,0,1,1,'Aggregator.pl'),(8,'DAD Update Status',NULL,'DAD Internals','c:\\\\dad\\\\jobs\\\\alerts\\\\','perl.exe','',1185118260,'','','',NULL,0,'2007-04-19','22:31:00',1185117360,15,0,0,0,0,0,'Updates.pl'),(10,'Run Syslog Service',NULL,'DAD Internals','c:\\\\dad\\\\jobs\\\\DADSyslog\\\\dist\\\\','DADSyslog.jar','',1177300140,'','','',NULL,0,'2007-04-20','19:59:00',0,5,0,0,0,1,1,''),(11,'Check logon types',NULL,'Alert','c:\\\\dad\\\\jobs\\\\alerts\\\\','perl.exe','',1185118260,'','','',NULL,0,'2007-04-25','11:51:00',1185117660,10,0,0,0,0,0,'LogonType.pl'),(12,'Administrator Logons',NULL,'Alert','c:\\dad\\jobs\\alerts\\','perl.exe','',1185118089,'','','',NULL,0,'2007-04-25','11:51:00',1185117489,10,0,0,0,0,0,'ShouldntLogon.pl'),(9,'Run Log Carver',NULL,'DAD Internals','c:\\dad\\jobs\\log parser\\','perl.exe','',1185118200,'','','',NULL,0,'2007-04-20','20:00:00',1185117600,10,0,0,0,0,0,'log_carver.pl'),(13,'Forbidden Logons',NULL,'Alert','c:\\dad\\jobs\\alerts\\','perl.exe','',1185118260,'','','',NULL,0,'2007-04-25','11:51:00',1185117660,10,0,0,0,0,0,'NeverLogon.pl'),(14,'Forbidden Logons 2',NULL,'Alert','c:\\dad\\jobs\\alerts','perl.exe','',1185118260,'','','',NULL,0,'2007-04-25','11:51:00',1185117660,10,0,0,0,0,0,'NeverLogon2.pl'),(15,'Touch Old Access Databases',NULL,'Alert','c:/DAD/jobs','perl.exe','',1185118500,'','','',NULL,0,'2007-04-25','14:05:00',1185117600,15,0,0,0,0,0,'dump-renno.pl'),(16,'Find Most Active Servers',NULL,'Stats','C:/dad/jobs/misc','perl.exe','',1185136200,'','','',NULL,0,'2007-07-05','16:30:00',1185114600,0,6,0,0,0,0,'TopTalkers.pl');
+INSERT INTO `dad_adm_job` VALUES (1,'Generate Statistics',NULL,'DAD Internals','C:\\dad\\jobs\\log parser\\','perl.exe','',1186513200,'','','',NULL,0,'2007-04-16','00:00:00',1186512000,20,0,0,0,1,0,'Stats.pl'),(17,'Prune events from database',NULL,'DAD Internals','C:/dad/jobs/log parser/','perl.exe','',1186542000,'','','',NULL,0,'2007-07-16','23:00:00',1186455600,0,0,1,0,0,0,'run_groomer.pl'),(4,'Alert on Domain Joins',NULL,'Alert','C:\\\\dad\\\\jobs\\\\alerts\\\\','perl.exe',NULL,1186513598,NULL,NULL,NULL,NULL,NULL,'2007-04-16',NULL,1186513298,5,NULL,NULL,NULL,0,0,'DomainJoins.pl'),(5,'Alert on Audit Log Cleared',NULL,'Alert','C:\\dad\\jobs\\alerts\\','perl.exe','',1186513920,'','','',NULL,0,'2007-04-16','13:02:00',1186513320,10,0,0,0,0,0,'AuditLogCleared.pl'),(7,'Start Aggregator',NULL,'DAD Internals','C:\\\\dad\\\\jobs\\\\log parser\\\\','perl.exe','',1177026720,'','','',NULL,0,'2007-04-19','16:52:00',0,0,0,0,0,1,1,'Aggregator.pl'),(8,'DAD Update Status',NULL,'DAD Internals','c:\\\\dad\\\\jobs\\\\alerts\\\\','perl.exe','',1186514160,'','','',NULL,0,'2007-04-19','22:31:00',1186513260,15,0,0,0,0,0,'Updates.pl'),(10,'Run Syslog Service',NULL,'DAD Internals','c:\\\\dad\\\\jobs\\\\DADSyslog\\\\dist\\\\','DADSyslog.jar','',1177300140,'','','',NULL,0,'2007-04-20','19:59:00',0,5,0,0,0,1,1,''),(11,'Check logon types',NULL,'Alert','c:\\\\dad\\\\jobs\\\\alerts\\\\','perl.exe','',1186513860,'','','',NULL,0,'2007-04-25','11:51:00',1186513260,10,0,0,0,0,0,'LogonType.pl'),(12,'Administrator Logons',NULL,'Alert','c:\\dad\\jobs\\alerts\\','perl.exe','',1186513689,'','','',NULL,0,'2007-04-25','11:51:00',1186513089,10,0,0,0,0,0,'ShouldntLogon.pl'),(9,'Run Log Carver',NULL,'DAD Internals','c:\\dad\\jobs\\log parser\\','perl.exe','',1186513800,'','','',NULL,0,'2007-04-20','20:00:00',1186513200,10,0,0,0,0,0,'log_carver.pl'),(13,'Forbidden Logons',NULL,'Alert','c:\\dad\\jobs\\alerts\\','perl.exe','',1186513860,'','','',NULL,0,'2007-04-25','11:51:00',1186513260,10,0,0,0,0,0,'NeverLogon.pl'),(14,'Forbidden Logons 2',NULL,'Alert','c:\\dad\\jobs\\alerts','perl.exe','',1186513860,'','','',NULL,0,'2007-04-25','11:51:00',1186513260,10,0,0,0,0,0,'NeverLogon2.pl'),(15,'Touch Old Access Databases',NULL,'Alert','c:/DAD/jobs','perl.exe','',1186513500,'','','',NULL,0,'2007-04-25','14:05:00',1186511700,30,0,0,0,0,0,'dump-renno.pl'),(16,'Find Most Active Servers',NULL,'Stats','C:/dad/jobs/misc','perl.exe','',1186518600,'','','',NULL,0,'2007-07-05','16:30:00',1186497000,0,6,0,0,0,0,'TopTalkers.pl'),(18,'Process jw.org Logs',NULL,'Aggregation','c:/dad/jobs/log parser/','perl.exe','',1186575300,'','','',NULL,0,'2007-08-08','08:15:00',NULL,0,0,1,0,0,0,'cis_parser.pl');
 /*!40000 ALTER TABLE `dad_adm_job` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -184,7 +184,7 @@ UNLOCK TABLES;
 
 DROP TABLE IF EXISTS `dad_sys_event_desc`;
 CREATE TABLE `dad_sys_event_desc` (
-  `id` int(10) unsigned NOT NULL auto_increment,
+  `dad_sys_event_desc_id` int(10) unsigned NOT NULL auto_increment,
   `event_id` int(10) unsigned default NULL,
   `event_log` varchar(100) default NULL,
   `event_source` varchar(100) default NULL,
@@ -192,7 +192,7 @@ CREATE TABLE `dad_sys_event_desc` (
   `message` varchar(3500) default NULL,
   `os_name` varchar(100) default NULL,
   `os_ver` varchar(20) default NULL,
-  PRIMARY KEY  (`id`)
+  PRIMARY KEY  (`dad_sys_event_desc_id`)
 ) ENGINE=MyISAM AUTO_INCREMENT=6730 DEFAULT CHARSET=latin1;
 
 --
@@ -436,7 +436,7 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2007-07-22 15:22:35
+-- Dump completed on 2007-08-07 19:02:34
 --
 -- Dumping data for table `userrole`
 --
