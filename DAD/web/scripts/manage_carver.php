@@ -20,6 +20,7 @@ function manage_carver() {
 
     global $gaLiterals;
     global $Global;
+	$Sample_Output="";
 //PrintGlobal();
     if( checkOptionPermission( $Global['UserID'], $Global['OptionID'] ) == 0 ){
         dispatch( OPTIONID_LOGOUT );
@@ -185,8 +186,8 @@ function manage_carver() {
 		<center><INPUT type=submit name=bt id=bt value='Test'></center>";
 		$strHTML .= "<table><tr><th>Matching Rule Explanation</th></tr><tr><td><pre>";
 // By this point $arrDetails should have more current information than $Global
-		$match_rule = $arrDetails['match_rule'];
-		$carve_rule = $arrDetails['carve_rule'];
+		$match_rule = (isset($arrDetails['match_rule'])?$arrDetails['match_rule'] : "");
+		$carve_rule = (isset($arrDetails['carve_rule'])?$arrDetails['carve_rule'] : "");
 		$match_rule = preg_replace('/[\\\]{2}/', '\\', $match_rule);
 		$carve_rule = preg_replace('/[\\\]{2}/', '\\', $carve_rule);
 		
