@@ -161,8 +161,8 @@ sub _groomer
 			
 		$SQL = "RENAME TABLE dad_sys_events TO dad_tmp, dad_sys_events_pruning TO dad_sys_events, dad_tmp TO dad_sys_events_pruning";
 		$dbh->do($SQL) or die("Could not rename tables for groomer.");
-		
-		foreach $event (@Events_To_Prune)
+		@Events_To_PruneX={};
+		foreach $event (@Events_To_PruneX)
 		{
 			if($event == 0) { next; } # Don't try to process default rule
 			if($Output)
@@ -178,6 +178,7 @@ sub _groomer
 				"Field_6, Field_7, Field_8, Field_9, Field_10, Field_11, Field_12, Field_13, Field_14, Field_15, Field_16, ".
 				"Field_17, Field_18, Field_19, Field_20, Field_21, Field_22, Field_23, Field_24, Field_25, idxID_Code, ".
 				"idxID_Kerb, idxID_NTLM FROM dad_sys_events_pruning WHERE EventID='$event' AND TimeGenerated>".(time() - $Retention_Times{$event});
+			if($Output) { print "\t$SQL\n".time()." - ".$Retention_Times{$event}."\n"; }
 			my $query = $dbh->prepare($SQL);
 			$query->execute() or die("Error pruning!  Could not complete prune for $event.");
 			$query->finish();
@@ -203,6 +204,8 @@ sub _groomer
 			}
 			$SQL .= " AND NOT EventID='$event'";
 		}
+		if($Output){print "Default rule: $SQL\n";}
+exit 1;
 		my $query = $dbh->prepare($SQL);
 		$query->execute() or die("Error pruning!  Could not complete default rule.");
 		$query->finish();
