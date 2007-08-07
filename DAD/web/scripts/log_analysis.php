@@ -197,7 +197,7 @@ function show_query_builder()
 	global $HTTP_POST_VARS;
 
 	$PrimaryTable = isset($Global["primary_table"]) ? $Global["primary_table"] : NULL;
-
+	$strHTML="";
 # Added special case to pop up a window with the field name contents if we're looking at dad_sys_events
 	if($PrimaryTable == "dad_sys_events")
 	{
@@ -213,6 +213,7 @@ END;
 	}
 	# Retrieve the table names to populate the table selectors
 	$aResults = runQueryReturnArray("SHOW TABLES LIKE 'dad%'");
+	$OptionList="";
 	foreach($aResults as $row)
 	{
 		if($PrimaryTable == $row[0]) { $selected = " selected"; } else { $selected = ""; }
@@ -305,12 +306,21 @@ END;
 */
 		for($field_num = 0; $field_num != $num_visible_fields+1; $field_num++)
 		{
+			$FieldOptionList[$field_num]="";
 			foreach($SelectedTables as $Table_Name)
 			{
 				$aResults = SQLListFields($Table_Name);
 				foreach($aResults as $row)
 				{
-					if($visible_fields_selected[$field_num] == "$Table_Name.$row[0]") { $selected = " selected"; } else { $selected = ""; }
+					if(isset($visible_fields_selected[$field_num]) && 
+						$visible_fields_selected[$field_num] == "$Table_Name.$row[0]") 
+					{ 
+						$selected = " selected"; 
+					} 
+					else 
+					{
+						$selected = "";
+					}
 					$FieldOptionList[$field_num] .= "<option value=\"$Table_Name.$row[0]\"$selected>$Table_Name.$row[0]";
 				}
 			}
@@ -359,15 +369,28 @@ END;
 		$Options[5] = "DOES NOT CONTAIN";
 		for($filter_num = 0; $filter_num != $num_filters+1; $filter_num++)
 		{
+			$FilterOptionList[$filter_num]="";
+			$Filter_Type_List[$filter_num]="";
 			$aResults = SQLListFields($PrimaryTable);
 			foreach($aResults as $row)
 			{
-				if($filters_selected[$filter_num] == $row[0]) { $selected = " selected"; } else { $selected = ""; }
+				if(isset($filters_selected[$filter_num]) && 
+					$filters_selected[$filter_num] == $row[0]) 
+				{ 
+					$selected = " selected";
+				} 
+				else 
+				{ 
+					$selected = "";
+				}
 				$FilterOptionList[$filter_num] .= "<option value=\"$row[0]\"$selected>$row[0]";
 			}
 			for($i = 0; $i != 6; $i++)
 			{
-				$selected = ( $filter_types[$filter_num] == $i ? " selected" : ""); 
+				$selected = ( 
+					(isset($filter_types[$filter_num])?
+						($filter_types[$filter_num] == $i ? " selected" : "")
+						: "")); 
 				$Filter_Type_List[$filter_num] .= "<option value=\"$i\"$selected>$Options[$i]";
 			}
 		}
@@ -382,11 +405,12 @@ END;
 		{
 			$enabled = ($i == $num_filters ? "" : " disabled");
 			$enabled2 = (($i == 0) || ($i != $num_filters) ? "disabled" : "");
+			$local_filter_value = (isset($filter_values[$i])?$filter_values[$i]:"");
 			$strHTML .= <<<END
 			<tr>
 				<td><select name="filter_$i">$FilterOptionList[$i]</td>
 				<td><select name="filter_type_$i">$Filter_Type_List[$i]</td>
-				<td><input type="text" name="filter_value_$i" value="$filter_values[$i]" width=15></td>
+				<td><input type="text" name="filter_value_$i" value="$local_filter_value" width=15></td>
 				<td>
 					<input name="Operation" type=submit value="Add Filter" $enabled>
 					<input name="Operation" type="submit" OnClick="PostBack()" value="Remove Filter"$enabled2>
@@ -473,6 +497,7 @@ function show_sql_query()
 	$txtPostbackValue = isset($Global["PostbackValue"]) ? $Global["PostbackValue"] : NULL;
 	$aResults = runQueryReturnArray("SELECT Query_ID,Name,Description,Category,Query,Roles FROM dad_sys_queries ORDER BY Category,Name");
 	$ExistingQueriesOptions = "<option value=''>";
+	$txtRolesWithAccess=""; # Defaults to no roles.
 	foreach($aResults as $row)
 	{
 		$selected = "";

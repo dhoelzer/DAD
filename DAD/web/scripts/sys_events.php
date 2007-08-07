@@ -74,7 +74,7 @@ function FileAuditSearch() {
 //        }
     }
 
-    $Global['path'] = preg_replace('/\\\\\\\\/', '\\', $Global['path']);
+    $Global['path'] = (isset($Global['path'])?preg_replace('/\\\\\\\\/', '\\', $Global['path']):"");
     
     $strHTML = "<b><font size=2>${gaLiterals['Search File Access']}</font></b><br><br>";
     $strHTML.= "<form name='fileauditsearch' id='fileauditsearch' action='$strURL' method='post'>\n
@@ -102,15 +102,20 @@ function FileAuditSearch() {
                   </tr>
                   <tr>
                     <td>${gaLiterals['Files Only']}:</td>
-                    <td><input type='checkbox' name='filesonly'" .($Global['filesonly']&'on' ? "CHECKED":"") ."></td>
+                    <td><input type='checkbox' name='filesonly'" .
+					((isset($Global['filesonly'])?$Global['filesonly']:0)&'on' ? "CHECKED":"") .
+					"></td>
                   </tr>
                   <tr>
                     <td><input type='submit' name='bt' value='Search'></td>
-                    <td name='querytime' id='querytime'>" . (count($arrFiles)>0 ? count($arrFiles) . " returned in $strTime s" : '') . "</td>
+                    <td name='querytime' id='querytime'>" . 
+					((isset($arrFiles)?
+						($count($arrFiles)>0 ? count($arrFiles) . " returned in $strTime s" : ''):'')) .
+					"</td>
                   </tr>
                 </table>";
 
-    if( count( $arrFiles )>0 ){
+    if( isset($arrFiles) && count( $arrFiles )>0 ){
         $strHTML .= "<table border=on style='font-size:75%'>";
         foreach( $arrFiles as $file ){
             $strHTML .= "<tr><td>${file[0]}</td><td>${file['Computer']}</td><td>${file['field_10']}</td><td>${file['field_2']}</td></tr>\n";
