@@ -95,7 +95,6 @@ function show_log_stats()
 	$MoreEvents = $FreeSpace/(($TotalSpace-$FreeSpace) / ($num_events + 1)+1);
 	$PercentFree = round((($FreeSpace/($TotalSpace + 1)) * 100), 2);
 	$PercentUsed = 100 - $PercentFree;
-
 	$strHTML = "Disk Utilization: $PercentFree% Free -- $num_events events available from ".$num_systems[0][0]." systems";
 	$top_talkers = file("../TopTalkers.html");
 	foreach($top_talkers as $line)
