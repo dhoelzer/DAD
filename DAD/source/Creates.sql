@@ -286,7 +286,7 @@ CREATE TABLE `dad_alerts` (
   PRIMARY KEY  (`dad_alert_id`),
   KEY `Acknowledged_idx` (`Acknowledged`),
   KEY `Time_idx` (`Alert_Time`)
-) ENGINE=MyISAM AUTO_INCREMENT=2119 DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM AUTO_INCREMENT=2128 DEFAULT CHARSET=latin1;
 
 --
 -- Table structure for table `dad_cl_classification`
@@ -620,7 +620,7 @@ CREATE TABLE `dad_sys_cis_imported` (
   `System_Name` varchar(45) default NULL,
   `LastLogEntry` bigint(20) unsigned default NULL,
   PRIMARY KEY  (`CIS_Imported_ID`)
-) ENGINE=MyISAM AUTO_INCREMENT=951 DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM AUTO_INCREMENT=1088 DEFAULT CHARSET=latin1;
 
 --
 -- Table structure for table `dad_sys_event_desc`
@@ -669,7 +669,7 @@ CREATE TABLE `dad_sys_event_stats` (
   PRIMARY KEY  (`Stats_ID`),
   KEY `Systems` (`System_Name`),
   KEY `Stats_Type` USING BTREE (`Stat_Type`)
-) ENGINE=MyISAM AUTO_INCREMENT=7187986 DEFAULT CHARSET=latin1 COMMENT='Tracks event log gathering statistics';
+) ENGINE=MyISAM AUTO_INCREMENT=7377725 DEFAULT CHARSET=latin1 COMMENT='Tracks event log gathering statistics';
 
 --
 -- Table structure for table `dad_sys_events`
@@ -725,7 +725,7 @@ CREATE TABLE `dad_sys_events` (
   KEY `idxIDbyKerb` (`idxID_Kerb`(15)),
   KEY `idxIDbyNTLM` (`idxID_NTLM`(10)),
   KEY `idxNTLMCode` (`Field_3`(15))
-) ENGINE=MyISAM AUTO_INCREMENT=21257638 DEFAULT CHARSET=utf8 COMMENT='Normalized Windows Events';
+) ENGINE=MyISAM AUTO_INCREMENT=72279057 DEFAULT CHARSET=utf8 COMMENT='Normalized Windows Events';
 
 --
 -- Table structure for table `dad_sys_events_aging`
@@ -752,62 +752,6 @@ CREATE TABLE `dad_sys_events_groomed` (
   `Number_Groomed` int(10) unsigned NOT NULL,
   PRIMARY KEY  (`Groomed_ID`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1 COMMENT='Groomed Event Stats';
-
---
--- Table structure for table `dad_sys_events_pruning`
---
-
-DROP TABLE IF EXISTS `dad_sys_events_pruning`;
-CREATE TABLE `dad_sys_events_pruning` (
-  `dad_sys_events_id` int(10) unsigned NOT NULL auto_increment,
-  `SystemID` mediumint(8) unsigned NOT NULL default '0',
-  `ServiceID` mediumint(8) unsigned NOT NULL default '0',
-  `TimeWritten` int(10) unsigned NOT NULL default '0',
-  `TimeGenerated` int(10) unsigned NOT NULL default '0',
-  `Source` char(255) NOT NULL default '',
-  `Category` char(255) NOT NULL default '',
-  `SID` char(64) character set latin1 NOT NULL default '',
-  `Computer` char(255) NOT NULL default '',
-  `EventID` mediumint(8) unsigned NOT NULL default '0',
-  `EventType` tinyint(3) unsigned NOT NULL default '0',
-  `Field_0` varchar(760) default NULL,
-  `Field_1` varchar(760) default NULL,
-  `Field_2` varchar(760) default NULL,
-  `Field_3` varchar(760) default NULL,
-  `Field_4` varchar(760) default NULL,
-  `Field_5` varchar(760) default NULL,
-  `Field_6` varchar(760) default NULL,
-  `Field_7` varchar(760) default NULL,
-  `Field_8` varchar(760) default NULL,
-  `Field_9` varchar(760) default NULL,
-  `Field_10` varchar(760) default NULL,
-  `Field_11` varchar(760) default NULL,
-  `Field_12` varchar(760) default NULL,
-  `Field_13` varchar(760) default NULL,
-  `Field_14` varchar(760) default NULL,
-  `Field_15` varchar(760) default NULL,
-  `Field_16` varchar(760) default NULL,
-  `Field_17` varchar(760) default NULL,
-  `Field_18` varchar(760) default NULL,
-  `Field_19` varchar(760) default NULL,
-  `Field_20` varchar(760) default NULL,
-  `Field_21` varchar(760) default NULL,
-  `Field_22` varchar(760) default NULL,
-  `Field_23` varchar(760) default NULL,
-  `Field_24` varchar(760) default NULL,
-  `Field_25` varchar(760) default NULL,
-  `idxID_Code` char(64) default NULL,
-  `idxID_Kerb` char(64) default NULL,
-  `idxID_NTLM` char(64) default NULL,
-  PRIMARY KEY  (`dad_sys_events_id`),
-  KEY `idxEventID` (`EventID`),
-  KEY `idxSID` (`SID`),
-  KEY `idxTimestamp` (`TimeGenerated`),
-  KEY `idxIDbyCode` (`idxID_Code`(10)),
-  KEY `idxIDbyKerb` (`idxID_Kerb`(15)),
-  KEY `idxIDbyNTLM` (`idxID_NTLM`(10)),
-  KEY `idxNTLMCode` (`Field_3`(15))
-) ENGINE=MyISAM AUTO_INCREMENT=76179476 DEFAULT CHARSET=utf8 COMMENT='Normalized Windows Events';
 
 --
 -- Table structure for table `dad_sys_field_descriptions`
@@ -924,7 +868,7 @@ CREATE TABLE `dad_sys_services` (
   `Contact_Information` varchar(80) NOT NULL default '',
   `log_these_id` int(11) default NULL,
   PRIMARY KEY  (`Service_ID`)
-) ENGINE=MyISAM AUTO_INCREMENT=2037 DEFAULT CHARSET=latin1 COMMENT='Tracks services reported on';
+) ENGINE=MyISAM AUTO_INCREMENT=2038 DEFAULT CHARSET=latin1 COMMENT='Tracks services reported on';
 
 --
 -- Table structure for table `dad_sys_systems`
@@ -941,7 +885,52 @@ CREATE TABLE `dad_sys_systems` (
   `IP_Address` varchar(15) NOT NULL default '',
   `Contact_Information` varchar(80) NOT NULL default '',
   PRIMARY KEY  (`System_ID`)
-) ENGINE=MyISAM AUTO_INCREMENT=126 DEFAULT CHARSET=latin1 COMMENT='Master system table';
+) ENGINE=MyISAM AUTO_INCREMENT=127 DEFAULT CHARSET=latin1 COMMENT='Master system table';
+
+--
+-- Table structure for table `event_fields`
+--
+
+DROP TABLE IF EXISTS `event_fields`;
+CREATE TABLE `event_fields` (
+  `Field_ID` bigint(20) unsigned NOT NULL auto_increment,
+  `Events_ID` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to Events table',
+  `Position` int(10) unsigned NOT NULL COMMENT 'Which field am I?',
+  `String_ID` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to unique strings table',
+  PRIMARY KEY  (`Field_ID`),
+  KEY `idxString_ID` (`String_ID`),
+  KEY `idxEvent_ID` (`Events_ID`)
+) ENGINE=MyISAM AUTO_INCREMENT=9600250 DEFAULT CHARSET=latin1 COMMENT='Normalized field values from events';
+
+--
+-- Table structure for table `event_unique_strings`
+--
+
+DROP TABLE IF EXISTS `event_unique_strings`;
+CREATE TABLE `event_unique_strings` (
+  `String_ID` bigint(20) unsigned NOT NULL auto_increment,
+  `String` varchar(768) NOT NULL COMMENT 'Actual unique string',
+  PRIMARY KEY  (`String_ID`),
+  KEY `idxStrings` (`String`)
+) ENGINE=MyISAM AUTO_INCREMENT=346308 DEFAULT CHARSET=latin1 COMMENT='Holds all unique strings used in events';
+
+--
+-- Table structure for table `events`
+--
+
+DROP TABLE IF EXISTS `events`;
+CREATE TABLE `events` (
+  `Events_ID` bigint(20) unsigned NOT NULL auto_increment COMMENT 'Primary index',
+  `Time_Written` int(10) unsigned NOT NULL COMMENT 'Time the event is added to the database',
+  `Time_Generated` int(10) unsigned NOT NULL COMMENT 'Time the generating system created the event',
+  `System_ID` int(10) unsigned NOT NULL COMMENT 'Foreign Key to dad_sys_systems',
+  `Service_ID` int(10) unsigned NOT NULL COMMENT 'Foreign Key to dad_sys_services',
+  PRIMARY KEY  (`Events_ID`),
+  KEY `idxTime_Written` (`Time_Written`),
+  KEY `idxTime_Generated` (`Time_Generated`),
+  KEY `idxSystem_ID` (`System_ID`),
+  KEY `idxService_ID` (`Service_ID`)
+) ENGINE=MyISAM AUTO_INCREMENT=592031 DEFAULT CHARSET=latin1 COMMENT='Normalized events';
 
 --
 -- Table structure for table `language`
@@ -1174,4 +1163,4 @@ CREATE TABLE `userstat` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2007-08-07 19:40:25
+-- Dump completed on 2007-08-08 20:05:30
