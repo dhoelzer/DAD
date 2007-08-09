@@ -222,6 +222,7 @@ sub _event_thread
 		$StringToInsert .= " $_" foreach(@values);
 		@insert_strings = split(/ /,$StringToInsert);
 		my $string_position=0;
+		my $InsertString="";
 		foreach(@insert_strings)
 		{
 			$result_ref = &_SQL_Query("SELECT String_ID FROM event_unique_strings WHERE String = '$_'");
@@ -235,12 +236,19 @@ sub _event_thread
 			}
 			$row = shift(@$result_ref);
 			$String_ID= @$row[0];
-			&_SQL_Insert("INSERT INTO event_fields (Events_ID, Position, String_ID) VALUES ".
-				"($Event_ID, $string_position, $String_ID)");
+			if($InsertString eq "")
+			{
+				$InsertString = "($Event_ID, $string_position, $String_ID)";
+			}
+			else
+			{
+				$InsertString .= ",($Event_ID, $string_position, $String_ID)";
+			}
 			$string_position++;
 			undef $result_ref;
 		}
-
+		&_SQL_Insert("INSERT INTO event_fields (Events_ID, Position, String_ID) VALUES ".$InsertString);
+		undef $InsertString;
 	}
 
 	sub addslashes
