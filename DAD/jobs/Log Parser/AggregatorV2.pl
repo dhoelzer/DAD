@@ -179,121 +179,7 @@ sub _event_thread
 	##################################################
 	sub record_event
 	{
-		my $time, $system, $service, @values, @row, $row, $result_ref, $rows_returned, $idxID_Code, $idxID_Kerb, $idxID_NTLM;
-		($system, $service, $timewritten, $timegenerated, $source, $category, $sid, $computer, $eventid, $eventtype, @values) = @_;
-		
-		# See if the service is known.  If not, get it from the database or create a new ID:
-		if(! $Service_IDs{"$service"})
-		{
-			$result_ref = &_SQL_Query("SELECT Service_ID, Service_Name FROM dad_sys_services WHERE Service_Name = '$service'");
-			$rows_returned = scalar @$result_ref;
-			if($rows_returned < 1)
-			{
-				&_SQL_Insert("INSERT INTO dad_sys_services (Service_Name) VALUES ('$service')");
-				$result_ref = &_SQL_Query("SELECT Service_ID, Service_Name FROM dad_sys_services WHERE Service_Name = '$service'");
-				$rows_returned = scalar @$result_ref;
-				if($rows_returned < 1) { die ("Insert must have failed, I couldn't select the new data (service)!\n"); }
-			}
-			$row = shift(@$result_ref);
-			$Service_IDs{"$service"} = @$row[0];
-			undef $result_ref;
-		}
-	
-		# See if the system is known.  If not, get it from the database or create a new ID:
-		if(! $System_IDs{"$system"})
-		{
-			$result_ref = &_SQL_Query("SELECT System_ID, System_Name FROM dad_sys_systems WHERE System_Name = '$system'");
-			$rows_returned = scalar @$result_ref;
-			if($rows_returned < 1)
-			{
-				&_SQL_Insert("INSERT INTO dad_sys_systems (System_Name) VALUES ('$system')");
-				$result_ref = &_SQL_Query("SELECT System_ID, System_Name FROM dad_sys_systems WHERE System_Name = '$system'");
-				$rows_returned = scalar @$result_ref;
-				if($rows_returned < 1) { die ("Insert must have failed, I couldn't select the new data (system)!\n"); }
-			}
-			$row = shift(@$result_ref);
-			$System_IDs{"$system"} = @$row[0];
-			undef $result_ref;
-		}
-		my $Event_ID=&_SQL_Insert("INSERT INTO events (Time_Written, Time_Generated, System_ID, Service_ID) VALUES ".
-			"(UNIX_TIMESTAMP(NOW()), $timegenerated, ". 
-			$System_IDs{"$system"} .", ". $Service_IDs{"$service"} .")");
-		$StringToInsert="$source $category $sid $computer $eventid $eventtype";
-		$StringToInsert .= " $_" foreach(@values);
-		@insert_strings = split(/ /,$StringToInsert);
-		my $string_position=0;
-		my $InsertString="";
-		foreach(@insert_strings)
-		{
-			$result_ref = &_SQL_Query("SELECT String_ID FROM event_unique_strings WHERE String = '$_'");
-			$rows_returned = scalar @$result_ref;
-			if($rows_returned < 1)
-			{
-				&_SQL_Insert("INSERT INTO event_unique_strings (String) VALUES ('$_')");
-				$result_ref = &_SQL_Query("SELECT String_ID FROM event_unique_strings WHERE String = '$_'");
-				$rows_returned = scalar @$result_ref;
-				if($rows_returned < 1) { die ("Insert must have failed, I couldn't select the new string!\n"); }
-			}
-			$row = shift(@$result_ref);
-			$String_ID= @$row[0];
-			if($InsertString eq "")
-			{
-				$InsertString = "($Event_ID, $string_position, $String_ID)";
-			}
-			else
-			{
-				$InsertString .= ",($Event_ID, $string_position, $String_ID)";
-			}
-			$string_position++;
-			undef $result_ref;
-		}
-		&_SQL_Insert("INSERT INTO event_fields (Events_ID, Position, String_ID) VALUES ".$InsertString);
-		undef $InsertString;
-	}
-
-	sub addslashes
-	{
-		my $String = shift;
-		$String =~ s/(["'\%\\])/\\\1/g;
-		$String =~ s/[^[:print:]]//g;
-		return $String;
-	}
-	##################################################
-	#
-	# SQL_Query - Does the legwork for all SQL queries including basic error checking
-	# 	Takes a SQL string as an argument
-	#
-	##################################################
-	sub _SQL_Query
-	{
-		my $SQL = $_[0];
-		
-		my $query = $dbh->prepare($SQL);
-		$query -> execute();
-		my $ref_to_array_of_row_refs = $query->fetchall_arrayref(); 
-		$query->finish();
-		return $ref_to_array_of_row_refs;
-	}
-	
-	##################################################
-	#
-	# SQL_Insert - Does the legwork for all SQL inserts including basic error checking
-	# 	Takes a SQL string as an argument
-	#
-	##################################################
-	sub _SQL_Insert
-	{
-		my $SQL = $_[0];
-#		my $query = $dbh->prepare($SQL);
-		if($DEBUG){return; print"$SQL\n";return;}
-#		$query -> execute();
-#		$query->finish();
-
-		my $result;
-		$dbh->do($SQL) or die;
-		$result = $dbh->{ q{mysql_insertid}};
-		return $result;
-
+		$SQL_Queue->enqueue(join('~~~~~',@_));
 	}
 
 	#########################
@@ -312,7 +198,7 @@ sub _event_thread
 	
 		%Filtered_Events;
 	# Fetch the list of services to filter
-		$results_ref = &_SQL_Query("SELECT Event_ID, Description FROM dad_sys_filtered_events");
+		$results_ref = &SQL_Query("SELECT Event_ID, Description FROM dad_sys_filtered_events");
 		while($row = shift(@$results_ref))
 		{
 			@this_row = @$row;
@@ -328,41 +214,33 @@ sub _event_thread
 	#********************************************************/
 	sub mark_log_processed
 	{
-	my $logfile = shift;
-	my $system = shift;
-	my $lastentry = shift;
-	my $total = shift;
-	my $collected = shift;
-	my $next_launch = ((int(6000/($collected + 1))) * $Priority{$system});
-	if($Priority{$system} < 3) 
-	{ 
-		$next_launch = ($next_launch > 120 ? 120 : $next_launch); 
-	}
-	$next_launch += mktime(localtime());
-	if($lastentry > -1) 
-	{
+		my $logfile = shift;
+		my $system = shift;
+		my $lastentry = shift;
+		my $total = shift;
+		my $collected = shift;
+		my $next_launch = ((int(6000/($collected + 1))) * $Priority{$system});
+		if($Priority{$system} < 3) 
+		{ 
+			$next_launch = ($next_launch > 120 ? 120 : $next_launch); 
+		}
+		$next_launch += mktime(localtime());
+		if($lastentry > -1) 
+		{
 #		&_SQL_Insert("UPDATE dad_sys_cis_imported SET LastLogEntry='$lastentry' WHERE Log_Name='$logfile' AND System_Name='$system'");}
 #		&_SQL_Insert("UPDATE dad_sys_event_import_from SET Next_Run='$next_launch' WHERE System_Name='$system'");
 #		&_SQL_Insert("INSERT INTO dad_sys_event_stats (System_Name,Service_Name, Stat_Type, Total_In_Log, Number_Inserted,Stat_Time) ".
 #			"VALUES ('$system', '$logfile', 1, $total, $collected, UNIX_TIMESTAMP(NOW()))");
+		}
 	}
-
-	sub ConvertSidToSidString{
-
-	    my $sid  = shift;
-		my $Revision, $SubAuthorityCount, $IdentifierAuthority0, $IdentifierAuthorities12, @SubAuthorities;
-		my $IdentifierAuthority;
-        $sid or return;
-        ($Revision, $SubAuthorityCount, $IdentifierAuthority0, $IdentifierAuthorities12, @SubAuthorities) = unpack("CCnNV*", $sid);
-        $IdentifierAuthority = $IdentifierAuthority0 ? sprintf('0x%04hX%08X', $IdentifierAuthority0, $IdentifierAuthorities12) : $IdentifierAuthorities12;
-        $SubAuthorityCount == scalar(@SubAuthorities) or return;
-        return "S-$Revision-$IdentifierAuthority-".join("-", @SubAuthorities);
-    }
-}
 #
 # End local functions
 ############################################################
-$Win32::EventLog::GetMessageText = 0;	# If this is off, there should be no ntdll.dll calls!
+
+	$Win32::EventLog::GetMessageText = 0;	# If this is off, there should be no ntdll.dll calls!
+	# We've discovered that NTDLL.dll is -not- thread safe.  If you turn this back on, expect your aggregator
+	# to die horribly.
+	
 	my $TotalEvents=0;
 	my $who_am_i = shift;
 	my $log;
@@ -450,7 +328,7 @@ $Win32::EventLog::GetMessageText = 0;	# If this is off, there should be no ntdll
 			}
 			$new = $recs;
 			$total = $base + $recs;
-			$results_ref = &_SQL_Query("SELECT LastLogEntry FROM dad_sys_cis_imported WHERE Log_Name='$log' AND System_Name='$system'");
+			$results_ref = &SQL_Query("SELECT LastLogEntry FROM dad_sys_cis_imported WHERE Log_Name='$log' AND System_Name='$system'");
 			$row = shift(@$results_ref);
 			if($row)
 			{
@@ -473,7 +351,7 @@ $Win32::EventLog::GetMessageText = 0;	# If this is off, there should be no ntdll
 			else
 			{
 				print "\t\t* New Log\n";
-				&_SQL_Insert("INSERT INTO dad_sys_cis_imported (Log_Name, System_Name, LastLogEntry) VALUES ('$log', '$system', '0')");
+				&SQL_Insert("INSERT INTO dad_sys_cis_imported (Log_Name, System_Name, LastLogEntry) VALUES ('$log', '$system', '0')");
 			}
 # Set up for reading.  Position at one record before the actual base.
 # And then read in all of the events.
@@ -589,8 +467,7 @@ sub _insert_thread
 	my $incoming;
 	my $LocalQueue="";
 	my $query;
-	my $empty_loops = 0;
-# Open the database connection.  We turn auto commit off so that we can do block inserts.
+
 	$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
 	$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
 		or die ("Insert thread $who_am_i could not connect to database server.\n");
@@ -604,70 +481,80 @@ sub _insert_thread
 		$empty_loops++;
 		if($incoming)
 		{
-			$empty_loops=0;
 			$_TotalQueries++;
-			if($Queue_Size==0) { $LocalQueue = "$incoming"; }
-			else {$LocalQueue .= ",$incoming";}
 			$Inserted++;
-			$Queue_Size++;
-		}
-		if(($SQL_Queue->pending() == 0) && ($Queue_Size > 0)) { $Force=1; }
-		if(($Queue_Size > $MAX_QUEUE_SIZE) || ($Force == 1) || ($empty_loops > $MAX_IDLE_LOOPS && $Queue_Size > 0)) 
-		{
-			my $retries = 0;
-			$empty_loops=0;
-			$SQL = "INSERT INTO dad_sys_events (SystemID, ServiceID, TimeWritten, TimeGenerated, Source, Category, SID, ".
-			"Computer, EventID, EventType, Field_0, Field_1, Field_2, Field_3, Field_4, Field_5, Field_6, Field_7, Field_8, Field_9, ".
-			"Field_10, Field_11, Field_12, Field_13, Field_14, Field_15, Field_16, Field_17, ".
-			"Field_18, Field_19, Field_20, Field_21, Field_22, Field_23, Field_24, Field_25, ".
-			"idxID_Code, idxID_Kerb, idxID_NTLM) ".
-			"VALUES ".$LocalQueue;
-			$continue = 0;
-			if($LocalQueue eq "") { $continue = 1; }
-			while(! $continue)
-			{
-				$retry++;
-				{
-					$query=$dbh->prepare($SQL);
-					$query->execute(); 
-					if($DBI::err)
-					{
-						my $err, $errstr;
-						$err = $DBI::err;
-						$errstr = $DBI::errstr;
-						print "DBI Error:  $err $errstr\n";
-						print "Retrying in three seconds.\n";
-						$dbh->disconnect();
-						sleep(3);
-						$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD");
-						if($retry>3)  #Error 3 times occured, keep going
-						{
-							$continue=1; 
-							open(FILE, ">>AggregateErrors.log");
-							flock(FILE,2);
-							print FILE "DBI Error $err - $errstr\n";
-							flock(FILE,8);
-							close(FILE);
-							&_spew_sql($SQL);
-						}
-					}
-					else 
-					{ 
-						$continue = 1; 
-					}
-				}
-#				else
-#				{
-#					&_spew_sql($SQL);
-#					$continue = 1;
-#				}
-				{
-					$query->finish();
-				}
-			}
+			my $time, $system, $service, @values, @row, $row, $result_ref, $rows_returned;
+			($system, $service, $timewritten, $timegenerated, $source, $category, $sid, $computer, $eventid, $eventtype, @values) = split(/~~~~~/,$incoming);
 			
-			$Queue_Size = 0;
-			$LocalQueue="";
+			# See if the service is known.  If not, get it from the database or create a new ID:
+			if(! $Service_IDs{"$service"})
+			{
+				$result_ref = &SQL_Query("SELECT Service_ID, Service_Name FROM dad_sys_services WHERE Service_Name = '$service'");
+				$rows_returned = scalar @$result_ref;
+				if($rows_returned < 1)
+				{
+					&SQL_Insert("INSERT INTO dad_sys_services (Service_Name) VALUES ('$service')");
+					$result_ref = &SQL_Query("SELECT Service_ID, Service_Name FROM dad_sys_services WHERE Service_Name = '$service'");
+					$rows_returned = scalar @$result_ref;
+					if($rows_returned < 1) { die ("Insert must have failed, I couldn't select the new data (service)!\n"); }
+				}
+				$row = shift(@$result_ref);
+				$Service_IDs{"$service"} = @$row[0];
+				undef $result_ref;
+			}
+		
+			# See if the system is known.  If not, get it from the database or create a new ID:
+			if(! $System_IDs{"$system"})
+			{
+				$result_ref = &SQL_Query("SELECT System_ID, System_Name FROM dad_sys_systems WHERE System_Name = '$system'");
+				$rows_returned = scalar @$result_ref;
+				if($rows_returned < 1)
+				{
+					&SQL_Insert("INSERT INTO dad_sys_systems (System_Name) VALUES ('$system')");
+					$result_ref = &SQL_Query("SELECT System_ID, System_Name FROM dad_sys_systems WHERE System_Name = '$system'");
+					$rows_returned = scalar @$result_ref;
+					if($rows_returned < 1) { die ("Insert must have failed, I couldn't select the new data (system)!\n"); }
+				}
+				$row = shift(@$result_ref);
+				$System_IDs{"$system"} = @$row[0];
+				undef $result_ref;
+			}
+			my $Event_ID=&SQL_Insert("INSERT INTO events (Time_Written, Time_Generated, System_ID, Service_ID) VALUES ".
+				"(UNIX_TIMESTAMP(NOW()), $timegenerated, ". 
+				$System_IDs{"$system"} .", ". $Service_IDs{"$service"} .")");
+			$StringToInsert="$source $category $sid $computer $eventid $eventtype";
+			$StringToInsert .= " $_" foreach(@values);
+			@insert_strings = split(/ /,$StringToInsert);
+			my $string_position=0;
+			my $InsertString="";
+			foreach(@insert_strings)
+			{
+				$result_ref = &SQL_Query("SELECT String_ID FROM event_unique_strings WHERE String = '$_'");
+				$rows_returned = scalar @$result_ref;
+				if($rows_returned < 1)
+				{
+					&SQL_Insert("INSERT INTO event_unique_strings (String) VALUES ('$_')");
+					$result_ref = &SQL_Query("SELECT String_ID FROM event_unique_strings WHERE String = '$_'");
+					$rows_returned = scalar @$result_ref;
+					if($rows_returned < 1) { die ("Insert must have failed, I couldn't select the new string!\n"); }
+				}
+				$row = shift(@$result_ref);
+				$String_ID= @$row[0];
+				if($InsertString eq "")
+				{
+					$InsertString = "($Event_ID, $string_position, $String_ID)";
+				}
+				else
+				{
+					$InsertString .= ",($Event_ID, $string_position, $String_ID)";
+				}
+				$string_position++;
+				undef $result_ref;
+			}
+			&SQL_Insert("INSERT INTO event_fields (Events_ID, Position, String_ID) VALUES ".$InsertString);
+			undef $InsertString;
+		
+
 		}
 		$Status{"sql $who_am_i"} = "Queue size: $Queue_Size  Inserted: $Inserted";
 		if(($Queue_Size==0) && ($SQL_Queue->pending() == 0) && ($Time_To_Die==1))
@@ -872,3 +759,23 @@ sub _pending_inserts_thread
 	print "Processed $num_queries pending SQL inserts.\n";
 	$Pending_Running = 0;
 }
+
+sub ConvertSidToSidString{
+
+	my $sid  = shift;
+	my $Revision, $SubAuthorityCount, $IdentifierAuthority0, $IdentifierAuthorities12, @SubAuthorities;
+	my $IdentifierAuthority;
+	$sid or return;
+	($Revision, $SubAuthorityCount, $IdentifierAuthority0, $IdentifierAuthorities12, @SubAuthorities) = unpack("CCnNV*", $sid);
+	$IdentifierAuthority = $IdentifierAuthority0 ? sprintf('0x%04hX%08X', $IdentifierAuthority0, $IdentifierAuthorities12) : $IdentifierAuthorities12;
+	$SubAuthorityCount == scalar(@SubAuthorities) or return;
+	return "S-$Revision-$IdentifierAuthority-".join("-", @SubAuthorities);
+}
+sub addslashes
+{
+	my $String = shift;
+	$String =~ s/(["'\%\\])/\\\1/g;
+	$String =~ s/[^[:print:]]//g;
+	return $String;
+}
+
