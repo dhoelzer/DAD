@@ -473,6 +473,7 @@ sub _insert_thread
 		or die ("Insert thread $who_am_i could not connect to database server.\n");
 	$Status{"sql $who_am_i"} = "Waiting";
 	$Queue_Size=0;
+	my $InsertString="";
 	if($DEBUG) { print "Exiting - Debug mode.  No inserts.\n"; return; }
 	while(1)
 	{
@@ -526,7 +527,6 @@ sub _insert_thread
 			$StringToInsert .= " $_" foreach(@values);
 			@insert_strings = split(/ /,$StringToInsert);
 			my $string_position=0;
-			my $InsertString="";
 			foreach(@insert_strings)
 			{
 				$result_ref = &SQL_Query("SELECT String_ID FROM event_unique_strings WHERE String = '$_'");
@@ -549,12 +549,15 @@ sub _insert_thread
 					$InsertString .= ",($Event_ID, $string_position, $String_ID)";
 				}
 				$string_position++;
+				$Queue_Size++;
 				undef $result_ref;
 			}
+		}
+		if(($Queue_Size > 5000) || (($SQL_Queue->pending() == 0) && ($Queue_Size>0)))
+		{
 			&SQL_Insert("INSERT INTO event_fields (Events_ID, Position, String_ID) VALUES ".$InsertString);
 			undef $InsertString;
-		
-
+			$Queue_Size = 0;
 		}
 		$Status{"sql $who_am_i"} = "Queue size: $Queue_Size  Inserted: $Inserted";
 		if(($Queue_Size==0) && ($SQL_Queue->pending() == 0) && ($Time_To_Die==1))
