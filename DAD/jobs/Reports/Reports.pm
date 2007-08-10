@@ -86,24 +86,25 @@ sub GetEventsByStrings
 			
 			if($StringIDFilter eq "")
 			{
-				$table_ref = 'c';
+				$table_ref = 'b';
 				$StringIDFilter = "\n$table_ref.String_ID=$this_row[0]";
 				$JOINS="\nJOIN event_fields as $table_ref";
-				$MATCHES="\nAND b.Events_ID=$table_ref.Events_ID";
+				$MATCHES="\nAND a.Events_ID=$table_ref.Events_ID";
 			}
 			else
 			{
 				$table_ref++;
 				$StringIDFilter .= "\nAND $table_ref.String_ID=$this_row[0]";
 				$JOINS.="\nJOIN event_fields as $table_ref";
-				$MATCHES.="\nAND b.Events_ID=$table_ref.Events_ID";
+				$MATCHES.="\nAND a.Events_ID=$table_ref.Events_ID";
 			}
 		}
 		$SQL=q{
 			SELECT DISTINCT a.Events_ID,a.Time_Written,a.Time_Generated
-			FROM events as a, event_fields as b
+			FROM events as a
 			}. $JOINS .q{
-			WHERE }. $StringIDFilter .q{ AND a.Events_ID=b.Events_ID }. $MATCHES .q{
+			WHERE }. $StringIDFilter .q{ 
+			AND a.Events_ID=b.Events_ID }. $MATCHES .q{
 			LIMIT 100
 			};#print "$SQL\n"; exit 1;
 		my $results_ref2 = &SQL_Query($SQL);
