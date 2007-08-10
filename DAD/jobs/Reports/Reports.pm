@@ -1,4 +1,4 @@
-#   Event Reporter
+#   Report and Alert Library
 #    Copyright (C) 2006, David Hoelzer/Cyber-Defense.org
 #
 #    This program is free software; you can redistribute it and/or modify
@@ -14,28 +14,28 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program; if not, write to the Free Software
 #    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+#################################################
+#
+# Functions:
+#
+# SendEmail( $eSub, $eBody, $eTo, $eFrom, $eCC, $eBCC )
+#	Allows you to send an email to an arbitrary desination and with an arbitrary source.
+#	You must properly configure the mail server value for this to function.
+#
+#  string GetEventsByStrings($TimeFrameInSeconds, $string1[, $string2[, ...]])
+#	Allows you to quickly query the events database for all of the events in the given
+#	time range (in seconds) that contain all of the specified words.  You must specify
+#	at least one search term.  There may be future changes to this function to limit
+#	the number of values returned.
 
-#!c:/perl/bin/perl.exe
 
 # Modules for DB and Event logs.  POSIX is required for Unix time stamps
 use DBI;
 use POSIX;
-
-$SendEmail = 0;
-
-$RECIPIENTS = "dshoelze";# Who should get this report
-$days = 1;									# Days of Data to examine
-
 #Read in and evaluate the configuration values
 open(FILE,"../dbconfig.ph") or die "Could not find configuration file!\n";
 foreach (<FILE>) { eval(); }
 close(FILE);
-
-$LastChecked = $ARGV[0];
-
-# Grab all matching events that have occured since last alert job ran.
-
-print &GetEventsByStrings(86400,'dshoelze');
 
 sub GetEventsByStrings
 {
@@ -51,8 +51,7 @@ sub GetEventsByStrings
 	$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
 	$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
 		or return "Could not connect to DB server to run alerting.\n";
-	$Report = "Search terms report for $SearchTerms in the past $days day".
-		($days==1?'':'s')."\n\n";
+	$Report = "";
 	
 	foreach(@_)
 	{
@@ -62,7 +61,7 @@ sub GetEventsByStrings
 		}
 		else
 		{
-			$SearchTerms = ", '$_'";
+			$SearchTerms .= ", '$_'";
 		}
 	}
 	# Events to find:	
@@ -70,7 +69,7 @@ sub GetEventsByStrings
 	SELECT * 
 	FROM event_unique_strings 
 	WHERE String IN ( }. $SearchTerms .q{ )
-	};	
+	};#print "$SQL\n";exit;
 	$results_ref = &SQL_Query($SQL);
 	$num_results = @$results_ref;
 	if($num_results < $num_terms)
@@ -105,6 +104,7 @@ sub GetEventsByStrings
 			FROM events as a, event_fields as b
 			}. $JOINS .q{
 			WHERE }. $StringIDFilter .q{ AND a.Events_ID=b.Events_ID }. $MATCHES .q{
+			LIMIT 100
 			};#print "$SQL\n"; exit 1;
 		my $results_ref2 = &SQL_Query($SQL);
 		$num_results = @$results_ref2;
@@ -149,19 +149,23 @@ sub GetEventsByStrings
 			$num_results = @$event_detail_ref;
 			if($num_results)
 			{
-				my $edrs=shift(@$event_detail_ref);
-				my @edra=@$edrs;
-				$Report .= "$edra[1] $edra[2] $edra[3]\n";
+				my $edrs;
+				while($edrs=shift(@$event_detail_ref))
+				{
+					my @edra=@$edrs;
+					$Report .= "$edra[1] $edra[2] $edra[3]\n";
+				}
 			}
 		}
-		return "$Report\n";
 	}
+	return "$Report\n";
+
 }
 
 ####################
-## $self->send_email( $eSub, $eBody, $eTo, $eFrom, $eCC, $eBCC );
+## send_email( $eSub, $eBody, $eTo, $eFrom, $eCC, $eBCC );
 ##
-    sub send_email{
+    sub SendEmail{
         use Net::SMTP;
         my( $eSub, $eBody, $eTo, $eFrom, $eCC, $eBCC ) = @_;
 
