@@ -553,7 +553,7 @@ sub _insert_thread
 				undef $result_ref;
 			}
 		}
-		if(($Queue_Size > 5000) || (($SQL_Queue->pending() == 0) && ($Queue_Size>0)))
+		if(($Queue_Size > 10000) || (($SQL_Queue->pending() == 0) && ($Queue_Size>0)))
 		{
 			&SQL_Insert("INSERT INTO event_fields (Events_ID, Position, String_ID) VALUES ".$InsertString);
 			undef $InsertString;
