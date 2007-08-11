@@ -33,7 +33,7 @@
 use DBI;
 use POSIX;
 #Read in and evaluate the configuration values
-open(FILE,"../dbconfig.ph") or die "Could not find configuration file!\n";
+open(FILE,"../dbconfig.ph") or return "Could not find configuration file!\n";
 foreach (<FILE>) { eval(); }
 close(FILE);
 
@@ -74,8 +74,7 @@ sub GetEventsByStrings
 	$num_results = @$results_ref;
 	if($num_results < $num_terms)
 	{
-		print "Could only find $num_results out of $num_terms terms.  Search cancelled.\n";
-		exit 1;
+		return "Could only find $num_results out of $num_terms terms.  Search cancelled.\n";
 	}
 	$StringIDFilter = "";
 	if($num_results)

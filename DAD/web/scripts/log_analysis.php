@@ -84,6 +84,15 @@ function show_log_stats()
     $strSQL   = 'SELECT COUNT(*) FROM dad_sys_events';;
     $events = runQueryReturnArray( $strSQL );
 	$num_events = $events[0][0];
+    $strSQL   = 'SELECT COUNT(*) FROM events';;
+    $events2 = runQueryReturnArray( $strSQL );
+	$num_events2 = $events2[0][0];
+    $strSQL   = 'SELECT COUNT(*) FROM event_fields';;
+    $fields = runQueryReturnArray( $strSQL );
+	$num_fields = $fields[0][0];
+    $strSQL   = 'SELECT COUNT(*) FROM event_unique_strings';;
+    $strings = runQueryReturnArray( $strSQL );
+	$num_strings = $strings[0][0];
     $strSQL   = 'SELECT COUNT(*) FROM dad_sys_event_import_from';
     $num_systems = runQueryReturnArray( $strSQL );
     $strSQL   = 'SELECT System_Name FROM dad_sys_event_import_from';
@@ -95,7 +104,8 @@ function show_log_stats()
 	$MoreEvents = $FreeSpace/(($TotalSpace-$FreeSpace) / ($num_events + 1)+1);
 	$PercentFree = round((($FreeSpace/($TotalSpace + 1)) * 100), 2);
 	$PercentUsed = 100 - $PercentFree;
-	$strHTML = "Disk Utilization: $PercentFree% Free -- $num_events events available from ".$num_systems[0][0]." systems";
+	$strHTML = "Disk Utilization: $PercentFree% Free -- $num_events events available from ".$num_systems[0][0]." systems<br>Tracking $num_events2 events with $num_fields with $num_strings unique strings.  ";
+	$strHTML .= "Average event length is ". ($num_fields/($num_events2>0?$num_events2:1))." fields.";
 	$top_talkers = file("../TopTalkers.html");
 	foreach($top_talkers as $line)
 	{
