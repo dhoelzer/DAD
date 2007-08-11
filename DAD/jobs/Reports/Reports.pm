@@ -103,7 +103,7 @@ sub GetEventsByStrings
 			FROM events as a
 			}. $JOINS .q{
 			WHERE }. $StringIDFilter .q{ 
-			AND a.Events_ID=b.Events_ID }. $MATCHES .q{
+			}. $MATCHES .q{
 			LIMIT 100
 			};#print "$SQL\n"; exit 1;
 		my $results_ref2 = &SQL_Query($SQL);
