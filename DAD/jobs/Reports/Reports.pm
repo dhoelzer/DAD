@@ -52,7 +52,7 @@ sub GetEventsByStrings
 	$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
 		or return "Could not connect to DB server to run alerting.\n";
 	$Report = "";
-	
+	print "Searching for events that occurred since $TimeFrame with the terms:\n";
 	foreach(@_)
 	{
 		if($SearchTerms eq "")
@@ -63,13 +63,14 @@ sub GetEventsByStrings
 		{
 			$SearchTerms .= ", '$_'";
 		}
+		print "\t$_\n";
 	}
 	# Events to find:	
 	$SQL = q{
 	SELECT * 
 	FROM event_unique_strings 
 	WHERE String IN ( }. $SearchTerms .q{ )
-	};#print "$SQL\n";exit;
+	};#print "$SQL\n";
 	$results_ref = &SQL_Query($SQL);
 	$num_results = @$results_ref;
 	if($num_results < $num_terms)
@@ -105,7 +106,7 @@ sub GetEventsByStrings
 			WHERE }. $StringIDFilter .q{ 
 			}. $MATCHES .q{
 			LIMIT 100
-			};#print "$SQL\n"; exit 1;
+			};#print "$SQL\n";
 		my $results_ref2 = &SQL_Query($SQL);
 		$num_results = @$results_ref2;
 		if($num_results)
