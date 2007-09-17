@@ -10,6 +10,6 @@ $MYSQL_USER="root";
 $MYSQL_PASSWORD="All4Fun";
 $Total_Run_Time = 3600;		# Maximum time we will run. -- Currently deprecated
 $EVENT_HANDLER_THREADS = 8;	#Number of threads processing event logs
-$INSERT_THREADS=3;			#Number of threads inserting events
+$INSERT_THREADS=1;			#Number of threads inserting events - DO NOT SET ABOVE 1 for now! More than one insert thread and we can't guarantee unique strings in the strings table.
 $MAX_QUEUE_SIZE=500;
 $MAX_IDLE_LOOPS=10;

@@ -227,12 +227,13 @@ sub _event_thread
 		$next_launch += mktime(localtime());
 		if($lastentry > -1) 
 		{
-#		&_SQL_Insert("UPDATE dad_sys_cis_imported SET LastLogEntry='$lastentry' WHERE Log_Name='$logfile' AND System_Name='$system'");}
-#		&_SQL_Insert("UPDATE dad_sys_event_import_from SET Next_Run='$next_launch' WHERE System_Name='$system'");
-#		&_SQL_Insert("INSERT INTO dad_sys_event_stats (System_Name,Service_Name, Stat_Type, Total_In_Log, Number_Inserted,Stat_Time) ".
-#			"VALUES ('$system', '$logfile', 1, $total, $collected, UNIX_TIMESTAMP(NOW()))");
+		&SQL_Insert("UPDATE dad_sys_cis_imported SET LastLogEntry='$lastentry' WHERE Log_Name='$logfile' AND System_Name='$system'");
+		&SQL_Insert("UPDATE dad_sys_event_import_from SET Next_Run='$next_launch' WHERE System_Name='$system'");
+		&SQL_Insert("INSERT INTO dad_sys_event_stats (System_Name,Service_Name, Stat_Type, Total_In_Log, Number_Inserted,Stat_Time) ".
+			"VALUES ('$system', '$logfile', 1, $total, $collected, UNIX_TIMESTAMP(NOW()))");
 		}
 	}
+
 #
 # End local functions
 ############################################################
@@ -670,7 +671,9 @@ sub SQL_Insert
 	my $query = $dbh->prepare($SQL);
 	if($DEBUG){return; print"$SQL\n";return;}
 	$query -> execute();
+	my $in_id = $dbh->{ q{mysql_insertid}};
 	$query->finish();
+	return $in_id;
 }
 
 ##################################################
