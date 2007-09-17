@@ -1,8 +1,8 @@
--- MySQL dump 10.11
+-- MySQL dump 10.13
 --
 -- Host: 127.0.0.1    Database: dad
 -- ------------------------------------------------------
--- Server version	5.0.37-community-nt
+-- Server version	5.1.21-beta-community
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -20,15 +20,18 @@
 --
 
 DROP TABLE IF EXISTS `dad_adm_action`;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
 CREATE TABLE `dad_adm_action` (
-  `id_dad_adm_action` mediumint(8) unsigned NOT NULL auto_increment,
-  `abbreviation` char(1) default NULL,
-  `name` varchar(50) NOT NULL default '',
+  `id_dad_adm_action` mediumint(8) unsigned NOT NULL AUTO_INCREMENT,
+  `abbreviation` char(1) DEFAULT NULL,
+  `name` varchar(50) NOT NULL DEFAULT '',
   `description` text,
-  `activeyesno` tinyint(1) unsigned NOT NULL default '0',
-  `timeactive` datetime NOT NULL default '0000-00-00 00:00:00',
-  PRIMARY KEY  (`id_dad_adm_action`)
+  `activeyesno` tinyint(1) unsigned NOT NULL DEFAULT '0',
+  `timeactive` datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
+  PRIMARY KEY (`id_dad_adm_action`)
 ) ENGINE=MyISAM AUTO_INCREMENT=11 DEFAULT CHARSET=latin1;
+SET character_set_client = @saved_cs_client;
 
 --
 -- Dumping data for table `dad_adm_action`
@@ -45,17 +48,20 @@ UNLOCK TABLES;
 --
 
 DROP TABLE IF EXISTS `dad_adm_carvers`;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
 CREATE TABLE `dad_adm_carvers` (
-  `dad_adm_carvers_id` int(10) unsigned NOT NULL auto_increment,
-  `match_rule` varchar(768) NOT NULL default '',
-  `carve_rule` varchar(768) NOT NULL default '',
-  `creator_id` int(10) unsigned NOT NULL default '0',
-  `last_edited_by` int(10) unsigned NOT NULL default '0',
-  `creation_date` int(10) unsigned NOT NULL default '0',
-  `last_edit_date` int(10) unsigned NOT NULL default '0',
-  `rule_name` varchar(45) NOT NULL default '',
-  PRIMARY KEY  (`dad_adm_carvers_id`)
+  `dad_adm_carvers_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `match_rule` varchar(768) NOT NULL DEFAULT '',
+  `carve_rule` varchar(768) NOT NULL DEFAULT '',
+  `creator_id` int(10) unsigned NOT NULL DEFAULT '0',
+  `last_edited_by` int(10) unsigned NOT NULL DEFAULT '0',
+  `creation_date` int(10) unsigned NOT NULL DEFAULT '0',
+  `last_edit_date` int(10) unsigned NOT NULL DEFAULT '0',
+  `rule_name` varchar(45) NOT NULL DEFAULT '',
+  PRIMARY KEY (`dad_adm_carvers_id`)
 ) ENGINE=MyISAM AUTO_INCREMENT=3 DEFAULT CHARSET=latin1 COMMENT='Contains matching and carving rules for log extraction';
+SET character_set_client = @saved_cs_client;
 
 --
 -- Dumping data for table `dad_adm_carvers`
@@ -72,14 +78,17 @@ UNLOCK TABLES;
 --
 
 DROP TABLE IF EXISTS `dad_adm_computer_group`;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
 CREATE TABLE `dad_adm_computer_group` (
-  `id_dad_adm_computer_group` int(10) unsigned NOT NULL auto_increment,
-  `group_name` varchar(45) default NULL,
-  `description` varchar(100) default NULL,
-  `calleractive` varchar(45) default NULL,
-  `timeactive` int(11) default NULL,
-  PRIMARY KEY  (`id_dad_adm_computer_group`)
+  `id_dad_adm_computer_group` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `group_name` varchar(45) DEFAULT NULL,
+  `description` varchar(100) DEFAULT NULL,
+  `calleractive` varchar(45) DEFAULT NULL,
+  `timeactive` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id_dad_adm_computer_group`)
 ) ENGINE=MyISAM AUTO_INCREMENT=25 DEFAULT CHARSET=latin1;
+SET character_set_client = @saved_cs_client;
 
 --
 -- Dumping data for table `dad_adm_computer_group`
@@ -96,32 +105,35 @@ UNLOCK TABLES;
 --
 
 DROP TABLE IF EXISTS `dad_adm_job`;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
 CREATE TABLE `dad_adm_job` (
-  `id_dad_adm_job` int(10) unsigned NOT NULL auto_increment,
-  `descrip` varchar(256) default NULL,
-  `length` int(10) unsigned default NULL,
-  `job_type` varchar(15) default NULL,
-  `path` varchar(2048) default NULL,
-  `package_name` varchar(100) default NULL,
-  `calleractive` varchar(45) default NULL,
-  `next_start` int(10) unsigned default NULL,
-  `user_name` varchar(45) default NULL,
-  `distinguishedname` varchar(256) default NULL,
-  `pword` varchar(100) default NULL,
-  `times_to_run` int(10) unsigned default NULL,
-  `times_ran` smallint(6) unsigned default NULL,
-  `start_date` date default NULL,
-  `start_time` time default NULL,
-  `last_ran` int(10) unsigned default NULL,
-  `min` int(10) unsigned default NULL,
-  `hour` int(10) unsigned default NULL,
-  `day` int(10) unsigned default NULL,
-  `month` int(10) unsigned default NULL,
-  `is_running` tinyint(1) NOT NULL default '0',
-  `persistent` tinyint(1) NOT NULL default '0',
+  `id_dad_adm_job` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `descrip` varchar(256) DEFAULT NULL,
+  `length` int(10) unsigned DEFAULT NULL,
+  `job_type` varchar(15) DEFAULT NULL,
+  `path` varchar(2048) DEFAULT NULL,
+  `package_name` varchar(100) DEFAULT NULL,
+  `calleractive` varchar(45) DEFAULT NULL,
+  `next_start` int(10) unsigned DEFAULT NULL,
+  `user_name` varchar(45) DEFAULT NULL,
+  `distinguishedname` varchar(256) DEFAULT NULL,
+  `pword` varchar(100) DEFAULT NULL,
+  `times_to_run` int(10) unsigned DEFAULT NULL,
+  `times_ran` smallint(6) unsigned DEFAULT NULL,
+  `start_date` date DEFAULT NULL,
+  `start_time` time DEFAULT NULL,
+  `last_ran` int(10) unsigned DEFAULT NULL,
+  `min` int(10) unsigned DEFAULT NULL,
+  `hour` int(10) unsigned DEFAULT NULL,
+  `day` int(10) unsigned DEFAULT NULL,
+  `month` int(10) unsigned DEFAULT NULL,
+  `is_running` tinyint(1) NOT NULL DEFAULT '0',
+  `persistent` tinyint(1) NOT NULL DEFAULT '0',
   `argument_1` varchar(45) NOT NULL,
-  PRIMARY KEY  (`id_dad_adm_job`)
+  PRIMARY KEY (`id_dad_adm_job`)
 ) ENGINE=MyISAM AUTO_INCREMENT=19 DEFAULT CHARSET=latin1;
+SET character_set_client = @saved_cs_client;
 
 --
 -- Dumping data for table `dad_adm_job`
@@ -129,7 +141,7 @@ CREATE TABLE `dad_adm_job` (
 
 LOCK TABLES `dad_adm_job` WRITE;
 /*!40000 ALTER TABLE `dad_adm_job` DISABLE KEYS */;
-INSERT INTO `dad_adm_job` VALUES (1,'Generate Statistics',NULL,'DAD Internals','C:\\dad\\jobs\\log parser\\','perl.exe','',1186604400,'','','',NULL,0,'2007-04-16','00:00:00',1186603200,20,0,0,0,0,0,'Stats.pl'),(17,'Prune events from database',NULL,'DAD Internals','C:/dad/jobs/log parser/','perl.exe','',1187319600,'','','',NULL,0,'2007-08-16','23:00:00',1186455600,0,0,1,0,0,0,'run_groomer.pl'),(4,'Alert on Domain Joins',NULL,'Alert','C:\\\\dad\\\\jobs\\\\alerts\\\\','perl.exe',NULL,1186603598,NULL,NULL,NULL,NULL,NULL,'2007-04-16',NULL,1186603298,5,NULL,NULL,NULL,0,0,'DomainJoins.pl'),(5,'Alert on Audit Log Cleared',NULL,'Alert','C:\\dad\\jobs\\alerts\\','perl.exe','',1186603920,'','','',NULL,0,'2007-04-16','13:02:00',1186603320,10,0,0,0,0,0,'AuditLogCleared.pl'),(7,'Start Aggregator',NULL,'DAD Internals','C:\\\\dad\\\\jobs\\\\log parser\\\\','perl.exe','',1177026720,'','','',NULL,0,'2007-04-19','16:52:00',0,0,0,0,0,1,1,'Aggregator.pl'),(8,'DAD Update Status',NULL,'DAD Internals','c:\\\\dad\\\\jobs\\\\alerts\\\\','perl.exe','',1186604160,'','','',NULL,0,'2007-04-19','22:31:00',1186603260,15,0,0,0,0,0,'Updates.pl'),(10,'Run Syslog Service',NULL,'DAD Internals','c:\\\\dad\\\\jobs\\\\DADSyslog\\\\dist\\\\','DADSyslog.jar','',1177300140,'','','',NULL,0,'2007-04-20','19:59:00',0,5,0,0,0,1,1,''),(11,'Check logon types',NULL,'Alert','c:\\\\dad\\\\jobs\\\\alerts\\\\','perl.exe','',1186603860,'','','',NULL,0,'2007-04-25','11:51:00',1186603260,10,0,0,0,0,0,'LogonType.pl'),(12,'Administrator Logons',NULL,'Alert','c:\\dad\\jobs\\alerts\\','perl.exe','',1186603689,'','','',NULL,0,'2007-04-25','11:51:00',1186603089,10,0,0,0,0,0,'ShouldntLogon.pl'),(9,'Run Log Carver',NULL,'DAD Internals','c:\\dad\\jobs\\log parser\\','perl.exe','',1186603800,'','','',NULL,0,'2007-04-20','20:00:00',1186603200,10,0,0,0,0,0,'log_carver.pl'),(13,'Forbidden Logons',NULL,'Alert','c:\\dad\\jobs\\alerts\\','perl.exe','',1186603860,'','','',NULL,0,'2007-04-25','11:51:00',1186603260,10,0,0,0,0,0,'NeverLogon.pl'),(14,'Forbidden Logons 2',NULL,'Alert','c:\\dad\\jobs\\alerts','perl.exe','',1186603860,'','','',NULL,0,'2007-04-25','11:51:00',1186603260,10,0,0,0,0,0,'NeverLogon2.pl'),(15,'Touch Old Access Databases',NULL,'Alert','c:/DAD/jobs','perl.exe','',1186603500,'','','',NULL,0,'2007-04-25','14:05:00',1186601700,30,0,0,0,1,0,'dump-renno.pl'),(16,'Find Most Active Servers',NULL,'Stats','C:/dad/jobs/misc','perl.exe','',1186605000,'','','',NULL,0,'2007-07-05','16:30:00',1186583400,0,6,0,0,0,0,'TopTalkers.pl'),(18,'Process jw.org Logs',NULL,'Aggregation','c:/dad/jobs/log parser/','perl.exe','',1186661700,'','','',NULL,0,'2007-08-08','08:15:00',1186575300,0,0,1,0,0,0,'cis_parser.pl');
+INSERT INTO `dad_adm_job` VALUES (1,'Generate Statistics',NULL,'DAD Internals','C:\\dad\\jobs\\log parser\\','perl.exe','',1189826400,'','','',NULL,0,'2007-04-16','00:00:00',1189825200,20,0,0,0,0,0,'Stats.pl'),(17,'Prune events from database',NULL,'DAD Internals','C:/dad/jobs/log parser/','perl.exe','',1189911600,'','','',NULL,0,'2007-08-16','23:00:00',1189825200,0,0,1,0,0,0,'run_groomer.pl'),(4,'Alert on Domain Joins',NULL,'Alert','C:\\\\dad\\\\jobs\\\\alerts\\\\','perl.exe',NULL,1189825898,NULL,NULL,NULL,NULL,NULL,'2007-04-16',NULL,1189825598,5,NULL,NULL,NULL,0,0,'DomainJoins.pl'),(5,'Alert on Audit Log Cleared',NULL,'Alert','C:\\dad\\jobs\\alerts\\','perl.exe','',1189825920,'','','',NULL,0,'2007-04-16','13:02:00',1189825320,10,0,0,0,0,0,'AuditLogCleared.pl'),(7,'Start Aggregator',NULL,'DAD Internals','C:\\\\dad\\\\jobs\\\\log parser\\\\','perl.exe','',1177026720,'','','',NULL,0,'2007-04-19','16:52:00',0,0,0,0,0,1,1,'Aggregator.pl'),(8,'DAD Update Status',NULL,'DAD Internals','c:\\\\dad\\\\jobs\\\\alerts\\\\','perl.exe','',1189826160,'','','',NULL,0,'2007-04-19','22:31:00',1189825260,15,0,0,0,0,0,'Updates.pl'),(10,'Run Syslog Service',NULL,'DAD Internals','c:\\\\dad\\\\jobs\\\\DADSyslog\\\\dist\\\\','DADSyslog.jar','',1177300140,'','','',NULL,0,'2007-04-20','19:59:00',0,5,0,0,0,1,1,''),(11,'Check logon types',NULL,'Alert','c:\\\\dad\\\\jobs\\\\alerts\\\\','perl.exe','',1189825860,'','','',NULL,0,'2007-04-25','11:51:00',1189825260,10,0,0,0,0,0,'LogonType.pl'),(12,'Administrator Logons',NULL,'Alert','c:\\dad\\jobs\\alerts\\','perl.exe','',1189826289,'','','',NULL,0,'2007-04-25','11:51:00',1189825689,10,0,0,0,0,0,'ShouldntLogon.pl'),(9,'Run Log Carver',NULL,'DAD Internals','c:\\dad\\jobs\\log parser\\','perl.exe','',1189825800,'','','',NULL,0,'2007-04-20','20:00:00',1189825200,10,0,0,0,0,0,'log_carver.pl'),(13,'Forbidden Logons',NULL,'Alert','c:\\dad\\jobs\\alerts\\','perl.exe','',1189825860,'','','',NULL,0,'2007-04-25','11:51:00',1189825260,10,0,0,0,0,0,'NeverLogon.pl'),(14,'Forbidden Logons 2',NULL,'Alert','c:\\dad\\jobs\\alerts','perl.exe','',1189825860,'','','',NULL,0,'2007-04-25','11:51:00',1189825260,10,0,0,0,0,0,'NeverLogon2.pl'),(15,'Touch Old Access Databases',NULL,'Alert','c:/DAD/jobs','perl.exe','',1189827300,'','','',NULL,0,'2007-04-25','14:05:00',1189825500,30,0,0,0,0,0,'dump-renno.pl'),(16,'Find Most Active Servers',NULL,'Stats','C:/dad/jobs/misc','perl.exe','',1189845000,'','','',NULL,0,'2007-07-05','16:30:00',1189823400,0,6,0,0,0,0,'TopTalkers.pl'),(18,'Process jw.org Logs',NULL,'Aggregation','c:/dad/jobs/log parser/','perl.exe','',1189858500,'','','',NULL,0,'2007-08-08','08:15:00',1189772100,0,0,1,0,0,0,'cis_parser.pl');
 /*!40000 ALTER TABLE `dad_adm_job` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -138,12 +150,15 @@ UNLOCK TABLES;
 --
 
 DROP TABLE IF EXISTS `dad_event_log_types`;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
 CREATE TABLE `dad_event_log_types` (
-  `Event_Log_Type_ID` int(10) unsigned NOT NULL auto_increment,
+  `Event_Log_Type_ID` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `Log_Type` varchar(45) NOT NULL,
   `Log_Type_Value` int(10) unsigned NOT NULL,
-  PRIMARY KEY  (`Event_Log_Type_ID`)
+  PRIMARY KEY (`Event_Log_Type_ID`)
 ) ENGINE=MyISAM AUTO_INCREMENT=8 DEFAULT CHARSET=utf8 COMMENT='Used to map event log types to binary values';
+SET character_set_client = @saved_cs_client;
 
 --
 -- Dumping data for table `dad_event_log_types`
@@ -160,13 +175,16 @@ UNLOCK TABLES;
 --
 
 DROP TABLE IF EXISTS `dad_sys_events_aging`;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
 CREATE TABLE `dad_sys_events_aging` (
-  `Aging_ID` int(10) unsigned NOT NULL auto_increment,
+  `Aging_ID` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `Event_ID` int(10) unsigned NOT NULL,
   `Explanation` varchar(255) NOT NULL,
   `Retention_Time` int(10) unsigned NOT NULL,
-  PRIMARY KEY  (`Aging_ID`)
+  PRIMARY KEY (`Aging_ID`)
 ) ENGINE=MyISAM AUTO_INCREMENT=14 DEFAULT CHARSET=latin1 COMMENT='Aging schedule for various Windows events';
+SET character_set_client = @saved_cs_client;
 
 --
 -- Dumping data for table `dad_sys_events_aging`
@@ -183,17 +201,20 @@ UNLOCK TABLES;
 --
 
 DROP TABLE IF EXISTS `dad_sys_event_desc`;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
 CREATE TABLE `dad_sys_event_desc` (
-  `dad_sys_event_desc_id` int(10) unsigned NOT NULL auto_increment,
-  `event_id` int(10) unsigned default NULL,
-  `event_log` varchar(100) default NULL,
-  `event_source` varchar(100) default NULL,
-  `event_type` varchar(100) default NULL,
-  `message` varchar(3500) default NULL,
-  `os_name` varchar(100) default NULL,
-  `os_ver` varchar(20) default NULL,
-  PRIMARY KEY  (`dad_sys_event_desc_id`)
+  `dad_sys_event_desc_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `event_id` int(10) unsigned DEFAULT NULL,
+  `event_log` varchar(100) DEFAULT NULL,
+  `event_source` varchar(100) DEFAULT NULL,
+  `event_type` varchar(100) DEFAULT NULL,
+  `message` varchar(3500) DEFAULT NULL,
+  `os_name` varchar(100) DEFAULT NULL,
+  `os_ver` varchar(20) DEFAULT NULL,
+  PRIMARY KEY (`dad_sys_event_desc_id`)
 ) ENGINE=MyISAM AUTO_INCREMENT=6730 DEFAULT CHARSET=latin1;
+SET character_set_client = @saved_cs_client;
 
 --
 -- Dumping data for table `dad_sys_event_desc`
@@ -210,12 +231,15 @@ UNLOCK TABLES;
 --
 
 DROP TABLE IF EXISTS `dad_sys_filtered_events`;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
 CREATE TABLE `dad_sys_filtered_events` (
-  `Filtered_ID` int(10) unsigned NOT NULL auto_increment,
+  `Filtered_ID` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `Event_ID` int(10) unsigned NOT NULL,
   `Description` varchar(45) NOT NULL,
-  PRIMARY KEY  (`Filtered_ID`)
+  PRIMARY KEY (`Filtered_ID`)
 ) ENGINE=MyISAM AUTO_INCREMENT=12 DEFAULT CHARSET=latin1 COMMENT='Event IDs that are filtered from incoming logs';
+SET character_set_client = @saved_cs_client;
 
 --
 -- Dumping data for table `dad_sys_filtered_events`
@@ -232,13 +256,16 @@ UNLOCK TABLES;
 --
 
 DROP TABLE IF EXISTS `dad_sys_linked_queries`;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
 CREATE TABLE `dad_sys_linked_queries` (
-  `Query_ID` int(10) unsigned NOT NULL auto_increment,
+  `Query_ID` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `SQL` varchar(768) NOT NULL,
   `Role_ID` int(10) unsigned NOT NULL COMMENT 'Eventually to be used to limit who can query what...  Maybe this should be handled somewhere else?  Here too...',
   `Query_Desc` varchar(255) NOT NULL,
-  PRIMARY KEY  (`Query_ID`)
+  PRIMARY KEY (`Query_ID`)
 ) ENGINE=MyISAM AUTO_INCREMENT=2 DEFAULT CHARSET=latin1 COMMENT='These queries are linked to by other queries, never called d';
+SET character_set_client = @saved_cs_client;
 
 --
 -- Dumping data for table `dad_sys_linked_queries`
@@ -255,15 +282,19 @@ UNLOCK TABLES;
 --
 
 DROP TABLE IF EXISTS `dad_sys_queries`;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
 CREATE TABLE `dad_sys_queries` (
-  `Query_ID` int(10) unsigned NOT NULL auto_increment,
+  `Query_ID` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `Query` varchar(1024) NOT NULL,
   `Description` varchar(1024) NOT NULL,
   `Name` varchar(45) NOT NULL,
   `Category` varchar(45) NOT NULL,
-  `Roles` varchar(256) NOT NULL default '',
-  PRIMARY KEY  (`Query_ID`)
+  `Roles` varchar(256) NOT NULL DEFAULT '',
+  `Timeframe` int(10) unsigned NOT NULL DEFAULT '86400',
+  PRIMARY KEY (`Query_ID`)
 ) ENGINE=MyISAM AUTO_INCREMENT=65 DEFAULT CHARSET=latin1 COMMENT='Used for stored queries';
+SET character_set_client = @saved_cs_client;
 
 --
 -- Dumping data for table `dad_sys_queries`
@@ -271,7 +302,7 @@ CREATE TABLE `dad_sys_queries` (
 
 LOCK TABLES `dad_sys_queries` WRITE;
 /*!40000 ALTER TABLE `dad_sys_queries` DISABLE KEYS */;
-INSERT INTO `dad_sys_queries` VALUES (2,'SELECT Service_ID,Service_Name FROM dad_sys_services ORDER BY Service_Name','Produces a list of all services currently understood by the log aggregator.','Show Services','DAD','1,2'),(3,'SELECT FROM_UNIXTIME(dad_sys_events.TimeGenerated) as Time, dad_sys_events.Computer,dad_sys_events.Field_0 as \'Username Attempted\',Field_1 as \'Domain\' FROM dad_sys_events WHERE dad_sys_events.idxID_Code=\'529 2\'  ORDER BY TimeGenerated LIMIT 100','Produces a list of all login failures (Event 529) from all Windows computers.','Failed Interactive','General Windows','1,2'),(5,'SELECT FROM_UNIXTIME(dad_sys_events.TimeGenerated) as Time, dad_sys_events.Computer,dad_sys_events.Field_0 as \"Username Attempted\", dad_sys_events.EventID FROM dad.dad_sys_events WHERE dad_sys_events.TimeGenerated>(UNIX_TIMESTAMP(NOW())-86400) AND dad_sys_events.idxID_Code=\'529 7\'  ORDER BY dad_sys_events.TimeGenerated','Reports all failed attempts to unlock a workstation that have occured in the past 24 hours.','Failed unlock 24','General Windows','1,2'),(6,'SELECT FROM_UNIXTIME(dad_sys_events.TimeGenerated) as Time, dad_sys_events.Computer,dad_sys_events.Field_0 as \"Username Attempted\", Field_1 as \'Domain\' FROM dad.dad_sys_events WHERE dad_sys_events.TimeGenerated>(UNIX_TIMESTAMP(NOW())-86400) AND idxID_Code=\'529 2\'  ORDER BY dad_sys_events.TimeGenerated','Reports all failed interactive login attempts that have occured in the past 24 hours.','Failed Interactive 24','General Windows','1,2'),(33,'SELECT FROM_UNIXTIME(TimeGenerated) as Time, Field_0 as \'User ID\',Computer,Field_5 as \'IP Address\'  FROM dad_sys_events  WHERE  idxID_Kerb=\'675 0x25\' ORDER BY TimeGenerated','Reports all authentication attempts where the clock skew on the client was too high.  Usually followed by a success since the correct time is returned with the error','Time Skew Too Great','Kerberos','1,2'),(34,'SELECT FROM_UNIXTIME(TimeGenerated) as Time, Field_0 as \'User ID\',Computer,Field_5 as \'IP Address\'  FROM dad_sys_events  WHERE  idxID_Kerb=\'675 0x19\' ORDER BY TimeGenerated','Reports all authentication attempts that are refused because pre-authentication is required.  This also throws the same error internally as a bad password','Pre-Auth required/Bad Password','Kerberos','1,2'),(32,'SELECT FROM_UNIXTIME(TimeGenerated) as Time, Field_0 as \'User ID\',Computer,Field_5 as \'IP Address\'  FROM dad_sys_events  WHERE  idxID_Kerb=\'675 0xE\' ORDER BY TimeGenerated','Reports all instances where the KDC refused to authenticate because the encryption type presented was not supported','Encryption Not Supported','Kerberos','1,2'),(12,'SELECT FROM_UNIXTIME(TimeGenerated) as Time, Computer, Field_1 as \'Username Attempted\' FROM dad.dad_sys_events WHERE Field_3=\'3221225578\'  ORDER BY TimeGenerated','Reports all failed NTLM authentications where a bad password was attempted.','Bad Password','NTLM','1,2'),(13,'SELECT FROM_UNIXTIME(TimeGenerated) as Time, Computer as \'Reported By\', Field_2 as \'From System\', Field_1 as \'Username Attempted\' FROM dad_sys_events WHERE idxID_NTLM=\'681 3221225572\' ORDER BY TimeGenerated','WARNING: This is easily a 15 minute query! Reports all NTLM authentication failures where a bad username was attempted.','Failed Username','NTLM','1,2'),(14,'SELECT FROM_UNIXTIME(TimeGenerated) as Timestamp, Computer,  Field_1 as \'User Name\' FROM dad_sys_events  WHERE idxID_NTLM=\'680 3221226036\' OR idxID_NTLM=\'681 3221226036\' ORDER BY TimeGenerated','Reports all NTLM authentication attempts where a locked out account was attempting to authenticate.','Locked Out','NTLM','1,2'),(15,'SELECT FROM_UNIXTIME(TimeGenerated) as Timestamp, Computer,  Field_1 as \'User Name\', EventID FROM dad_sys_events  WHERE idxID_NTLM=\'681 3221225586\' OR idxID_NTLM=\'680 3221225586\' ORDER BY TimeGenerated','Reports all NTLM authentication attempts where the account being used has been disabled.','Disabled','NTLM','1,2'),(16,'SELECT FROM_UNIXTIME(TimeGenerated) as Timestamp, Computer as \'Authenticating Server\', Field_1 as \'User Name\', Field_2 as \'Originating Workstation\' FROM dad_sys_events  WHERE idxID_NTLM=\'680 3221225583\' OR idxID_NTLM=\'681 3221225583\'','Reports all failed NTLM authentications where the account being used may have been legal but the attempt was in violation of login hours restrictions.','Out of Hours','NTLM','1,2'),(17,'SELECT FROM_UNIXTIME(TimeGenerated) as Timestamp, Computer,  Field_1, Field_0, EventID FROM dad_sys_events  WHERE  idxID_NTLM=\'680 3221225584\' OR idxID_NTLM=\'681 3221225584\' ORDER BY TimeGenerated','Reports all NTLM authentication failures where the account in use is restricted from logging into the workstation used.','Workstation Restriction','NTLM','1,2'),(18,'SELECT FROM_UNIXTIME(TimeGenerated) as Timestamp, Computer,  Field_1 as \'User Name\', EventID FROM dad_sys_events  WHERE  idxID_NTLM=\'680 3221225875\' OR idxID_NTLM=\'681 3221225875\' ORDER BY TimeGenerated','Reports all NTLM authentication failures where the account being used has expired.','Expired','NTLM','1,2'),(19,'SELECT FROM_UNIXTIME(TimeGenerated) as Timestamp, Computer, Field_1 as \'User Name\', EventID FROM dad_sys_events  WHERE idxID_NTLM=\'680 3221225585\' OR idxID_NTLM=\'681 3221225585\' ORDER BY TimeGenerated','Reports all NTLM authentication failures where the password for the account being used has expired.','Password Expired','NTLM','1,2'),(20,'SELECT FROM_UNIXTIME(TimeGenerated) as Timestamp, Computer,  Field_1 as \'User Name\', EventID FROM dad_sys_events  WHERE idxID_NTLM=\'680 3221226020\' OR idxID_NTLM=\'681 3221226020\' ORDER BY TimeGenerated','Reports all NTLM authentication events where the next logon will require a password change.','Password Change','NTLM','1,2'),(21,'SELECT FROM_UNIXTIME(TimeGenerated) as Timestamp, Field_0 as \'User ID\', Computer,Field_5 as \'IP Address\'  FROM dad_sys_events  WHERE  idxID_Kerb=\'675 0x18\' AND TimeGenerated>(UNIX_TIMESTAMP(NOW())-604800) ORDER BY TimeGenerated','Reports all Kerberos authentication attempts where a bad password was attempted that have occured in the past 7 days','Bad Password 7 Days','Kerberos','1,2'),(22,'SELECT FROM_UNIXTIME(TimeGenerated) as Timestamp, Field_0 as \'User ID\', Computer, Field_5 as \'IP Address\'  FROM dad_sys_events  WHERE  idxID_Kerb=\'675 0x12\' ORDER BY TimeGenerated','Reports all Kerberos authentication events where the account in question is either disabled, expired or locked out.','Account Disabled/Unavailable','Kerberos','1,2'),(23,'SELECT FROM_UNIXTIME(TimeGenerated) as Timestamp, Field_0 as \'User ID\', Computer, Field_5 as \'IP Address\'  FROM dad_sys_events  WHERE idxID_Kerb=\'675 0xC\' ORDER BY TimeGenerated','Reports all Kerberos authentication attempts where the account in question is either attempting to violate login time restrictions or has workstation restrictions applied.','Workstation Restriction','Kerberos','1,2'),(24,'SELECT FROM_UNIXTIME(TimeGenerated) as Timestamp, Field_0 as \'User ID\', Computer, Field_5 as \'IP Address\'  FROM dad_sys_events  WHERE  idxID_Kerb=\'675 0x17\' ORDER BY TimeGenerated','Reports all Kerberos authentication events where the password for the account used has expired.','Expired Password','Kerberos','1,2'),(25,'SELECT FROM_UNIXTIME(TimeGenerated) as Timestamp, Field_0 as \'User ID\', Computer, Field_5 as \'IP Address\'  FROM dad_sys_events  WHERE  idxID_Kerb=\'675 0x6\' ORDER BY TimeGenerated','Reports all Kerberos authentication attempts where a bad username was supplied.','Bad Username','Kerberos','1,2'),(26,'SELECT FROM_UNIXTIME(MIN(TimeGenerated)) as Timestamp, Field_10 as \'User ID\', Field_7 as \'Server\',  Field_2 as \'Filename\' FROM dad_sys_events  WHERE EventID=\'560\' AND (Field_25=\'mpg\' OR Field_25=\'mp3\' OR Field_25=\'avi\' OR Field_25=\'wmv\') GROUP BY Field_2 ORDER BY TimeGenerated','Reports the first instance of all AVI, MP3, MPG and WMV files that turn up in 560 events.','Interesting Files','General Windows','1,2'),(27,'SELECT FROM_UNIXTIME(TimeGenerated) as Timestamp, Field_0 as \'User ID\', Computer, Field_5 as \'IP Address\'  FROM dad_sys_events  WHERE  idxID_Kerb=\'675 0x18\' AND TimeGenerated>(UNIX_TIMESTAMP(NOW())-86400) ORDER BY TimeGenerated','Reports all Kerberos authentication events where a bad password was attempted that have occured in the past 24 hours.','Bad Password 24','Kerberos','1,2'),(28,'SELECT FROM_UNIXTIME(MIN(TimeGenerated)) as Timestamp, Field_10 as \'User ID\', Field_7 as \'Server\', Field_2 as \'Filename\' FROM dad_sys_events WHERE EventID=\'560\' AND (Field_25=\'mpg\' OR Field_25=\'mp3\' OR Field_25=\'avi\' OR Field_25=\'wmv\') AND TimeGenerated>(UNIX_TIMESTAMP(NOW())-86400) GROUP BY Field_2 ORDER BY TimeGenerated','Reports the first instance of all AVI, MP3, MPG and WMV files that turn up in 560 events over the past 24 hours.','Interesting Files 24','General Windows','1,2'),(29,'SELECT FROM_UNIXTIME(TimeGenerated) as Timestamp, Computer, EventID FROM dad_sys_events  WHERE (idxID_NTLM=\'680 3221225572\' OR idxID_NTLM=\'681 3221225572\') AND TimeGenerated>(UNIX_TIMESTAMP(NOW())-86400) ORDER BY TimeGenerated','Reports all NTLM authentication failures from the past 24 hours where a bad username was attempted.','Failed Username 24','NTLM','1,2'),(30,'SELECT Priority,System_Name as \'System Name\' FROM dad_sys_event_import_from ORDER BY System_Name','Reports all of the systems from which Windows Event Logs are being actively polled.','Windows Event Log Polling','DAD','1,2'),(31,'SELECT FROM_UNIXTIME(TimeGenerated) as Timestamp, Computer, Field_1 as \'Username Attempted\' FROM dad.dad_sys_events WHERE (idxID_NTLM=\'680 3221225578\' OR idxID_NTLM=\'681 3221225578\')  AND TimeGenerated>(UNIX_TIMESTAMP(NOW())-86400) ORDER BY TimeGenerated','Reports all failed NTLM authentications where a bad password was used in the past 24 hours','Bad Password 24','NTLM','1,2'),(35,'SELECT count(distinct Field_0) as \'Number of Accounts\',Field_5 as \'IP Address\' FROM dad_sys_events WHERE idxID_Kerb=\'675 0x18\' AND TimeGenerated>(UNIX_TIMESTAMP(NOW())-86400) group by field_5 having count( distinct field_0) > 2 ORDER BY Field_5','Identifies all IP addresses where more than two accounts have failed to log on in the past 24 hours','Multiple Login Failures by IP Address','Kerberos','1,2'),(36,'SELECT FROM_UNIXTIME(TimeGenerated) as \'Time\', Computer as \'Server\', Field_1 as \'Domain\', Field_0 as \'User\', if(EventID=\'528\',\'Logon\',\'Logoff\') as \'Action\', Field_2 as \'Logon ID\' FROM dad_sys_events  WHERE idxID_NTLM=\'540 2\' OR idxID_NTLM=\'538 2\' OR idxID_NTLM=\'529 2\' OR idxID_NTLM=\'528 2\' OR idxID_NTLM=\'539 2\' ORDER BY Field_3,TimeGenerated','Identifies and correlates all recorded logon and logoff entries by Logon ID','Correlated Logon/Logoff','General Windows','1,2'),(37,'SELECT FROM_UNIXTIME(TimeGenerated) as \'Time\', Computer as \'Server\', Field_1 as \'Domain\', Field_0 as \'User\', if(EventID=\'528\',\'Logon\',\'Logoff\') as \'Action\', Field_2 as \'Logon ID\' FROM dad_sys_events  WHERE (idxID_NTLM=\'540 2\' OR idxID_NTLM=\'538 2\' OR idxID_NTLM=\'529 2\' OR idxID_NTLM=\'528 2\' OR idxID_NTLM=\'539 2\') AND TimeGenerated>(UNIX_TIMESTAMP(NOW())-86400) ORDER BY Field_2,TimeGenerated','Identifies and correlates all recorded logon and logoff entries by Logon ID that have occured in the past 24 hours','Correlated Logon/Logoff 24','General Windows','1,2'),(38,'SELECT FROM_UNIXTIME(dad_sys_events.TimeGenerated) as Time, dad_sys_events.Computer,dad_sys_events.Field_0 as \"Username Attempted\", dad_sys_events.EventID FROM dad.dad_sys_events WHERE dad_sys_events.idxID_Code=\'529 7\'  ORDER BY dad_sys_events.TimeGenerated','Reports all recorded faliures to unlock workstations or servers','Failed Unlock','General Windows','1,2'),(39,'SELECT FROM_UNIXTIME(MIN(TimeGenerated)) as Timestamp, Field_11 as \'User ID\', Field_13 as \'Logon ID\', Computer,  Field_9 as \'Domain\', Field_2 as \'Filename\' FROM dad_sys_events  WHERE EventID=\'560\' AND Field_1=\'File\' GROUP BY Field_2 ORDER BY TimeGenerated','Report all activity involving monitored resources','Monitored Resources','General Windows','1,2'),(40,'select EventID, count(EventID) as \'Event Count\' FROM dad_sys_events group by EventID LIMIT 20','Report current event IDs and counts','Event Count','DAD','1,2'),(41,'select FROM_UNIXTIME(TimeGenerated) as Time, Computer as \'Attempt to login to\', Field_0 as \'Username attempted\', Field_5 as \'Source\' from dad_sys_events WHERE idxID_Code=\'529 3\' AND idxID_NTLM=\'529 NtLmSsp\' ORDER BY TimeGenerated','Report failed network logon attempts','Failed Network Logons','General Windows','1,2'),(42,'select FROM_UNIXTIME(TimeGenerated) as Time, Computer as \'Attempt to login to\', Field_0 as \'Username attempted\', Field_5 as \'Source\' from dad_sys_events WHERE idxID_Code=\'529 3\' AND idxID_NTLM=\'529 NtLmSsp\' AND TimeGenerated>(UNIX_TIMESTAMP(NOW())-86400) ORDER BY TimeGenerated','Report failed network logon attempts that have occured in the past 24 hours','Failed Network Logons 24','General Windows','1,2'),(43,'select FROM_UNIXTIME(TimeGenerated) as Time, Computer, Field_0 as \'NTP Message\' WHERE EventID=\'3\' AND Source=\'NTP\' AND TimeGenerated>(UNIX_TIMESTAMP(NOW())-3600) ORDER BY TimeGenerated','Display recent NTP events','NTP Events 60','General Windows','1,2'),(44,'SELECT FROM_UNIXTIME(TimeGenerated) as Time, Computer as Server, Field_2 as \'User Name\', Field_1 as \'File Printed\', Field_3 as \'Printer\',  Field_5 as \'Bytes\', Field_6 as \'Pages\' FROM dad_sys_events WHERE EventID=\'10\' AND Source=\'Print\' ORDER BY TimeGenerated','Display recently printed documents','Printed','General Windows','1,2'),(45,'SELECT FROM_UNIXTIME(TimeGenerated) as Time, Computer as Server, Field_2 as \'User Name\', Field_1 as \'File Printed\', Field_3 as \'Printer\',  Field_5 as \'Bytes\', Field_6 as \'Pages\' FROM dad_sys_events WHERE EventID=\'10\' AND Source=\'Print\' AND TimeGenerated>(UNIX_TIMESTAMP(NOW())-86400) ORDER BY TimeGenerated','Display documents printed in the past 24 hours','Printed 24','General Windows','1,2'),(46,'select FROM_UNIXTIME(TimeGenerated) as Time, Computer, Field_0 as \'Date Applied\', Field_1 as \'Time Applied\', Field_2 as \'Updates Applied\' from dad.dad_sys_events WHERE EventID=\'18\' AND EventType=\'4\' ORDER BY Computer,TimeGenerated','Reports patches applied through Update Services','Updates','General Windows','1,2'),(47,'select FROM_UNIXTIME(TimeGenerated) as Time, Computer, Field_0 as \'Date Applied\', Field_1 as \'Time Applied\', Field_2 as \'Updates Applied\' from dad.dad_sys_events WHERE EventID=\'18\' AND EventType=\'4\' AND TimeGenerated>(UNIX_TIMESTAMP(NOW())-86400) ORDER BY Computer,TimeGenerated','Reports patches applied through Update Services in the past 24 hours','Updates 24','General Windows','1,2'),(48,'select FROM_UNIXTIME(TimeGenerated) as Time, Computer, Field_0 as Error, Field_1 as \'Error Detail\' from dad.dad_sys_events WHERE EventID=\'26\' ORDER BY TimeGenerated','Reports recent application errors reported at system consoles','Errors','General Windows','1,2'),(49,'select FROM_UNIXTIME(TimeGenerated) as Time, Computer, Field_0 as Error, Field_1 as \'Error Detail\' from dad.dad_sys_events WHERE EventID=\'26\' AND TimeGenerated>(UNIX_TIMESTAMP(NOW())-86400) ORDER BY TimeGenerated','Reports application errors reported at consoles within the past 24 hours','Errors 24','General Windows','1,2'),(50,'select EventID, count(EventID) as \'Event Count\' FROM dad_sys_events group by EventID ORDER BY Count(EventID) DESC LIMIT 20','Reports current event IDs and counts sorted by count','Event Count Sorted','DAD','1,2'),(52,'select Computer, count(SystemID) as \'Event Count\' FROM dad_sys_events group by Computer','Produces a list of all systems monitored and the number of events generated by each of those systems','Event Count by System','DAD','1,2'),(51,'SELECT FROM_UNIXTIME(TimeGenerated) as Timestamp, Computer,  Field_1 as \'Domain\', Field_0 as \'User ID\', Field_2 as \'Logon Type\', Field_6 as \'Calling User\', Field_8 as \'Logon ID\' FROM dad_sys_events  WHERE  idxID_NTLM=\'534 seclogon\' ORDER BY TimeGenerated','Reports login failures based on logon type','Logon Type Failed','General Windows','1,2'),(53,'SELECT FROM_UNIXTIME(dad_sys_events.TimeGenerated) as Time, Computer, EventID as \'Event ID\', Field_0 as \'Username\', Field_1 as \'Domain\'  from dad_sys_events WHERE EventID=\'529\' OR EventID=\'530\' OR EventID=\'531\' OR EventID=\'532\' OR EventID=\'533\' OR EventID=\'534\' OR EventID=\'535\' OR EventID=\'536\' OR EventID=\'537\' OR EventID=\'539\'','Reports all types of logon failures that have occured','All Logon Failures','General Windows','1,2'),(54,'SELECT FROM_UNIXTIME(dad_sys_events.TimeGenerated) as Time, dad_sys_systems.System_Name as \"Reporting system\", Computer as \"Reset from\", Field_0 as \'Primary User\', Field_1 as \'Primary Domain\', Field_2 as \'Primary Logon\', Field_3 as \'Client User\', Field_4 as \'Client Domain\', Field_5 as \'Client Logon\' FROM dad_sys_events, dad_sys_systems WHERE EventID=\'517\' AND dad_sys_events.SystemID=dad_sys_systems.System_ID ORDER BY dad_sys_events.TimeGenerated ','Reports any events indicating that the event log was cleared.','Audit Log Cleared','General Windows','1,2'),(55,'SELECT FROM_UNIXTIME(dad_sys_events.TimeGenerated) as Time, dad_sys_events.Computer, Field_0 as \'Domain\', Field_1 as \'Domain ID\', Field_2 as \'User\', Field_3 as \'Domain\', Field_4 as \'Logon\' FROM dad_sys_events WHERE EventID=\'610\' ORDER BY dad_sys_events.TimeGenerated','Reports any events that record the creation of a domain trust.','Domain Trust Established','General Windows','1,2'),(56,'SELECT FROM_UNIXTIME(dad_sys_events.TimeGenerated) as Time, dad_sys_events.Computer, Field_0 as \'Domain\', Field_1 as \'Domain ID\', Field_2 as \'User\', Field_3 as \'Domain\', Field_4 as \'Logon\' FROM dad_sys_events WHERE EventID=\'611\' ORDER BY dad_sys_events.TimeGenerated','Reports any events that record the elimination of a domain trust.','Domain Trust Removed','General Windows','1,2'),(57,'SELECT FROM_UNIXTIME(dad_sys_events.TimeGenerated) as Time, dad_sys_events.Computer, Field_0 as \'New User\', Field_1 as \'Domain\', Field_2 as \'SID\', Field_3 as \'Created By\', Field_4 as \'Domain\', Field_5 as \'Logon\' FROM dad_sys_events WHERE EventID=\'624\' ORDER BY dad_sys_events.TimeGenerated','Reports the creation of new accounts within the domain.','Account Created','General Windows','1,2'),(58,'SELECT FROM_UNIXTIME(TimeGenerated) as \'Time\', Computer as \'Reported by\', Field_3 as \'User\', Field_0 as \'Computer Added\', Field_1 as \'Domain\' FROM dad_sys_events WHERE EventID=\'645\' ORDER BY TimeGenerated','Reports all events indicating that a machine has been joined to the domain.  Includes the user ID used to join the computer to the domain and the Domain Controller that processed the request.','Domain Joins','General Windows','1,2'),(59,'SELECT Priority, System_Name as \"System\", FROM_UNIXTIME(Next_Run) as \"Next Polls at\" FROM dad_sys_event_import_from ORDER BY Priority','Displays the times at which all monitored systems will next be re-polled.','Next Polling Time','DAD','1,2'),(60,'UPDATE dad_sys_event_import_from SET Next_Run=\'0\'','Force all systems to be re-polled now.','Force Repolling','DAD','1,2'),(61,'SELECT FROM_UNIXTIME(TimeGenerated) as \'Time\', Field_0 as \'User\',Field_1 as \'Domain\', Computer as \'Connected To\', Field_3 as \'Connection\', Field_4 as \'From Computer\', Field_5 as \'Source IP Address\' FROM dad_sys_events WHERE EventID=\'682\'','Reports all remote desktop connections that have been established.','Remote Desktop Connections','General Windows','1,2'),(62,'SELECT descrip as \"Job\", FROM_UNIXTIME(next_start) as \"Next Start Time\", FROM_UNIXTIME(last_ran) as \"Last ran\", is_running as \"Running\" FROM dad_adm_job ORDER BY next_start','Reports all currently scheduled jobs, the status of each job and the next time that each job will start.','Scheduled Jobs','DAD','1,2'),(63,'SELECT FROM_UNIXTIME(Alert_Time) as \"Alerted at\", FROM_UNIXTIME(Event_Time) as \"Event Timestamp\", Event_Data as \"Alert\", Severity from dad_alerts WHERE Acknowledged=FALSE ORDER BY Alert_Time,Event_Time','Reports all current events that have not been acknowledged.','Pending Alerts','DAD','1,2'),(64,'SELECT FROM_UNIXTIME(TimeGenerated) as \'Time\', Field_0 as \'User name\', Field_1 as \'Domain\', Field_2 as \'Logon type\', Computer FROM dad_sys_events WHERE EventID=\'534\' ORDER BY TimeGenerated ASC','This will report all 534 events where the logon type is not permitted for the specified user ID.','Logon type not permitted','General Windows','1,2');
+INSERT INTO `dad_sys_queries` VALUES (3,'529 2','Produces a list of all login failures (Event 529) from all Windows computers.','Failed Interactive','General Windows','1,2',10000000),(5,'529 7','Reports all failed attempts to unlock a workstation that have occured in the past 24 hours.','Failed unlock 24','General Windows','1,2',86400),(6,'529 2','Reports all failed interactive login attempts that have occured in the past 24 hours.','Failed Interactive 24','General Windows','1,2',86400),(33,'675 0x25','Reports all authentication attempts where the clock skew on the client was too high.  Usually followed by a success since the correct time is returned with the error','Time Skew Too Great','Kerberos','1,2',10000000),(34,'675 0x19','Reports all authentication attempts that are refused because pre-authentication is required.  This also throws the same error internally as a bad password','Pre-Auth required/Bad Password','Kerberos','1,2',10000000),(32,'675 0xE','Reports all instances where the KDC refused to authenticate because the encryption type presented was not supported','Encryption Not Supported','Kerberos','1,2',10000000),(12,'3221225578','Reports all failed NTLM authentications where a bad password was attempted.','Bad Password','NTLM','1,2',10000000),(13,'681 3221225572','Reports all NTLM authentication failures where a bad username was attempted.','Failed Username','NTLM','1,2',10000000),(14,'3221226036','Reports all NTLM authentication attempts where a locked out account was attempting to authenticate.','Locked Out','NTLM','1,2',10000000),(15,'3221225586','Reports all NTLM authentication attempts where the account being used has been disabled.','Disabled','NTLM','1,2',10000000),(16,'3221225583','Reports all failed NTLM authentications where the account being used may have been legal but the attempt was in violation of login hours restrictions.','Out of Hours','NTLM','1,2',10000000),(17,'3221225584','Reports all NTLM authentication failures where the account in use is restricted from logging into the workstation used.','Workstation Restriction','NTLM','1,2',10000000),(18,'3221225875','Reports all NTLM authentication failures where the account being used has expired.','Expired','NTLM','1,2',10000000),(19,'3221225585','Reports all NTLM authentication failures where the password for the account being used has expired.','Password Expired','NTLM','1,2',10000000),(20,'3221226020','Reports all NTLM authentication events where the next logon will require a password change.','Password Change','NTLM','1,2',10000000),(21,'675 0x18','Reports all Kerberos authentication attempts where a bad password was attempted that have occured in the past 7 days','Bad Password 7 Days','Kerberos','1,2',604800),(22,'675 0x12','Reports all Kerberos authentication events where the account in question is either disabled, expired or locked out.','Account Disabled/Unavailable','Kerberos','1,2',10000000),(23,'675 0xC','Reports all Kerberos authentication attempts where the account in question is either attempting to violate login time restrictions or has workstation restrictions applied.','Workstation Restriction','Kerberos','1,2',10000000),(24,'675 0x17','Reports all Kerberos authentication events where the password for the account used has expired.','Expired Password','Kerberos','1,2',10000000),(25,'675 0x6','Reports all Kerberos authentication attempts where a bad username was supplied.','Bad Username','Kerberos','1,2',10000000),(27,'675 0x18','Reports all Kerberos authentication events where a bad password was attempted that have occured in the past 24 hours.','Bad Password 24','Kerberos','1,2',86400),(29,'3221225572','Reports all NTLM authentication failures from the past 24 hours where a bad username was attempted.','Failed Username 24','NTLM','1,2',86400),(31,'3221225578','Reports all failed NTLM authentications where a bad password was used in the past 24 hours','Bad Password 24','NTLM','1,2',86400),(38,'529 7','Reports all recorded faliures to unlock workstations or servers','Failed Unlock','General Windows','1,2',10000000),(39,'560 File','Report all activity involving monitored resources','Monitored Resources','General Windows','1,2',10000000),(41,'529 3 NtLmSsp','Report failed network logon attempts','Failed Network Logons','General Windows','1,2',10000000),(42,'529 3 NtLmSsp','Report failed network logon attempts that have occured in the past 24 hours','Failed Network Logons 24','General Windows','1,2',86400),(43,'3 NTP','Display recent NTP events','NTP Events 60','General Windows','1,2',3600),(44,'10 Print','Display recently printed documents','Printed','General Windows','1,2',10000000),(45,'10 Print','Display documents printed in the past 24 hours','Printed 24','General Windows','1,2',86400),(46,'18 4','Reports patches applied through Update Services','Updates','General Windows','1,2',10000000),(47,'18 4','Reports patches applied through Update Services in the past 24 hours','Updates 24','General Windows','1,2',86400),(48,'26','Reports recent application errors reported at system consoles','Errors','General Windows','1,2',10000000),(49,'26','Reports application errors reported at consoles within the past 24 hours','Errors 24','General Windows','1,2',86400),(51,'534 seclogon','Reports login failures based on logon type','Logon Type Failed','General Windows','1,2',10000000),(54,'517','Reports any events indicating that the event log was cleared.','Audit Log Cleared','General Windows','1,2',10000000),(55,'610','Reports any events that record the creation of a domain trust.','Domain Trust Established','General Windows','1,2',10000000),(56,'611','Reports any events that record the elimination of a domain trust.','Domain Trust Removed','General Windows','1,2',10000000),(57,'624','Reports the creation of new accounts within the domain.','Account Created','General Windows','1,2',10000000),(58,'645','Reports all events indicating that a machine has been joined to the domain.  Includes the user ID used to join the computer to the domain and the Domain Controller that processed the request.','Domain Joins','General Windows','1,2',10000000),(61,'682','Reports all remote desktop connections that have been established.','Remote Desktop Connections','General Windows','1,2',10000000),(64,'534','This will report all 534 events where the logon type is not permitted for the specified user ID.','Logon type not permitted','General Windows','1,2',10000000);
 /*!40000 ALTER TABLE `dad_sys_queries` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -280,13 +311,16 @@ UNLOCK TABLES;
 --
 
 DROP TABLE IF EXISTS `language`;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
 CREATE TABLE `language` (
-  `LanguageID` int(10) unsigned NOT NULL auto_increment,
-  `LanguageCode` char(3) collate utf8_unicode_ci NOT NULL default '',
-  `LanguageName` char(40) collate utf8_unicode_ci NOT NULL default '',
-  `LatestChangeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
-  PRIMARY KEY  (`LanguageID`)
+  `LanguageID` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `LanguageCode` char(3) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
+  `LanguageName` char(40) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
+  `LatestChangeStamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`LanguageID`)
 ) ENGINE=MyISAM AUTO_INCREMENT=7 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+SET character_set_client = @saved_cs_client;
 
 --
 -- Dumping data for table `language`
@@ -303,15 +337,18 @@ UNLOCK TABLES;
 --
 
 DROP TABLE IF EXISTS `menu`;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
 CREATE TABLE `menu` (
-  `MenuID` int(10) unsigned NOT NULL auto_increment,
-  `MenuName` char(40) collate utf8_unicode_ci NOT NULL default '',
-  `LevelNum` tinyint(3) unsigned NOT NULL default '0',
-  `SequenceNum` tinyint(3) unsigned NOT NULL default '0',
-  `ParentMenuOptionID` int(10) unsigned NOT NULL default '0',
-  `LatestChangeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
-  PRIMARY KEY  (`MenuID`)
+  `MenuID` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `MenuName` char(40) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
+  `LevelNum` tinyint(3) unsigned NOT NULL DEFAULT '0',
+  `SequenceNum` tinyint(3) unsigned NOT NULL DEFAULT '0',
+  `ParentMenuOptionID` int(10) unsigned NOT NULL DEFAULT '0',
+  `LatestChangeStamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`MenuID`)
 ) ENGINE=MyISAM AUTO_INCREMENT=9 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+SET character_set_client = @saved_cs_client;
 
 --
 -- Dumping data for table `menu`
@@ -328,16 +365,19 @@ UNLOCK TABLES;
 --
 
 DROP TABLE IF EXISTS `menuoption`;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
 CREATE TABLE `menuoption` (
-  `MenuOptionID` int(10) unsigned NOT NULL auto_increment,
-  `OptionName` char(40) collate utf8_unicode_ci NOT NULL default '',
-  `MenuID` int(10) unsigned NOT NULL default '0',
-  `SequenceNum` smallint(5) unsigned NOT NULL default '0',
-  `ContentPathName` char(128) collate utf8_unicode_ci NOT NULL default '',
-  `FunctionName` char(40) collate utf8_unicode_ci NOT NULL default '',
-  `LatestChangeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
-  PRIMARY KEY  (`MenuOptionID`)
+  `MenuOptionID` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `OptionName` char(40) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
+  `MenuID` int(10) unsigned NOT NULL DEFAULT '0',
+  `SequenceNum` smallint(5) unsigned NOT NULL DEFAULT '0',
+  `ContentPathName` char(128) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
+  `FunctionName` char(40) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
+  `LatestChangeStamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`MenuOptionID`)
 ) ENGINE=MyISAM AUTO_INCREMENT=72 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+SET character_set_client = @saved_cs_client;
 
 --
 -- Dumping data for table `menuoption`
@@ -354,15 +394,18 @@ UNLOCK TABLES;
 --
 
 DROP TABLE IF EXISTS `role`;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
 CREATE TABLE `role` (
-  `RoleID` int(10) unsigned NOT NULL auto_increment,
-  `RoleName` char(40) collate utf8_unicode_ci NOT NULL default '',
-  `RoleDescr` char(128) collate utf8_unicode_ci NOT NULL default '',
-  `RoleOrgUnitTypeID` int(10) unsigned NOT NULL default '0',
-  `UserRoleOrgUnitTypeID` int(10) unsigned NOT NULL default '0',
-  `LatestChangeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
-  PRIMARY KEY  (`RoleID`)
+  `RoleID` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `RoleName` char(40) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
+  `RoleDescr` char(128) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
+  `RoleOrgUnitTypeID` int(10) unsigned NOT NULL DEFAULT '0',
+  `UserRoleOrgUnitTypeID` int(10) unsigned NOT NULL DEFAULT '0',
+  `LatestChangeStamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`RoleID`)
 ) ENGINE=MyISAM AUTO_INCREMENT=7 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+SET character_set_client = @saved_cs_client;
 
 --
 -- Dumping data for table `role`
@@ -379,13 +422,16 @@ UNLOCK TABLES;
 --
 
 DROP TABLE IF EXISTS `rolemenuoption`;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
 CREATE TABLE `rolemenuoption` (
-  `RoleMenuOptionID` int(10) unsigned NOT NULL auto_increment,
-  `RoleID` int(10) unsigned NOT NULL default '0',
-  `MenuOptionID` int(10) unsigned NOT NULL default '0',
-  `LatestChangeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
-  PRIMARY KEY  (`RoleMenuOptionID`)
+  `RoleMenuOptionID` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `RoleID` int(10) unsigned NOT NULL DEFAULT '0',
+  `MenuOptionID` int(10) unsigned NOT NULL DEFAULT '0',
+  `LatestChangeStamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`RoleMenuOptionID`)
 ) ENGINE=MyISAM AUTO_INCREMENT=132 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+SET character_set_client = @saved_cs_client;
 
 --
 -- Dumping data for table `rolemenuoption`
@@ -402,20 +448,23 @@ UNLOCK TABLES;
 --
 
 DROP TABLE IF EXISTS `user`;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
 CREATE TABLE `user` (
-  `UserID` int(10) unsigned NOT NULL auto_increment,
-  `UserName` char(20) collate utf8_unicode_ci NOT NULL default '',
-  `PasswordText` char(40) collate utf8_unicode_ci NOT NULL default '',
-  `FirstName` char(40) collate utf8_unicode_ci NOT NULL default '',
-  `LastName` char(40) collate utf8_unicode_ci NOT NULL default '',
-  `EmailAddress` char(45) collate utf8_unicode_ci NOT NULL default '',
-  `LanguageID` int(10) unsigned NOT NULL default '0',
-  `CreatedDatetime` datetime NOT NULL default '0000-00-00 00:00:00',
-  `DeletedDatetime` datetime NOT NULL default '0000-00-00 00:00:00',
-  `LatestChangeUserID` int(10) unsigned NOT NULL default '0',
-  `LatestChangeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
-  PRIMARY KEY  (`UserID`)
+  `UserID` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `UserName` char(20) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
+  `PasswordText` char(40) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
+  `FirstName` char(40) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
+  `LastName` char(40) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
+  `EmailAddress` char(45) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
+  `LanguageID` int(10) unsigned NOT NULL DEFAULT '0',
+  `CreatedDatetime` datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
+  `DeletedDatetime` datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
+  `LatestChangeUserID` int(10) unsigned NOT NULL DEFAULT '0',
+  `LatestChangeStamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`UserID`)
 ) ENGINE=MyISAM AUTO_INCREMENT=5 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+SET character_set_client = @saved_cs_client;
 
 --
 -- Dumping data for table `user`
@@ -436,7 +485,7 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2007-08-08 20:05:33
+-- Dump completed on 2007-09-17 22:48:31
 --
 -- Dumping data for table `userrole`
 --

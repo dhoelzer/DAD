@@ -22,7 +22,7 @@ function show_existing_queries()
 global $Global;
 global $_GET;
     $strURL  = getOptionURL(OPTIONID_EXISTING_QUERIES);
-	$strSQL = 'SELECT Query_ID, Query, Name, Description, Category, Roles FROM dad_sys_queries ORDER BY Category,Name';
+	$strSQL = 'SELECT Query_ID, Query, Name, Description, Category, Roles, Timeframe FROM dad_sys_queries ORDER BY Category,Name';
 	$Queries = runQueryReturnArray( $strSQL );
 	$strHTML = <<<END
 		<form id=frmExistingQueries name="ExistingQueries" action="$strURL" method="post" style="position:relative; top:25px;">
@@ -63,16 +63,90 @@ END;
 	if(isset($_GET["SubmittedQuery"]))
 	{
 		$QueryID = $_GET["SubmittedQuery"];
-		$strSQL = "SELECT Query, Name FROM dad_sys_queries WHERE Query_ID='$QueryID'";
-		$result = runQueryReturnArray($strSQL);
-		$strSQL = stripslashes($result[0][0]);
-		$QueryName = $result[0][1];
+		$strSQL = "SELECT Query, Name, Timeframe FROM dad_sys_queries WHERE Query_ID='$QueryID'";
+		$strSQL = generateEventQuery($strSQL);
 		$Popup_Contents = <<<END
 			<STYLE TYPE='text/css'><!--.PopupTable{	font-size:8pt;}	--> </STYLE>
 END;
 		$Popup_Contents .= Query_to_Table($strSQL, 1, "PopupTable");
-		Popup($QueryName, $Popup_Contents, 980, 650, 5, 5);
+		Popup("Test", $Popup_Contents, 980, 650, 5, 5);
 	}
+}
+
+function generateEventQuery($strSQL)
+{
+	$StringIDFilter = "";
+	$Terms = "";
+	$table_ref = "";
+	$JOINS="";
+	$MATCHES="";
+	$Events_ID_in = "";
+	
+	if(!isset($strSQL)) { return ""; }
+	$result = runQueryReturnArray($strSQL);
+	if(!isset($result[0]['Query'])) { return ""; }
+	$SearchTerms = split(" ",$result[0]['Query']);
+	$TimeFrame = $result[0]['Timeframe'];
+	$Terms = "";
+	foreach($SearchTerms as $value)
+	{
+		$Terms .= ($Terms == "" ? "'".$value."'" : ",'".$value."'");
+	}
+	$strSQL = "SELECT * FROM event_unique_strings WHERE String IN ( $Terms )";
+	$string_ids = runQueryReturnArray($strSQL);
+	foreach($string_ids as $row)
+	{
+		if($StringIDFilter == "")
+		{
+			$table_ref = 'b';
+			$StringIDFilter = "\n$table_ref.String_ID=$row[0]";
+			$JOINS="\nJOIN event_fields as $table_ref";
+			$MATCHES="\nAND a.Events_ID=$table_ref.Events_ID";
+		}
+		else
+		{
+			$table_ref++;
+			$StringIDFilter .= "\nAND $table_ref.String_ID=$row[0]";
+			$JOINS.="\nJOIN event_fields as $table_ref";
+			$MATCHES.="\nAND a.Events_ID=$table_ref.Events_ID";
+		}
+	}
+	$strSQL="SELECT DISTINCT a.Events_ID,a.Time_Written,a.Time_Generated FROM events as a $JOINS WHERE $StringIDFilter $MATCHES";
+	$Event_IDs = runQueryReturnArray($strSQL);
+	foreach($Event_IDs as $row)
+	{
+		if($Events_ID_in=="")
+		{
+			$Events_ID_in = "$row[0]";
+		}
+		else
+		{
+			$Events_ID_in .= ", $row[0]";
+		}
+	}
+	$strSQL=<<<ENDSQL
+				SELECT 
+					f.Events_ID, 
+					FROM_UNIXTIME(e.Time_Generated),
+					systems.System_Name, 
+					GROUP_CONCAT(s.String ORDER BY f.Position ASC separator ' ')
+				FROM
+					events as e,
+					event_fields as f,
+					event_unique_strings as s, 
+					dad_sys_systems as systems
+				WHERE
+					e.Events_ID IN ( $Events_ID_in )
+					AND f.Events_ID=e.Events_ID
+					AND (
+						f.String_ID=s.String_ID
+						)
+					AND systems.System_ID=e.System_ID
+					AND e.Time_Generated > 0
+					GROUP BY f.Events_ID
+					ORDER BY f.Events_ID,f.Position	, e.Time_Generated			
+ENDSQL;
+	return($strSQL);
 }
 
 function show_log_stats() 

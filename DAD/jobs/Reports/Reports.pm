@@ -104,9 +104,8 @@ sub GetEventsByStrings
 			FROM events as a
 			}. $JOINS .q{
 			WHERE }. $StringIDFilter .q{ 
-			}. $MATCHES .q{
-			LIMIT 100
-			};#print "$SQL\n";
+			}. $MATCHES .q{ };
+			#LIMIT 100
 		my $results_ref2 = &SQL_Query($SQL);
 		$num_results = @$results_ref2;
 		if($num_results)
