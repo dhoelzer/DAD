@@ -126,10 +126,10 @@ function generateEventQuery($strSQL)
 	}
 	$strSQL=<<<ENDSQL
 				SELECT 
-					f.Events_ID, 
-					FROM_UNIXTIME(e.Time_Generated),
-					systems.System_Name, 
-					GROUP_CONCAT(s.String ORDER BY f.Position ASC separator ' ')
+					f.Events_ID as "Event Number", 
+					FROM_UNIXTIME(e.Time_Generated) as "Time",
+					systems.System_Name as "System", 
+					GROUP_CONCAT(s.String ORDER BY f.Position ASC separator ' ') as "Event Detail"
 				FROM
 					events as e,
 					event_fields as f,
