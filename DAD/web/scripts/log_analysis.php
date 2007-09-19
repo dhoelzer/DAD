@@ -111,7 +111,7 @@ function generateEventQuery($strSQL)
 			$MATCHES.="\nAND a.Events_ID=$table_ref.Events_ID";
 		}
 	}
-	$strSQL="SELECT DISTINCT a.Events_ID,a.Time_Written,a.Time_Generated FROM events as a $JOINS WHERE $StringIDFilter $MATCHES";
+	$strSQL="SELECT DISTINCT a.Events_ID,a.Time_Written,a.Time_Generated FROM events as a $JOINS WHERE $StringIDFilter AND (UNIX_TIMESTAMP(NOW())-$TimeFrame) < a.Time_Generated $MATCHES";
 	$Event_IDs = runQueryReturnArray($strSQL);
 	foreach($Event_IDs as $row)
 	{
@@ -125,7 +125,7 @@ function generateEventQuery($strSQL)
 		}
 	}
 	$strSQL=<<<ENDSQL
-				SELECT 
+				SELECT distinct
 					f.Events_ID as "Event Number", 
 					FROM_UNIXTIME(e.Time_Generated) as "Time",
 					systems.System_Name as "System", 
@@ -142,10 +142,10 @@ function generateEventQuery($strSQL)
 						f.String_ID=s.String_ID
 						)
 					AND systems.System_ID=e.System_ID
-					AND e.Time_Generated > 0
 					GROUP BY f.Events_ID
-					ORDER BY f.Events_ID,f.Position	, e.Time_Generated			
+					ORDER BY e.Time_Generated,f.Events_ID,f.Position
 ENDSQL;
+#add_element($strSQL);
 	return($strSQL);
 }
 
