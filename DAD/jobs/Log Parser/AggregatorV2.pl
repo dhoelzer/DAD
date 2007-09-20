@@ -450,6 +450,8 @@ sub _event_thread
 			&mark_log_processed($log, $system, ($base), $total, $collected);
 			$total = 0;
 			$collected = 0;
+			undef %hashRef;
+			undef %Record;
 			undef $handle;
 		}
 	delete $Processing{$system};
@@ -681,6 +683,7 @@ sub SQL_Insert
 	$query -> execute();
 	my $in_id = $dbh->{ q{mysql_insertid}};
 	$query->finish();
+	undef $query;
 	return $in_id;
 }
 
