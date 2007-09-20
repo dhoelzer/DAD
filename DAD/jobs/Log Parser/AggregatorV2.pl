@@ -204,6 +204,9 @@ sub _event_thread
 			@this_row = @$row;
 			$Filtered_Events{$this_row[0]}=1;
 		}
+		undef $results_ref;
+		undef $dsn;
+		undef $dbh;
 	}									#Implicit unlock of %Filtered_Events
 
 	#/********************************************************
@@ -447,6 +450,7 @@ sub _event_thread
 			&mark_log_processed($log, $system, ($base), $total, $collected);
 			$total = 0;
 			$collected = 0;
+			undef $handle;
 		}
 	delete $Processing{$system};
 	$Status{"log $who_am_i"} = "Waiting";
@@ -636,6 +640,10 @@ sub _get_systems_to_process
 				$Priority{$this_row[0]} = $this_row[1];
 			}
 	}
+	undef $dsn;
+	undef $dbh;
+	undef $results_ref;
+	undef $row;
 	return(@Systems);
 }
 
