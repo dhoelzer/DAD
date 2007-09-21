@@ -60,11 +60,18 @@ my %Insert_Threads;				#Hash containing handles to the insert threads
 my %Log_Threads;				#Hash containing handles to the event log threads
 my @Systems;					#Systems to process
 my $System_Started;				# Time this process started
+my	$dsn, 						# Database connection
+	$dbh;
 
 #Read in and evaluate the configuration values
 open(FILE,"Aggregator.ph") or die "Could not find configuration file!\n";
 foreach (<FILE>) { eval(); }
 close(FILE);
+
+	
+$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
+$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
+	or die ("Could not connect to DB server to import the list of servers to poll.\n");
 
 #Initialize shared variables
 $Time_To_Die = 0;
@@ -170,6 +177,12 @@ print "No more threads!\n";
 
 sub _event_thread
 {
+	my	$dsn, 						# Database connection
+		$dbh;
+	$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
+	$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
+		or die ("Could not connect to DB server to update filtered event list.\n");
+
 	##################################################
 	#
 	# record_event - Push the event into the database
@@ -189,12 +202,7 @@ sub _event_thread
 		my	$results_ref,				# Used to hold query responses
 			$row,						#Row array reference
 			@this_row;					#Current row
-		my	$dsn, 						# Database connection
-			$dbh;
 	# Open the database connection.  We turn auto commit off so that we can do block inserts.
-		$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
-		$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
-			or die ("Could not connect to DB server to update filtered event list.\n");
 	
 		%Filtered_Events;
 	# Fetch the list of services to filter
@@ -205,8 +213,6 @@ sub _event_thread
 			$Filtered_Events{$this_row[0]}=1;
 		}
 		undef $results_ref;
-		undef $dsn;
-		undef $dbh;
 	}									#Implicit unlock of %Filtered_Events
 
 	#/********************************************************
@@ -251,8 +257,6 @@ sub _event_thread
 	my @Logs = ();						#Logs to process from each system
 	my %Service_IDs, %System_IDs;
 	my $handle;							#Event log handle;
-	my	$dsn, 							# Database connection
-		$dbh;
 	my $base, $recs, $newbase, $new, $results_ref, $hashRef,
 		$row, @this_row, $total, $lastprocessed, $collected;
 	my $system;
@@ -260,9 +264,6 @@ sub _event_thread
 	my %Record, @Values, $Value, $i;	
 	my $logs_value;
 
-	$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
-	$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
-		or die ("Could not connect to DB server to for event thread $who_am_i.\n");
 	$Status{"log $who_am_i"} = "Waiting";
 	
 	while((!$Time_To_Die))
@@ -620,13 +621,7 @@ sub _get_systems_to_process
 	my	$results_ref,				# Used to hold query responses
 		$row,						#Row array reference
 		@this_row;					#Current row
-	my	$dsn, 						# Database connection
-		$dbh;
 	my @Systems;
-	
-	$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
-	$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
-		or die ("Could not connect to DB server to import the list of servers to poll.\n");
 
 	# Fetch the names of the systems to poll.  To add a system simply add its name to the dad_sys_event_import table. 
 	# There is no need to restart this process to pick up the new system names or remove old names.
@@ -642,8 +637,6 @@ sub _get_systems_to_process
 				$Priority{$this_row[0]} = $this_row[1];
 			}
 	}
-	undef $dsn;
-	undef $dbh;
 	undef $results_ref;
 	undef $row;
 	return(@Systems);
