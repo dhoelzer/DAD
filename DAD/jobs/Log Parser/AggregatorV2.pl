@@ -164,7 +164,7 @@ End
 		}
 	}
 
-	sleep(5);				# 5 Seconds between interations
+	sleep(30);				# 5 Seconds between interations
 }
 # If we reach here, time to die has passed and all other threads have exited
 print "No more threads!\n";
