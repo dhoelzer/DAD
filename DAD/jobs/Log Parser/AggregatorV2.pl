@@ -47,6 +47,10 @@ my $SQL_Queue : shared;			#Queue used to transfer inserts to insert threads
 my $Process_Queue : shared;		#Queue used to mark next logs to process
 my $High_Priority_Queue : shared; #Queue used for priority 1 systems
 my $MAX_EXECUTION_TIME : shared;#Maximum time a thread can spend processing any given log.
+my %Unique_Strings : shared;	#In memory unique strings
+my $GET_UNIQUE_LOCK : shared;	#Used to lock SQL access for unique string processing.
+my $Hash_hits : shared;
+$Hash_hits = 0;
 ##################################################################
 
 my $BackupSQLFile;
@@ -109,7 +113,7 @@ while(1)						#Always running, never getting anywhere
 		<html>
 		<head>
 		<title>Aggregator Status</title>
-		<meta http-equiv="Refresh" CONTENT="5;URL=/stats/stats2.html" />
+		<meta http-equiv="Refresh" CONTENT="30;URL=/stats/stats2.html" />
 		</title>
 		<body>
 End
@@ -135,6 +139,8 @@ End
 		print STATS "$hpending priority 1 systems waiting.<br >\n";
 		print STATS "Base execution time per log: $MAX_EXECUTION_TIME<br >\n";
 		print STATS "Run time remaining: $Time_Remaining<br >\n";
+		print STATS "Hash hits: $Hash_hits<br>\n";
+		print STATS "Strings in Hash: ".keys(%Unique_Strings)."<br>\n";
 		print STATS "<hr />";
 		if($Pending_Running)
 		{
@@ -164,7 +170,7 @@ End
 		}
 	}
 
-	sleep(30);				# 5 Seconds between interations
+	sleep(10);				# 5 Seconds between interations
 }
 # If we reach here, time to die has passed and all other threads have exited
 print "No more threads!\n";
@@ -464,6 +470,54 @@ delete $Processing{$system};
 return;
 }
 
+sub __Get_Unique_ID_Or_Insert
+{
+	my $String_ID,$result_ref, $rows_returned, $this_string;
+	
+	$this_string = shift;
+
+	# First double check memory hash in case it was added while we were locked.
+	if($Unique_Strings{"$this_string"})
+	{
+		$Hash_hits ++;
+		return $Unique_Strings{"$this_string"};
+	}
+
+	$result_ref = &SQL_Query("SELECT String_ID FROM event_unique_strings WHERE String = '$this_string'");
+	$rows_returned = scalar @$result_ref;
+	if($rows_returned < 1)
+	{
+		&SQL_Insert("INSERT INTO event_unique_strings (String) VALUES ('$this_string')");
+		$result_ref = &SQL_Query("SELECT String_ID FROM event_unique_strings WHERE String = '$this_string'");
+		$rows_returned = scalar @$result_ref;
+		if($rows_returned < 1) { die ("Insert must have failed, I couldn't select the new string!\n"); }
+	}
+	$row = shift(@$result_ref);
+	$String_ID= @$row[0];
+	return $String_ID;
+}
+
+sub Get_Unique_ID
+{
+	my $String_ID, $this_string;
+
+	$this_string = shift;
+	if($Unique_Strings{"$this_string"})
+		{
+			$Hash_hits ++;
+			return $Unique_Strings{"$this_string"};
+		}
+
+	lock $GET_UNIQUE_LOCK;
+	$String_ID = &__Get_Unique_ID_Or_Insert($this_string);
+	$Unique_Strings{"$this_string"} = $String_ID;
+	if(keys(%Unique_Strings) > $MAX_UNIQUE_STRINGS)
+		{
+			%Unique_Strings = (); print "Clearing hash\n";
+		}
+	return $String_ID;
+}
+
 sub _insert_thread
 {
 
@@ -487,11 +541,9 @@ sub _insert_thread
 	{
 		my $Force=0;
 		$incoming = $SQL_Queue->dequeue_nb();
-		$empty_loops++;
 		if($incoming)
 		{
 			$_TotalQueries++;
-			$Inserted++;
 			my $time, $system, $service, @values, @row, $row, $result_ref, $rows_returned;
 			($system, $service, $timewritten, $timegenerated, $source, $category, $sid, $computer, $eventid, $eventtype, @values) = split(/~~~~~/,$incoming);
 			
@@ -537,17 +589,7 @@ sub _insert_thread
 			my $string_position=0;
 			foreach(@insert_strings)
 			{
-				$result_ref = &SQL_Query("SELECT String_ID FROM event_unique_strings WHERE String = '$_'");
-				$rows_returned = scalar @$result_ref;
-				if($rows_returned < 1)
-				{
-					&SQL_Insert("INSERT INTO event_unique_strings (String) VALUES ('$_')");
-					$result_ref = &SQL_Query("SELECT String_ID FROM event_unique_strings WHERE String = '$_'");
-					$rows_returned = scalar @$result_ref;
-					if($rows_returned < 1) { die ("Insert must have failed, I couldn't select the new string!\n"); }
-				}
-				$row = shift(@$result_ref);
-				$String_ID= @$row[0];
+				$String_ID = &Get_Unique_ID($_);
 				if($InsertString eq "")
 				{
 					$InsertString = "($Event_ID, $string_position, $String_ID)";
@@ -561,8 +603,10 @@ sub _insert_thread
 				undef $result_ref;
 			}
 		}
-		if(($Queue_Size > 10000) || (($SQL_Queue->pending() == 0) && ($Queue_Size>0)))
+		if(($Queue_Size > $MAX_QUEUE_SIZE) || (($SQL_Queue->pending() == 0) && ($Queue_Size>0) && ($empty_loops>$MAX_IDLE_LOOPS)))
 		{
+			$empty_loops = 0;
+			$Inserted += $Queue_Size;
 			&SQL_Insert("INSERT INTO event_fields (Events_ID, Position, String_ID) VALUES ".$InsertString);
 			undef $InsertString;
 			$Queue_Size = 0;
@@ -574,7 +618,14 @@ sub _insert_thread
 #			delete($Status{"sql $who_am_i"});
 			return; 
 		}
-		if(!$incoming) {sleep(5);}
+		if(!$incoming)
+		{
+			$empty_loops ++;
+			if($empty_loops > $MAX_IDLE_LOOPS && $Queue_Size == 0)
+			{
+				$empty_loops = 0;
+			}
+		}
 	}
 	$Status{"sql $who_am_i"} = "Died mysteriously.";
 }
