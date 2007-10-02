@@ -180,8 +180,11 @@ function show_log_stats()
 	$MoreEvents = $FreeSpace/(($TotalSpace-$FreeSpace) / ($num_events + 1)+1);
 	$PercentFree = round((($FreeSpace/($TotalSpace + 1)) * 100), 2);
 	$PercentUsed = 100 - $PercentFree;
-	$strHTML = "Disk Utilization: $PercentFree% Free -- $num_events events available from ".$num_systems[0][0]." systems<br>Tracking $num_events2 events with $num_fields with $num_strings unique strings.  ";
-	$strHTML .= "Average event length is ". ($num_fields/($num_events2>0?$num_events2:1))." fields.";
+	$strHTML = "Disk Utilization: $PercentFree% Free -- $num_events events available from ".
+		$num_systems[0][0]." systems<br>Tracking ".number_format($num_events2).
+		" events with ".number_format($num_fields)." fields with ".
+		number_format($num_strings)." unique strings.  <br>";
+	$strHTML .= "Average event length is ". number_format(($num_fields/($num_events2>0?$num_events2:1)),2)." fields.";
 	$top_talkers = file("../TopTalkers.html");
 	foreach($top_talkers as $line)
 	{
