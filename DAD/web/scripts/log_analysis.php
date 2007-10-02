@@ -93,6 +93,7 @@ function generateEventQuery($strSQL)
 		$Terms .= ($Terms == "" ? "'".$value."'" : ",'".$value."'");
 	}
 	$strSQL = "SELECT * FROM event_unique_strings WHERE String IN ( $Terms )";
+	#add_element("$strSQL<br><br>");
 	$string_ids = runQueryReturnArray($strSQL);
 	foreach($string_ids as $row)
 	{
@@ -103,7 +104,7 @@ function generateEventQuery($strSQL)
 			$JOINS="\nJOIN event_fields as $table_ref";
 			$MATCHES="\nAND a.Events_ID=$table_ref.Events_ID";
 		}
-		else
+		else # ORs should be in here somewhere attached to the $StringIDFilter
 		{
 			$table_ref++;
 			$StringIDFilter .= "\nAND $table_ref.String_ID=$row[0]";
@@ -112,6 +113,7 @@ function generateEventQuery($strSQL)
 		}
 	}
 	$strSQL="SELECT DISTINCT a.Events_ID,a.Time_Written,a.Time_Generated FROM events as a $JOINS WHERE $StringIDFilter AND (UNIX_TIMESTAMP(NOW())-$TimeFrame) < a.Time_Generated $MATCHES";
+	#add_element($strSQL."<br><br>");
 	$Event_IDs = runQueryReturnArray($strSQL);
 	foreach($Event_IDs as $row)
 	{
@@ -193,7 +195,7 @@ function show_log_stats()
 	}
 	$strURL  = getOptionURL(OPTIONID_LOG_ANALYSIS);
 	$strHTML .=<<<endHTML
-		<iframe src='/stats/stats.html' width=300px height=390px align=right></iframe>
+		<iframe src='/stats/stats2.html' width=300px height=390px align=right></iframe>
 		<form id='acknowledge_alerts' align=left action='$strURL' method='post'>
 		<input type='hidden' name='AckMarker' value='1'></input>
 		<p><h3>Pending Alerts</h3><input type='submit' value='Acknowledge Marked'></input></h3>
