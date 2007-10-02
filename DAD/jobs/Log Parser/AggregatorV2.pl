@@ -170,7 +170,7 @@ End
 		}
 	}
 
-	sleep(10);				# 5 Seconds between interations
+	sleep(15);				# 5 Seconds between interations
 }
 # If we reach here, time to die has passed and all other threads have exited
 print "No more threads!\n";
@@ -284,7 +284,8 @@ sub _event_thread
 			}
 			if(!$system)
 			{
-				sleep(1);
+				$Status{"log $who_am_i"} = "Sleeping";
+				sleep(5);
 				if($Time_To_Die)
 				{
 				  $Status{"log $who_am_i"} = "Dead.";
@@ -623,6 +624,8 @@ sub _insert_thread
 			$empty_loops ++;
 			if($empty_loops > $MAX_IDLE_LOOPS && $Queue_Size == 0)
 			{
+				$Status{"sql $who_am_i"} = "Sleeping";
+				sleep(15);
 				$empty_loops = 0;
 			}
 		}
