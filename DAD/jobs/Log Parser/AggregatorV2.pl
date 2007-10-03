@@ -51,6 +51,10 @@ my $MAX_EXECUTION_TIME : shared;#Maximum time a thread can spend processing any 
 my %Unique_Strings : shared;	#In memory unique strings
 my $GET_UNIQUE_LOCK : shared;	#Used to lock SQL access for unique string processing.
 my $Hash_hits : shared;
+my $Late_Hash_hits : shared;
+my $Hash_Lookups : shared;
+my $Hash_Inserts : shared;
+my $Hash_Size : shared;
 $Hash_hits = 0;
 $Events_ID_DB=-1;
 ##################################################################
@@ -142,7 +146,10 @@ End
 		print STATS "Base execution time per log: $MAX_EXECUTION_TIME<br >\n";
 		print STATS "Run time remaining: $Time_Remaining<br >\n";
 		print STATS "Hash hits: $Hash_hits<br>\n";
-		print STATS "Strings in Hash: ".keys(%Unique_Strings)."<br>\n";
+		print STATS "Late hash hits: $Late_Hash_hits<br>\n";
+		print STATS "Hash lookups: $Hash_Lookups<br>\n";
+		print STATS "Hash inserts: $Hash_Inserts<br>\n";
+		print STATS "Strings in Hash: ".$Hash_Size."<br>\n";
 		print STATS "<hr />";
 		if($Pending_Running)
 		{
@@ -172,7 +179,7 @@ End
 		}
 	}
 
-	sleep(15);				# 5 Seconds between interations
+	sleep(5);				# 5 Seconds between interations
 }
 # If we reach here, time to die has passed and all other threads have exited
 print "No more threads!\n";
@@ -483,6 +490,7 @@ sub __Get_Unique_ID_Or_Insert
 	if($Unique_Strings{"$this_string"})
 	{
 		$Hash_hits ++;
+		$Late_Hash_hits ++;
 		return $Unique_Strings{"$this_string"};
 	}
 
@@ -490,19 +498,27 @@ sub __Get_Unique_ID_Or_Insert
 	$rows_returned = scalar @$result_ref;
 	if($rows_returned < 1)
 	{
+		$Hash_Inserts++;
 		&SQL_Insert("INSERT INTO event_unique_strings (String) VALUES ('$this_string')");
 		$result_ref = &SQL_Query("SELECT String_ID FROM event_unique_strings WHERE String = '$this_string'");
 		$rows_returned = scalar @$result_ref;
 		if($rows_returned < 1) { die ("Insert must have failed, I couldn't select the new string!\n"); }
 	}
+	else
+	{
+		$Hash_Lookups++;
+	}
 	$row = shift(@$result_ref);
 	$String_ID= @$row[0];
+	$Unique_Strings{"$this_string"} = $String_ID;
+	$Hash_Size++;
 	return $String_ID;
 }
 
 sub Get_Unique_ID
 {
-	my $String_ID, $this_string;
+	my $String_ID;
+	my $this_string;
 
 	$this_string = shift;
 	if($Unique_Strings{"$this_string"})
@@ -510,15 +526,32 @@ sub Get_Unique_ID
 			$Hash_hits ++;
 			return $Unique_Strings{"$this_string"};
 		}
-
 	lock $GET_UNIQUE_LOCK;
 	$String_ID = &__Get_Unique_ID_Or_Insert($this_string);
-	$Unique_Strings{"$this_string"} = $String_ID;
-	if(keys(%Unique_Strings) > $MAX_UNIQUE_STRINGS)
+	if($Hash_Size > $MAX_UNIQUE_STRINGS)
 		{
-			%Unique_Strings = (); print "Clearing hash\n";
+			print "Clearing strings hash: ".scalar(keys(%Unique_Strings))."\n";
+			%Unique_Strings = ();
+			$Hash_Size = 0;
 		}
 	return $String_ID;
+}
+
+sub Get_Block
+{
+	my $New_Block_Start;
+	my $Event_ID;
+	
+	lock $Events_ID_DB;
+	if($Events_ID_DB == -1)
+	{
+		print "Inserting marker event\n";
+		$Event_ID=&SQL_Insert("INSERT INTO events (Time_Written, Time_Generated, System_ID, Service_ID) VALUES ".
+			"(UNIX_TIMESTAMP(NOW()), (UNIX_TIMESTAMP(NOW())), 0, 0)");
+		$Events_ID_DB = $Event_ID;
+	}
+	$New_Block_Start = ++$Events_ID_DB;
+	$Events_ID_DB+= ($BLOCK_SIZE + 2);
 }
 
 sub _insert_thread
@@ -533,7 +566,10 @@ sub _insert_thread
 	my $LocalQueue="";
 	my $query;
 	my $Event_ID;
+	my $Block_Pos, $Block_End;
 
+	$Block_End=0;
+	$Block_Pos=1;
 	$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
 	$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
 		or die ("Insert thread $who_am_i could not connect to database server.\n");
@@ -584,30 +620,21 @@ sub _insert_thread
 				$System_IDs{"$system"} = @$row[0];
 				undef $result_ref;
 			}
+			if($Block_Pos >= $Block_End)
 			{
-				lock($Events_ID_DB);
-				if($Events_ID_DB == -1)
-				{print "Inserting first event\n";
-					$Event_ID=&SQL_Insert("INSERT INTO events (Time_Written, Time_Generated, System_ID, Service_ID) VALUES ".
-						"(UNIX_TIMESTAMP(NOW()), $timegenerated, ". 
-						$System_IDs{"$system"} .", ". $Service_IDs{"$service"} .")");
-					$Events_ID_DB = $Event_ID;
-				}
-				else
-				{
-					$Events_ID_DB++;
-					$Event_ID = $Events_ID_DB;
-					if($Bulk_Event_Insert eq "")
-					{
-						$Bulk_Event_Insert = "($Event_ID,UNIX_TIMESTAMP(NOW()), $timegenerated, ".
-							$System_IDs{"$system"}.", ". $Service_IDs{"$service"}.")";
-					}
-					else
-					{
-						$Bulk_Event_Insert .= ",($Event_ID,UNIX_TIMESTAMP(NOW()), $timegenerated, ".
-							$System_IDs{"$system"}.", ". $Service_IDs{"$service"}.")";
-					}
-				}
+				$Block_Pos = &Get_Block();
+				$Block_End = $Block_Pos + $BLOCK_SIZE;
+			}
+			$Event_ID = $Block_Pos++;
+			if($Bulk_Event_Insert eq "")
+			{
+				$Bulk_Event_Insert = "($Event_ID,UNIX_TIMESTAMP(NOW()), $timegenerated, ".
+					$System_IDs{"$system"}.", ". $Service_IDs{"$service"}.")";
+			}
+			else
+			{
+				$Bulk_Event_Insert .= ",($Event_ID,UNIX_TIMESTAMP(NOW()), $timegenerated, ".
+					$System_IDs{"$system"}.", ". $Service_IDs{"$service"}.")";
 			}
 			$StringToInsert="$source $category $sid $computer $eventid $eventtype";
 			$StringToInsert .= " $_" foreach(@values);

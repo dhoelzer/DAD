@@ -13,4 +13,5 @@ $EVENT_HANDLER_THREADS = 8;	#Number of threads processing event logs
 $INSERT_THREADS=4;			#Number of threads inserting events
 $MAX_QUEUE_SIZE=5000;
 $MAX_IDLE_LOOPS=15;
-$MAX_UNIQUE_STRINGS=200000;
+$MAX_UNIQUE_STRINGS=100000;
+$BLOCK_SIZE=100000;
