@@ -32,6 +32,7 @@ use Win32::EventLog;
 # The following are "Shared".  This means that all threads can see the contents or modify the contents of these
 my $Time_To_Die : shared;		# Windows threads has a nasty memory leak.  This is used to force
 								# all threads to exit and then to die gracefully.
+my $Events_ID_DB : shared;
 my $Pending_Running : shared;
 my $DEBUG : shared;
 my $MYSQL_SERVER : shared;
@@ -51,6 +52,7 @@ my %Unique_Strings : shared;	#In memory unique strings
 my $GET_UNIQUE_LOCK : shared;	#Used to lock SQL access for unique string processing.
 my $Hash_hits : shared;
 $Hash_hits = 0;
+$Events_ID_DB=-1;
 ##################################################################
 
 my $BackupSQLFile;
@@ -530,6 +532,7 @@ sub _insert_thread
 	my $incoming;
 	my $LocalQueue="";
 	my $query;
+	my $Event_ID;
 
 	$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
 	$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
@@ -581,12 +584,35 @@ sub _insert_thread
 				$System_IDs{"$system"} = @$row[0];
 				undef $result_ref;
 			}
-			my $Event_ID=&SQL_Insert("INSERT INTO events (Time_Written, Time_Generated, System_ID, Service_ID) VALUES ".
-				"(UNIX_TIMESTAMP(NOW()), $timegenerated, ". 
-				$System_IDs{"$system"} .", ". $Service_IDs{"$service"} .")");
+			{
+				lock($Events_ID_DB);
+				if($Events_ID_DB == -1)
+				{print "Inserting first event\n";
+					$Event_ID=&SQL_Insert("INSERT INTO events (Time_Written, Time_Generated, System_ID, Service_ID) VALUES ".
+						"(UNIX_TIMESTAMP(NOW()), $timegenerated, ". 
+						$System_IDs{"$system"} .", ". $Service_IDs{"$service"} .")");
+					$Events_ID_DB = $Event_ID;
+				}
+				else
+				{
+					$Events_ID_DB++;
+					$Event_ID = $Events_ID_DB;
+					if($Bulk_Event_Insert eq "")
+					{
+						$Bulk_Event_Insert = "($Event_ID,UNIX_TIMESTAMP(NOW()), $timegenerated, ".
+							$System_IDs{"$system"}.", ". $Service_IDs{"$service"}.")";
+					}
+					else
+					{
+						$Bulk_Event_Insert .= ",($Event_ID,UNIX_TIMESTAMP(NOW()), $timegenerated, ".
+							$System_IDs{"$system"}.", ". $Service_IDs{"$service"}.")";
+					}
+				}
+			}
 			$StringToInsert="$source $category $sid $computer $eventid $eventtype";
 			$StringToInsert .= " $_" foreach(@values);
 			@insert_strings = split(/ /,$StringToInsert);
+			$Queue_Size++;
 			my $string_position=0;
 			foreach(@insert_strings)
 			{
@@ -600,7 +626,6 @@ sub _insert_thread
 					$InsertString .= ",($Event_ID, $string_position, $String_ID)";
 				}
 				$string_position++;
-				$Queue_Size++;
 				undef $result_ref;
 			}
 		}
@@ -609,7 +634,9 @@ sub _insert_thread
 			$empty_loops = 0;
 			$Inserted += $Queue_Size;
 			&SQL_Insert("INSERT INTO event_fields (Events_ID, Position, String_ID) VALUES ".$InsertString);
+			&SQL_Insert("INSERT INTO events (Events_ID,Time_Written, Time_Generated, System_ID, Service_ID) VALUES $Bulk_Event_Insert");
 			undef $InsertString;
+			undef $Bulk_Event_Insert;
 			$Queue_Size = 0;
 		}
 		$Status{"sql $who_am_i"} = "Queue size: $Queue_Size  Inserted: $Inserted";
