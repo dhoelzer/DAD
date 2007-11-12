@@ -7,15 +7,15 @@ echo Installing from %INSTALL_DIR%...
 echo -----------------------------------------------------------------
 echo Installing Apache
 echo Please accept all defaults.
-call msiexec /i %INSTALL_DIR%\apache\apache_2.0.58-win32-x86-no_ssl.msi
+rem call msiexec /i %INSTALL_DIR%\apache\apache_2.0.58-win32-x86-no_ssl.msi
 echo -----------------------------------------------------------------
 echo Modifying the Apache configuration file...
-echo AddType application/x-httpd-php .php .html .htm >> "C:\Program Files\Apache Group\Apache2\conf\httpd.conf"
-echo AddHandler application/x-httpd-php .php >> "C:\Program Files\Apache Group\Apache2\conf\httpd.conf"
-echo AddHandler application/x-httpd-php .html >> "C:\Program Files\Apache Group\Apache2\conf\httpd.conf"
-echo AddHandler application/x-httpd-php .htm >> "C:\Program Files\Apache Group\Apache2\conf\httpd.conf"
-echo Overriding Document Root in httpd.conf
-echo DocumentRoot "C:/DAD/web/html" >> "C:\Program Files\Apache Group\Apache2\conf\httpd.conf"
+rem echo AddType application/x-httpd-php .php .html .htm >> "C:\Program Files\Apache Group\Apache2\conf\httpd.conf"
+rem echo AddHandler application/x-httpd-php .php >> "C:\Program Files\Apache Group\Apache2\conf\httpd.conf"
+rem echo AddHandler application/x-httpd-php .html >> "C:\Program Files\Apache Group\Apache2\conf\httpd.conf"
+rem echo AddHandler application/x-httpd-php .htm >> "C:\Program Files\Apache Group\Apache2\conf\httpd.conf"
+rem echo Overriding Document Root in httpd.conf
+rem echo DocumentRoot "C:/DAD/web/html" >> "C:\Program Files\Apache Group\Apache2\conf\httpd.conf"
 @rem copy /Y %INSTALL_DIR%\apache\httpd.conf "c:\program files\Apache group\apache2\conf"
 echo -----------------------------------------------------------------
 echo Before proceeding, you should have ALREADY downloaded and instal-
@@ -30,15 +30,15 @@ echo family server!!!
 echo -----------------------------------------------------------------
 echo Please hit enter AFTER you have installed the required packages.
 pause
-echo Stopping MySQL Service...
-call sc stop mysql
-ping -n 10 -w 1000 127.0.0.1 > nul
-echo Moving MySQL Data files...
-xcopy /e "C:\Program Files\MySQL\MySQL Server 5.0\data\*" "c:\DAD\data\"
-echo Replacing MySQL configuration file...
-copy /Y %INSTALL_DIR%\MySQL\my.ini "C:\Program Files\MySQL\MySQL Server 5.0\my.ini"
-call sc start mysql
-echo MySQL restarted.
+rem echo Stopping MySQL Service...
+ren call sc stop mysql
+rem ping -n 10 -w 1000 127.0.0.1 > nul
+rem echo Moving MySQL Data files...
+rem xcopy /e "C:\Program Files\MySQL\MySQL Server 5.0\data\*" "c:\DAD\data\"
+rem echo Replacing MySQL configuration file...
+rem copy /Y %INSTALL_DIR%\MySQL\my.ini "C:\Program Files\MySQL\MySQL Server 5.0\my.ini"
+rem call sc start mysql
+rem echo MySQL restarted.
 echo -----------------------------------------------------------------
 echo MySQL configuration completed
 echo -----------------------------------------------------------------

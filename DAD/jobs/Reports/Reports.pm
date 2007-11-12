@@ -70,7 +70,7 @@ sub GetEventsByStrings
 	SELECT * 
 	FROM event_unique_strings 
 	WHERE String IN ( }. $SearchTerms .q{ )
-	};#print "$SQL\n";
+	};print "$SQL\n";
 	$results_ref = &SQL_Query($SQL);
 	$num_results = @$results_ref;
 	if($num_results < $num_terms)
@@ -104,8 +104,9 @@ sub GetEventsByStrings
 			FROM events as a
 			}. $JOINS .q{
 			WHERE }. $StringIDFilter .q{ 
-			}. $MATCHES .q{ };
-			#LIMIT 100
+			}. $MATCHES .q{ LIMIT 100};
+print "$SQL\n";
+			
 		my $results_ref2 = &SQL_Query($SQL);
 		$num_results = @$results_ref2;
 		if($num_results)
@@ -144,7 +145,7 @@ sub GetEventsByStrings
 					AND e.Time_Generated > }. $TimeFrame .q{
 					GROUP BY f.Events_ID
 					ORDER BY f.Events_ID,f.Position	, e.Time_Generated			
-				};#print "$SQL\n";exit 1;
+				};print "$SQL\n";exit 1;
 			my $event_detail_ref = &SQL_Query($SQL);
 			$num_results = @$event_detail_ref;
 			if($num_results)
