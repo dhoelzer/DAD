@@ -179,7 +179,7 @@ End
 		}
 	}
 
-	sleep(5);				# 5 Seconds between interations
+	sleep(15);				# 5 Seconds between interations
 }
 # If we reach here, time to die has passed and all other threads have exited
 print "No more threads!\n";
@@ -278,6 +278,7 @@ sub _event_thread
 	my $stop_time, $continue;
 	my %Record, @Values, $Value, $i;	
 	my $logs_value;
+	my $Total_Sleep=0;
 
 	$Status{"log $who_am_i"} = "Waiting";
 	
@@ -293,15 +294,18 @@ sub _event_thread
 			}
 			if(!$system)
 			{
-				$Status{"log $who_am_i"} = "Sleeping";
-				sleep(5);
+				$Total_Sleep+=30;
+				$Status{"log $who_am_i"} = "Sleeping: $Total_Sleep";
+				sleep(30);
 				if($Time_To_Die)
 				{
 				  $Status{"log $who_am_i"} = "Dead.";
 				  return;
 				}
+				if($Total_Sleep > 600) { &SQL_Query("SELECT 1"); $Total_Sleep=0;}
 			}
 		}
+		$Total_Sleep=0;
 		$logs_value = $LogThese{$system};
 		$logs_value += 0;
 		@Logs=();
