@@ -25,7 +25,7 @@ global $_GET;
 	$strSQL = 'SELECT Query_ID, Query, Name, Description, Category, Roles, Timeframe FROM dad_sys_queries ORDER BY Category,Name';
 	$Queries = runQueryReturnArray( $strSQL );
 	$strHTML = <<<END
-		<form id=frmExistingQueries name="ExistingQueries" action="$strURL" method="post" style="position:relative; top:25px;">
+		
 		<table cellspacing=4 border=1>
 END;
 //PrintGlobal();
@@ -63,18 +63,20 @@ END;
 	if(isset($_GET["SubmittedQuery"]))
 	{
 		$QueryID = $_GET["SubmittedQuery"];
+		$Start = (isset($_GET["Start"]) ? ($_GET["Start"] > 0 ? $_GET["Start"] : 1) : 1);
 		$strSQL = "SELECT Query, Name, Timeframe FROM dad_sys_queries WHERE Query_ID='$QueryID'";
-		$strSQL = generateEventQuery($strSQL);
-		$Popup_Contents = <<<END
-			<STYLE TYPE='text/css'><!--.PopupTable{	font-size:8pt;}	--> </STYLE>
-END;
-		$Popup_Contents .= Query_to_Table($strSQL, 1, "PopupTable");
-		Popup("Test", $Popup_Contents, 980, 650, 5, 5);
+		$strSQL = generateEventQuery($strSQL, $Start);
+		$Result_Contents = Query_to_Table($strSQL, 1);//, "PopupTable");
+		//Popup("Test", $Popup_Contents, 980, 650, 5, 5);
+		$strHTML = "<p><a href='$strURL&SubmittedQuery=$QueryID&Start=".($Start-10)."'>< Previous</a> | ".
+			"<a href='$strURL&SubmittedQuery=$QueryID&Start=".($Start+10)."'> Next ></a><p><div class=results width=90% border=1 height=200px name=ResultSet>$Result_Contents</div>";
+		add_element($strHTML);
+		
 	}
 }
 
 
-function generateEventQuery($strSQL, $start=1, $limit=20)
+function generateEventQuery($strSQL, $start=1, $limit=10)
 {
 	$StringIDFilter = "";
 	$Terms = "";
