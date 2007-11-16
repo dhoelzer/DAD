@@ -727,7 +727,7 @@ CREATE TABLE `dad_sys_cis_imported` (
   `System_Name` varchar(45) DEFAULT NULL,
   `LastLogEntry` bigint(20) unsigned DEFAULT NULL,
   PRIMARY KEY (`CIS_Imported_ID`)
-) ENGINE=MyISAM AUTO_INCREMENT=1106 DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM AUTO_INCREMENT=1130 DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
 
 --
@@ -764,7 +764,7 @@ CREATE TABLE `dad_sys_event_import_from` (
   `Next_Run` int(10) unsigned NOT NULL,
   `Log_These` int(10) unsigned NOT NULL,
   PRIMARY KEY (`ToImportID`)
-) ENGINE=MyISAM AUTO_INCREMENT=142 DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM AUTO_INCREMENT=146 DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
 
 --
@@ -785,7 +785,7 @@ CREATE TABLE `dad_sys_event_stats` (
   PRIMARY KEY (`Stats_ID`),
   KEY `Systems` (`System_Name`),
   KEY `Stats_Type` (`Stat_Type`) USING BTREE
-) ENGINE=MyISAM AUTO_INCREMENT=7380854 DEFAULT CHARSET=latin1 COMMENT='Tracks event log gathering statistics';
+) ENGINE=MyISAM AUTO_INCREMENT=7479021 DEFAULT CHARSET=latin1 COMMENT='Tracks event log gathering statistics';
 SET character_set_client = @saved_cs_client;
 
 --
@@ -1018,7 +1018,7 @@ CREATE TABLE `dad_sys_services` (
   `Contact_Information` varchar(80) NOT NULL DEFAULT '',
   `log_these_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`Service_ID`)
-) ENGINE=MyISAM AUTO_INCREMENT=2041 DEFAULT CHARSET=latin1 COMMENT='Tracks services reported on';
+) ENGINE=MyISAM AUTO_INCREMENT=2042 DEFAULT CHARSET=latin1 COMMENT='Tracks services reported on';
 SET character_set_client = @saved_cs_client;
 
 --
@@ -1038,7 +1038,7 @@ CREATE TABLE `dad_sys_systems` (
   `IP_Address` varchar(15) NOT NULL DEFAULT '',
   `Contact_Information` varchar(80) NOT NULL DEFAULT '',
   PRIMARY KEY (`System_ID`)
-) ENGINE=MyISAM AUTO_INCREMENT=131 DEFAULT CHARSET=latin1 COMMENT='Master system table';
+) ENGINE=MyISAM AUTO_INCREMENT=135 DEFAULT CHARSET=latin1 COMMENT='Master system table';
 SET character_set_client = @saved_cs_client;
 
 --
@@ -1049,14 +1049,9 @@ DROP TABLE IF EXISTS `event_fields`;
 SET @saved_cs_client     = @@character_set_client;
 SET character_set_client = utf8;
 CREATE TABLE `event_fields` (
-  `Field_ID` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-  `Events_ID` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to Events table',
-  `Position` int(10) unsigned NOT NULL COMMENT 'Which field am I?',
-  `String_ID` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to unique strings table',
-  PRIMARY KEY (`Field_ID`),
-  KEY `idxString_ID` (`String_ID`),
-  KEY `idxEvent_ID` (`Events_ID`)
-) ENGINE=MyISAM AUTO_INCREMENT=13137204 DEFAULT CHARSET=latin1 COMMENT='Normalized field values from events';
+  `Events_ID` bigint(20) unsigned NOT NULL,
+  `Unique_Field_ID` bigint(20) unsigned NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 ROW_FORMAT=DYNAMIC;
 SET character_set_client = @saved_cs_client;
 
 --
@@ -1068,10 +1063,10 @@ SET @saved_cs_client     = @@character_set_client;
 SET character_set_client = utf8;
 CREATE TABLE `event_unique_strings` (
   `String_ID` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-  `String` varchar(768) NOT NULL COMMENT 'Actual unique string',
+  `String` varchar(767) NOT NULL,
   PRIMARY KEY (`String_ID`),
-  UNIQUE KEY `idxStrings` (`String`) USING BTREE
-) ENGINE=MyISAM AUTO_INCREMENT=415566 DEFAULT CHARSET=latin1 COMMENT='Holds all unique strings used in events';
+  UNIQUE KEY `StringIDX` (`String`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
 
 --
@@ -1082,17 +1077,13 @@ DROP TABLE IF EXISTS `events`;
 SET @saved_cs_client     = @@character_set_client;
 SET character_set_client = utf8;
 CREATE TABLE `events` (
-  `Events_ID` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Primary index',
-  `Time_Written` int(10) unsigned NOT NULL COMMENT 'Time the event is added to the database',
-  `Time_Generated` int(10) unsigned NOT NULL COMMENT 'Time the generating system created the event',
-  `System_ID` int(10) unsigned NOT NULL COMMENT 'Foreign Key to dad_sys_systems',
-  `Service_ID` int(10) unsigned NOT NULL COMMENT 'Foreign Key to dad_sys_services',
-  PRIMARY KEY (`Events_ID`),
-  KEY `idxTime_Written` (`Time_Written`),
-  KEY `idxTime_Generated` (`Time_Generated`),
-  KEY `idxSystem_ID` (`System_ID`),
-  KEY `idxService_ID` (`Service_ID`)
-) ENGINE=MyISAM AUTO_INCREMENT=859328 DEFAULT CHARSET=latin1 COMMENT='Normalized events';
+  `Events_ID` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `Time_Generated` int(10) unsigned NOT NULL,
+  `Time_Written` int(10) unsigned NOT NULL,
+  `System_ID` int(10) unsigned NOT NULL,
+  `Service_ID` int(10) unsigned NOT NULL,
+  PRIMARY KEY (`Events_ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 ROW_FORMAT=DYNAMIC;
 SET character_set_client = @saved_cs_client;
 
 --
@@ -1304,6 +1295,21 @@ CREATE TABLE `system` (
 SET character_set_client = @saved_cs_client;
 
 --
+-- Table structure for table `unique_fields`
+--
+
+DROP TABLE IF EXISTS `unique_fields`;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
+CREATE TABLE `unique_fields` (
+  `Unique_Field_ID` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `Position` int(10) unsigned NOT NULL,
+  `String_ID` bigint(20) unsigned NOT NULL,
+  PRIMARY KEY (`Unique_Field_ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 ROW_FORMAT=DYNAMIC;
+SET character_set_client = @saved_cs_client;
+
+--
 -- Table structure for table `user`
 --
 
@@ -1359,7 +1365,7 @@ CREATE TABLE `userstat` (
   `LoginCount` int(10) unsigned NOT NULL DEFAULT '0',
   `LatestLoginStamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`UserStatID`)
-) ENGINE=MyISAM AUTO_INCREMENT=20 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=21 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 SET character_set_client = @saved_cs_client;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -1371,4 +1377,4 @@ SET character_set_client = @saved_cs_client;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2007-09-17 22:48:27
+-- Dump completed on 2007-11-14 18:28:07
