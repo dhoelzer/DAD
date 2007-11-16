@@ -32,6 +32,7 @@ use Win32::EventLog;
 # The following are "Shared".  This means that all threads can see the contents or modify the contents of these
 my $Time_To_Die : shared;		# Windows threads has a nasty memory leak.  This is used to force
 								# all threads to exit and then to die gracefully.
+my $Events_ID_DB : shared;
 my $Pending_Running : shared;
 my $DEBUG : shared;
 my $MYSQL_SERVER : shared;
@@ -47,6 +48,15 @@ my $SQL_Queue : shared;			#Queue used to transfer inserts to insert threads
 my $Process_Queue : shared;		#Queue used to mark next logs to process
 my $High_Priority_Queue : shared; #Queue used for priority 1 systems
 my $MAX_EXECUTION_TIME : shared;#Maximum time a thread can spend processing any given log.
+my %Unique_Strings : shared;	#In memory unique strings
+my $GET_UNIQUE_LOCK : shared;	#Used to lock SQL access for unique string processing.
+my $Hash_hits : shared;
+my $Late_Hash_hits : shared;
+my $Hash_Lookups : shared;
+my $Hash_Inserts : shared;
+my $Hash_Size : shared;
+$Hash_hits = 0;
+$Events_ID_DB=-1;
 ##################################################################
 
 my $BackupSQLFile;
@@ -60,11 +70,18 @@ my %Insert_Threads;				#Hash containing handles to the insert threads
 my %Log_Threads;				#Hash containing handles to the event log threads
 my @Systems;					#Systems to process
 my $System_Started;				# Time this process started
+my	$dsn, 						# Database connection
+	$dbh;
 
 #Read in and evaluate the configuration values
 open(FILE,"Aggregator.ph") or die "Could not find configuration file!\n";
 foreach (<FILE>) { eval(); }
 close(FILE);
+
+	
+$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
+$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
+	or die ("Could not connect to DB server to import the list of servers to poll.\n");
 
 #Initialize shared variables
 $Time_To_Die = 0;
@@ -97,12 +114,12 @@ while(1)						#Always running, never getting anywhere
 	$Time_Remaining = "Continuously running.";
 	{
 		#Recreate the quick stats every time through.
-		open(STATS, ">$OUTPUT_LOCATION/stats.html") or print "Couldn't open stats file.\n";
+		open(STATS, ">$OUTPUT_LOCATION/stats2.html") or print "Couldn't open stats file.\n";
 		print STATS<<End;
 		<html>
 		<head>
 		<title>Aggregator Status</title>
-		<meta http-equiv="Refresh" CONTENT="5;URL=/stats/stats.html" />
+		<meta http-equiv="Refresh" CONTENT="30;URL=/stats/stats2.html" />
 		</title>
 		<body>
 End
@@ -128,6 +145,11 @@ End
 		print STATS "$hpending priority 1 systems waiting.<br >\n";
 		print STATS "Base execution time per log: $MAX_EXECUTION_TIME<br >\n";
 		print STATS "Run time remaining: $Time_Remaining<br >\n";
+		print STATS "Hash hits: $Hash_hits<br>\n";
+		print STATS "Late hash hits: $Late_Hash_hits<br>\n";
+		print STATS "Hash lookups: $Hash_Lookups<br>\n";
+		print STATS "Hash inserts: $Hash_Inserts<br>\n";
+		print STATS "Strings in Hash: ".$Hash_Size."<br>\n";
 		print STATS "<hr />";
 		if($Pending_Running)
 		{
@@ -157,7 +179,7 @@ End
 		}
 	}
 
-	sleep(5);				# 5 Seconds between interations
+	sleep(15);				# 5 Seconds between interations
 }
 # If we reach here, time to die has passed and all other threads have exited
 print "No more threads!\n";
@@ -170,6 +192,12 @@ print "No more threads!\n";
 
 sub _event_thread
 {
+	my	$dsn, 						# Database connection
+		$dbh;
+	$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
+	$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
+		or die ("Could not connect to DB server to update filtered event list.\n");
+
 	##################################################
 	#
 	# record_event - Push the event into the database
@@ -179,101 +207,7 @@ sub _event_thread
 	##################################################
 	sub record_event
 	{
-		my $time, $system, $service, @values, @row, $row, $result_ref, $rows_returned, $idxID_Code, $idxID_Kerb, $idxID_NTLM;
-		($system, $service, $timewritten, $timegenerated, $source, $category, $sid, $computer, $eventid, $eventtype, @values) = @_;
-		
-		# See if the service is known.  If not, get it from the database or create a new ID:
-		if(! $Service_IDs{"$service"})
-		{
-			$result_ref = &_SQL_Query("SELECT Service_ID, Service_Name FROM dad_sys_services WHERE Service_Name = '$service'");
-			$rows_returned = scalar @$result_ref;
-			if($rows_returned < 1)
-			{
-				&_SQL_Insert("INSERT INTO dad_sys_services (Service_Name) VALUES ('$service')");
-				$result_ref = &_SQL_Query("SELECT Service_ID, Service_Name FROM dad_sys_services WHERE Service_Name = '$service'");
-				$rows_returned = scalar @$result_ref;
-				if($rows_returned < 1) { die ("Insert must have failed, I couldn't select the new data (service)!\n"); }
-			}
-			$row = shift(@$result_ref);
-			$Service_IDs{"$service"} = @$row[0];
-			undef $result_ref;
-		}
-	
-		# See if the system is known.  If not, get it from the database or create a new ID:
-		if(! $System_IDs{"$system"})
-		{
-			$result_ref = &_SQL_Query("SELECT System_ID, System_Name FROM dad_sys_systems WHERE System_Name = '$system'");
-			$rows_returned = scalar @$result_ref;
-			if($rows_returned < 1)
-			{
-				&_SQL_Insert("INSERT INTO dad_sys_systems (System_Name) VALUES ('$system')");
-				$result_ref = &_SQL_Query("SELECT System_ID, System_Name FROM dad_sys_systems WHERE System_Name = '$system'");
-				$rows_returned = scalar @$result_ref;
-				if($rows_returned < 1) { die ("Insert must have failed, I couldn't select the new data (system)!\n"); }
-			}
-			$row = shift(@$result_ref);
-			$System_IDs{"$system"} = @$row[0];
-			undef $result_ref;
-		}
-
-		
-		# Now insert a new event with the correct system and service IDs
-		$idxID_Code = substr("$eventid $values[2]",0,64);
-		if($idxID_Code =~ /.*[^\\]\\$/) { chop($idxID_Code); }
-		$idxID_Kerb = substr("$eventid $values[4]",0,64);
-		if($idxID_Kerb =~ /.*[^\\]\\$/) { chop($idxID_Kerb); }
-		$idxID_NTLM = substr("$eventid $values[3]",0,64);
-		if($idxID_NTLM =~ /.*[^\\]\\$/) { chop($idxID_NTLM); }
-		# Rather than adding a new field to the schema, we are changing the meaning of TimeWritten - It is now the time that the event is
-		# Inserted rather than the time that the event was generated - This is appropriate since the two timestamps always match in Windows
-		# and we still have the Generated timestamp.
-		$SQL_Queue->enqueue("('". $System_IDs{"$system"} ."', ". $Service_IDs{"$service"} .", ".
-			"UNIX_TIMESTAMP(NOW()), '$timegenerated', '$source', '$category', '$sid', '$computer', '$eventid', '$eventtype', ".
-			"'$values[0]', '$values[1]', '$values[2]', '$values[3]', '$values[4]', ".
-			"'$values[5]', '$values[6]', '$values[7]', '$values[8]', '$values[9]', ".
-			"'$values[10]', '$values[11]', '$values[12]', '$values[13]', '$values[14]', '$values[15]', '$values[16]', ".
-			"'$values[17]', '$values[18]', '$values[19]', '$values[20]', '$values[21]', '$values[22]', '$values[23]',".
-			"'$values[24]', '$values[25]', '$idxID_Code', '$idxID_Kerb', '$idxID_NTLM')");
-
-	}
-
-	sub addslashes
-	{
-		my $String = shift;
-		$String =~ s/(["'\%\\])/\\\1/g;
-		$String =~ s/[^[:print:]]//g;
-		return $String;
-	}
-	##################################################
-	#
-	# SQL_Query - Does the legwork for all SQL queries including basic error checking
-	# 	Takes a SQL string as an argument
-	#
-	##################################################
-	sub _SQL_Query
-	{
-		my $SQL = $_[0];
-		
-		my $query = $dbh->prepare($SQL);
-		$query -> execute();
-		my $ref_to_array_of_row_refs = $query->fetchall_arrayref(); 
-		$query->finish();
-		return $ref_to_array_of_row_refs;
-	}
-	
-	##################################################
-	#
-	# SQL_Insert - Does the legwork for all SQL inserts including basic error checking
-	# 	Takes a SQL string as an argument
-	#
-	##################################################
-	sub _SQL_Insert
-	{
-		my $SQL = $_[0];
-		my $query = $dbh->prepare($SQL);
-		if($DEBUG){return; print"$SQL\n";return;}
-		$query -> execute();
-		$query->finish();
+		$SQL_Queue->enqueue(join('~~~~~',@_));
 	}
 
 	#########################
@@ -283,21 +217,17 @@ sub _event_thread
 		my	$results_ref,				# Used to hold query responses
 			$row,						#Row array reference
 			@this_row;					#Current row
-		my	$dsn, 						# Database connection
-			$dbh;
 	# Open the database connection.  We turn auto commit off so that we can do block inserts.
-		$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
-		$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
-			or die ("Could not connect to DB server to update filtered event list.\n");
 	
 		%Filtered_Events;
 	# Fetch the list of services to filter
-		$results_ref = &_SQL_Query("SELECT Event_ID, Description FROM dad_sys_filtered_events");
+		$results_ref = &SQL_Query("SELECT Event_ID, Description FROM dad_sys_filtered_events");
 		while($row = shift(@$results_ref))
 		{
 			@this_row = @$row;
 			$Filtered_Events{$this_row[0]}=1;
 		}
+		undef $results_ref;
 	}									#Implicit unlock of %Filtered_Events
 
 	#/********************************************************
@@ -308,58 +238,48 @@ sub _event_thread
 	#********************************************************/
 	sub mark_log_processed
 	{
-	my $logfile = shift;
-	my $system = shift;
-	my $lastentry = shift;
-	my $total = shift;
-	my $collected = shift;
-	my $next_launch = ((int(6000/($collected + 1))) * $Priority{$system});
-	if($Priority{$system} < 3) 
-	{ 
-		$next_launch = ($next_launch > 120 ? 120 : $next_launch); 
-	}
-	$next_launch += mktime(localtime());
-	if($lastentry > -1) 
-	{
-		&_SQL_Insert("UPDATE dad_sys_cis_imported SET LastLogEntry='$lastentry' WHERE Log_Name='$logfile' AND System_Name='$system'");}
-		&_SQL_Insert("UPDATE dad_sys_event_import_from SET Next_Run='$next_launch' WHERE System_Name='$system'");
-		&_SQL_Insert("INSERT INTO dad_sys_event_stats (System_Name,Service_Name, Stat_Type, Total_In_Log, Number_Inserted,Stat_Time) ".
+		my $logfile = shift;
+		my $system = shift;
+		my $lastentry = shift;
+		my $total = shift;
+		my $collected = shift;
+		my $next_launch = ((int(6000/($collected + 1))) * $Priority{$system});
+		if($Priority{$system} < 3) 
+		{ 
+			$next_launch = ($next_launch > 120 ? 120 : $next_launch); 
+		}
+		$next_launch += mktime(localtime());
+		if($lastentry > -1) 
+		{
+		&SQL_Insert("UPDATE dad_sys_cis_imported SET LastLogEntry='$lastentry' WHERE Log_Name='$logfile' AND System_Name='$system'");
+		&SQL_Insert("UPDATE dad_sys_event_import_from SET Next_Run='$next_launch' WHERE System_Name='$system'");
+		&SQL_Insert("INSERT INTO dad_sys_event_stats (System_Name,Service_Name, Stat_Type, Total_In_Log, Number_Inserted,Stat_Time) ".
 			"VALUES ('$system', '$logfile', 1, $total, $collected, UNIX_TIMESTAMP(NOW()))");
+		}
 	}
 
-	sub ConvertSidToSidString{
-
-	    my $sid  = shift;
-		my $Revision, $SubAuthorityCount, $IdentifierAuthority0, $IdentifierAuthorities12, @SubAuthorities;
-		my $IdentifierAuthority;
-        $sid or return;
-        ($Revision, $SubAuthorityCount, $IdentifierAuthority0, $IdentifierAuthorities12, @SubAuthorities) = unpack("CCnNV*", $sid);
-        $IdentifierAuthority = $IdentifierAuthority0 ? sprintf('0x%04hX%08X', $IdentifierAuthority0, $IdentifierAuthorities12) : $IdentifierAuthorities12;
-        $SubAuthorityCount == scalar(@SubAuthorities) or return;
-        return "S-$Revision-$IdentifierAuthority-".join("-", @SubAuthorities);
-    }
 #
 # End local functions
 ############################################################
-$Win32::EventLog::GetMessageText = 0;	# If this is off, there should be no ntdll.dll calls!
+
+	$Win32::EventLog::GetMessageText = 0;	# If this is off, there should be no ntdll.dll calls!
+	# We've discovered that NTDLL.dll is -not- thread safe.  If you turn this back on, expect your aggregator
+	# to die horribly.
+	
 	my $TotalEvents=0;
 	my $who_am_i = shift;
 	my $log;
 	my @Logs = ();						#Logs to process from each system
 	my %Service_IDs, %System_IDs;
 	my $handle;							#Event log handle;
-	my	$dsn, 							# Database connection
-		$dbh;
 	my $base, $recs, $newbase, $new, $results_ref, $hashRef,
 		$row, @this_row, $total, $lastprocessed, $collected;
 	my $system;
 	my $stop_time, $continue;
 	my %Record, @Values, $Value, $i;	
 	my $logs_value;
+	my $Total_Sleep=0;
 
-	$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
-	$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
-		or die ("Could not connect to DB server to for event thread $who_am_i.\n");
 	$Status{"log $who_am_i"} = "Waiting";
 	
 	while((!$Time_To_Die))
@@ -374,14 +294,18 @@ $Win32::EventLog::GetMessageText = 0;	# If this is off, there should be no ntdll
 			}
 			if(!$system)
 			{
-				sleep(1);
+				$Total_Sleep+=30;
+				$Status{"log $who_am_i"} = "Sleeping: $Total_Sleep";
+				sleep(30);
 				if($Time_To_Die)
 				{
 				  $Status{"log $who_am_i"} = "Dead.";
 				  return;
 				}
+				if($Total_Sleep > 600) { &SQL_Query("SELECT 1"); $Total_Sleep=0;}
 			}
 		}
+		$Total_Sleep=0;
 		$logs_value = $LogThese{$system};
 		$logs_value += 0;
 		@Logs=();
@@ -429,7 +353,7 @@ $Win32::EventLog::GetMessageText = 0;	# If this is off, there should be no ntdll
 			}
 			$new = $recs;
 			$total = $base + $recs;
-			$results_ref = &_SQL_Query("SELECT LastLogEntry FROM dad_sys_cis_imported WHERE Log_Name='$log' AND System_Name='$system'");
+			$results_ref = &SQL_Query("SELECT LastLogEntry FROM dad_sys_cis_imported WHERE Log_Name='$log' AND System_Name='$system'");
 			$row = shift(@$results_ref);
 			if($row)
 			{
@@ -452,7 +376,7 @@ $Win32::EventLog::GetMessageText = 0;	# If this is off, there should be no ntdll
 			else
 			{
 				print "\t\t* New Log\n";
-				&_SQL_Insert("INSERT INTO dad_sys_cis_imported (Log_Name, System_Name, LastLogEntry) VALUES ('$log', '$system', '0')");
+				&SQL_Insert("INSERT INTO dad_sys_cis_imported (Log_Name, System_Name, LastLogEntry) VALUES ('$log', '$system', '0')");
 			}
 # Set up for reading.  Position at one record before the actual base.
 # And then read in all of the events.
@@ -547,6 +471,9 @@ $Win32::EventLog::GetMessageText = 0;	# If this is off, there should be no ntdll
 			&mark_log_processed($log, $system, ($base), $total, $collected);
 			$total = 0;
 			$collected = 0;
+			undef %hashRef;
+			undef %Record;
+			undef $handle;
 		}
 	delete $Processing{$system};
 	$Status{"log $who_am_i"} = "Waiting";
@@ -555,6 +482,80 @@ print "\t$who_am_i Exited\n";
 $Status{"log $who_am_i"} = "Dead.";
 delete $Processing{$system};
 return;
+}
+
+sub __Get_Unique_ID_Or_Insert
+{
+	my $String_ID,$result_ref, $rows_returned, $this_string;
+	
+	$this_string = shift;
+
+	# First double check memory hash in case it was added while we were locked.
+	if($Unique_Strings{"$this_string"})
+	{
+		$Hash_hits ++;
+		$Late_Hash_hits ++;
+		return $Unique_Strings{"$this_string"};
+	}
+
+	$result_ref = &SQL_Query("SELECT String_ID FROM event_unique_strings WHERE String = '$this_string'");
+	$rows_returned = scalar @$result_ref;
+	if($rows_returned < 1)
+	{
+		$Hash_Inserts++;
+		&SQL_Insert("INSERT INTO event_unique_strings (String) VALUES ('$this_string')");
+		$result_ref = &SQL_Query("SELECT String_ID FROM event_unique_strings WHERE String = '$this_string'");
+		$rows_returned = scalar @$result_ref;
+		if($rows_returned < 1) { die ("Insert must have failed, I couldn't select the new string!\n"); }
+	}
+	else
+	{
+		$Hash_Lookups++;
+	}
+	$row = shift(@$result_ref);
+	$String_ID= @$row[0];
+	$Unique_Strings{"$this_string"} = $String_ID;
+	$Hash_Size++;
+	return $String_ID;
+}
+
+sub Get_Unique_ID
+{
+	my $String_ID;
+	my $this_string;
+
+	$this_string = shift;
+	if($Unique_Strings{"$this_string"})
+		{
+			$Hash_hits ++;
+			return $Unique_Strings{"$this_string"};
+		}
+	lock $GET_UNIQUE_LOCK;
+	$String_ID = &__Get_Unique_ID_Or_Insert($this_string);
+	if($Hash_Size > $MAX_UNIQUE_STRINGS)
+		{
+			print "Clearing strings hash: ".scalar(keys(%Unique_Strings))."\n";
+			%Unique_Strings = ();
+			$Hash_Size = 0;
+		}
+	return $String_ID;
+}
+
+sub Get_Block
+{
+	my $New_Block_Start;
+	my $Event_ID;
+	
+	lock $Events_ID_DB;
+	if($Events_ID_DB == -1)
+	{
+		print "Inserting marker event\n";
+		$Event_ID=&SQL_Insert("INSERT INTO events (Time_Written, Time_Generated, System_ID, Service_ID) VALUES ".
+			"(UNIX_TIMESTAMP(NOW()), (UNIX_TIMESTAMP(NOW())), 0, 0)");
+		$Events_ID_DB = $Event_ID;
+	}
+	$New_Block_Start = ++$Events_ID_DB;
+	$Events_ID_DB+= ($BLOCK_SIZE + 2);
 }
 
 sub _insert_thread
@@ -568,85 +569,106 @@ sub _insert_thread
 	my $incoming;
 	my $LocalQueue="";
 	my $query;
-	my $empty_loops = 0;
-# Open the database connection.  We turn auto commit off so that we can do block inserts.
+	my $Event_ID;
+	my $Block_Pos, $Block_End;
+
+	$Block_End=0;
+	$Block_Pos=1;
 	$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
 	$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
 		or die ("Insert thread $who_am_i could not connect to database server.\n");
 	$Status{"sql $who_am_i"} = "Waiting";
 	$Queue_Size=0;
+	my $InsertString="";
 	if($DEBUG) { print "Exiting - Debug mode.  No inserts.\n"; return; }
 	while(1)
 	{
 		my $Force=0;
 		$incoming = $SQL_Queue->dequeue_nb();
-		$empty_loops++;
 		if($incoming)
 		{
-			$empty_loops=0;
 			$_TotalQueries++;
-			if($Queue_Size==0) { $LocalQueue = "$incoming"; }
-			else {$LocalQueue .= ",$incoming";}
-			$Inserted++;
-			$Queue_Size++;
-		}
-		if(($SQL_Queue->pending() == 0) && ($Queue_Size > 0)) { $Force=1; }
-		if(($Queue_Size > $MAX_QUEUE_SIZE) || ($Force == 1) || ($empty_loops > $MAX_IDLE_LOOPS && $Queue_Size > 0)) 
-		{
-			my $retries = 0;
-			$empty_loops=0;
-			$SQL = "INSERT INTO dad_sys_events (SystemID, ServiceID, TimeWritten, TimeGenerated, Source, Category, SID, ".
-			"Computer, EventID, EventType, Field_0, Field_1, Field_2, Field_3, Field_4, Field_5, Field_6, Field_7, Field_8, Field_9, ".
-			"Field_10, Field_11, Field_12, Field_13, Field_14, Field_15, Field_16, Field_17, ".
-			"Field_18, Field_19, Field_20, Field_21, Field_22, Field_23, Field_24, Field_25, ".
-			"idxID_Code, idxID_Kerb, idxID_NTLM) ".
-			"VALUES ".$LocalQueue;
-			$continue = 0;
-			if($LocalQueue eq "") { $continue = 1; }
-			while(! $continue)
-			{
-				$retry++;
-				{
-					$query=$dbh->prepare($SQL);
-					$query->execute(); 
-					if($DBI::err)
-					{
-						my $err, $errstr;
-						$err = $DBI::err;
-						$errstr = $DBI::errstr;
-						print "DBI Error:  $err $errstr\n";
-						print "Retrying in three seconds.\n";
-						$dbh->disconnect();
-						sleep(3);
-						$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD");
-						if($retry>3)  #Error 3 times occured, keep going
-						{
-							$continue=1; 
-							open(FILE, ">>AggregateErrors.log");
-							flock(FILE,2);
-							print FILE "DBI Error $err - $errstr\n";
-							flock(FILE,8);
-							close(FILE);
-							&_spew_sql($SQL);
-						}
-					}
-					else 
-					{ 
-						$continue = 1; 
-					}
-				}
-#				else
-#				{
-#					&_spew_sql($SQL);
-#					$continue = 1;
-#				}
-				{
-					$query->finish();
-				}
-			}
+			my $time, $system, $service, @values, @row, $row, $result_ref, $rows_returned;
+			($system, $service, $timewritten, $timegenerated, $source, $category, $sid, $computer, $eventid, $eventtype, @values) = split(/~~~~~/,$incoming);
 			
+			# See if the service is known.  If not, get it from the database or create a new ID:
+			if(! $Service_IDs{"$service"})
+			{
+				$result_ref = &SQL_Query("SELECT Service_ID, Service_Name FROM dad_sys_services WHERE Service_Name = '$service'");
+				$rows_returned = scalar @$result_ref;
+				if($rows_returned < 1)
+				{
+					&SQL_Insert("INSERT INTO dad_sys_services (Service_Name) VALUES ('$service')");
+					$result_ref = &SQL_Query("SELECT Service_ID, Service_Name FROM dad_sys_services WHERE Service_Name = '$service'");
+					$rows_returned = scalar @$result_ref;
+					if($rows_returned < 1) { die ("Insert must have failed, I couldn't select the new data (service)!\n"); }
+				}
+				$row = shift(@$result_ref);
+				$Service_IDs{"$service"} = @$row[0];
+				undef $result_ref;
+			}
+		
+			# See if the system is known.  If not, get it from the database or create a new ID:
+			if(! $System_IDs{"$system"})
+			{
+				$result_ref = &SQL_Query("SELECT System_ID, System_Name FROM dad_sys_systems WHERE System_Name = '$system'");
+				$rows_returned = scalar @$result_ref;
+				if($rows_returned < 1)
+				{
+					&SQL_Insert("INSERT INTO dad_sys_systems (System_Name) VALUES ('$system')");
+					$result_ref = &SQL_Query("SELECT System_ID, System_Name FROM dad_sys_systems WHERE System_Name = '$system'");
+					$rows_returned = scalar @$result_ref;
+					if($rows_returned < 1) { die ("Insert must have failed, I couldn't select the new data (system)!\n"); }
+				}
+				$row = shift(@$result_ref);
+				$System_IDs{"$system"} = @$row[0];
+				undef $result_ref;
+			}
+			if($Block_Pos >= $Block_End)
+			{
+				$Block_Pos = &Get_Block();
+				$Block_End = $Block_Pos + $BLOCK_SIZE;
+			}
+			$Event_ID = $Block_Pos++;
+			if($Bulk_Event_Insert eq "")
+			{
+				$Bulk_Event_Insert = "($Event_ID,UNIX_TIMESTAMP(NOW()), $timegenerated, ".
+					$System_IDs{"$system"}.", ". $Service_IDs{"$service"}.")";
+			}
+			else
+			{
+				$Bulk_Event_Insert .= ",($Event_ID,UNIX_TIMESTAMP(NOW()), $timegenerated, ".
+					$System_IDs{"$system"}.", ". $Service_IDs{"$service"}.")";
+			}
+			$StringToInsert="$source $category $sid $computer $eventid $eventtype";
+			$StringToInsert .= " $_" foreach(@values);
+			@insert_strings = split(/ /,$StringToInsert);
+			$Queue_Size++;
+			my $string_position=0;
+			foreach(@insert_strings)
+			{
+				$String_ID = &Get_Unique_ID($_);
+				if($InsertString eq "")
+				{
+					$InsertString = "($Event_ID, $string_position, $String_ID)";
+				}
+				else
+				{
+					$InsertString .= ",($Event_ID, $string_position, $String_ID)";
+				}
+				$string_position++;
+				undef $result_ref;
+			}
+		}
+		if(($Queue_Size > $MAX_QUEUE_SIZE) || (($SQL_Queue->pending() == 0) && ($Queue_Size>0) && ($empty_loops>$MAX_IDLE_LOOPS)))
+		{
+			$empty_loops = 0;
+			$Inserted += $Queue_Size;
+			&SQL_Insert("INSERT INTO event_fields (Events_ID, Position, String_ID) VALUES ".$InsertString);
+			&SQL_Insert("INSERT INTO events (Events_ID,Time_Written, Time_Generated, System_ID, Service_ID) VALUES $Bulk_Event_Insert");
+			undef $InsertString;
+			undef $Bulk_Event_Insert;
 			$Queue_Size = 0;
-			$LocalQueue="";
 		}
 		$Status{"sql $who_am_i"} = "Queue size: $Queue_Size  Inserted: $Inserted";
 		if(($Queue_Size==0) && ($SQL_Queue->pending() == 0) && ($Time_To_Die==1))
@@ -655,7 +677,16 @@ sub _insert_thread
 #			delete($Status{"sql $who_am_i"});
 			return; 
 		}
-		if(!$incoming) {sleep(5);}
+		if(!$incoming)
+		{
+			$empty_loops ++;
+			if($empty_loops > $MAX_IDLE_LOOPS && $Queue_Size == 0)
+			{
+				$Status{"sql $who_am_i"} = "Sleeping";
+				sleep(15);
+				$empty_loops = 0;
+			}
+		}
 	}
 	$Status{"sql $who_am_i"} = "Died mysteriously.";
 }
@@ -702,13 +733,7 @@ sub _get_systems_to_process
 	my	$results_ref,				# Used to hold query responses
 		$row,						#Row array reference
 		@this_row;					#Current row
-	my	$dsn, 						# Database connection
-		$dbh;
 	my @Systems;
-	
-	$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
-	$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
-		or die ("Could not connect to DB server to import the list of servers to poll.\n");
 
 	# Fetch the names of the systems to poll.  To add a system simply add its name to the dad_sys_event_import table. 
 	# There is no need to restart this process to pick up the new system names or remove old names.
@@ -724,6 +749,8 @@ sub _get_systems_to_process
 				$Priority{$this_row[0]} = $this_row[1];
 			}
 	}
+	undef $results_ref;
+	undef $row;
 	return(@Systems);
 }
 
@@ -741,7 +768,19 @@ sub SQL_Query
 	my $SQL = $_[0];
 	
 	my $query = $dbh->prepare($SQL);
-	$query -> execute();
+	eval
+	{
+		$query -> execute();
+	};
+	if($@){
+		print "Caught error: $@\n";
+		undef $dsn;
+		undef $dhb;
+		$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
+		$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
+			or die ("Could not connect to DB server to import the list of servers to poll.\n");
+		$query->execute();
+	};
 	my $ref_to_array_of_row_refs = $query->fetchall_arrayref(); 
 	$query->finish();
 	return $ref_to_array_of_row_refs;
@@ -759,7 +798,10 @@ sub SQL_Insert
 	my $query = $dbh->prepare($SQL);
 	if($DEBUG){return; print"$SQL\n";return;}
 	$query -> execute();
+	my $in_id = $dbh->{ q{mysql_insertid}};
 	$query->finish();
+	undef $query;
+	return $in_id;
 }
 
 ##################################################
@@ -851,3 +893,23 @@ sub _pending_inserts_thread
 	print "Processed $num_queries pending SQL inserts.\n";
 	$Pending_Running = 0;
 }
+
+sub ConvertSidToSidString{
+
+	my $sid  = shift;
+	my $Revision, $SubAuthorityCount, $IdentifierAuthority0, $IdentifierAuthorities12, @SubAuthorities;
+	my $IdentifierAuthority;
+	$sid or return;
+	($Revision, $SubAuthorityCount, $IdentifierAuthority0, $IdentifierAuthorities12, @SubAuthorities) = unpack("CCnNV*", $sid);
+	$IdentifierAuthority = $IdentifierAuthority0 ? sprintf('0x%04hX%08X', $IdentifierAuthority0, $IdentifierAuthorities12) : $IdentifierAuthorities12;
+	$SubAuthorityCount == scalar(@SubAuthorities) or return;
+	return "S-$Revision-$IdentifierAuthority-".join("-", @SubAuthorities);
+}
+sub addslashes
+{
+	my $String = shift;
+	$String =~ s/(["'\%\\])/\\\1/g;
+	$String =~ s/[^[:print:]]//g;
+	return $String;
+}
+

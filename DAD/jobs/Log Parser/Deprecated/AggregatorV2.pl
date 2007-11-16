@@ -567,6 +567,7 @@ sub _insert_thread
 	my $query;
 	my $Event_ID;
 	my $Block_Pos, $Block_End;
+	my $Query;
 
 	$Block_End=0;
 	$Block_Pos=1;
@@ -588,84 +589,25 @@ sub _insert_thread
 			($system, $service, $timewritten, $timegenerated, $source, $category, $sid, $computer, $eventid, $eventtype, @values) = split(/~~~~~/,$incoming);
 			
 			# See if the service is known.  If not, get it from the database or create a new ID:
-			if(! $Service_IDs{"$service"})
-			{
-				$result_ref = &SQL_Query("SELECT Service_ID, Service_Name FROM dad_sys_services WHERE Service_Name = '$service'");
-				$rows_returned = scalar @$result_ref;
-				if($rows_returned < 1)
-				{
-					&SQL_Insert("INSERT INTO dad_sys_services (Service_Name) VALUES ('$service')");
-					$result_ref = &SQL_Query("SELECT Service_ID, Service_Name FROM dad_sys_services WHERE Service_Name = '$service'");
-					$rows_returned = scalar @$result_ref;
-					if($rows_returned < 1) { die ("Insert must have failed, I couldn't select the new data (service)!\n"); }
-				}
-				$row = shift(@$result_ref);
-				$Service_IDs{"$service"} = @$row[0];
-				undef $result_ref;
-			}
+		$StringToInsert="$source $category $sid $computer $eventid $eventtype";
+		$StringToInsert .= " $_" foreach(@values);
+		$Query = $dbh->prepare("CALL InsertEvent(?, ?, ?, ?)");
+		$Query->bind_param(1, $timegenerated);
+		$Query->bind_param(2, $system);
+		$Query->bind_param(3, $service);
+		$Query->bind_param(4, $StringToInsert);
 		
-			# See if the system is known.  If not, get it from the database or create a new ID:
-			if(! $System_IDs{"$system"})
-			{
-				$result_ref = &SQL_Query("SELECT System_ID, System_Name FROM dad_sys_systems WHERE System_Name = '$system'");
-				$rows_returned = scalar @$result_ref;
-				if($rows_returned < 1)
-				{
-					&SQL_Insert("INSERT INTO dad_sys_systems (System_Name) VALUES ('$system')");
-					$result_ref = &SQL_Query("SELECT System_ID, System_Name FROM dad_sys_systems WHERE System_Name = '$system'");
-					$rows_returned = scalar @$result_ref;
-					if($rows_returned < 1) { die ("Insert must have failed, I couldn't select the new data (system)!\n"); }
-				}
-				$row = shift(@$result_ref);
-				$System_IDs{"$system"} = @$row[0];
-				undef $result_ref;
-			}
-			if($Block_Pos >= $Block_End)
-			{
-				$Block_Pos = &Get_Block();
-				$Block_End = $Block_Pos + $BLOCK_SIZE;
-			}
-			$Event_ID = $Block_Pos++;
-			if($Bulk_Event_Insert eq "")
-			{
-				$Bulk_Event_Insert = "($Event_ID,UNIX_TIMESTAMP(NOW()), $timegenerated, ".
-					$System_IDs{"$system"}.", ". $Service_IDs{"$service"}.")";
-			}
-			else
-			{
-				$Bulk_Event_Insert .= ",($Event_ID,UNIX_TIMESTAMP(NOW()), $timegenerated, ".
-					$System_IDs{"$system"}.", ". $Service_IDs{"$service"}.")";
-			}
-			$StringToInsert="$source $category $sid $computer $eventid $eventtype";
-			$StringToInsert .= " $_" foreach(@values);
-			@insert_strings = split(/ /,$StringToInsert);
-			$Queue_Size++;
-			my $string_position=0;
-			foreach(@insert_strings)
-			{
-				$String_ID = &Get_Unique_ID($_);
-				if($InsertString eq "")
-				{
-					$InsertString = "($Event_ID, $string_position, $String_ID)";
-				}
-				else
-				{
-					$InsertString .= ",($Event_ID, $string_position, $String_ID)";
-				}
-				$string_position++;
-				undef $result_ref;
-			}
-		}
-		if(($Queue_Size > $MAX_QUEUE_SIZE) || (($SQL_Queue->pending() == 0) && ($Queue_Size>0) && ($empty_loops>$MAX_IDLE_LOOPS)))
+		do
 		{
-			$empty_loops = 0;
-			$Inserted += $Queue_Size;
-			&SQL_Insert("INSERT INTO event_fields (Events_ID, Position, String_ID) VALUES ".$InsertString);
-			&SQL_Insert("INSERT INTO events (Events_ID,Time_Written, Time_Generated, System_ID, Service_ID) VALUES $Bulk_Event_Insert");
-			undef $InsertString;
-			undef $Bulk_Event_Insert;
-			$Queue_Size = 0;
+			$Query->execute() or die ("Thread $who_am_i Died: ".$Query->error);
+			my $lresult = ($Query->fetchrow_arrayref)->[0];
+			if($lresult != "OK") {
+				print "$who_am_i: Insert failed: $StringToInsert\n";
+				$Status{"sql $who_am_i"} = "*Queue size: $Queue_Size  Inserted: $Inserted";
+				} 
 		}
+		while ($lresult != "OK");
+		$Inserted++;
 		$Status{"sql $who_am_i"} = "Queue size: $Queue_Size  Inserted: $Inserted";
 		if(($Queue_Size==0) && ($SQL_Queue->pending() == 0) && ($Time_To_Die==1))
 		{ 
@@ -673,16 +615,17 @@ sub _insert_thread
 #			delete($Status{"sql $who_am_i"});
 			return; 
 		}
-		if(!$incoming)
+	}
+	if(!$incoming)
+	{
+		$empty_loops ++;
+		if($empty_loops > $MAX_IDLE_LOOPS && $Queue_Size == 0)
 		{
-			$empty_loops ++;
-			if($empty_loops > $MAX_IDLE_LOOPS && $Queue_Size == 0)
-			{
-				$Status{"sql $who_am_i"} = "Sleeping";
-				sleep(15);
-				$empty_loops = 0;
-			}
+			$Status{"sql $who_am_i"} = "Sleeping";
+			sleep(15);
+			$empty_loops = 0;
 		}
+	}
 	}
 	$Status{"sql $who_am_i"} = "Died mysteriously.";
 }
@@ -780,7 +723,7 @@ sub SQL_Insert
 {
 	my $SQL = $_[0];
 	my $query = $dbh->prepare($SQL);
-	if($DEBUG){return; print"$SQL\n";return;}
+	if($DEBUG){return; print"$SQL\n";return;};
 	$query -> execute();
 	my $in_id = $dbh->{ q{mysql_insertid}};
 	$query->finish();
