@@ -109,7 +109,7 @@ function getUserSession ($strSessionID) {
              FROM Session
             WHERE SessionID = '" . $strSessionID . "'";
 
-  $aResults=RunQueryReturnArray($strSQL, KEY_COLUMN1, MYSQL_ASSOC);
+  $aResults=RunQueryReturnArray($strSQL, KEY_COLUMN1);
   return $aResults;
 }
 

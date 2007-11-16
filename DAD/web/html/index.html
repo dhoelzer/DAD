@@ -62,8 +62,8 @@ if ($strSessionID) {
 } else {
    add_global("ValidSession", false);
 }
-
 // This main dispatch function determines where to send user...
 dispatch($intOptionID);
 showPage();
+
 ?>

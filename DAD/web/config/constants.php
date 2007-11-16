@@ -58,6 +58,8 @@ define('RETURN_SUCCESS', 0);
 define('RETURN_FAILURE', -1);
 define('RETURN_LOGIN', -2);
 define('MYSQL_DRIVE', "c:");
+//define('MYSQL_BOTH', 1);
+//define('MYSQL_ASSOC', 2);
 
 
 ?>

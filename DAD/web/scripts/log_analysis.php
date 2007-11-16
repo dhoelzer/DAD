@@ -73,7 +73,8 @@ END;
 	}
 }
 
-function generateEventQuery($strSQL)
+
+function generateEventQuery($strSQL, $start=1, $limit=20)
 {
 	$StringIDFilter = "";
 	$Terms = "";
@@ -87,69 +88,35 @@ function generateEventQuery($strSQL)
 	if(!isset($result[0]['Query'])) { return ""; }
 	$SearchTerms = split(" ",$result[0]['Query']);
 	$TimeFrame = $result[0]['Timeframe'];
-	$Terms = "";
-	foreach($SearchTerms as $value)
+	switch(sizeof($SearchTerms))
 	{
-		$Terms .= ($Terms == "" ? "'".$value."'" : ",'".$value."'");
+		case 0 : 
+			return "SELECT 'No search terms!'";
+			break;
+		case 1 :
+			return "CALL GetEventsBy1StringLimited('$SearchTerms[0]', $start, $limit, $TimeFrame)";
+			break;
+		case 2 :
+			return "CALL GetEventsBy2StringsLimited('$SearchTerms[0]', '$SearchTerms[1]',$start, $limit, $TimeFrame)";
+			break;
+		case 3 :
+			return "CALL GetEventsBy3StringsLimited('$SearchTerms[0]', '$SearchTerms[1]','$SearchTerms[2]',$start, $limit, $TimeFrame)";
+			break;
+		case 4 :
+			return "CALL GetEventsBy4StringsLimited('$SearchTerms[0]', '$SearchTerms[1]','$SearchTerms[2]','$SearchTerms[3]',$start, $limit, $TimeFrame)";
+			break;
+		case 5 :
+			return "CALL GetEventsBy5StringsLimited('$SearchTerms[0]', '$SearchTerms[1]','$SearchTerms[2]','$SearchTerms[3]','$SearchTerms[4]',$start, $limit, $TimeFrame)";
+			break;
+		case 6 :
+			return "CALL GetEventsBy6StringsLimited('$SearchTerms[0]', '$SearchTerms[1]','$SearchTerms[2]','$SearchTerms[3]','$SearchTerms[4]','$SearchTerms[5]',$start, $limit, $TimeFrame)";
+			break;
+		default:
+			return "SELECT 'Too many search terms.'";
+			break;
 	}
-	$strSQL = "SELECT * FROM event_unique_strings WHERE String IN ( $Terms )";
-	#add_element("$strSQL<br><br>");
-	$string_ids = runQueryReturnArray($strSQL);
-	foreach($string_ids as $row)
-	{
-		if($StringIDFilter == "")
-		{
-			$table_ref = 'b';
-			$StringIDFilter = "\n$table_ref.String_ID=$row[0]";
-			$JOINS="\nJOIN event_fields as $table_ref";
-			$MATCHES="\nAND a.Events_ID=$table_ref.Events_ID";
-		}
-		else # ORs should be in here somewhere attached to the $StringIDFilter
-		{
-			$table_ref++;
-			$StringIDFilter .= "\nAND $table_ref.String_ID=$row[0]";
-			$JOINS.="\nJOIN event_fields as $table_ref";
-			$MATCHES.="\nAND a.Events_ID=$table_ref.Events_ID";
-		}
-	}
-	$strSQL="SELECT DISTINCT a.Events_ID,a.Time_Written,a.Time_Generated FROM events as a $JOINS WHERE $StringIDFilter AND (UNIX_TIMESTAMP(NOW())-$TimeFrame) < a.Time_Generated $MATCHES";
-	#add_element($strSQL."<br><br>");
-	$Event_IDs = runQueryReturnArray($strSQL);
-	foreach($Event_IDs as $row)
-	{
-		if($Events_ID_in=="")
-		{
-			$Events_ID_in = "$row[0]";
-		}
-		else
-		{
-			$Events_ID_in .= ", $row[0]";
-		}
-	}
-	$strSQL=<<<ENDSQL
-				SELECT distinct
-					f.Events_ID as "Event Number", 
-					FROM_UNIXTIME(e.Time_Generated) as "Time",
-					systems.System_Name as "System", 
-					GROUP_CONCAT(s.String ORDER BY f.Position ASC separator ' ') as "Event Detail"
-				FROM
-					events as e,
-					event_fields as f,
-					event_unique_strings as s, 
-					dad_sys_systems as systems
-				WHERE
-					e.Events_ID IN ( $Events_ID_in )
-					AND f.Events_ID=e.Events_ID
-					AND (
-						f.String_ID=s.String_ID
-						)
-					AND systems.System_ID=e.System_ID
-					GROUP BY f.Events_ID
-					ORDER BY e.Time_Generated,f.Events_ID,f.Position
-ENDSQL;
-#add_element($strSQL);
-	return($strSQL);
 }
+
 
 function show_log_stats() 
 {

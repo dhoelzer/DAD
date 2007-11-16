@@ -32,8 +32,6 @@ require_once '../config/dbconfig.php';
 
 define('KEY_ROWNUM', 0);
 define('KEY_COLUMN1', 1);
-//define('MYSQL_BOTH', 1);
-//define('MYSQL_ASSOC', 2);
 
 /*
    Should we exit or return null on error?
@@ -48,7 +46,7 @@ define('KEY_COLUMN1', 1);
  *
  */
 function closeDb(&$objDb) {
-   mysql_close($objDb);
+   mysqli_close($objDb);
 }
 
 /*---------------------------------------------------------------------
@@ -67,14 +65,14 @@ function getConnection($strAddress = DB_ADDRESS,
 
 					   #Client multi keeps producing errors.  Commented out for now.  Only needed to send
 					   # multiple SQL statements in one query.  This might actually be a BAD thing!
-	$objDb = mysql_connect($strAddress, $strUsername, $strPassword); #, 'CLIENT_MULTI_STATEMENTS');
+	$objDb = mysqli_connect($strAddress, $strUsername, $strPassword);
    if(!$objDb) { 
-      trigger_error("Error opening connection to database server at $strAddress: ".mysql_error()); 
+      trigger_error("Error opening connection to database server at $strAddress: ".mysqli_error()); 
       return null;
    }
 
    if($strDbName != null) {
-      if(false == mysql_select_db($strDbName, $objDb)) {
+      if(false == mysqli_select_db($objDb, $strDbName)) {
          return null;
       }
    }
@@ -95,15 +93,15 @@ function runInsertReturnID($strSQL) {
    $intInsertedID = NULL;
 //   logger("INFO: Inserting with '$strSQL'");
    $objDb = getConnection();
-   $objResult = mysql_query($strSQL, $objDb);
-   $intError = mysql_errno();
+   $objResult = mysqli_query($strSQL, $objDb);
+   $intError = mysqli_errno();
    
    if($intError!=0) {
-     trigger_error("SQL error:". mysql_error()."\n$strSQL");
+     trigger_error("SQL error:". mysqli_error()."\n$strSQL");
      return NULL;
    }
    if ($objResult) {
-      $intInsertedID = mysql_insert_id($objDb);
+      $intInsertedID = mysqli_insert_id($objDb);
    }
 
    closeDB($objDb);
@@ -128,9 +126,9 @@ function SQLListFields($Table)
  * will be the row number, but the KeyCode argument can be used to
  * set the array key to whatever we might like.
  */
-function runQueryReturnArray($strSQL, $intKeyCode=KEY_ROWNUM, $intMySQLRowType=MYSQL_BOTH) {
+function runQueryReturnArray($strSQL, $intKeyCode=KEY_ROWNUM) {
 global	$Global;
-	
+
     $objDb     = getConnection();
     $objResult = '';
 
@@ -139,20 +137,29 @@ global	$Global;
 
     foreach( $stmts as $stmt ){
 
-        $objResult = @mysql_query($stmt, $objDb);
-        $intError = mysql_errno();
+
+        $objResult = $objDb->query($stmt);
+        $intError = $objDb->errno;
 
         if ($intError != 0) {
-            trigger_error("SQL Error:<br />\n" . mysql_error(). "<br /><br />\n\n   SQL->$strSQL");
+            trigger_error("SQL Error:<br />\n" . $objDb->error(). "<br /><br />\n\n   SQL->$strSQL");
             $objResult=NULL;
             return NULL;
         }
 
     }
 
+	# Build the index of column names
+	$column = 0;
+	while($field_info = $objResult -> fetch_field())
+	{
+		$column_names[$column++] = $field_info->name;
+	}
+	add_global("LAST_QUERY_FIELD_NAMES", $column_names);
+
     $aRows = NULL;
     $aRow = NULL;
-    for($i=0; $aRow = mysql_fetch_array($objResult); $i++) {
+    for($i=0; $aRow = $objResult->fetch_array(MYSQLI_BOTH); $i++) {
         if($intKeyCode==KEY_COLUMN1) 
 		{
             $aKey = array_keys($aRow);
@@ -164,15 +171,9 @@ global	$Global;
         }
     }
 
-	# Build the index of column names
-	for($column = 0; $column != mysql_num_fields($objResult); $column++)
-		{
-			$column_names[$column] = mysql_field_name($objResult, $column);
-		}
-	add_global("LAST_QUERY_FIELD_NAMES", $column_names);
 	
 
-    mysql_free_result($objResult); 
+    mysqli_free_result($objResult); 
     closeDB($objDb);
     return $aRows;
 }
@@ -194,15 +195,15 @@ function runSQLReturnAffected($strSQL) {
 
 //   logger("INFO: Querying with '$strSQL'");
    $objDb = getConnection();
-   $objResult = mysql_query($strSQL, $objDb);
-   $intError = mysql_errno();
+   $objResult = $objDb->query($strSQL);
+   $intError = $objDb->errno;
    
    if($intError!=0) {
-     trigger_error("SQL error:". mysql_error()."\n$strSQL");
+     trigger_error("SQL error:". $objDb->error()."\n$strSQL");
      return NULL;
    }
    if ($objResult) {
-      $intRowsAffected  = mysql_affected_rows($objDb);
+      $intRowsAffected  = $objDb->affected_rows;
    }
 
    closeDB($objDb);

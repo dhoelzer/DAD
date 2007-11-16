@@ -93,7 +93,7 @@ function getMenuOption($intOptionID){
           ORDER BY m.LevelNum, m.SequenceNum, m.MenuID, mo.SequenceNum";
 */     
 
-   $aOptions = runQueryReturnArray($strSQL, KEY_COLUMN1, MYSQL_ASSOC);
+   $aOptions = runQueryReturnArray($strSQL, KEY_COLUMN1);
    return ($aOptions);
 }
 ?>

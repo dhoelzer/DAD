@@ -32,7 +32,7 @@
  * DSH - 6/24/05
  */
  
- //error_reporting( E_WARNING | E_CORE_WARNING | E_USER_ERROR | E_USER_WARNING);
+ error_reporting( E_NOTICE | E_WARNING | E_CORE_WARNING | E_USER_ERROR | E_USER_WARNING);
  //error_reporting( E_USER_ERROR );
  //set_error_handler("error_handler");
  
@@ -82,7 +82,7 @@ function Logger($message)
   $CurrentOptionID = (isset($Global["OptionID"]) ? $Global["OptionID"] : "No Option ID");
   $CurrentSessionID = (isset($Global["SessionID"]) ? $Global["SessionID"] : "No valid session");
   $CurrentTime = time();
-//  add_element("DAD_WEBAPP:$CurrentTime,$CallingFunction,$CurrentOptionID,$CurrentUserID,$CurrentUser,$CurrentSessionID,$message");
+  add_element("DAD_WEBAPP:$CurrentTime,$CallingFunction,$CurrentOptionID,$CurrentUserID,$CurrentUser,$CurrentSessionID,$message");
   syslog(LOG_INFO, "DAD_WEBAPP:$CurrentTime,$CallingFunction,$CurrentOptionID,$CurrentUserID,$CurrentUser,$CurrentSessionID,$message");
 }
 ?>
