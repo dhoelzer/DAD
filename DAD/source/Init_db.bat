@@ -1,0 +1,6 @@
+echo Initializing schema...
+call "c:\Program Files\MySQL\MySQL Server 5.0\bin\mysql.exe" -u root -p < %INSTALL_DIR%\Creates.sql
+echo Installing stored procedures
+call "C:\Program Files\MySQL\MySQL Server 5.0\bin\mysql.exe" -u root -p < %INSTALL_DIR%\Procedures.sql
+echo Importing starter data...
+call "c:\Program Files\MySQL\MySQL Server 5.0\bin\mysql.exe" -u root -p -D DAD < %INSTALL_DIR%\Starter_Data.sql

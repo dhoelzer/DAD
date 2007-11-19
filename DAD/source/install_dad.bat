@@ -64,10 +64,8 @@ echo Installation Complete!  Adding in default data.  Please enter the
 echo Database password that you configured for the root user when 
 echo prompted.
 echo -----------------------------------------------------------------
-echo Building schema...
-call "c:\Program Files\MySQL\MySQL Server 5.0\bin\mysql.exe" -u root -p < %INSTALL_DIR%\Creates.sql
-echo Importing starter data...
-call "c:\Program Files\MySQL\MySQL Server 5.0\bin\mysql.exe" -u root -p -D DAD < %INSTALL_DIR%\Starter_Data.sql
+echo Initializing Database
+call %INSTALL_DIR%\Init_db.bat
 echo -----------------------------------------------------------------
 echo Installing Java Runtime Environment...  Please accept all defaults.
 call %INSTALL_DIR%\Java\jre-6u1-windows-i586-p-iftw.exe
