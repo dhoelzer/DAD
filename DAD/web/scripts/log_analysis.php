@@ -161,10 +161,10 @@ function show_log_stats()
     $num_services = runQueryReturnArray( $strSQL );
 	$FreeSpace = disk_free_space(MYSQL_DRIVE);
 	$TotalSpace = disk_total_space(MYSQL_DRIVE);
-	$MoreEvents = $FreeSpace/(($TotalSpace-$FreeSpace) / ($num_events + 1)+1);
+	$MoreEvents = $FreeSpace/(($TotalSpace-$FreeSpace) / ($num_events2 + 1)+1);
 	$PercentFree = round((($FreeSpace/($TotalSpace + 1)) * 100), 2);
 	$PercentUsed = 100 - $PercentFree;
-	$strHTML = "Disk Utilization: $PercentFree% Free<BR> ".
+	$strHTML = "Disk Utilization: $PercentFree% Free -- There is room for approximately ".number_format($MoreEvents)." more events.<BR> ".
 		$num_systems[0][0]." systems monitored<br>Tracking ".number_format($num_events2).
 		" events with ".number_format($num_fields)." fields with ".
 		number_format($num_strings)." unique strings.  <br>";
