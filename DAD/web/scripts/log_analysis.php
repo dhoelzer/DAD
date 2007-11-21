@@ -22,6 +22,22 @@ function show_existing_queries()
 global $Global;
 global $_GET;
     $strURL  = getOptionURL(OPTIONID_EXISTING_QUERIES);
+
+if(isset($_GET["ContextQuery"]))
+	{
+		$word=$_GET["ContextQuery"];
+		$Start = (isset($_GET["Start"]) ? ($_GET["Start"] > 0 ? $_GET["Start"] : 1) : 1);
+		$strSQL=String_To_Query($word, 10000000, $Start, 50);
+		$Result_Contents = Query_to_Table($strSQL, 1, $Start);//, "PopupTable");
+		//Popup("Test", $Popup_Contents, 980, 650, 5, 5);
+		$strHTML = "<p><a href='$strURL&ContextQuery=$word&Start=".($Start-10)."'>< Previous</a> | ".
+			"<a href='$strURL&ContextQuery=$word&Start=".($Start+10)."'> Next ></a><p><div class=results width=90% border=1 height=200px name=ResultSet>$Result_Contents</div>";
+		add_element($strHTML);
+		return;
+	}
+
+
+
 	$strSQL = 'SELECT Query_ID, Query, Name, Description, Category, Roles, Timeframe FROM dad_sys_queries ORDER BY Category,Name';
 	$Queries = runQueryReturnArray( $strSQL );
 	$strHTML = <<<END
@@ -71,7 +87,6 @@ END;
 		$strHTML = "<p><a href='$strURL&SubmittedQuery=$QueryID&Start=".($Start-10)."'>< Previous</a> | ".
 			"<a href='$strURL&SubmittedQuery=$QueryID&Start=".($Start+10)."'> Next ></a><p><div class=results width=90% border=1 height=200px name=ResultSet>$Result_Contents</div>";
 		add_element($strHTML);
-		
 	}
 }
 
@@ -88,8 +103,12 @@ function generateEventQuery($strSQL, $start=1, $limit=10)
 	if(!isset($strSQL)) { return ""; }
 	$result = runQueryReturnArray($strSQL);
 	if(!isset($result[0]['Query'])) { return ""; }
-	$SearchTerms = split(" ",$result[0]['Query']);
-	$TimeFrame = $result[0]['Timeframe'];
+	return String_To_Query($result[0]['Query'], $result[0]['Timeframe'], $start, $limit);
+}
+
+function String_To_Query($String, $TimeFrame=10000000, $start=1, $limit=10)
+{
+	$SearchTerms = split(" ",$String);
 	switch(sizeof($SearchTerms))
 	{
 		case 0 : 
@@ -119,16 +138,12 @@ function generateEventQuery($strSQL, $start=1, $limit=10)
 	}
 }
 
-
 function show_log_stats() 
 {
 
     global $gaLiterals;
 	global	$Global;
 	
-    $strSQL   = 'SELECT COUNT(*) FROM dad_sys_events';;
-    $events = runQueryReturnArray( $strSQL );
-	$num_events = $events[0][0];
     $strSQL   = 'SELECT COUNT(*) FROM events';;
     $events2 = runQueryReturnArray( $strSQL );
 	$num_events2 = $events2[0][0];
@@ -149,8 +164,8 @@ function show_log_stats()
 	$MoreEvents = $FreeSpace/(($TotalSpace-$FreeSpace) / ($num_events + 1)+1);
 	$PercentFree = round((($FreeSpace/($TotalSpace + 1)) * 100), 2);
 	$PercentUsed = 100 - $PercentFree;
-	$strHTML = "Disk Utilization: $PercentFree% Free -- $num_events events available from ".
-		$num_systems[0][0]." systems<br>Tracking ".number_format($num_events2).
+	$strHTML = "Disk Utilization: $PercentFree% Free<BR> ".
+		$num_systems[0][0]." systems monitored<br>Tracking ".number_format($num_events2).
 		" events with ".number_format($num_fields)." fields with ".
 		number_format($num_strings)." unique strings.  <br>";
 	$strHTML .= "Average event length is ". number_format(($num_fields/($num_events2>0?$num_events2:1)),2)." fields.";
@@ -704,14 +719,14 @@ function GetRoleTable($RolesWithAccess)
   
 	This function processes a SQL expression and returns the result set as an HTML table with column headings
 */
-function query_to_table($QueryString, $quiet=0, $TableClass="default")
+function query_to_table($QueryString, $quiet=0, $TableClass="default", $Start=1)
 {
 global $Global;
 
 	$retval = "";
 	$aResults = runQueryReturnArray($QueryString);
 	if(! $quiet){ $retval .="<h3>Query results for:</h3>$QueryString<p>"; }
-	$retval .= build_table_from_query($aResults,"*","2","1","1","#dddddd","#ffaaaa", $TableClass);
+	$retval .= build_table_from_query($aResults,"*","2","1","1","#dddddd","#ffaaaa", $TableClass, $Start);
 	return($retval);		
 }
 

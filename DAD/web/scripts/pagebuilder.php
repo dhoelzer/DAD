@@ -195,9 +195,13 @@ function build_table($assocTableData, $width="100%", $cellpadding="5", $cellspac
  * anything more than a two row table.
  *
  */
-function build_table_from_query($Result, $width="100%", $cellpadding="5", $cellspacing="5", $border="3", $background="#ffffff", $background2="undefined", $TableClass="default")
+function build_table_from_query($Result, $width="100%", $cellpadding="5", $cellspacing="5", $border="3", $background="#ffffff", $background2="undefined", $TableClass="default", $Start=1)
 {
 global $Global;
+
+	// This URL is to handle context based results
+    $strURL  = getOptionURL(OPTIONID_EXISTING_QUERIES);
+
 
    if($background2=="undefined")
       {
@@ -206,7 +210,7 @@ global $Global;
    $table = "<table class='$TableClass' width='$width' cellpadding='$cellpadding' cellspacing='$cellspacing' border='$border'><tr>";
 if(!count($Result)) 
 { 
-	$table .= "<td><h3>Nothing to report!</h3></td></tr>";
+	$table .= "<td><h3>No results found</h3></td></tr>";
 	$table .= "</table>";
     return $table;
  }
@@ -222,7 +226,7 @@ $i = 0;
         $table .= "<tr bgcolor='" . ($i++ % 2 ? $background2 : $background) . "'>";
 		if(!count($row)) 
 		{ 
-			$table .= "<tr><td><h3>Nothing to report!</h3></td></tr>";
+			$table .= "<tr><td><h3>No results found</h3></td></tr>";
 			$table .= "</table>\n";
 			return $table;
 		}
@@ -232,7 +236,13 @@ $i = 0;
 #		}
          foreach($headers as $key)
             {
-			  $table .= "<td><font size=-1>".$row[$key]."</font></td>";
+			  $table .= "<td><font size=-1>";
+			  $words = split(" ", $row[$key]);
+			  foreach($words as $word)
+			  {
+				$table .= "<a href='$strURL&ContextQuery=$word&Start=".($Start-10)."'>$word </a>";
+			  }
+			  $table .= "</font></td>";
             }
          $table .= "</tr>";
       }
