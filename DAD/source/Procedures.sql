@@ -2,7 +2,7 @@
 --
 -- Host: 127.0.0.1    Database: mysql
 -- ------------------------------------------------------
--- Server version	5.1.21-beta-community
+-- Server version	5.1.21-beta-community-log
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -66,4 +66,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2007-11-19 17:21:29
+-- Dump completed on 2007-11-22 19:50:29

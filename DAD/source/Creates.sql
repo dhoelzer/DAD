@@ -2,7 +2,7 @@
 --
 -- Host: 127.0.0.1    Database: dad
 -- ------------------------------------------------------
--- Server version	5.1.21-beta-community
+-- Server version	5.1.21-beta-community-log
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -785,7 +785,7 @@ CREATE TABLE `dad_sys_event_stats` (
   PRIMARY KEY (`Stats_ID`),
   KEY `Systems` (`System_Name`),
   KEY `Stats_Type` (`Stat_Type`) USING BTREE
-) ENGINE=MyISAM AUTO_INCREMENT=7512987 DEFAULT CHARSET=latin1 COMMENT='Tracks event log gathering statistics';
+) ENGINE=MyISAM AUTO_INCREMENT=7532763 DEFAULT CHARSET=latin1 COMMENT='Tracks event log gathering statistics';
 SET character_set_client = @saved_cs_client;
 
 --
@@ -1070,7 +1070,7 @@ CREATE TABLE `event_unique_strings` (
   `String` varchar(767) NOT NULL,
   PRIMARY KEY (`String_ID`),
   UNIQUE KEY `StringIDX` (`String`)
-) ENGINE=MyISAM AUTO_INCREMENT=195319 DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM AUTO_INCREMENT=247927 DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
 
 --
@@ -1088,7 +1088,7 @@ CREATE TABLE `events` (
   `Service_ID` int(10) unsigned NOT NULL,
   PRIMARY KEY (`Events_ID`),
   KEY `idxTimeGenerated` (`Time_Generated`)
-) ENGINE=MyISAM AUTO_INCREMENT=2184515 DEFAULT CHARSET=latin1 ROW_FORMAT=DYNAMIC;
+) ENGINE=MyISAM AUTO_INCREMENT=3415899 DEFAULT CHARSET=latin1 ROW_FORMAT=DYNAMIC;
 SET character_set_client = @saved_cs_client;
 
 --
@@ -1383,4 +1383,4 @@ SET character_set_client = @saved_cs_client;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2007-11-19 17:21:29
+-- Dump completed on 2007-11-22 19:50:29
