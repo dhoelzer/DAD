@@ -21,6 +21,7 @@
 use threads;
 use threads::shared;
 use Thread::Queue;
+use Time::Local;
 #use Thread eval;
 # Modules for DB and Event logs.  POSIX is required for Unix time stamps
 use DBI;
@@ -44,6 +45,7 @@ my %Filtered_Events : shared;	#Tracks events to ignore
 my @Field_Lengths : shared;		#Max field sizes for database fields
 my %Status : shared;
 my %Priority : shared;
+my $Log_File_Queue : shared;
 my $SQL_Queue : shared;			#Queue used to transfer inserts to insert threads
 my $Process_Queue : shared;		#Queue used to mark next logs to process
 my $High_Priority_Queue : shared; #Queue used for priority 1 systems
@@ -90,6 +92,7 @@ $Pending_Running = 0;
 # Create the queues.  These queues are used to transfer servers to the event queues and events to the SQL queues.
 $SQL_Queue = Thread::Queue->new;
 $Process_Queue = Thread::Queue->new;
+$Log_File_Queue = Thread::Queue->new;
 $High_Priority_Queue = Thread::Queue->new;
 $System_Started = mktime(localtime());
 
@@ -143,12 +146,7 @@ End
 		}
 		print STATS "$pending systems awaiting processing.<br >\n";
 		print STATS "$hpending priority 1 systems waiting.<br >\n";
-		print STATS "Base execution time per log: $MAX_EXECUTION_TIME<br >\n";
-		print STATS "Run time remaining: $Time_Remaining<br >\n";
 		print STATS "Hash hits: $Hash_hits<br>\n";
-		print STATS "Late hash hits: $Late_Hash_hits<br>\n";
-		print STATS "Hash lookups: $Hash_Lookups<br>\n";
-		print STATS "Hash inserts: $Hash_Inserts<br>\n";
 		print STATS "Strings in Hash: ".$Hash_Size."<br>\n";
 		print STATS "<hr />";
 		if($Pending_Running)
@@ -178,8 +176,20 @@ End
 			}
 		}
 	}
+	if(($loop-1)%10 == 0)
+	{
+		if($Output){print "Grabbing log paths\n";}
+		@logfiles = &Get_Unprocessed_Log_Paths($LOG_LOCATION);
+		if($Output){print "Processing logs:\n";}
+		foreach $log (@logfiles)
+		{
+			if($Output){print "\tProcessing: $log\n";}
+			$Log_File_Queue->enqueue($log);
+		}
+		undef(@logfiles);
+	}
 
-	sleep(15);				# 5 Seconds between interations
+	sleep(15);				# Time between interations
 }
 # If we reach here, time to die has passed and all other threads have exited
 print "No more threads!\n";
@@ -503,6 +513,7 @@ sub __Get_Unique_ID_Or_Insert
 	if($rows_returned < 1)
 	{
 		$Hash_Inserts++;
+		#print "Inserting: $this_string\n";
 		&SQL_Insert("INSERT INTO event_unique_strings (String) VALUES ('$this_string')");
 		$result_ref = &SQL_Query("SELECT String_ID FROM event_unique_strings WHERE String = '$this_string'");
 		$rows_returned = scalar @$result_ref;
@@ -589,7 +600,7 @@ sub _insert_thread
 		{
 			$_TotalQueries++;
 			my $time, $system, $service, @values, @row, $row, $result_ref, $rows_returned;
-			($system, $service, $timewritten, $timegenerated, $source, $category, $sid, $computer, $eventid, $eventtype, @values) = split(/~~~~~/,$incoming);
+			($system, $service, $timewritten, $timegenerated, @values) = split(/~~~~~/,$incoming);
 			
 			# See if the service is known.  If not, get it from the database or create a new ID:
 			if(! $Service_IDs{"$service"})
@@ -640,13 +651,18 @@ sub _insert_thread
 				$Bulk_Event_Insert .= ",($Event_ID,UNIX_TIMESTAMP(NOW()), $timegenerated, ".
 					$System_IDs{"$system"}.", ". $Service_IDs{"$service"}.")";
 			}
-			$StringToInsert="$source $category $sid $computer $eventid $eventtype";
+			$StringToInsert="";
 			$StringToInsert .= " $_" foreach(@values);
+			$StringToInsert =~ s/([\[\]{},'"<>\@:#()=])/ $1 /g;
+			$StringToInsert =~ s/\\/\//g;
+			$StringToInsert =~ s/  / /g;
+			$StringToInsert =~ s/ ['"] / /g;
 			@insert_strings = split(/ /,$StringToInsert);
 			$Queue_Size++;
 			my $string_position=0;
 			foreach(@insert_strings)
 			{
+				s/(['"])//g;
 				$String_ID = &Get_Unique_ID($_);
 				if($InsertString eq "")
 				{
@@ -664,6 +680,7 @@ sub _insert_thread
 		{
 			$empty_loops = 0;
 			$Inserted += $Queue_Size;
+#print "$InsertString\n\n$Bulk_Event_Insert\n";
 			&SQL_Insert("INSERT INTO event_fields (Events_ID, Position, String_ID) VALUES ".$InsertString);
 			&SQL_Insert("INSERT INTO events (Events_ID,Time_Written, Time_Generated, System_ID, Service_ID) VALUES $Bulk_Event_Insert");
 			undef $InsertString;
@@ -706,8 +723,9 @@ sub _spew_sql
 # Starts all of the processing threads
 sub _start_threads
 {
+	my $i;
 	print "Starting threads ($INSERT_THREADS, $EVENT_HANDLER_THREADS):\n";
-	for(my $i=0;$i!=$INSERT_THREADS;$i++)
+	for($i=0;$i!=$INSERT_THREADS;$i++)
 	{
 		my $thread;
 
@@ -716,13 +734,17 @@ sub _start_threads
 		$thread->detach();
 	}
 	print "\tInsert threads started: $INSERT_THREADS.\n";
-	for(my $i=0;$i!=$EVENT_HANDLER_THREADS;$i++)
+	for($i=0;$i!=$EVENT_HANDLER_THREADS;$i++)
 	{
 		my $thread;
 		$thread = threads->new(\&_event_thread, $i);
 		$Log_Threads{$i} = $thread;
 		$thread->detach();		
 	}
+	$i++;
+	$thread = threads->new(\&_log_thread, $i);
+	$Log_Threads{$i} = $thread;
+	$thread->detach();
 	print "\tEvent handlers started: $EVENT_HANDLER_THREADS.\n";
 }
 
@@ -770,7 +792,7 @@ sub SQL_Query
 	my $query = $dbh->prepare($SQL);
 	eval
 	{
-		$query -> execute();
+		$query -> execute() or die("$SQL\n");
 	};
 	if($@){
 		print "Caught error: $@\n";
@@ -778,10 +800,10 @@ sub SQL_Query
 		undef $dhb;
 		$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
 		$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
-			or die ("Could not connect to DB server to import the list of servers to poll.\n");
+			or die ("Could not connect to DB server\n");
 		$query->execute();
 	};
-	my $ref_to_array_of_row_refs = $query->fetchall_arrayref(); 
+	my $ref_to_array_of_row_refs = $query->fetchall_arrayref() or die("$SQL\n"); 
 	$query->finish();
 	return $ref_to_array_of_row_refs;
 }
@@ -905,11 +927,186 @@ sub ConvertSidToSidString{
 	$SubAuthorityCount == scalar(@SubAuthorities) or return;
 	return "S-$Revision-$IdentifierAuthority-".join("-", @SubAuthorities);
 }
+
 sub addslashes
 {
 	my $String = shift;
 	$String =~ s/(["'\%\\])/\\\1/g;
 	$String =~ s/[^[:print:]]//g;
 	return $String;
+}
+
+sub _log_thread
+{
+
+	##################################################
+	#
+	# record_event - Push the event into the database
+	# Takes as arguments the timestamp, reporting system, service followed by an array of fields
+	# Maintains the %System_IDs and %Service_IDs hashes
+	#
+	##################################################
+	sub record_event
+	{
+		$SQL_Queue->enqueue(join('~~~~~',@_));
+	}
+
+	sub move_log_processed
+	{
+		my $logfile = shift;
+		$newname = $logfile;
+		$newname =~ s/.*\/(.*)/$1/;
+		rename($logfile, $LOG_PROCESSED_LOCATION."/$newname") or die("Could not move processed log $newname!\n");
+	}
+
+#
+# End local functions
+############################################################
+	my $who_am_i = shift;
+
+	$Status{"log $who_am_i"} = "Waiting";
+	
+	while((!$Time_To_Die))
+	{
+		$log="";
+		while(!$log)
+		{
+			$log = $Log_File_Queue->dequeue_nb();
+			if(!$log)
+			{
+				$Total_Sleep+=5;
+				$Status{"log $who_am_i"} = "Sleeping: $Total_Sleep";
+				sleep(5);
+				if($Time_To_Die)
+				{
+				  $Status{"log $who_am_i"} = "Dead.";
+				  return;
+				}
+			}
+			else
+			{
+			my	$line, 						# Temp var for lines being processed
+				$logfile, 					# Path to log file being processed
+				$syslog_timestamp,
+				$syslog_reporting_system,
+				$syslog_service,
+				@field_1, 					# Holds first field plus syslog header information
+				@fields;					# Holds all service fields
+
+				# Process the log line by line.  Log is not read into memory to prevent swapping huge logs.
+				$logfile = $log;
+				open(LOG, "$logfile") or die("Could not open log $logfile\n");
+				$Status{"log $who_am_i"} = "Processing: $logfile";
+				foreach $line (<LOG>)
+				{
+					chomp($line);
+					@fields = split(/,/, $line);
+					
+					$_ = $line;
+					/^(\S+)\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d+)\s+(\d+):(\d+):(\d+)\s+(\S+)\s+(\d{4}).{1,2}([a-zA-Z0-9._]+)[^a-zA-Z]*([a-zA-Z_\/]+)/;
+					$month=$2;
+					$day=$3;
+					$hour=$4;
+					$minute=$5;
+					$second=$6;
+					$timezone=$7;
+					$year=$8;
+					$syslog_reporting_system=$9;
+					$syslog_service=$10;
+			#		print "$1 $2 $3 $4 $5 $6 $7 $8 $9 $10\n";
+					if($year > 1990 && $year < 2015)
+					{		
+						$syslog_timestamp=&timestring_to_unix("$month/$day/$year","$hour:$minute:$second");
+					}
+					else
+					{
+						$syslog_timestamp = 0;
+						$syslog_reporting_system = 'DAD';
+						$syslog_service = 'LogParser';
+					}
+					&record_event($syslog_reporting_system, $syslog_service, $syslog_timestamp, $syslog_timestamp, $line);
+				}
+				close(LOG);
+				&move_log_processed($logfile);
+			}
+		}
+		$Total_Sleep=0;
+		$Status{"log $who_am_i"} = "Waiting";
+	}
+print "\t$who_am_i Exited\n";
+$Status{"log $who_am_i"} = "Dead.";
+delete $Processing{$system};
+return;
+}
+
+sub timestring_to_unix
+{
+	my $d = shift;
+	my $t = shift;
+	my %months = (
+		'Jan', 0,
+		'Feb', 1,
+		'Mar', 2,
+		'Apr', 3,
+		'May', 4,
+		'Jun', 5,
+		'Jul', 6,
+		'Aug', 7,
+		'Sep', 8,
+		'Oct', 9,
+		'Nov', 10,
+		'Dec', 11);
+	my $time;
+	my @a;
+	@a = split /\//, $d;
+	$a[0] = $months{$a[0]};
+	@t = split /:/, $t;
+	$time = timelocal($t[2], $t[1], $t[0], $a[1], $a[0], $a[2]);
+	if($DEBUG)
+	{
+		print "	$d $t = timelocal($t[2], $t[1], $t[0], $a[1], $a[0], $a[2]) = $time\n";
+	}
+	return $time;
+}
+
+
+
+##################################################
+#
+# Get_Unprocessed_Log_Paths - Identifies files not yet logged
+# Takes as an argument the filepath where logs are stored
+#
+##################################################
+sub Get_Unprocessed_Log_Paths
+{
+	my $path = shift;
+	my $depth = shift;
+	my $file, @unprocessed;
+	my @entries;
+	@entries = ();
+	@unprocessed = ();
+	my @_file_array;
+	
+	opendir DIR, "$path";
+	@entries = grep !/^\..*$/, readdir DIR;
+	closedir DIR;
+	if(!$depth) { $depth = 0; }
+	if($Output){print "Processing $path $depth\n";}
+	foreach $file (@entries)
+	{
+		$file = "$path/$file";
+		if( -d $file) { &Get_Unprocessed_Log_Paths($file, $depth+1) };
+		if( -f $file) { $_file_array[++$#_file_array] = $file; }
+	}
+	if($depth == 0) # Only true if we're the first iteration and not a recursion
+	{
+		foreach $file (@_file_array)
+		{
+				$unprocessed[++$#unprocessed] = $file;
+		}
+	}
+	undef(@entries);
+	undef(@_file_array);
+	return @unprocessed
 }
 
