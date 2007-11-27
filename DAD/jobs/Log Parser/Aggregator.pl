@@ -1026,6 +1026,36 @@ sub _log_thread
 						$year=$4;
 						$syslog_reporting_system=$1;
 						$syslog_service="http";
+					}				
+					if (/^\[(\S{3})\s\S{3}\s\d{1,2}\s\d{2}:\d{2}\d{2}\s\d{4}\]/)
+					{
+						$month=$2;
+						if($1 eq "Sun") { $day=1; }
+						if($1 eq "Mon") { $day=2; }
+						if($1 eq "Tue") { $day=3; }
+						if($1 eq "Wed") { $day=4; }
+						if($1 eq "Thu") { $day=5; }
+						if($1 eq "Fri") { $day=6; }
+						if($1 eq "Sat") { $day=7; }
+						$hour=$4;
+						$minute=$5;
+						$second=$6;
+						$timezone=0;
+						$year=$7;
+						$syslog_reporting_system="Apache";
+						$syslog_service="ApacheErrorLog";
+					}
+					if (/^(\d{4})\.(\d{1,2})\.(\d{1,2})\s(\d+):(\d+):(\d+)\s-\s(\S+)\]/)
+					{
+						$month=$2;
+						$day=$3;
+						$hour=$4;
+						$minute=$5;
+						$second=$6;
+						$timezone=0;
+						$year=$1;
+						$syslog_reporting_system=$7;
+						$syslog_service="DansGuardian";
 					}
 					if (/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d+)\s+(\d+):(\d+):(\d+)\s+(\S+)\s+([a-zA-Z0-9._]+)/)
 					{
