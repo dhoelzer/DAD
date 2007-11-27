@@ -1003,17 +1003,54 @@ sub _log_thread
 					@fields = split(/,/, $line);
 					
 					$_ = $line;
-					/^(\S+)\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d+)\s+(\d+):(\d+):(\d+)\s+(\S+)\s+(\d{4}).{1,2}([a-zA-Z0-9._]+)[^a-zA-Z]*([a-zA-Z_\/]+)/;
-					$month=$2;
-					$day=$3;
-					$hour=$4;
-					$minute=$5;
-					$second=$6;
-					$timezone=$7;
-					$year=$8;
-					$syslog_reporting_system=$9;
-					$syslog_service=$10;
-			#		print "$1 $2 $3 $4 $5 $6 $7 $8 $9 $10\n";
+					if (/^(\S+)\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d+)\s+(\d+):(\d+):(\d+)\s+(\S+)\s+(\d{4}).{1,2}([a-zA-Z0-9._]+)[^a-zA-Z]*([a-zA-Z_\/]+)/)
+					{
+						$month=$2;
+						$day=$3;
+						$hour=$4;
+						$minute=$5;
+						$second=$6;
+						$timezone=$7;
+						$year=$8;
+						$syslog_reporting_system=$9;
+						$syslog_service=$10;
+					}
+					if (/^(\S+) - - \[(\d+)\/(\S+)\/(\d+):(\d+):(\d+):(\d+) (\S+)\]/)
+					{
+						$month=$3;
+						$day=$2;
+						$hour=$5;
+						$minute=$6;
+						$second=$7;
+						$timezone=$8;
+						$year=$4;
+						$syslog_reporting_system=$1;
+						$syslog_service="http";
+					}
+					if (/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d+)\s+(\d+):(\d+):(\d+)\s+(\S+)\s+([a-zA-Z0-9._]+)/)
+					{
+						$month=$1;
+						$day=$2;
+						$hour=$3;
+						$minute=$4;
+						$second=$5;
+						$timezone=0;
+						my $localyear, $localmonth;
+						$localyear = ((localtime(time))[5]) + 1900;
+						$localmonth = ((localtime(time))[4]) + 1;
+						if($month > $localmonth) 
+						{ 
+							$year = $localyear - 1; 
+						}
+						else
+						{
+							$year = $localyear;
+						}
+						$syslog_reporting_system=$6;
+						$syslog_service=$7;
+					}
+					
+						#		print "$1 $2 $3 $4 $5 $6 $7 $8 $9 $10\n";
 					if($year > 1990 && $year < 2015)
 					{		
 						$syslog_timestamp=&timestring_to_unix("$month/$day/$year","$hour:$minute:$second");
