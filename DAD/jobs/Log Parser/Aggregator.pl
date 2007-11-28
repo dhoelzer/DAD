@@ -663,7 +663,8 @@ sub _insert_thread
 			foreach(@insert_strings)
 			{
 				s/(['"])//g;
-				$String_ID = &Get_Unique_ID($_);
+				$value = substr($_, 0, 766);
+				$String_ID = &Get_Unique_ID($value);
 				if($InsertString eq "")
 				{
 					$InsertString = "($Event_ID, $string_position, $String_ID)";
@@ -995,106 +996,109 @@ sub _log_thread
 
 				# Process the log line by line.  Log is not read into memory to prevent swapping huge logs.
 				$logfile = $log;
-				open(LOG, "$logfile") or die("Could not open log $logfile\n");
-				$Status{"log $who_am_i"} = "Processing: $logfile";
-				foreach $line (<LOG>)
-				{
-					chomp($line);
-					@fields = split(/,/, $line);
-					
-					$_ = $line;
-					if (/^(\S+)\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d+)\s+(\d+):(\d+):(\d+)\s+(\S+)\s+(\d{4}).{1,2}([a-zA-Z0-9._]+)[^a-zA-Z]*([a-zA-Z_\/]+)/)
+				if( -f $logfile) 
+				{ 
+					open(LOG, "$logfile") or die("Could not open log $logfile\n");
+					$Status{"log $who_am_i"} = "Processing: $logfile";
+					foreach $line (<LOG>)
 					{
-						$month=$2;
-						$day=$3;
-						$hour=$4;
-						$minute=$5;
-						$second=$6;
-						$timezone=$7;
-						$year=$8;
-						$syslog_reporting_system=$9;
-						$syslog_service=$10;
-					}
-					if (/^(\S+) - - \[(\d+)\/(\S+)\/(\d+):(\d+):(\d+):(\d+) (\S+)\]/)
-					{
-						$month=$3;
-						$day=$2;
-						$hour=$5;
-						$minute=$6;
-						$second=$7;
-						$timezone=$8;
-						$year=$4;
-						$syslog_reporting_system=$1;
-						$syslog_service="http";
-					}				
-					if (/^\[(\S{3})\s\S{3}\s\d{1,2}\s\d{2}:\d{2}\d{2}\s\d{4}\]/)
-					{
-						$month=$2;
-						if($1 eq "Sun") { $day=1; }
-						if($1 eq "Mon") { $day=2; }
-						if($1 eq "Tue") { $day=3; }
-						if($1 eq "Wed") { $day=4; }
-						if($1 eq "Thu") { $day=5; }
-						if($1 eq "Fri") { $day=6; }
-						if($1 eq "Sat") { $day=7; }
-						$hour=$4;
-						$minute=$5;
-						$second=$6;
-						$timezone=0;
-						$year=$7;
-						$syslog_reporting_system="Apache";
-						$syslog_service="ApacheErrorLog";
-					}
-					if (/^(\d{4})\.(\d{1,2})\.(\d{1,2})\s(\d+):(\d+):(\d+)\s-\s(\S+)\]/)
-					{
-						$month=$2;
-						$day=$3;
-						$hour=$4;
-						$minute=$5;
-						$second=$6;
-						$timezone=0;
-						$year=$1;
-						$syslog_reporting_system=$7;
-						$syslog_service="DansGuardian";
-					}
-					if (/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d+)\s+(\d+):(\d+):(\d+)\s+(\S+)\s+([a-zA-Z0-9._]+)/)
-					{
-						$month=$1;
-						$day=$2;
-						$hour=$3;
-						$minute=$4;
-						$second=$5;
-						$timezone=0;
-						my $localyear, $localmonth;
-						$localyear = ((localtime(time))[5]) + 1900;
-						$localmonth = ((localtime(time))[4]) + 1;
-						if($month > $localmonth) 
-						{ 
-							$year = $localyear - 1; 
+						chomp($line);
+						@fields = split(/,/, $line);
+						
+						$_ = $line;
+						if (/^(\S+)\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d+)\s+(\d+):(\d+):(\d+)\s+(\S+)\s+(\d{4}).{1,2}([a-zA-Z0-9._]+)[^a-zA-Z]*([a-zA-Z_\/]+)/)
+						{
+							$month=$2;
+							$day=$3;
+							$hour=$4;
+							$minute=$5;
+							$second=$6;
+							$timezone=$7;
+							$year=$8;
+							$syslog_reporting_system=$9;
+							$syslog_service=$10;
+						}
+						if (/^(\S+) - - \[(\d+)\/(\S+)\/(\d+):(\d+):(\d+):(\d+) (\S+)\]/)
+						{
+							$month=$3;
+							$day=$2;
+							$hour=$5;
+							$minute=$6;
+							$second=$7;
+							$timezone=$8;
+							$year=$4;
+							$syslog_reporting_system=$1;
+							$syslog_service="http";
+						}				
+						if (/^\[(\S{3})\s\S{3}\s\d{1,2}\s\d{2}:\d{2}\d{2}\s\d{4}\]/)
+						{
+							$month=$2;
+							if($1 eq "Sun") { $day=1; }
+							if($1 eq "Mon") { $day=2; }
+							if($1 eq "Tue") { $day=3; }
+							if($1 eq "Wed") { $day=4; }
+							if($1 eq "Thu") { $day=5; }
+							if($1 eq "Fri") { $day=6; }
+							if($1 eq "Sat") { $day=7; }
+							$hour=$4;
+							$minute=$5;
+							$second=$6;
+							$timezone=0;
+							$year=$7;
+							$syslog_reporting_system="Apache";
+							$syslog_service="ApacheErrorLog";
+						}
+						if (/^(\d{4})\.(\d{1,2})\.(\d{1,2})\s(\d+):(\d+):(\d+)\s-\s(\S+)\]/)
+						{
+							$month=$2;
+							$day=$3;
+							$hour=$4;
+							$minute=$5;
+							$second=$6;
+							$timezone=0;
+							$year=$1;
+							$syslog_reporting_system=$7;
+							$syslog_service="DansGuardian";
+						}
+						if (/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d+)\s+(\d+):(\d+):(\d+)\s+(\S+)\s+([a-zA-Z0-9._]+)/)
+						{
+							$month=$1;
+							$day=$2;
+							$hour=$3;
+							$minute=$4;
+							$second=$5;
+							$timezone=0;
+							my $localyear, $localmonth;
+							$localyear = ((localtime(time))[5]) + 1900;
+							$localmonth = ((localtime(time))[4]) + 1;
+							if($month > $localmonth) 
+							{ 
+								$year = $localyear - 1; 
+							}
+							else
+							{
+								$year = $localyear;
+							}
+							$syslog_reporting_system=$6;
+							$syslog_service=$7;
+						}
+						
+							#		print "$1 $2 $3 $4 $5 $6 $7 $8 $9 $10\n";
+						if($year > 1990 && $year < 2015)
+						{		
+							$syslog_timestamp=&timestring_to_unix("$month/$day/$year","$hour:$minute:$second");
 						}
 						else
 						{
-							$year = $localyear;
+							$syslog_timestamp = 0;
+							$syslog_reporting_system = 'DAD';
+							$syslog_service = 'LogParser';
 						}
-						$syslog_reporting_system=$6;
-						$syslog_service=$7;
+						&record_event($syslog_reporting_system, $syslog_service, $syslog_timestamp, $syslog_timestamp, $line);
 					}
-					
-						#		print "$1 $2 $3 $4 $5 $6 $7 $8 $9 $10\n";
-					if($year > 1990 && $year < 2015)
-					{		
-						$syslog_timestamp=&timestring_to_unix("$month/$day/$year","$hour:$minute:$second");
-					}
-					else
-					{
-						$syslog_timestamp = 0;
-						$syslog_reporting_system = 'DAD';
-						$syslog_service = 'LogParser';
-					}
-					&record_event($syslog_reporting_system, $syslog_service, $syslog_timestamp, $syslog_timestamp, $line);
+					close(LOG);
+					&move_log_processed($logfile);
 				}
-				close(LOG);
-				&move_log_processed($logfile);
 			}
 		}
 		$Total_Sleep=0;
