@@ -46,7 +46,7 @@ define('KEY_COLUMN1', 1);
  *
  */
 function closeDb(&$objDb) {
-   mysqli_close($objDb);
+   //$objDb->close();
 }
 
 /*---------------------------------------------------------------------
@@ -92,16 +92,16 @@ function getConnection($strAddress = DB_ADDRESS,
 function runInsertReturnID($strSQL) {
    $intInsertedID = NULL;
 //   logger("INFO: Inserting with '$strSQL'");
-   $objDb = getConnection();
-   $objResult = mysqli_query($strSQL, $objDb);
-   $intError = mysqli_errno();
+   $ObjDb = getConnection();
+   $objResult = $ObjDb->query($strSQL);
+   $intError = $ObjDb->errno;
    
    if($intError!=0) {
-     trigger_error("SQL error:". mysqli_error()."\n$strSQL");
+     trigger_error("SQL error:". $ObjDB->error()."\n$strSQL");
      return NULL;
    }
    if ($objResult) {
-      $intInsertedID = mysqli_insert_id($objDb);
+      $intInsertedID = $ObjDb->insert_id;
    }
 
    closeDB($objDb);
