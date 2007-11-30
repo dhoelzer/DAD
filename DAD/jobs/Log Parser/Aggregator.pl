@@ -1027,7 +1027,7 @@ sub _log_thread
 							$second=$7;
 							$timezone=$8;
 							$year=$4;
-							$syslog_reporting_system=$1;
+							$syslog_reporting_system="WebServer";
 							$syslog_service="http";
 						}				
 						if (/^\[(\S{3})\s\S{3}\s\d{1,2}\s\d{2}:\d{2}\d{2}\s\d{4}\]/)
