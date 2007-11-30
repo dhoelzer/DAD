@@ -38,7 +38,7 @@ function systems_edit() {
     $strURL = getOptionURL(OPTIONID_SYSTEMS);
 
     /*build list of bitmasks for different services*/
-    $arr = runQueryReturnArray( 'SELECT Event_Log_Type_ID FROM dad_event_log_types' );
+    $arr = runQueryReturnArray( 'SELECT Log_Type_Value FROM dad_event_log_types' );
     foreach( $arr as $a ){
         array_push( $arrServices, $a[0] );
     }
@@ -133,7 +133,7 @@ function systems_edit() {
     }
 
     if( isset( $Global['form_action'] ) && ($Global['form_action'] === 'lookup' || (isset($Global['bt']) && $Global['bt'] === $gaLiterals['Update']) || $Global['form_action'] === 'saveasnew') ) {
-        $strSQL = "SELECT sys.system_id, sys.system_name, loc.location_name, sys.timezone, os.os_name, sys.ip_address, sys.contact_information, import.log_these, import.priority, import.next_run
+        $strSQL = "SELECT sys.system_id, sys.system_name, loc.location_name, sys.timezone, os.os_name, sys.ip_address, sys.contact_information, import.Log_These, import.priority, import.next_run
                    FROM dad_sys_systems AS sys
                      LEFT JOIN dad_sys_location AS loc ON sys.location_id = loc.location_id
                      LEFT JOIN dad_sys_os AS os ON sys.os_id = os.os_id
@@ -142,7 +142,7 @@ function systems_edit() {
         $arrDetails = runQueryReturnArray( $strSQL );
         if( isset($arrDetails) ){
             $arrDetails = array_shift( $arrDetails );
-            $arrLogThese = bitmask_to_array($arrDetails['log_these'],$arrServices);
+            $arrLogThese = bitmask_to_array($arrDetails['Log_These'],$arrServices);
         }
     }
 
@@ -220,7 +220,6 @@ function systems_edit() {
         </table></form>";
 
     $strHTML .= "<script>record_list('selectedgroups','selectedgroups_list','~~~')</script>";
-
     add_element( $strHTML );
 
 }
