@@ -94,6 +94,96 @@ END;
 function generateEventQuery($strSQL, $start=1, $limit=10)
 {
 	$StringIDFilter = "";
+   $Terms = "";
+    	$table_ref = "";
+    	$JOINS="";
+    	$MATCHES="";
+    	$Events_ID_in = "";
+    
+    	if(!isset($strSQL)) { return ""; }
+    	$result = runQueryReturnArray($strSQL);
+    	if(!isset($result[0]['Query'])) { return ""; }
+    	$SearchTerms = split(" ",$result[0]['Query']);
+    	$TimeFrame = $result[0]['Timeframe'];
+    	$Terms = "";
+    	foreach($SearchTerms as $value)
+    	{
+    		$Terms .= ($Terms == "" ? "'".$value."'" : ",'".$value."'");
+    	}
+    	$strSQL = "SELECT * FROM event_unique_strings WHERE String IN ( $Terms )";
+    	#add_element("$strSQL<br><br>");
+    	$string_ids = runQueryReturnArray($strSQL);
+    	foreach($string_ids as $row)
+    	{
+   		if($StringIDFilter == "")
+   		{
+   			$table_ref = 'b';
+   			$StringIDFilter = "\n$table_ref.String_ID=$row[0]";
+   			$JOINS="\nJOIN event_fields as $table_ref";
+   			$MATCHES="\nAND a.Events_ID=$table_ref.Events_ID";
+   		}
+   		else # ORs should be in here somewhere attached to the $StringIDFilter
+   		{
+   			$table_ref++;
+   			$StringIDFilter .= "\nAND $table_ref.String_ID=$row[0]";
+   			$JOINS.="\nJOIN event_fields as $table_ref";
+   			$MATCHES.="\nAND a.Events_ID=$table_ref.Events_ID";
+   		}
+   	}
+   	$strSQL=<<<ENDSQL
+		SELECT 
+			DISTINCT a.Events_ID,
+			a.Time_Written,
+			a.Time_Generated 
+		FROM 
+			events as a $JOINS 
+		WHERE 
+			$StringIDFilter 
+			AND (UNIX_TIMESTAMP(NOW())-$TimeFrame) < a.Time_Generated 
+			$MATCHES 
+		LIMIT $start,$limit
+ENDSQL;
+   	#add_element($strSQL."<br><br>");
+   	$Event_IDs = runQueryReturnArray($strSQL);
+   	foreach($Event_IDs as $row)
+   	{
+   		if($Events_ID_in=="")
+   		{
+   			$Events_ID_in = "$row[0]";
+   		}
+   		else
+   		{
+   			$Events_ID_in .= ", $row[0]";
+   		}
+   	}
+   	$strSQL=<<<ENDSQL
+   				SELECT distinct
+   					f.Events_ID as "Event Number",
+   					FROM_UNIXTIME(e.Time_Generated) as "Time",
+   					systems.System_Name as "System",
+   					GROUP_CONCAT(s.String ORDER BY f.Position ASC separator ' ') as "Event Detail"
+   				FROM
+   					events as e,
+   					event_fields as f,
+   					event_unique_strings as s,
+   					dad_sys_systems as systems
+   				WHERE
+   					e.Events_ID IN ( $Events_ID_in )
+   					AND f.Events_ID=e.Events_ID
+   					AND (
+   						f.String_ID=s.String_ID
+   						)
+   					AND systems.System_ID=e.System_ID
+   					GROUP BY f.Events_ID
+   					ORDER BY e.Time_Generated,f.Events_ID,f.Position
+ENDSQL;
+   #add_element($strSQL);
+   	return($strSQL);
+
+// TODO - DSH, 12/2007
+// The following code makes use of the stored procedures in the DAD database.  These are currently very inefficient for large datasets.
+// Our current impression is that the problem is related to the poor optimization of sub queries within MySQL.
+/*	$StringIDFilter = "";
 	$Terms = "";
 	$table_ref = "";
 	$JOINS="";
@@ -103,9 +193,11 @@ function generateEventQuery($strSQL, $start=1, $limit=10)
 	if(!isset($strSQL)) { return ""; }
 	$result = runQueryReturnArray($strSQL);
 	if(!isset($result[0]['Query'])) { return ""; }
-	return String_To_Query($result[0]['Query'], $result[0]['Timeframe'], $start, $limit);
+	return String_To_Query($result[0]['Query'], $result[0]['Timeframe'], $start, $limit);*/
 }
 
+// TODO - DSH, 12/2007
+// This function is only used when the stored procedure code is active.
 function String_To_Query($String, $TimeFrame=10000000, $start=1, $limit=10)
 {
 	$SearchTerms = split(" ",$String);
