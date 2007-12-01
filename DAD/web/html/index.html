@@ -40,7 +40,7 @@ require_once "../lib/html_formatter.php";
 // Encryption requires that we tell it which key to use.
 // set_public_key("key@localhost"); // Define your public key here if using assymetric encryption within the database
 
-$strSessionID = isset($_GET[ARG_SESSION]) ? $_GET[ARG_SESSION] : NULL;
+$strSessionID = isset($_COOKIE["SessionID"]) ? $_COOKIE["SessionID"] : NULL;
 $intOptionID = isset($_GET[ARG_OPTION]) ? $_GET[ARG_OPTION] : NULL;
 
 // Add POST values to $Globals array
@@ -50,6 +50,9 @@ if ($_POST) {
 // Add POST values to $Globals array
 if ($_GET) {
    add_global($_GET);
+}
+if ($_COOKIE) {
+	add_global($_COOKIE);
 }
 
 // Retrieve language preference from cookie or default to English
@@ -63,6 +66,7 @@ if ($strSessionID) {
    add_global("ValidSession", false);
 }
 // This main dispatch function determines where to send user...
+if($intOptionID==0) { $intOptionID=1;}
 dispatch($intOptionID);
 showPage();
 

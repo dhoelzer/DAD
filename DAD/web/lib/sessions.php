@@ -86,7 +86,7 @@ function destroySession($strSessionAuthenticator) {
 */ 
 
 function genRandomString($intLength) {
-   $strValidChars="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789\$~.|_";
+   $strValidChars="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
    // Someday we'll do something better for the randomizer.  This should be sufficient for now.
    srand(rand(rand(1,314157911),time()));
    $intFieldSize = strlen($strValidChars) - 1;
@@ -170,6 +170,7 @@ function validateSessionID($strSessionID) {
       case 0:
          // session does not exist in database
          $intReturn = RETURN_FAILURE;
+		 setcookie("SessionID", "", time()-3600);
          trigger_error(ERR_NOSCREEN_TAG.ERR_SECURITY_LOG."Invalid session ID: $strSessionID");
          break;
 
@@ -177,11 +178,13 @@ function validateSessionID($strSessionID) {
          // potentially valid session here
          if ($strCurrentIPAddress != $aSession[$strSessionID]["IPAddress"]) {
             trigger_error(ERR_NOSCREEN_TAG.ERR_SECURITY_LOG."IP Address for current user no longer matches session: $strSessionID");
+			setcookie("SessionID", "", time()-3600);
             break;
          }
          // Check if session has expired.
          if (gmmktime() > $aSession[$strSessionID]["ExpireTime"]) {
             trigger_error(ERR_NOSCREEN_TAG.ERR_SECURITY_LOG."Session Expired");
+			setcookie("SessionID", "", time()-3600);
          } else {
             add_global($aSession[$strSessionID]);
             add_global("ValidSession", true);
@@ -194,6 +197,7 @@ function validateSessionID($strSessionID) {
          
       default: 
          // more than 1 session row - trigger error, delete all for this user and return
+		 setcookie("SessionID", "", time()-3600);
          trigger_error(ERR_NOSCREEN_TAG.ERR_SECURITY_LOG."Multiple sessions exist for user ID: {$Global['UserID']}");
          delSessionForUserID($Global["UserID"]);
    }

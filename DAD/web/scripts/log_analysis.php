@@ -118,16 +118,16 @@ function generateEventQuery($strSQL, $start=1, $limit=10)
    		if($StringIDFilter == "")
    		{
    			$table_ref = 'b';
-   			$StringIDFilter = "\n$table_ref.String_ID=$row[0]";
-   			$JOINS="\nJOIN event_fields as $table_ref";
-   			$MATCHES="\nAND a.Events_ID=$table_ref.Events_ID";
+   			$StringIDFilter = " $table_ref.String_ID=$row[0]";
+   			$JOINS=" JOIN event_fields as $table_ref";
+   			$MATCHES=" AND a.Events_ID=$table_ref.Events_ID";
    		}
    		else # ORs should be in here somewhere attached to the $StringIDFilter
    		{
    			$table_ref++;
-   			$StringIDFilter .= "\nAND $table_ref.String_ID=$row[0]";
-   			$JOINS.="\nJOIN event_fields as $table_ref";
-   			$MATCHES.="\nAND a.Events_ID=$table_ref.Events_ID";
+   			$StringIDFilter .= " AND $table_ref.String_ID=$row[0]";
+   			$JOINS.=" JOIN event_fields as $table_ref";
+   			$MATCHES.=" AND a.Events_ID=$table_ref.Events_ID";
    		}
    	}
    	$strSQL=<<<ENDSQL

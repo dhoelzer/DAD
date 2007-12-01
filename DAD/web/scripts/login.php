@@ -67,7 +67,7 @@ function loginUser() {
    $intUserID = getUser($strUserName, $strPassword);
 
    if (empty($intUserID)) {
-      logger("SEC: Failed login attempt for $strUserName in domain $strDomainLoginName");
+      logger("SEC: Failed login attempt for $strUserName");
       loginFailed();
       return;
    }
