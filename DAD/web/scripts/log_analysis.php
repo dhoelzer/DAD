@@ -30,8 +30,8 @@ if(isset($_GET["ContextQuery"]))
 		$strSQL=String_To_Query($word, 10000000, $Start, 50);
 		$Result_Contents = Query_to_Table($strSQL, 1, $Start);//, "PopupTable");
 		//Popup("Test", $Popup_Contents, 980, 650, 5, 5);
-		$strHTML = "<p><a href='$strURL&ContextQuery=$word&Start=".($Start-10)."'>< Previous</a> | ".
-			"<a href='$strURL&ContextQuery=$word&Start=".($Start+10)."'> Next ></a><p><div class=results width=90% border=1 height=200px name=ResultSet>$Result_Contents</div>";
+		$strHTML = "<p><a href='$strURL&ContextQuery=$word&Start=".($Start-50)."'>< Previous</a> | ".
+			"<a href='$strURL&ContextQuery=$word&Start=".($Start+50)."'> Next ></a><p><div class=results width=90% border=1 height=200px name=ResultSet>$Result_Contents</div>";
 		add_element($strHTML);
 		return;
 	}
@@ -93,42 +93,49 @@ END;
 
 function generateEventQuery($strSQL, $start=1, $limit=10)
 {
+   	if(!isset($strSQL)) { return ""; }
+	$result = runQueryReturnArray($strSQL);
+	if(!isset($result[0]['Query'])) { return ""; }
+	$SearchTerms = $result[0]['Query'];
+	$TimeFrame = $result[0]['Timeframe'];
+
+	return(FulltextQuery($SearchTerms, $TimeFrame, $start, $limit));
+}
+
+function FulltextQuery($SearchTerms, $TimeFrame=86400, $start=1, $limit=10)
+{
 	$StringIDFilter = "";
-   $Terms = "";
-    	$table_ref = "";
-    	$JOINS="";
-    	$MATCHES="";
-    	$Events_ID_in = "";
-    
-    	if(!isset($strSQL)) { return ""; }
-    	$result = runQueryReturnArray($strSQL);
-    	if(!isset($result[0]['Query'])) { return ""; }
-    	$SearchTerms = split(" ",$result[0]['Query']);
-    	$TimeFrame = $result[0]['Timeframe'];
-    	$Terms = "";
-    	foreach($SearchTerms as $value)
-    	{
-    		$Terms .= ($Terms == "" ? "'".$value."'" : ",'".$value."'");
-    	}
-    	$strSQL = "SELECT * FROM event_unique_strings WHERE String IN ( $Terms )";
-    	#add_element("$strSQL<br><br>");
-    	$string_ids = runQueryReturnArray($strSQL);
-    	foreach($string_ids as $row)
-    	{
-   		if($StringIDFilter == "")
-   		{
-   			$table_ref = 'b';
-   			$StringIDFilter = " $table_ref.String_ID=$row[0]";
-   			$JOINS=" JOIN event_fields as $table_ref";
-   			$MATCHES=" AND a.Events_ID=$table_ref.Events_ID";
-   		}
-   		else # ORs should be in here somewhere attached to the $StringIDFilter
-   		{
-   			$table_ref++;
-   			$StringIDFilter .= " AND $table_ref.String_ID=$row[0]";
-   			$JOINS.=" JOIN event_fields as $table_ref";
-   			$MATCHES.=" AND a.Events_ID=$table_ref.Events_ID";
-   		}
+	$Terms = "";
+	$table_ref = "";
+	$JOINS="";
+	$MATCHES="";
+	$Events_ID_in = "";
+	$Terms = "";
+
+	$SearchTerms = split(" ", $SearchTerms);
+	foreach($SearchTerms as $value)
+	{
+		$Terms .= ($Terms == "" ? "'".$value."'" : ",'".$value."'");
+	}
+	$strSQL = "SELECT * FROM event_unique_strings WHERE String IN ( $Terms )";
+	#add_element("$strSQL<br><br>");
+	$string_ids = runQueryReturnArray($strSQL);
+	foreach($string_ids as $row)
+	{
+		if($StringIDFilter == "")
+		{
+			$table_ref = 'b';
+			$StringIDFilter = " $table_ref.String_ID=$row[0]";
+			$JOINS=" JOIN event_fields as $table_ref";
+			$MATCHES=" AND a.Events_ID=$table_ref.Events_ID";
+		}
+		else # ORs should be in here somewhere attached to the $StringIDFilter
+		{
+			$table_ref++;
+			$StringIDFilter .= " AND $table_ref.String_ID=$row[0]";
+			$JOINS.=" JOIN event_fields as $table_ref";
+			$MATCHES.=" AND a.Events_ID=$table_ref.Events_ID";
+		}
    	}
    	$strSQL=<<<ENDSQL
 		SELECT 
@@ -145,6 +152,10 @@ function generateEventQuery($strSQL, $start=1, $limit=10)
 ENDSQL;
    	#add_element($strSQL."<br><br>");
    	$Event_IDs = runQueryReturnArray($strSQL);
+	if(!$Event_IDs)
+	{
+		return "SELECT 'No Events Matching Criteria Found.'";
+	}
    	foreach($Event_IDs as $row)
    	{
    		if($Events_ID_in=="")
@@ -761,7 +772,7 @@ END;
 	$strHTML .= "<hr>";
 	if($output) 
 	{ 
-		$strHTML .= query_to_table($strSQLQuery);
+		$strHTML .= Query_to_Table(FulltextQuery($strSQLQuery));
 	}
 	add_element($strHTML);
 }
