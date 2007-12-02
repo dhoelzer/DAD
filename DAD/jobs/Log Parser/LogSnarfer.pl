@@ -7,6 +7,7 @@
 # If the drive mapping for logs changes, this line is the only thing that should need to be adjusted.  Every file
 # in this directory and below will be processed as a log file.  You have been warned. :^)
 use DBI;
+use File::Copy;
 
 # External modules:
 $DEBUG=0;
