@@ -10,6 +10,7 @@
 package dadscheduler;
 import java.sql.*;
 import java.util.*;
+import java.io.*;
 
 /**
  *
@@ -18,10 +19,36 @@ import java.util.*;
 public class ScheduleDBInterface {
     
     private DatabaseClass dbo;
+    private String DBURL, DBUser, DBPassword;
     
     /** Creates a new instance of ScheduleDBInterface */
     public ScheduleDBInterface() {
+        BufferedReader ConfigFile = null;
+        String Line;
         dbo = null;
+        try {
+            ConfigFile = new BufferedReader(new FileReader("/DAD/dbconfig.jv"));
+            while((Line = ConfigFile.readLine()) != null)
+            {
+                if(Line.contains("URL"))
+                {
+                    DBURL = Line.substring(Line.indexOf("=")+1).trim();
+                }
+                if(Line.contains("User"))
+                {
+                    DBUser = Line.substring(Line.indexOf("=")+1).trim();
+                }
+                if(Line.contains("Password"))
+                {
+                    DBPassword = Line.substring(Line.indexOf("=")+1).trim();
+                }
+            }
+            ConfigFile.close();
+        }
+        catch(Exception e)
+        {
+            System.out.println("Exception reading configuration file: "+e.getMessage());
+        }
     }
     
     public Job GetPersistentJobs()
@@ -41,7 +68,7 @@ public class ScheduleDBInterface {
         java.util.Date now = new java.util.Date();
         String SQL;
         
-        dbo = new DatabaseClass();
+        dbo = new DatabaseClass(DBURL, DBUser, DBPassword);
         now.getTime();
         SQL = "SELECT * FROM dad_adm_job WHERE next_start<" +
                 (now.getTime()/1000) + " AND is_running=FALSE " +
@@ -61,7 +88,7 @@ public class ScheduleDBInterface {
 
     void SetFinished(int job)
     {
-        dbo = new DatabaseClass();
+        dbo = new DatabaseClass(DBURL, DBUser, DBPassword);
         String SQL = "UPDATE dad_adm_job SET is_running=FALSE WHERE " +
                 "id_dad_adm_job='" + job + "'";
         dbo.SQLQueryNoResult(SQL);
@@ -71,7 +98,7 @@ public class ScheduleDBInterface {
     void ClearIsRunning()
     {
         String SQL;
-        dbo = new DatabaseClass();
+        dbo = new DatabaseClass(DBURL, DBUser, DBPassword);
         SQL = "UPDATE dad_adm_job SET "+
                 "is_running=FALSE";
         dbo.SQLQueryNoResult(SQL);
@@ -84,7 +111,7 @@ public class ScheduleDBInterface {
         //JobSQLResults RetrievedJob;
         long last_started, next_start_time, minutes, hours, days;
         java.util.Date now = new java.util.Date();
-        dbo = new DatabaseClass();
+        dbo = new DatabaseClass(DBURL, DBUser, DBPassword);
         
         now.getTime();
         String SQL = "SELECT * FROM dad_adm_job WHERE id_dad_adm_job='" + 

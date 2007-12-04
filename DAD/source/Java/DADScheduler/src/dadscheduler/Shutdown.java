@@ -25,7 +25,7 @@ public class Shutdown {
             try 
             { 
                 Main.StopRunning();
-                Thread.sleep(2000); 
+                Thread.sleep(10000); 
             } 
             catch (InterruptedException e) 
             { 

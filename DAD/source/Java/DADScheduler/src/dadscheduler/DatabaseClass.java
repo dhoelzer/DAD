@@ -16,18 +16,15 @@ import java.sql.*;
 public class DatabaseClass {
     
     private Connection conn = null;
-    private String username = "root";
-    private String password = "All4Fun";
-    private String connectionURL = "jdbc:mysql://127.0.0.1/DAD";
 
     
     /** Creates a new instance of DatabaseClass */
-    public DatabaseClass() {
-        
+    public DatabaseClass(String URL, String Username, String Password) {
+
         try
         {
             Class.forName("com.mysql.jdbc.Driver").newInstance();
-            conn = DriverManager.getConnection(connectionURL, username, password);
+            conn = DriverManager.getConnection(URL, Username, Password);
         }
         catch(IllegalAccessException e)
         {
@@ -46,6 +43,9 @@ public class DatabaseClass {
             System.err.println("Could not connect to database:" + e.getMessage());
         }
               
+    }
+    public DatabaseClass() {
+        this("jdbc:mysql://127.0.0.1/DAD", "root", "All4Fun");
     }
     
     public int SQLQueryNoResult(String theQuery)

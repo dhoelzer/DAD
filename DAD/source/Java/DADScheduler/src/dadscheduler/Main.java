@@ -35,7 +35,7 @@ public class Main {
     
     static private boolean DEBUG = true;
     static private ScheduleDBInterface schedule;
-    static private String Version="0.2";
+    static private String Version="0.3";
     static private ArrayList<SpawnProcess> processes;
     static private boolean KeepRunning;
     
