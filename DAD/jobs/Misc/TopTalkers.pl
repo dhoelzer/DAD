@@ -32,7 +32,11 @@ $LastChecked = $ARGV[0];
 
 $HTML = "";
 
-$SQL = "select Computer, count(SystemID) as 'Event Count' FROM dad.dad_sys_events WHERE TimeWritten>(UNIX_TIMESTAMP(NOW())-86400) group by Computer order by count(SystemID) DESC LIMIT 5";
+$SQL = "select System_Name, count(events.System_ID) as 'Event Count' 
+	FROM dad.events, dad.dad_sys_systems 
+	WHERE Time_Written>(UNIX_TIMESTAMP(NOW())-86400) 
+		AND events.System_ID=dad_sys_systems.System_ID 
+	group by events.System_ID order by count(events.System_ID) DESC LIMIT 5";
 
 $dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
 $dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
@@ -55,7 +59,14 @@ if($num_results)
 	$HTML .="</table></td>\n";
 }
 	
-	$SQL="select EventID, count(EventID) as 'Event Count' FROM dad_sys_events WHERE TimeWritten>(UNIX_TIMESTAMP(NOW())-86400) group by EventID ORDER BY Count(EventID) DESC LIMIT 5";
+$SQL="
+	select String,  count(event_fields.String_ID) as 'Event Count' 
+		FROM event_fields, event_unique_strings 
+		WHERE Position=5 
+			AND event_unique_strings.String_ID=event_fields.String_ID
+			AND (event_unique_strings.String > 0 AND event_unique_strings.String < 999999)
+		group by event_fields.String_ID ORDER BY Count(event_fields.String_ID) DESC LIMIT 5";
+
 
 	$results_ref = &SQL_Query($SQL);
 $num_results = @$results_ref;
