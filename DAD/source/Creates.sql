@@ -276,7 +276,7 @@ CREATE TABLE `dad_adm_job` (
   `persistent` tinyint(1) NOT NULL DEFAULT '0',
   `argument_1` varchar(45) NOT NULL,
   PRIMARY KEY (`id_dad_adm_job`)
-) ENGINE=MyISAM AUTO_INCREMENT=19 DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM AUTO_INCREMENT=20 DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
 
 --
@@ -727,7 +727,7 @@ CREATE TABLE `dad_sys_cis_imported` (
   `System_Name` varchar(45) DEFAULT NULL,
   `LastLogEntry` bigint(20) unsigned DEFAULT NULL,
   PRIMARY KEY (`CIS_Imported_ID`)
-) ENGINE=MyISAM AUTO_INCREMENT=1215 DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM AUTO_INCREMENT=1310 DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
 
 --
@@ -764,7 +764,7 @@ CREATE TABLE `dad_sys_event_import_from` (
   `Next_Run` int(10) unsigned NOT NULL,
   `Log_These` int(10) unsigned NOT NULL,
   PRIMARY KEY (`ToImportID`)
-) ENGINE=MyISAM AUTO_INCREMENT=150 DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM AUTO_INCREMENT=170 DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
 
 --
@@ -785,66 +785,7 @@ CREATE TABLE `dad_sys_event_stats` (
   PRIMARY KEY (`Stats_ID`),
   KEY `Systems` (`System_Name`),
   KEY `Stats_Type` (`Stat_Type`) USING BTREE
-) ENGINE=MyISAM AUTO_INCREMENT=7532763 DEFAULT CHARSET=latin1 COMMENT='Tracks event log gathering statistics';
-SET character_set_client = @saved_cs_client;
-
---
--- Table structure for table `dad_sys_events`
---
-
-DROP TABLE IF EXISTS `dad_sys_events`;
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
-CREATE TABLE `dad_sys_events` (
-  `dad_sys_events_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `SystemID` mediumint(8) unsigned NOT NULL DEFAULT '0',
-  `ServiceID` mediumint(8) unsigned NOT NULL DEFAULT '0',
-  `TimeWritten` int(10) unsigned NOT NULL DEFAULT '0',
-  `TimeGenerated` int(10) unsigned NOT NULL DEFAULT '0',
-  `Source` char(255) NOT NULL DEFAULT '',
-  `Category` char(255) NOT NULL DEFAULT '',
-  `SID` char(64) CHARACTER SET latin1 NOT NULL DEFAULT '',
-  `Computer` char(255) NOT NULL DEFAULT '',
-  `EventID` mediumint(8) unsigned NOT NULL DEFAULT '0',
-  `EventType` tinyint(3) unsigned NOT NULL DEFAULT '0',
-  `Field_0` varchar(760) DEFAULT NULL,
-  `Field_1` varchar(760) DEFAULT NULL,
-  `Field_2` varchar(760) DEFAULT NULL,
-  `Field_3` varchar(760) DEFAULT NULL,
-  `Field_4` varchar(760) DEFAULT NULL,
-  `Field_5` varchar(760) DEFAULT NULL,
-  `Field_6` varchar(760) DEFAULT NULL,
-  `Field_7` varchar(760) DEFAULT NULL,
-  `Field_8` varchar(760) DEFAULT NULL,
-  `Field_9` varchar(760) DEFAULT NULL,
-  `Field_10` varchar(760) DEFAULT NULL,
-  `Field_11` varchar(760) DEFAULT NULL,
-  `Field_12` varchar(760) DEFAULT NULL,
-  `Field_13` varchar(760) DEFAULT NULL,
-  `Field_14` varchar(760) DEFAULT NULL,
-  `Field_15` varchar(760) DEFAULT NULL,
-  `Field_16` varchar(760) DEFAULT NULL,
-  `Field_17` varchar(760) DEFAULT NULL,
-  `Field_18` varchar(760) DEFAULT NULL,
-  `Field_19` varchar(760) DEFAULT NULL,
-  `Field_20` varchar(760) DEFAULT NULL,
-  `Field_21` varchar(760) DEFAULT NULL,
-  `Field_22` varchar(760) DEFAULT NULL,
-  `Field_23` varchar(760) DEFAULT NULL,
-  `Field_24` varchar(760) DEFAULT NULL,
-  `Field_25` varchar(760) DEFAULT NULL,
-  `idxID_Code` char(64) DEFAULT NULL,
-  `idxID_Kerb` char(64) DEFAULT NULL,
-  `idxID_NTLM` char(64) DEFAULT NULL,
-  PRIMARY KEY (`dad_sys_events_id`),
-  KEY `idxEventID` (`EventID`),
-  KEY `idxSID` (`SID`),
-  KEY `idxTimestamp` (`TimeGenerated`),
-  KEY `idxIDbyCode` (`idxID_Code`(10)),
-  KEY `idxIDbyKerb` (`idxID_Kerb`(15)),
-  KEY `idxIDbyNTLM` (`idxID_NTLM`(10)),
-  KEY `idxNTLMCode` (`Field_3`(15))
-) ENGINE=MyISAM AUTO_INCREMENT=72285891 DEFAULT CHARSET=utf8 COMMENT='Normalized Windows Events';
+) ENGINE=MyISAM AUTO_INCREMENT=7619169 DEFAULT CHARSET=latin1 COMMENT='Tracks event log gathering statistics';
 SET character_set_client = @saved_cs_client;
 
 --
@@ -1017,8 +958,9 @@ CREATE TABLE `dad_sys_services` (
   `Service_Name` varchar(45) NOT NULL DEFAULT '',
   `Contact_Information` varchar(80) NOT NULL DEFAULT '',
   `log_these_id` int(11) DEFAULT NULL,
-  PRIMARY KEY (`Service_ID`)
-) ENGINE=MyISAM AUTO_INCREMENT=2046 DEFAULT CHARSET=latin1 COMMENT='Tracks services reported on';
+  PRIMARY KEY (`Service_ID`),
+  KEY `idxServiceName` (`Service_Name`)
+) ENGINE=MyISAM AUTO_INCREMENT=2067 DEFAULT CHARSET=latin1 COMMENT='Tracks services reported on';
 SET character_set_client = @saved_cs_client;
 
 --
@@ -1037,8 +979,10 @@ CREATE TABLE `dad_sys_systems` (
   `Patch_ID` int(10) unsigned NOT NULL DEFAULT '0',
   `IP_Address` varchar(15) NOT NULL DEFAULT '',
   `Contact_Information` varchar(80) NOT NULL DEFAULT '',
-  PRIMARY KEY (`System_ID`)
-) ENGINE=MyISAM AUTO_INCREMENT=139 DEFAULT CHARSET=latin1 COMMENT='Master system table';
+  PRIMARY KEY (`System_ID`),
+  KEY `idxSystems` (`System_Name`),
+  KEY `idxLocation` (`Location_ID`)
+) ENGINE=MyISAM AUTO_INCREMENT=27400 DEFAULT CHARSET=latin1 COMMENT='Master system table';
 SET character_set_client = @saved_cs_client;
 
 --
@@ -1069,8 +1013,9 @@ CREATE TABLE `event_unique_strings` (
   `String_ID` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `String` varchar(767) NOT NULL,
   PRIMARY KEY (`String_ID`),
-  UNIQUE KEY `StringIDX` (`String`)
-) ENGINE=MyISAM AUTO_INCREMENT=247927 DEFAULT CHARSET=latin1;
+  UNIQUE KEY `StringIDX` (`String`),
+  FULLTEXT KEY `idxStringFT` (`String`)
+) ENGINE=MyISAM AUTO_INCREMENT=1369713 DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
 
 --
@@ -1087,8 +1032,11 @@ CREATE TABLE `events` (
   `System_ID` int(10) unsigned NOT NULL,
   `Service_ID` int(10) unsigned NOT NULL,
   PRIMARY KEY (`Events_ID`),
-  KEY `idxTimeGenerated` (`Time_Generated`)
-) ENGINE=MyISAM AUTO_INCREMENT=3415899 DEFAULT CHARSET=latin1 ROW_FORMAT=DYNAMIC;
+  KEY `idxTimeGenerated` (`Time_Generated`),
+  KEY `idxSystem` (`System_ID`),
+  KEY `idxService` (`Service_ID`),
+  KEY `idxTimeWritten` (`Time_Written`)
+) ENGINE=MyISAM AUTO_INCREMENT=17012527 DEFAULT CHARSET=latin1 ROW_FORMAT=DYNAMIC;
 SET character_set_client = @saved_cs_client;
 
 --
@@ -1300,22 +1248,6 @@ CREATE TABLE `system` (
 SET character_set_client = @saved_cs_client;
 
 --
--- Table structure for table `unique_fields`
---
-
-DROP TABLE IF EXISTS `unique_fields`;
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
-CREATE TABLE `unique_fields` (
-  `Unique_Field_ID` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-  `Position` int(10) unsigned NOT NULL,
-  `String_ID` bigint(20) unsigned NOT NULL,
-  PRIMARY KEY (`Unique_Field_ID`),
-  KEY `idxStringID` (`String_ID`)
-) ENGINE=MyISAM AUTO_INCREMENT=54498 DEFAULT CHARSET=latin1 ROW_FORMAT=DYNAMIC;
-SET character_set_client = @saved_cs_client;
-
---
 -- Table structure for table `user`
 --
 
@@ -1383,4 +1315,4 @@ SET character_set_client = @saved_cs_client;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2007-11-22 19:50:29
+-- Dump completed on 2007-12-04  5:45:19
