@@ -24,4 +24,4 @@ if($NumArgs < 2)
 	print "You must specify a timeframe in seconds and at least one string to search for.\n";
 }
 $TimeFrame = shift(@ARGV);
-print &GetEventsByStrings($TimeFrame,@ARGV);
+print &GetEventsByStringsPosition($TimeFrame,@ARGV);
