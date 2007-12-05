@@ -114,6 +114,10 @@ function showpage() {
    if($Global['ValidSession'])
    {
       set_cookie("Language", $LanguageCode, $Expiration);
+	if(isset($Global["SessionID"]))
+	{
+		setcookie("SessionID", $Global["SessionID"]);
+	}
    }
    print _header();
    print _body();
@@ -523,10 +527,6 @@ function getTabMenuOptionRow(&$aMenuOptions, $intCurrentOptionID) {
 function getOptionURL($strOption) {
    global $Global;
 
-	if(isset($Global["SessionID"]))
-	{
-		setcookie("SessionID", $Global["SessionID"]);
-	}
 	return ("index.html?".ARG_OPTION."=$strOption");
 }
 
