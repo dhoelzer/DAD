@@ -62,7 +62,7 @@ sub GetEventsByStringsPosition
 	print "Searching for events that occurred since $TimeFrame with the terms:\n";
 	for($i=0; $i!= $num_terms; $i++)
 	{
-		$t = $_[$i * 2];
+		$t = lc($_[$i * 2]);
 		$p = $_[($i * 2) + 1];
 		print "$t - $p\n";
 		$Terms[$i] = $t;
@@ -95,9 +95,23 @@ sub GetEventsByStringsPosition
 		while($row = shift(@$results_ref))
 		{
 			@this_row = @$row;
-			print $this_row[0]."-".$this_row[1]."-".$Positions{$this_row[1]}."\n";
-			if(!$Positions{$this_row[1]})
+			print $this_row[0]."-".$this_row[1]."-".$Positions{lc($this_row[1])}."\n";
+			if(!$Positions{lc($this_row[1])})
 			{ print "\tNo Position\n";
+				if($StringIDFilter eq "")
+				{
+					$table_ref = 'b';
+					$StringIDFilter="\n$table_ref.String_ID=$this_row[0]";
+					$JOINS="\nJOIN event_fields as $table_ref";
+					$MATCHES="\nAND a.Events_ID=$table_ref.Events_ID";
+				}
+				else
+				{
+					$table_ref++;
+					$StringIDFilter .= "\nAND $table_ref.String_ID=$this_row[0]";
+					$JOINS.="\nJOIN event_fields as $table_ref";
+					$MATCHES.="\nAND a.Events_ID=$table_ref.Events_ID";
+				}
 				next;
 			}
 			if($StringIDFilter eq "")
@@ -105,7 +119,7 @@ sub GetEventsByStringsPosition
 				$table_ref = 'b';
 				if($Positions{$this_row[1]} == int($Positions{$this_row[1]}))
 				{
-					$StringIDFilter = "\n($table_ref.String_ID=$this_row[0] AND $table_ref.Position=".$Positions{$this_row[1]}.")";
+					$StringIDFilter = "\n($table_ref.String_ID=$this_row[0] AND $table_ref.Position=".$Positions{lc($this_row[1])}.")";
 				}
 				else
 				{
@@ -119,7 +133,7 @@ sub GetEventsByStringsPosition
 				$table_ref++;
 				if($Positions{$this_row[1]} == int($Positions{$this_row[1]}))
 				{
-					$StringIDFilter .= "\nAND ($table_ref.String_ID=$this_row[0] AND $table_ref.Position=".$Positions{$this_row[1]}.")";
+					$StringIDFilter .= "\nAND ($table_ref.String_ID=$this_row[0] AND $table_ref.Position=".$Positions{lc($this_row[1])}.")";
 				}
 				else
 				{
@@ -134,7 +148,7 @@ sub GetEventsByStringsPosition
 			FROM events as a
 			}. $JOINS .q{
 			WHERE }. $StringIDFilter .q{ 
-			}. $MATCHES .q{ LIMIT 100};
+			}. $MATCHES .q{ AND a.Time_Generated > }. $TimeFrame .q{ LIMIT 100};
 print "$SQL\n";
 			
 		my $results_ref2 = &SQL_Query($SQL);
@@ -172,7 +186,6 @@ print "$SQL\n";
 						f.String_ID=s.String_ID
 						)
 					AND systems.System_ID=e.System_ID
-					AND e.Time_Generated > }. $TimeFrame .q{
 					GROUP BY f.Events_ID
 					ORDER BY f.Events_ID,f.Position	, e.Time_Generated			
 				};print "$SQL\n";exit 1;
