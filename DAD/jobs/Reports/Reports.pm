@@ -55,9 +55,6 @@ sub GetEventsByStringsPosition
 	}
 	$num_terms /= 2;
 	$TimeFrame = time()-$TimeFrame;
-	$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
-	$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
-		or return "Could not connect to DB server to run alerting.\n";
 	$Report = "";
 	print "Searching for events that occurred since $TimeFrame with the terms:\n";
 	for($i=0; $i!= $num_terms; $i++)
@@ -148,7 +145,8 @@ sub GetEventsByStringsPosition
 			FROM events as a
 			}. $JOINS .q{
 			WHERE }. $StringIDFilter .q{ 
-			}. $MATCHES .q{ AND a.Time_Generated > }. $TimeFrame .q{ LIMIT 100};
+			}. $MATCHES .q{ LIMIT 100 };
+			#.q{ AND a.Time_Generated > }. $TimeFrame .q{ LIMIT 100};
 print "$SQL\n";
 			
 		my $results_ref2 = &SQL_Query($SQL);
@@ -188,7 +186,7 @@ print "$SQL\n";
 					AND systems.System_ID=e.System_ID
 					GROUP BY f.Events_ID
 					ORDER BY f.Events_ID,f.Position	, e.Time_Generated			
-				};print "$SQL\n";exit 1;
+				};print "$SQL\n";
 			my $event_detail_ref = &SQL_Query($SQL);
 			$num_results = @$event_detail_ref;
 			if($num_results)
@@ -197,7 +195,7 @@ print "$SQL\n";
 				while($edrs=shift(@$event_detail_ref))
 				{
 					my @edra=@$edrs;
-					$Report .= "$edra[1] $edra[2] $edra[3]\n";
+					$Report .= "$edra[1]|$edra[2]|$edra[3]\n";
 				}
 			}
 		}
@@ -314,7 +312,7 @@ print "$SQL\n";
 					AND e.Time_Generated > }. $TimeFrame .q{
 					GROUP BY f.Events_ID
 					ORDER BY f.Events_ID,f.Position	, e.Time_Generated			
-				};print "$SQL\n";exit 1;
+				};print "$SQL\n";
 			my $event_detail_ref = &SQL_Query($SQL);
 			$num_results = @$event_detail_ref;
 			if($num_results)
@@ -323,7 +321,7 @@ print "$SQL\n";
 				while($edrs=shift(@$event_detail_ref))
 				{
 					my @edra=@$edrs;
-					$Report .= "$edra[1] $edra[2] $edra[3]\n";
+					$Report .= "$edra[1]|$edra[2]|$edra[3]\n";
 				}
 			}
 		}
@@ -376,6 +374,10 @@ print "$SQL\n";
 	##################################################
 	sub SQL_Query
 	{
+		my $dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
+		my $dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
+		or return "Could not connect to DB server to run alerting.\n";
+
 		my $SQL = $_[0];
 		
 		my $query = $dbh->prepare($SQL);
@@ -386,6 +388,9 @@ print "$SQL\n";
 	}
 	sub SQL_Insert
 	{
+		my $dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
+		my $dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
+		or return "Could not connect to DB server to run alerting.\n";
 		my $SQL = $_[0];
 #		my $query = $dbh->prepare($SQL);
 		if($DEBUG){return; print"$SQL\n";return;}
