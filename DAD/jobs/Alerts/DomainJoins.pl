@@ -16,6 +16,14 @@
 #    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
 
 #!c:/perl/bin/perl.exe
+require "../Reports/Reports.pm";
+#Read in and evaluate the configuration values
+
+$LastChecked = $ARGV[0];
+$Severity = 3;
+$AlertDescription = "New computer joined to domain";
+&Alert($AlertDescription, $Severity, $LastChecked, "645", 5);
+
 
 # Modules for DB and Event logs.  POSIX is required for Unix time stamps
 use DBI;

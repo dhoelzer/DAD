@@ -17,53 +17,12 @@
 
 #!c:/perl/bin/perl.exe
 
-# Modules for DB and Event logs.  POSIX is required for Unix time stamps
-use DBI;
-use POSIX;
-
+require "../Reports/Reports.pm";
 #Read in and evaluate the configuration values
-open(FILE,"../dbconfig.ph") or die "Could not find configuration file!\n";
-foreach (<FILE>) { eval(); }
-close(FILE);
 
 $LastChecked = $ARGV[0];
+$Severity = 2;
+$AlertDescription = "Unusual Logon Attempted";
+&Alert($AlertDescription, $Severity, $LastChecked, "534", 5);
 
-# Grab all matching events that have occured since last alert job ran.
-$SQL = "SELECT TimeGenerated as 'Time', Field_0 as 'User name', Field_1 as 'Domain', Field_2 as 'Logon type', Computer FROM dad_sys_events WHERE EventID='534' AND TimeWritten>'$LastChecked";
 
-$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
-$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
-	or die ("Could not connect to DB server to run alerting.\n");
-
-$results_ref = &SQL_Query($SQL);
-$num_results = @$results_ref;
-if($num_results)
-{
-	while($row = shift(@$results_ref))
-	{
-		@this_row = @$row;
-		$event_data = $this_row[1] . "\\". $this_row[2]." attempted logon type ". $this_row[3];
-		$SQL = "INSERT INTO dad_alerts SET Alert_Time=".time().", Event_Time='".$this_row[0]."', ".
-			"Event_Data='".$event_data."', Acknowledged=FALSE, Severity=2";
-		$query = $dbh->prepare($SQL);
-		$query->execute() or die("Error generating an alert!");
-		$query->finish();
-	}
-}
-
-	##################################################
-	#
-	# SQL_Query - Does the legwork for all SQL queries including basic error checking
-	# 	Takes a SQL string as an argument
-	#
-	##################################################
-	sub SQL_Query
-	{
-		my $SQL = $_[0];
-		
-		my $query = $dbh->prepare($SQL);
-		$query -> execute();
-		my $ref_to_array_of_row_refs = $query->fetchall_arrayref(); 
-		$query->finish();
-		return $ref_to_array_of_row_refs;
-	}

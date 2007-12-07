@@ -54,14 +54,14 @@ sub GetEventsByStringsPosition
 		return "No search terms present\n";
 	}
 	$num_terms /= 2;
-	$TimeFrame = time()-$TimeFrame;
+	#$TimeFrame = time()-$TimeFrame;
 	$Report = "";
-	print "Searching for events that occurred since $TimeFrame with the terms:\n";
+	#print "Searching for events that occurred since $TimeFrame with the terms:\n";
 	for($i=0; $i!= $num_terms; $i++)
 	{
 		$t = lc($_[$i * 2]);
 		$p = $_[($i * 2) + 1];
-		print "$t - $p\n";
+		#print "$t - $p\n";
 		$_ = $p;
 		$Terms[$i] = $t;
 		$Positions{$t} = $p  unless /\D/;	
@@ -80,7 +80,7 @@ sub GetEventsByStringsPosition
 	SELECT * 
 	FROM event_unique_strings 
 	WHERE String IN ( }. $SearchTerms .q{ )
-	};print "$SQL\n";
+	};#print "$SQL\n";
 	$results_ref = &SQL_Query($SQL);
 	$num_results = @$results_ref;
 	if($num_results < $num_terms)
@@ -93,9 +93,9 @@ sub GetEventsByStringsPosition
 		while($row = shift(@$results_ref))
 		{
 			@this_row = @$row;
-			print $this_row[0]."-".$this_row[1]."-".$Positions{lc($this_row[1])}."\n";
+			#print $this_row[0]."-".$this_row[1]."-".$Positions{lc($this_row[1])}."\n";
 			if(!$Positions{lc($this_row[1])})
-			{ print "\tNo Position\n";
+			{ #print "\tNo Position\n";
 				if($StringIDFilter eq "")
 				{
 					$table_ref = 'b';
@@ -145,10 +145,9 @@ sub GetEventsByStringsPosition
 			SELECT DISTINCT a.Events_ID,a.Time_Written,a.Time_Generated
 			FROM events as a
 			}. $JOINS .q{
-			WHERE }. $StringIDFilter .q{ 
-			}. $MATCHES .q{ LIMIT 100 };
-			#.q{ AND a.Time_Generated > }. $TimeFrame .q{ LIMIT 100};
-print "$SQL\n";
+			WHERE }. $StringIDFilter . $MATCHES . 
+			q{ AND a.Time_Written > }. $TimeFrame .q{ LIMIT 10};
+#print "$SQL\n";
 			
 		my $results_ref2 = &SQL_Query($SQL);
 		$num_results = @$results_ref2;
@@ -170,7 +169,7 @@ print "$SQL\n";
 			$SQL = q{
 				SELECT 
 					f.Events_ID, 
-					FROM_UNIXTIME(e.Time_Generated),
+					e.Time_Generated,
 					systems.System_Name, 
 					GROUP_CONCAT(s.String ORDER BY f.Position ASC separator ' ')
 				FROM
@@ -187,18 +186,25 @@ print "$SQL\n";
 					AND systems.System_ID=e.System_ID
 					GROUP BY f.Events_ID
 					ORDER BY f.Events_ID,f.Position	, e.Time_Generated			
-				};print "$SQL\n";
-			my $event_detail_ref = &SQL_Query($SQL);
-			$num_results = @$event_detail_ref;
-			if($num_results)
-			{
-				my $edrs;
-				while($edrs=shift(@$event_detail_ref))
-				{
-					my @edra=@$edrs;
-					$Report .= "$edra[1]|$edra[2]|$edra[3]\n";
-				}
-			}
+				};#print "$SQL\n";
+			$event_detail_ref = &SQL_Query($SQL);
+		}
+	}
+	return $event_detail_ref;
+
+}
+
+sub GetEventsByStringsPositionText
+{
+	$event_detail_ref = GetEventsByStringsPosition(@_);
+	$num_results = @$event_detail_ref;
+	if($num_results)
+	{
+		my $edrs;
+		while($edrs=shift(@$event_detail_ref))
+		{
+			my @edra=@$edrs;
+			$Report .= "$edra[1]|$edra[2]|$edra[3]\n";
 		}
 	}
 	return "$Report\n";
@@ -220,7 +226,7 @@ sub GetEventsByStrings
 	$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
 		or return "Could not connect to DB server to run alerting.\n";
 	$Report = "";
-	print "Searching for events that occurred since $TimeFrame with the terms:\n";
+	#print "Searching for events that occurred since $TimeFrame with the terms:\n";
 	foreach(@_)
 	{
 		if($SearchTerms eq "")
@@ -231,14 +237,14 @@ sub GetEventsByStrings
 		{
 			$SearchTerms .= ", '$_'";
 		}
-		print "\t$_\n";
+		#print "\t$_\n";
 	}
 	# Events to find:	
 	$SQL = q{
 	SELECT * 
 	FROM event_unique_strings 
 	WHERE String IN ( }. $SearchTerms .q{ )
-	};print "$SQL\n";
+	};#print "$SQL\n";
 	$results_ref = &SQL_Query($SQL);
 	$num_results = @$results_ref;
 	if($num_results < $num_terms)
@@ -272,8 +278,8 @@ sub GetEventsByStrings
 			FROM events as a
 			}. $JOINS .q{
 			WHERE }. $StringIDFilter .q{ 
-			}. $MATCHES .q{ LIMIT 100};
-print "$SQL\n";
+			}. $MATCHES .q{ LIMIT 10};
+#print "$SQL\n";
 			
 		my $results_ref2 = &SQL_Query($SQL);
 		$num_results = @$results_ref2;
@@ -295,7 +301,7 @@ print "$SQL\n";
 			$SQL = q{
 				SELECT 
 					f.Events_ID, 
-					FROM_UNIXTIME(e.Time_Generated),
+					e.Time_Generated,
 					systems.System_Name, 
 					GROUP_CONCAT(s.String ORDER BY f.Position ASC separator ' ')
 				FROM
@@ -313,7 +319,7 @@ print "$SQL\n";
 					AND e.Time_Generated > }. $TimeFrame .q{
 					GROUP BY f.Events_ID
 					ORDER BY f.Events_ID,f.Position	, e.Time_Generated			
-				};print "$SQL\n";
+				};#print "$SQL\n";
 			my $event_detail_ref = &SQL_Query($SQL);
 			$num_results = @$event_detail_ref;
 			if($num_results)
@@ -380,7 +386,7 @@ print "$SQL\n";
 		or return "Could not connect to DB server to run alerting.\n";
 
 		my $SQL = $_[0];
-		
+#print "$SQL\n";		
 		my $query = $dbh->prepare($SQL);
 		$query -> execute();
 		my $ref_to_array_of_row_refs = $query->fetchall_arrayref(); 
@@ -404,3 +410,24 @@ print "$SQL\n";
 		return $result;
 
 	}
+
+sub Alert
+{
+# Grab all matching events that have occured since last alert job ran.
+$AlertDesc = shift;
+$Severity = shift;
+$LastChecked = shift;
+$results_ref = GetEventsByStringsPosition($LastChecked, @_); 
+$num_results = @$results_ref;
+	if($num_results)
+	{
+		while($row = shift(@$results_ref))
+		{
+			@this_row = @$row;
+			$event_data = "$AlertDesc<br>".$this_row[3];
+			$SQL = "INSERT INTO dad_alerts SET Alert_Time=".time().", Event_Time='".$this_row[1]."', ".
+				"Event_Data='".$event_data."', Acknowledged=FALSE, Severity=$Severity";
+			&SQL_Insert($SQL);
+		}
+	}
+}
