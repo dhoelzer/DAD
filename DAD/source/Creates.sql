@@ -276,7 +276,7 @@ CREATE TABLE `dad_adm_job` (
   `persistent` tinyint(1) NOT NULL DEFAULT '0',
   `argument_1` varchar(45) NOT NULL,
   PRIMARY KEY (`id_dad_adm_job`)
-) ENGINE=MyISAM AUTO_INCREMENT=20 DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM AUTO_INCREMENT=21 DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
 
 --
@@ -333,7 +333,7 @@ CREATE TABLE `dad_alerts` (
   PRIMARY KEY (`dad_alert_id`),
   KEY `Acknowledged_idx` (`Acknowledged`),
   KEY `Time_idx` (`Alert_Time`)
-) ENGINE=MyISAM AUTO_INCREMENT=2130 DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM AUTO_INCREMENT=2143 DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
 
 --
@@ -785,7 +785,7 @@ CREATE TABLE `dad_sys_event_stats` (
   PRIMARY KEY (`Stats_ID`),
   KEY `Systems` (`System_Name`),
   KEY `Stats_Type` (`Stat_Type`) USING BTREE
-) ENGINE=MyISAM AUTO_INCREMENT=7619169 DEFAULT CHARSET=latin1 COMMENT='Tracks event log gathering statistics';
+) ENGINE=MyISAM AUTO_INCREMENT=7654529 DEFAULT CHARSET=latin1 COMMENT='Tracks event log gathering statistics';
 SET character_set_client = @saved_cs_client;
 
 --
@@ -960,7 +960,7 @@ CREATE TABLE `dad_sys_services` (
   `log_these_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`Service_ID`),
   KEY `idxServiceName` (`Service_Name`)
-) ENGINE=MyISAM AUTO_INCREMENT=2067 DEFAULT CHARSET=latin1 COMMENT='Tracks services reported on';
+) ENGINE=MyISAM AUTO_INCREMENT=2068 DEFAULT CHARSET=latin1 COMMENT='Tracks services reported on';
 SET character_set_client = @saved_cs_client;
 
 --
@@ -1015,7 +1015,7 @@ CREATE TABLE `event_unique_strings` (
   PRIMARY KEY (`String_ID`),
   UNIQUE KEY `StringIDX` (`String`),
   FULLTEXT KEY `idxStringFT` (`String`)
-) ENGINE=MyISAM AUTO_INCREMENT=1369713 DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM AUTO_INCREMENT=1459963 DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
 
 --
@@ -1036,7 +1036,7 @@ CREATE TABLE `events` (
   KEY `idxSystem` (`System_ID`),
   KEY `idxService` (`Service_ID`),
   KEY `idxTimeWritten` (`Time_Written`)
-) ENGINE=MyISAM AUTO_INCREMENT=17012527 DEFAULT CHARSET=latin1 ROW_FORMAT=DYNAMIC;
+) ENGINE=MyISAM AUTO_INCREMENT=17087070 DEFAULT CHARSET=latin1 ROW_FORMAT=DYNAMIC;
 SET character_set_client = @saved_cs_client;
 
 --
@@ -1315,4 +1315,4 @@ SET character_set_client = @saved_cs_client;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2007-12-04  5:45:19
+-- Dump completed on 2007-12-07 21:24:06
