@@ -296,7 +296,7 @@ function show_log_stats()
 endHTML;
 	$strSQL = "SELECT FROM_UNIXTIME(Alert_Time) as 'Alerted at', ".
 		"FROM_UNIXTIME(Event_Time) as 'Event Timestamp', Event_Data as 'Alert', ".
-		"Severity, dad_alert_id from dad_alerts WHERE Acknowledged=FALSE ORDER BY Alert_Time DESC,Event_Time DESC";
+		"Severity, dad_alert_id from dad_alerts WHERE Acknowledged=FALSE ORDER BY Severity DESC,Alert_Time DESC,Event_Time DESC";
 	$alerts = runQueryReturnArray($strSQL);
 	if(! $alerts)
 	{
