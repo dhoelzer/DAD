@@ -62,8 +62,9 @@ sub GetEventsByStringsPosition
 		$t = lc($_[$i * 2]);
 		$p = $_[($i * 2) + 1];
 		print "$t - $p\n";
+		$_ = $p;
 		$Terms[$i] = $t;
-		$Positions{$t} = $p;	
+		$Positions{$t} = $p  unless /\D/;	
 		if(!$SearchTerms)
 		{
 			$SearchTerms = "'$t'";
