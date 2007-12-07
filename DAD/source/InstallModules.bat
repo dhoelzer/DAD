@@ -23,4 +23,4 @@ call ppm install Class-MakeMethods-1.009
 call ppm install Parse-RecDescent
 call ppm install Log-Log4perl
 call ppm install Template-Toolkit
-call ppm install SQL-Translator
+rem call ppm install SQL-Translator
