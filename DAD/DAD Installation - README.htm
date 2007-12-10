@@ -10,12 +10,31 @@ xmlns="http://www.w3.org/TR/REC-html40">
 <meta name=Generator content="Microsoft Word 12">
 <meta name=Originator content="Microsoft Word 12">
 <link rel=File-List href="DAD%20Installation%20-%20README_files/filelist.xml">
+<!--[if gte mso 9]><xml>
+ <o:DocumentProperties>
+  <o:Author>David Hoelzer</o:Author>
+  <o:Template>Normal</o:Template>
+  <o:LastAuthor>David Hoelzer</o:LastAuthor>
+  <o:Revision>2</o:Revision>
+  <o:TotalTime>1</o:TotalTime>
+  <o:Created>2007-12-10T05:32:00Z</o:Created>
+  <o:LastSaved>2007-12-10T05:32:00Z</o:LastSaved>
+  <o:Pages>5</o:Pages>
+  <o:Words>1919</o:Words>
+  <o:Characters>10941</o:Characters>
+  <o:Company>CyberDefense</o:Company>
+  <o:Lines>91</o:Lines>
+  <o:Paragraphs>25</o:Paragraphs>
+  <o:CharactersWithSpaces>12835</o:CharactersWithSpaces>
+  <o:Version>12.00</o:Version>
+ </o:DocumentProperties>
+</xml><![endif]-->
 <link rel=themeData href="DAD%20Installation%20-%20README_files/themedata.thmx">
 <link rel=colorSchemeMapping
 href="DAD%20Installation%20-%20README_files/colorschememapping.xml">
 <!--[if gte mso 9]><xml>
  <w:WordDocument>
-  <w:TrackMoves/>
+  <w:TrackMoves>false</w:TrackMoves>
   <w:TrackFormatting/>
   <w:PunctuationKerning/>
   <w:DrawingGridHorizontalSpacing>6 pt</w:DrawingGridHorizontalSpacing>
@@ -30,7 +49,7 @@ href="DAD%20Installation%20-%20README_files/colorschememapping.xml">
   <w:DoNotUnderlineInvalidXML/>
   <w:DoNotPromoteQF/>
   <w:LidThemeOther>EN-US</w:LidThemeOther>
-  <w:LidThemeAsian>X-NONE</w:LidThemeAsian>
+  <w:LidThemeAsian>JA</w:LidThemeAsian>
   <w:LidThemeComplexScript>X-NONE</w:LidThemeComplexScript>
   <w:DoNotShadeFormData/>
   <w:Compatibility>
@@ -79,10 +98,10 @@ href="DAD%20Installation%20-%20README_files/colorschememapping.xml">
   LatentStyleCount="267">
   <w:LsdException Locked="false" Priority="0" SemiHidden="false"
    UnhideWhenUsed="false" QFormat="true" Name="Normal"/>
-  <w:LsdException Locked="false" SemiHidden="false" UnhideWhenUsed="false"
-   QFormat="true" Name="heading 1"/>
-  <w:LsdException Locked="false" SemiHidden="false" UnhideWhenUsed="false"
-   QFormat="true" Name="heading 2"/>
+  <w:LsdException Locked="false" Priority="9" SemiHidden="false"
+   UnhideWhenUsed="false" QFormat="true" Name="heading 1"/>
+  <w:LsdException Locked="false" Priority="9" SemiHidden="false"
+   UnhideWhenUsed="false" QFormat="true" Name="heading 2"/>
   <w:LsdException Locked="false" Priority="9" QFormat="true" Name="heading 3"/>
   <w:LsdException Locked="false" Priority="9" QFormat="true" Name="heading 4"/>
   <w:LsdException Locked="false" Priority="9" QFormat="true" Name="heading 5"/>
@@ -335,13 +354,19 @@ href="DAD%20Installation%20-%20README_files/colorschememapping.xml">
 <!--
  /* Font Definitions */
  @font-face
+	{font-family:Wingdings;
+	panose-1:5 0 0 0 0 0 0 0 0 0;
+	mso-font-charset:2;
+	mso-generic-font-family:auto;
+	mso-font-pitch:variable;
+	mso-font-signature:0 268435456 0 0 -2147483648 0;}
+@font-face
 	{font-family:"Cambria Math";
 	panose-1:2 4 5 3 5 4 6 3 2 4;
-	mso-font-charset:1;
+	mso-font-charset:0;
 	mso-generic-font-family:roman;
-	mso-font-format:other;
 	mso-font-pitch:variable;
-	mso-font-signature:0 0 0 0 0 0;}
+	mso-font-signature:-1610611985 1107304683 0 0 159 0;}
 @font-face
 	{font-family:Cambria;
 	panose-1:2 4 5 3 5 4 6 3 2 4;
@@ -349,6 +374,13 @@ href="DAD%20Installation%20-%20README_files/colorschememapping.xml">
 	mso-generic-font-family:roman;
 	mso-font-pitch:variable;
 	mso-font-signature:-1610611985 1073741899 0 0 159 0;}
+@font-face
+	{font-family:Calibri;
+	panose-1:2 15 5 2 2 2 4 3 2 4;
+	mso-font-charset:0;
+	mso-generic-font-family:swiss;
+	mso-font-pitch:variable;
+	mso-font-signature:-1610611985 1073750139 0 0 159 0;}
  /* Style Definitions */
  p.MsoNormal, li.MsoNormal, div.MsoNormal
 	{mso-style-unhide:no;
@@ -356,54 +388,676 @@ href="DAD%20Installation%20-%20README_files/colorschememapping.xml">
 	mso-style-parent:"";
 	margin:0in;
 	margin-bottom:.0001pt;
-	mso-pagination:none;
-	mso-layout-grid-align:none;
-	text-autospace:none;
-	font-size:12.0pt;
-	font-family:"Cambria","serif";
+	text-indent:.25in;
+	mso-pagination:widow-orphan;
+	font-size:11.0pt;
+	font-family:"Calibri","sans-serif";
+	mso-ascii-font-family:Calibri;
+	mso-ascii-theme-font:minor-latin;
 	mso-fareast-font-family:"Times New Roman";
 	mso-fareast-theme-font:minor-fareast;
+	mso-hansi-font-family:Calibri;
+	mso-hansi-theme-font:minor-latin;
 	mso-bidi-font-family:"Times New Roman";
-	mso-bidi-theme-font:minor-bidi;}
+	mso-bidi-theme-font:minor-bidi;
+	mso-fareast-language:EN-US;}
 h1
-	{mso-style-priority:99;
+	{mso-style-priority:9;
 	mso-style-unhide:no;
 	mso-style-qformat:yes;
 	mso-style-link:"Heading 1 Char";
 	mso-style-next:Normal;
-	margin:0in;
-	margin-bottom:.0001pt;
-	mso-pagination:none;
+	margin-top:30.0pt;
+	margin-right:0in;
+	margin-bottom:4.0pt;
+	margin-left:0in;
+	mso-pagination:widow-orphan;
 	mso-outline-level:1;
-	mso-layout-grid-align:none;
-	text-autospace:none;
+	border:none;
+	mso-border-bottom-alt:solid #365F91 1.5pt;
+	mso-border-bottom-themecolor:accent1;
+	mso-border-bottom-themeshade:191;
+	padding:0in;
+	mso-padding-alt:0in 0in 1.0pt 0in;
 	font-size:12.0pt;
 	font-family:"Cambria","serif";
+	mso-ascii-font-family:Cambria;
+	mso-ascii-theme-font:major-latin;
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:major-fareast;
+	mso-hansi-font-family:Cambria;
+	mso-hansi-theme-font:major-latin;
+	mso-bidi-font-family:"Times New Roman";
+	mso-bidi-theme-font:major-bidi;
+	color:#365F91;
+	mso-themecolor:accent1;
+	mso-themeshade:191;
 	mso-font-kerning:0pt;
-	font-weight:normal;}
+	mso-fareast-language:EN-US;}
 h2
-	{mso-style-priority:99;
-	mso-style-unhide:no;
+	{mso-style-priority:9;
 	mso-style-qformat:yes;
 	mso-style-link:"Heading 2 Char";
 	mso-style-next:Normal;
-	margin:0in;
-	margin-bottom:.0001pt;
-	mso-pagination:none;
+	margin-top:10.0pt;
+	margin-right:0in;
+	margin-bottom:4.0pt;
+	margin-left:0in;
+	mso-pagination:widow-orphan;
 	mso-outline-level:2;
-	mso-layout-grid-align:none;
-	text-autospace:none;
+	border:none;
+	mso-border-bottom-alt:solid #4F81BD 1.0pt;
+	mso-border-bottom-themecolor:accent1;
+	padding:0in;
+	mso-padding-alt:0in 0in 1.0pt 0in;
 	font-size:12.0pt;
 	font-family:"Cambria","serif";
+	mso-ascii-font-family:Cambria;
+	mso-ascii-theme-font:major-latin;
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:major-fareast;
+	mso-hansi-font-family:Cambria;
+	mso-hansi-theme-font:major-latin;
+	mso-bidi-font-family:"Times New Roman";
+	mso-bidi-theme-font:major-bidi;
+	color:#365F91;
+	mso-themecolor:accent1;
+	mso-themeshade:191;
+	mso-fareast-language:EN-US;
 	font-weight:normal;}
+h3
+	{mso-style-priority:9;
+	mso-style-qformat:yes;
+	mso-style-link:"Heading 3 Char";
+	mso-style-next:Normal;
+	margin-top:10.0pt;
+	margin-right:0in;
+	margin-bottom:4.0pt;
+	margin-left:0in;
+	mso-pagination:widow-orphan;
+	mso-outline-level:3;
+	border:none;
+	mso-border-bottom-alt:solid #95B3D7 .5pt;
+	mso-border-bottom-themecolor:accent1;
+	mso-border-bottom-themetint:153;
+	padding:0in;
+	mso-padding-alt:0in 0in 1.0pt 0in;
+	font-size:12.0pt;
+	font-family:"Cambria","serif";
+	mso-ascii-font-family:Cambria;
+	mso-ascii-theme-font:major-latin;
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:major-fareast;
+	mso-hansi-font-family:Cambria;
+	mso-hansi-theme-font:major-latin;
+	mso-bidi-font-family:"Times New Roman";
+	mso-bidi-theme-font:major-bidi;
+	color:#4F81BD;
+	mso-themecolor:accent1;
+	mso-fareast-language:EN-US;
+	font-weight:normal;}
+h4
+	{mso-style-priority:9;
+	mso-style-qformat:yes;
+	mso-style-link:"Heading 4 Char";
+	mso-style-next:Normal;
+	margin-top:10.0pt;
+	margin-right:0in;
+	margin-bottom:4.0pt;
+	margin-left:0in;
+	mso-pagination:widow-orphan;
+	mso-outline-level:4;
+	border:none;
+	mso-border-bottom-alt:solid #B8CCE4 .5pt;
+	mso-border-bottom-themecolor:accent1;
+	mso-border-bottom-themetint:102;
+	padding:0in;
+	mso-padding-alt:0in 0in 2.0pt 0in;
+	font-size:12.0pt;
+	font-family:"Cambria","serif";
+	mso-ascii-font-family:Cambria;
+	mso-ascii-theme-font:major-latin;
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:major-fareast;
+	mso-hansi-font-family:Cambria;
+	mso-hansi-theme-font:major-latin;
+	mso-bidi-font-family:"Times New Roman";
+	mso-bidi-theme-font:major-bidi;
+	color:#4F81BD;
+	mso-themecolor:accent1;
+	mso-fareast-language:EN-US;
+	font-weight:normal;
+	font-style:italic;}
+h5
+	{mso-style-noshow:yes;
+	mso-style-priority:9;
+	mso-style-qformat:yes;
+	mso-style-link:"Heading 5 Char";
+	mso-style-next:Normal;
+	margin-top:10.0pt;
+	margin-right:0in;
+	margin-bottom:4.0pt;
+	margin-left:0in;
+	mso-pagination:widow-orphan;
+	mso-outline-level:5;
+	font-size:11.0pt;
+	font-family:"Cambria","serif";
+	mso-ascii-font-family:Cambria;
+	mso-ascii-theme-font:major-latin;
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:major-fareast;
+	mso-hansi-font-family:Cambria;
+	mso-hansi-theme-font:major-latin;
+	mso-bidi-font-family:"Times New Roman";
+	mso-bidi-theme-font:major-bidi;
+	color:#4F81BD;
+	mso-themecolor:accent1;
+	mso-fareast-language:EN-US;
+	font-weight:normal;}
+h6
+	{mso-style-noshow:yes;
+	mso-style-priority:9;
+	mso-style-qformat:yes;
+	mso-style-link:"Heading 6 Char";
+	mso-style-next:Normal;
+	margin-top:14.0pt;
+	margin-right:0in;
+	margin-bottom:5.0pt;
+	margin-left:0in;
+	mso-pagination:widow-orphan;
+	mso-outline-level:6;
+	font-size:11.0pt;
+	font-family:"Cambria","serif";
+	mso-ascii-font-family:Cambria;
+	mso-ascii-theme-font:major-latin;
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:major-fareast;
+	mso-hansi-font-family:Cambria;
+	mso-hansi-theme-font:major-latin;
+	mso-bidi-font-family:"Times New Roman";
+	mso-bidi-theme-font:major-bidi;
+	color:#4F81BD;
+	mso-themecolor:accent1;
+	mso-fareast-language:EN-US;
+	font-weight:normal;
+	font-style:italic;}
+p.MsoHeading7, li.MsoHeading7, div.MsoHeading7
+	{mso-style-noshow:yes;
+	mso-style-priority:9;
+	mso-style-qformat:yes;
+	mso-style-link:"Heading 7 Char";
+	mso-style-next:Normal;
+	margin-top:16.0pt;
+	margin-right:0in;
+	margin-bottom:5.0pt;
+	margin-left:0in;
+	mso-pagination:widow-orphan;
+	mso-outline-level:7;
+	font-size:10.0pt;
+	font-family:"Cambria","serif";
+	mso-ascii-font-family:Cambria;
+	mso-ascii-theme-font:major-latin;
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:major-fareast;
+	mso-hansi-font-family:Cambria;
+	mso-hansi-theme-font:major-latin;
+	mso-bidi-font-family:"Times New Roman";
+	mso-bidi-theme-font:major-bidi;
+	color:#9BBB59;
+	mso-themecolor:accent3;
+	mso-fareast-language:EN-US;
+	font-weight:bold;}
+p.MsoHeading8, li.MsoHeading8, div.MsoHeading8
+	{mso-style-noshow:yes;
+	mso-style-priority:9;
+	mso-style-qformat:yes;
+	mso-style-link:"Heading 8 Char";
+	mso-style-next:Normal;
+	margin-top:16.0pt;
+	margin-right:0in;
+	margin-bottom:5.0pt;
+	margin-left:0in;
+	mso-pagination:widow-orphan;
+	mso-outline-level:8;
+	font-size:10.0pt;
+	font-family:"Cambria","serif";
+	mso-ascii-font-family:Cambria;
+	mso-ascii-theme-font:major-latin;
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:major-fareast;
+	mso-hansi-font-family:Cambria;
+	mso-hansi-theme-font:major-latin;
+	mso-bidi-font-family:"Times New Roman";
+	mso-bidi-theme-font:major-bidi;
+	color:#9BBB59;
+	mso-themecolor:accent3;
+	mso-fareast-language:EN-US;
+	font-weight:bold;
+	font-style:italic;}
+p.MsoHeading9, li.MsoHeading9, div.MsoHeading9
+	{mso-style-noshow:yes;
+	mso-style-priority:9;
+	mso-style-qformat:yes;
+	mso-style-link:"Heading 9 Char";
+	mso-style-next:Normal;
+	margin-top:16.0pt;
+	margin-right:0in;
+	margin-bottom:5.0pt;
+	margin-left:0in;
+	mso-pagination:widow-orphan;
+	mso-outline-level:9;
+	font-size:10.0pt;
+	font-family:"Cambria","serif";
+	mso-ascii-font-family:Cambria;
+	mso-ascii-theme-font:major-latin;
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:major-fareast;
+	mso-hansi-font-family:Cambria;
+	mso-hansi-theme-font:major-latin;
+	mso-bidi-font-family:"Times New Roman";
+	mso-bidi-theme-font:major-bidi;
+	color:#9BBB59;
+	mso-themecolor:accent3;
+	mso-fareast-language:EN-US;
+	font-style:italic;}
+p.MsoCaption, li.MsoCaption, div.MsoCaption
+	{mso-style-noshow:yes;
+	mso-style-priority:35;
+	mso-style-qformat:yes;
+	mso-style-next:Normal;
+	margin:0in;
+	margin-bottom:.0001pt;
+	text-indent:.25in;
+	mso-pagination:widow-orphan;
+	font-size:9.0pt;
+	font-family:"Calibri","sans-serif";
+	mso-ascii-font-family:Calibri;
+	mso-ascii-theme-font:minor-latin;
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:minor-fareast;
+	mso-hansi-font-family:Calibri;
+	mso-hansi-theme-font:minor-latin;
+	mso-bidi-font-family:"Times New Roman";
+	mso-bidi-theme-font:minor-bidi;
+	mso-fareast-language:EN-US;
+	font-weight:bold;}
+p.MsoTitle, li.MsoTitle, div.MsoTitle
+	{mso-style-priority:10;
+	mso-style-unhide:no;
+	mso-style-qformat:yes;
+	mso-style-link:"Title Char";
+	mso-style-next:Normal;
+	margin:0in;
+	margin-bottom:.0001pt;
+	text-align:center;
+	mso-pagination:widow-orphan;
+	border:none;
+	mso-border-top-alt:solid #A7BFDE 1.0pt;
+	mso-border-top-themecolor:accent1;
+	mso-border-top-themetint:127;
+	mso-border-bottom-alt:solid #9BBB59 3.0pt;
+	mso-border-bottom-themecolor:accent3;
+	padding:0in;
+	mso-padding-alt:10.0pt 0in 15.0pt 0in;
+	font-size:30.0pt;
+	font-family:"Cambria","serif";
+	mso-ascii-font-family:Cambria;
+	mso-ascii-theme-font:major-latin;
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:major-fareast;
+	mso-hansi-font-family:Cambria;
+	mso-hansi-theme-font:major-latin;
+	mso-bidi-font-family:"Times New Roman";
+	mso-bidi-theme-font:major-bidi;
+	color:#243F60;
+	mso-themecolor:accent1;
+	mso-themeshade:127;
+	mso-fareast-language:EN-US;
+	font-style:italic;}
+p.MsoSubtitle, li.MsoSubtitle, div.MsoSubtitle
+	{mso-style-priority:11;
+	mso-style-unhide:no;
+	mso-style-qformat:yes;
+	mso-style-link:"Subtitle Char";
+	mso-style-next:Normal;
+	margin-top:10.0pt;
+	margin-right:0in;
+	margin-bottom:45.0pt;
+	margin-left:0in;
+	text-align:right;
+	mso-pagination:widow-orphan;
+	font-size:12.0pt;
+	font-family:"Calibri","sans-serif";
+	mso-ascii-font-family:Calibri;
+	mso-ascii-theme-font:minor-latin;
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:minor-fareast;
+	mso-hansi-font-family:Calibri;
+	mso-hansi-theme-font:minor-latin;
+	mso-bidi-font-family:"Times New Roman";
+	mso-bidi-theme-font:minor-bidi;
+	mso-fareast-language:EN-US;
+	font-style:italic;}
+a:link, span.MsoHyperlink
+	{mso-style-priority:99;
+	font-family:"Times New Roman","serif";
+	mso-bidi-font-family:"Times New Roman";
+	color:blue;
+	mso-themecolor:hyperlink;
+	text-decoration:underline;
+	text-underline:single;}
+a:visited, span.MsoHyperlinkFollowed
+	{mso-style-noshow:yes;
+	mso-style-priority:99;
+	color:purple;
+	mso-themecolor:followedhyperlink;
+	text-decoration:underline;
+	text-underline:single;}
+strong
+	{mso-style-priority:22;
+	mso-style-unhide:no;
+	mso-style-qformat:yes;
+	font-family:"Times New Roman","serif";
+	mso-bidi-font-family:"Times New Roman";
+	letter-spacing:0pt;}
+em
+	{mso-style-priority:20;
+	mso-style-unhide:no;
+	mso-style-qformat:yes;
+	font-family:"Times New Roman","serif";
+	mso-bidi-font-family:"Times New Roman";
+	color:#5A5A5A;
+	mso-themecolor:text1;
+	mso-themetint:165;
+	font-weight:bold;
+	mso-bidi-font-weight:normal;
+	mso-bidi-font-style:normal;}
+p.MsoNoSpacing, li.MsoNoSpacing, div.MsoNoSpacing
+	{mso-style-priority:1;
+	mso-style-unhide:no;
+	mso-style-qformat:yes;
+	mso-style-link:"No Spacing Char";
+	margin:0in;
+	margin-bottom:.0001pt;
+	mso-pagination:widow-orphan;
+	font-size:11.0pt;
+	font-family:"Calibri","sans-serif";
+	mso-ascii-font-family:Calibri;
+	mso-ascii-theme-font:minor-latin;
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:minor-fareast;
+	mso-hansi-font-family:Calibri;
+	mso-hansi-theme-font:minor-latin;
+	mso-bidi-font-family:"Times New Roman";
+	mso-bidi-theme-font:minor-bidi;
+	mso-fareast-language:EN-US;}
+p.MsoListParagraph, li.MsoListParagraph, div.MsoListParagraph
+	{mso-style-priority:34;
+	mso-style-unhide:no;
+	mso-style-qformat:yes;
+	margin-top:0in;
+	margin-right:0in;
+	margin-bottom:0in;
+	margin-left:.5in;
+	margin-bottom:.0001pt;
+	mso-add-space:auto;
+	text-indent:.25in;
+	mso-pagination:widow-orphan;
+	font-size:11.0pt;
+	font-family:"Calibri","sans-serif";
+	mso-ascii-font-family:Calibri;
+	mso-ascii-theme-font:minor-latin;
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:minor-fareast;
+	mso-hansi-font-family:Calibri;
+	mso-hansi-theme-font:minor-latin;
+	mso-bidi-font-family:"Times New Roman";
+	mso-bidi-theme-font:minor-bidi;
+	mso-fareast-language:EN-US;}
+p.MsoListParagraphCxSpFirst, li.MsoListParagraphCxSpFirst, div.MsoListParagraphCxSpFirst
+	{mso-style-priority:34;
+	mso-style-unhide:no;
+	mso-style-qformat:yes;
+	mso-style-type:export-only;
+	margin-top:0in;
+	margin-right:0in;
+	margin-bottom:0in;
+	margin-left:.5in;
+	margin-bottom:.0001pt;
+	mso-add-space:auto;
+	text-indent:.25in;
+	mso-pagination:widow-orphan;
+	font-size:11.0pt;
+	font-family:"Calibri","sans-serif";
+	mso-ascii-font-family:Calibri;
+	mso-ascii-theme-font:minor-latin;
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:minor-fareast;
+	mso-hansi-font-family:Calibri;
+	mso-hansi-theme-font:minor-latin;
+	mso-bidi-font-family:"Times New Roman";
+	mso-bidi-theme-font:minor-bidi;
+	mso-fareast-language:EN-US;}
+p.MsoListParagraphCxSpMiddle, li.MsoListParagraphCxSpMiddle, div.MsoListParagraphCxSpMiddle
+	{mso-style-priority:34;
+	mso-style-unhide:no;
+	mso-style-qformat:yes;
+	mso-style-type:export-only;
+	margin-top:0in;
+	margin-right:0in;
+	margin-bottom:0in;
+	margin-left:.5in;
+	margin-bottom:.0001pt;
+	mso-add-space:auto;
+	text-indent:.25in;
+	mso-pagination:widow-orphan;
+	font-size:11.0pt;
+	font-family:"Calibri","sans-serif";
+	mso-ascii-font-family:Calibri;
+	mso-ascii-theme-font:minor-latin;
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:minor-fareast;
+	mso-hansi-font-family:Calibri;
+	mso-hansi-theme-font:minor-latin;
+	mso-bidi-font-family:"Times New Roman";
+	mso-bidi-theme-font:minor-bidi;
+	mso-fareast-language:EN-US;}
+p.MsoListParagraphCxSpLast, li.MsoListParagraphCxSpLast, div.MsoListParagraphCxSpLast
+	{mso-style-priority:34;
+	mso-style-unhide:no;
+	mso-style-qformat:yes;
+	mso-style-type:export-only;
+	margin-top:0in;
+	margin-right:0in;
+	margin-bottom:0in;
+	margin-left:.5in;
+	margin-bottom:.0001pt;
+	mso-add-space:auto;
+	text-indent:.25in;
+	mso-pagination:widow-orphan;
+	font-size:11.0pt;
+	font-family:"Calibri","sans-serif";
+	mso-ascii-font-family:Calibri;
+	mso-ascii-theme-font:minor-latin;
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:minor-fareast;
+	mso-hansi-font-family:Calibri;
+	mso-hansi-theme-font:minor-latin;
+	mso-bidi-font-family:"Times New Roman";
+	mso-bidi-theme-font:minor-bidi;
+	mso-fareast-language:EN-US;}
+p.MsoQuote, li.MsoQuote, div.MsoQuote
+	{mso-style-priority:29;
+	mso-style-unhide:no;
+	mso-style-qformat:yes;
+	mso-style-link:"Quote Char";
+	mso-style-next:Normal;
+	margin:0in;
+	margin-bottom:.0001pt;
+	text-indent:.25in;
+	mso-pagination:widow-orphan;
+	font-size:11.0pt;
+	font-family:"Cambria","serif";
+	mso-ascii-font-family:Cambria;
+	mso-ascii-theme-font:major-latin;
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:major-fareast;
+	mso-hansi-font-family:Cambria;
+	mso-hansi-theme-font:major-latin;
+	mso-bidi-font-family:"Times New Roman";
+	mso-bidi-theme-font:major-bidi;
+	color:#5A5A5A;
+	mso-themecolor:text1;
+	mso-themetint:165;
+	mso-fareast-language:EN-US;
+	font-style:italic;}
+p.MsoIntenseQuote, li.MsoIntenseQuote, div.MsoIntenseQuote
+	{mso-style-priority:30;
+	mso-style-unhide:no;
+	mso-style-qformat:yes;
+	mso-style-link:"Intense Quote Char";
+	mso-style-next:Normal;
+	margin-top:16.0pt;
+	margin-right:1.0in;
+	margin-bottom:16.0pt;
+	margin-left:1.0in;
+	text-indent:.25in;
+	line-height:125%;
+	mso-pagination:widow-orphan;
+	background:#4F81BD;
+	mso-background-themecolor:accent1;
+	border:none;
+	mso-border-top-alt:#B8CCE4 1.5pt;
+	mso-border-top-themecolor:accent1;
+	mso-border-top-themetint:102;
+	mso-border-left-alt:#4F81BD 4.5pt;
+	mso-border-left-themecolor:accent1;
+	mso-border-bottom-alt:#9BBB59 3.0pt;
+	mso-border-bottom-themecolor:accent3;
+	mso-border-right-alt:#4F81BD 4.5pt;
+	mso-border-right-themecolor:accent1;
+	mso-border-style-alt:solid;
+	padding:0in;
+	mso-padding-alt:10.0pt 4.0pt 10.0pt 4.0pt;
+	font-size:12.0pt;
+	font-family:"Cambria","serif";
+	mso-ascii-font-family:Cambria;
+	mso-ascii-theme-font:major-latin;
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:major-fareast;
+	mso-hansi-font-family:Cambria;
+	mso-hansi-theme-font:major-latin;
+	mso-bidi-font-family:"Times New Roman";
+	mso-bidi-theme-font:major-bidi;
+	color:white;
+	mso-themecolor:background1;
+	mso-fareast-language:EN-US;
+	font-style:italic;}
+span.MsoSubtleEmphasis
+	{mso-style-priority:19;
+	mso-style-unhide:no;
+	mso-style-qformat:yes;
+	font-family:"Times New Roman","serif";
+	mso-bidi-font-family:"Times New Roman";
+	color:#5A5A5A;
+	mso-themecolor:text1;
+	mso-themetint:165;
+	font-style:italic;
+	mso-bidi-font-style:normal;}
+span.MsoIntenseEmphasis
+	{mso-style-priority:21;
+	mso-style-unhide:no;
+	mso-style-qformat:yes;
+	mso-ansi-font-size:11.0pt;
+	font-family:"Times New Roman","serif";
+	mso-bidi-font-family:"Times New Roman";
+	color:#4F81BD;
+	mso-themecolor:accent1;
+	font-weight:bold;
+	mso-bidi-font-weight:normal;
+	font-style:italic;
+	mso-bidi-font-style:normal;}
+span.MsoSubtleReference
+	{mso-style-priority:31;
+	mso-style-unhide:no;
+	mso-style-qformat:yes;
+	font-family:"Times New Roman","serif";
+	mso-bidi-font-family:"Times New Roman";
+	color:windowtext;
+	text-underline:#9BBB59;
+	text-decoration:underline;
+	text-underline:single;
+	mso-text-underline-themecolor:accent3;}
+span.MsoIntenseReference
+	{mso-style-priority:32;
+	mso-style-unhide:no;
+	mso-style-qformat:yes;
+	font-family:"Times New Roman","serif";
+	mso-bidi-font-family:"Times New Roman";
+	color:#76923C;
+	mso-themecolor:accent3;
+	mso-themeshade:191;
+	font-weight:bold;
+	text-underline:#9BBB59;
+	text-decoration:underline;
+	text-underline:single;
+	mso-text-underline-themecolor:accent3;}
+span.MsoBookTitle
+	{mso-style-priority:33;
+	mso-style-unhide:no;
+	mso-style-qformat:yes;
+	font-family:"Cambria","serif";
+	mso-ascii-font-family:Cambria;
+	mso-ascii-theme-font:major-latin;
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:major-fareast;
+	mso-hansi-font-family:Cambria;
+	mso-hansi-theme-font:major-latin;
+	mso-bidi-font-family:"Times New Roman";
+	mso-bidi-theme-font:major-bidi;
+	color:windowtext;
+	font-weight:bold;
+	font-style:italic;}
+p.MsoTocHeading, li.MsoTocHeading, div.MsoTocHeading
+	{mso-style-noshow:yes;
+	mso-style-priority:39;
+	mso-style-qformat:yes;
+	mso-style-parent:"Heading 1";
+	mso-style-next:Normal;
+	margin-top:30.0pt;
+	margin-right:0in;
+	margin-bottom:4.0pt;
+	margin-left:0in;
+	mso-pagination:widow-orphan;
+	border:none;
+	mso-border-bottom-alt:solid #365F91 1.5pt;
+	mso-border-bottom-themecolor:accent1;
+	mso-border-bottom-themeshade:191;
+	padding:0in;
+	mso-padding-alt:0in 0in 1.0pt 0in;
+	font-size:12.0pt;
+	font-family:"Cambria","serif";
+	mso-ascii-font-family:Cambria;
+	mso-ascii-theme-font:major-latin;
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:major-fareast;
+	mso-hansi-font-family:Cambria;
+	mso-hansi-theme-font:major-latin;
+	mso-bidi-font-family:"Times New Roman";
+	mso-bidi-theme-font:major-bidi;
+	color:#365F91;
+	mso-themecolor:accent1;
+	mso-themeshade:191;
+	mso-fareast-language:EN-US;
+	font-weight:bold;}
 span.Heading1Char
 	{mso-style-name:"Heading 1 Char";
 	mso-style-priority:9;
 	mso-style-unhide:no;
 	mso-style-locked:yes;
 	mso-style-link:"Heading 1";
-	mso-ansi-font-size:16.0pt;
-	mso-bidi-font-size:16.0pt;
+	mso-ansi-font-size:12.0pt;
+	mso-bidi-font-size:12.0pt;
 	font-family:"Cambria","serif";
 	mso-ascii-font-family:Cambria;
 	mso-ascii-theme-font:major-latin;
@@ -413,17 +1067,18 @@ span.Heading1Char
 	mso-hansi-theme-font:major-latin;
 	mso-bidi-font-family:"Times New Roman";
 	mso-bidi-theme-font:major-bidi;
-	mso-font-kerning:16.0pt;
+	color:#365F91;
+	mso-themecolor:accent1;
+	mso-themeshade:191;
 	font-weight:bold;}
 span.Heading2Char
 	{mso-style-name:"Heading 2 Char";
-	mso-style-noshow:yes;
 	mso-style-priority:9;
 	mso-style-unhide:no;
 	mso-style-locked:yes;
 	mso-style-link:"Heading 2";
-	mso-ansi-font-size:14.0pt;
-	mso-bidi-font-size:14.0pt;
+	mso-ansi-font-size:12.0pt;
+	mso-bidi-font-size:12.0pt;
 	font-family:"Cambria","serif";
 	mso-ascii-font-family:Cambria;
 	mso-ascii-theme-font:major-latin;
@@ -433,7 +1088,231 @@ span.Heading2Char
 	mso-hansi-theme-font:major-latin;
 	mso-bidi-font-family:"Times New Roman";
 	mso-bidi-theme-font:major-bidi;
+	color:#365F91;
+	mso-themecolor:accent1;
+	mso-themeshade:191;}
+span.Heading3Char
+	{mso-style-name:"Heading 3 Char";
+	mso-style-priority:9;
+	mso-style-unhide:no;
+	mso-style-locked:yes;
+	mso-style-link:"Heading 3";
+	mso-ansi-font-size:12.0pt;
+	mso-bidi-font-size:12.0pt;
+	font-family:"Cambria","serif";
+	mso-ascii-font-family:Cambria;
+	mso-ascii-theme-font:major-latin;
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:major-fareast;
+	mso-hansi-font-family:Cambria;
+	mso-hansi-theme-font:major-latin;
+	mso-bidi-font-family:"Times New Roman";
+	mso-bidi-theme-font:major-bidi;
+	color:#4F81BD;
+	mso-themecolor:accent1;}
+span.Heading4Char
+	{mso-style-name:"Heading 4 Char";
+	mso-style-priority:9;
+	mso-style-unhide:no;
+	mso-style-locked:yes;
+	mso-style-link:"Heading 4";
+	mso-ansi-font-size:12.0pt;
+	mso-bidi-font-size:12.0pt;
+	font-family:"Cambria","serif";
+	mso-ascii-font-family:Cambria;
+	mso-ascii-theme-font:major-latin;
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:major-fareast;
+	mso-hansi-font-family:Cambria;
+	mso-hansi-theme-font:major-latin;
+	mso-bidi-font-family:"Times New Roman";
+	mso-bidi-theme-font:major-bidi;
+	color:#4F81BD;
+	mso-themecolor:accent1;
+	font-style:italic;}
+span.Heading5Char
+	{mso-style-name:"Heading 5 Char";
+	mso-style-noshow:yes;
+	mso-style-priority:9;
+	mso-style-unhide:no;
+	mso-style-locked:yes;
+	mso-style-link:"Heading 5";
+	font-family:"Cambria","serif";
+	mso-ascii-font-family:Cambria;
+	mso-ascii-theme-font:major-latin;
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:major-fareast;
+	mso-hansi-font-family:Cambria;
+	mso-hansi-theme-font:major-latin;
+	mso-bidi-font-family:"Times New Roman";
+	mso-bidi-theme-font:major-bidi;
+	color:#4F81BD;
+	mso-themecolor:accent1;}
+span.Heading6Char
+	{mso-style-name:"Heading 6 Char";
+	mso-style-noshow:yes;
+	mso-style-priority:9;
+	mso-style-unhide:no;
+	mso-style-locked:yes;
+	mso-style-link:"Heading 6";
+	font-family:"Cambria","serif";
+	mso-ascii-font-family:Cambria;
+	mso-ascii-theme-font:major-latin;
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:major-fareast;
+	mso-hansi-font-family:Cambria;
+	mso-hansi-theme-font:major-latin;
+	mso-bidi-font-family:"Times New Roman";
+	mso-bidi-theme-font:major-bidi;
+	color:#4F81BD;
+	mso-themecolor:accent1;
+	font-style:italic;}
+span.Heading7Char
+	{mso-style-name:"Heading 7 Char";
+	mso-style-noshow:yes;
+	mso-style-priority:9;
+	mso-style-unhide:no;
+	mso-style-locked:yes;
+	mso-style-link:"Heading 7";
+	mso-ansi-font-size:10.0pt;
+	mso-bidi-font-size:10.0pt;
+	font-family:"Cambria","serif";
+	mso-ascii-font-family:Cambria;
+	mso-ascii-theme-font:major-latin;
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:major-fareast;
+	mso-hansi-font-family:Cambria;
+	mso-hansi-theme-font:major-latin;
+	mso-bidi-font-family:"Times New Roman";
+	mso-bidi-theme-font:major-bidi;
+	color:#9BBB59;
+	mso-themecolor:accent3;
+	font-weight:bold;}
+span.Heading8Char
+	{mso-style-name:"Heading 8 Char";
+	mso-style-noshow:yes;
+	mso-style-priority:9;
+	mso-style-unhide:no;
+	mso-style-locked:yes;
+	mso-style-link:"Heading 8";
+	mso-ansi-font-size:10.0pt;
+	mso-bidi-font-size:10.0pt;
+	font-family:"Cambria","serif";
+	mso-ascii-font-family:Cambria;
+	mso-ascii-theme-font:major-latin;
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:major-fareast;
+	mso-hansi-font-family:Cambria;
+	mso-hansi-theme-font:major-latin;
+	mso-bidi-font-family:"Times New Roman";
+	mso-bidi-theme-font:major-bidi;
+	color:#9BBB59;
+	mso-themecolor:accent3;
 	font-weight:bold;
+	font-style:italic;}
+span.Heading9Char
+	{mso-style-name:"Heading 9 Char";
+	mso-style-noshow:yes;
+	mso-style-priority:9;
+	mso-style-unhide:no;
+	mso-style-locked:yes;
+	mso-style-link:"Heading 9";
+	mso-ansi-font-size:10.0pt;
+	mso-bidi-font-size:10.0pt;
+	font-family:"Cambria","serif";
+	mso-ascii-font-family:Cambria;
+	mso-ascii-theme-font:major-latin;
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:major-fareast;
+	mso-hansi-font-family:Cambria;
+	mso-hansi-theme-font:major-latin;
+	mso-bidi-font-family:"Times New Roman";
+	mso-bidi-theme-font:major-bidi;
+	color:#9BBB59;
+	mso-themecolor:accent3;
+	font-style:italic;}
+span.TitleChar
+	{mso-style-name:"Title Char";
+	mso-style-priority:10;
+	mso-style-unhide:no;
+	mso-style-locked:yes;
+	mso-style-link:Title;
+	mso-ansi-font-size:30.0pt;
+	mso-bidi-font-size:30.0pt;
+	font-family:"Cambria","serif";
+	mso-ascii-font-family:Cambria;
+	mso-ascii-theme-font:major-latin;
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:major-fareast;
+	mso-hansi-font-family:Cambria;
+	mso-hansi-theme-font:major-latin;
+	mso-bidi-font-family:"Times New Roman";
+	mso-bidi-theme-font:major-bidi;
+	color:#243F60;
+	mso-themecolor:accent1;
+	mso-themeshade:127;
+	font-style:italic;}
+span.SubtitleChar
+	{mso-style-name:"Subtitle Char";
+	mso-style-priority:11;
+	mso-style-unhide:no;
+	mso-style-locked:yes;
+	mso-style-link:Subtitle;
+	mso-ansi-font-size:12.0pt;
+	mso-bidi-font-size:12.0pt;
+	font-family:"Calibri","sans-serif";
+	mso-ascii-font-family:Calibri;
+	mso-ascii-theme-font:minor-latin;
+	mso-bidi-font-family:"Times New Roman";
+	font-style:italic;}
+span.NoSpacingChar
+	{mso-style-name:"No Spacing Char";
+	mso-style-priority:1;
+	mso-style-unhide:no;
+	mso-style-locked:yes;
+	mso-style-link:"No Spacing";
+	font-family:"Times New Roman","serif";
+	mso-bidi-font-family:"Times New Roman";}
+span.QuoteChar
+	{mso-style-name:"Quote Char";
+	mso-style-priority:29;
+	mso-style-unhide:no;
+	mso-style-locked:yes;
+	mso-style-link:Quote;
+	font-family:"Cambria","serif";
+	mso-ascii-font-family:Cambria;
+	mso-ascii-theme-font:major-latin;
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:major-fareast;
+	mso-hansi-font-family:Cambria;
+	mso-hansi-theme-font:major-latin;
+	mso-bidi-font-family:"Times New Roman";
+	mso-bidi-theme-font:major-bidi;
+	color:#5A5A5A;
+	mso-themecolor:text1;
+	mso-themetint:165;
+	font-style:italic;}
+span.IntenseQuoteChar
+	{mso-style-name:"Intense Quote Char";
+	mso-style-priority:30;
+	mso-style-unhide:no;
+	mso-style-locked:yes;
+	mso-style-link:"Intense Quote";
+	mso-ansi-font-size:12.0pt;
+	mso-bidi-font-size:12.0pt;
+	font-family:"Cambria","serif";
+	mso-ascii-font-family:Cambria;
+	mso-ascii-theme-font:major-latin;
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:major-fareast;
+	mso-hansi-font-family:Cambria;
+	mso-hansi-theme-font:major-latin;
+	mso-bidi-font-family:"Times New Roman";
+	mso-bidi-theme-font:major-bidi;
+	color:white;
+	mso-themecolor:background1;
+	background:#4F81BD;
+	mso-shading-themecolor:accent1;
 	font-style:italic;}
 .MsoChpDefault
 	{mso-style-type:export-only;
@@ -447,12 +1326,10 @@ span.Heading2Char
 	mso-fareast-theme-font:minor-fareast;
 	mso-hansi-font-family:Calibri;
 	mso-hansi-theme-font:minor-latin;
-	mso-bidi-font-family:"Times New Roman";
-	mso-bidi-theme-font:minor-bidi;}
+	mso-fareast-language:EN-US;}
 .MsoPapDefault
 	{mso-style-type:export-only;
-	margin-bottom:10.0pt;
-	line-height:115%;}
+	text-indent:.25in;}
  /* Page Definitions */
  @page
 	{mso-page-border-surround-header:no;
@@ -465,6 +1342,22 @@ span.Heading2Char
 	mso-paper-source:0;}
 div.Section1
 	{page:Section1;}
+ /* List Definitions */
+ @list l0
+	{mso-list-id:555777638;
+	mso-list-type:hybrid;
+	mso-list-template-ids:-450065782 67698689 67698691 67698693 67698689 67698691 67698693 67698689 67698691 67698693;}
+@list l0:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:none;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:Symbol;}
+ol
+	{margin-bottom:0in;}
+ul
+	{margin-bottom:0in;}
 -->
 </style>
 <!--[if gte mso 10]>
@@ -479,423 +1372,462 @@ div.Section1
 	mso-style-qformat:yes;
 	mso-style-parent:"";
 	mso-padding-alt:0in 5.4pt 0in 5.4pt;
-	mso-para-margin-top:0in;
-	mso-para-margin-right:0in;
-	mso-para-margin-bottom:10.0pt;
-	mso-para-margin-left:0in;
-	line-height:115%;
+	mso-para-margin:0in;
+	mso-para-margin-bottom:.0001pt;
+	text-indent:.25in;
 	mso-pagination:widow-orphan;
 	font-size:11.0pt;
 	font-family:"Calibri","sans-serif";
 	mso-ascii-font-family:Calibri;
 	mso-ascii-theme-font:minor-latin;
 	mso-hansi-font-family:Calibri;
-	mso-hansi-theme-font:minor-latin;}
+	mso-hansi-theme-font:minor-latin;
+	mso-fareast-language:EN-US;}
 </style>
 <![endif]--><!--[if gte mso 9]><xml>
- <o:shapedefaults v:ext="edit" spidmax="1026"/>
+ <o:shapedefaults v:ext="edit" spidmax="2050"/>
 </xml><![endif]--><!--[if gte mso 9]><xml>
  <o:shapelayout v:ext="edit">
   <o:idmap v:ext="edit" data="1"/>
  </o:shapelayout></xml><![endif]-->
 </head>
 
-<body lang=EN-US style='tab-interval:.5in;text-justify-trim:punctuation'>
+<body lang=EN-US link=blue vlink=purple style='tab-interval:.5in;text-justify-trim:
+punctuation'>
 
 <div class=Section1>
 
-<h1 style='margin-top:12.0pt;margin-right:0in;margin-bottom:3.0pt;margin-left:
-0in;line-height:115%;page-break-after:avoid'><b><span style='font-size:16.0pt;
-line-height:115%;mso-bidi-font-family:Cambria;mso-font-kerning:16.0pt'>Before
-Installing<o:p></o:p></span></b></h1>
+<div style='mso-element:para-border-div;border:none;border-bottom:solid #365F91 1.5pt;
+mso-border-bottom-themecolor:accent1;mso-border-bottom-themeshade:191;
+padding:0in 0in 1.0pt 0in'>
+
+<h1>Before<span style='mso-font-kerning:16.0pt'> Installing<o:p></o:p></span></h1>
+
+</div>
 
 <p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
 style='font-size:14.0pt;font-family:"Arial","sans-serif";color:red'>EXTREMELY
 IMPORTANT:</span><span style='font-size:14.0pt;font-family:"Arial","sans-serif"'><o:p></o:p></span></p>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:9.0pt;font-family:"Arial","sans-serif"'>In order to use DAD
-you must install several pieces of software that we cannot redistribute
-legally.<span style='mso-spacerun:yes'>  </span>We have included links here
-that you can use to go directly to the download page for a known DAD compatible
-version of these tools.<o:p></o:p></span></p>
+<p class=MsoNormal>DAD is not a standalone program.<span
+style='mso-spacerun:yes'>  </span>In order for DAD to function, you need
+several pieces of supporting infrastructure to be in place first.<span
+style='mso-spacerun:yes'>  </span>In almost all cases we have chosen not to
+distribute these pieces of third party software for two reasons.<span
+style='mso-spacerun:yes'>  </span>The first is so that you can determine which
+versions of the various software packages you choose to run.<span
+style='mso-spacerun:yes'>  </span>The second is to avoid any and all
+redistribution licensing issues that can arise since the various pieces of
+software, while FOSS, are released under a variety of licenses.</p>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:9.0pt;font-family:"Arial","sans-serif"'><o:p>&nbsp;</o:p></span></p>
+<p class=MsoNormal><o:p>&nbsp;</o:p></p>
 
-<p class=MsoNormal><b><span style='font-size:10.0pt;font-family:"Arial","sans-serif"'>http://downloads.activestate.com/ActivePerl/Windows/5.8/ActivePerl-5.8.8.817-MSWin32-x86-257965.msi<o:p></o:p></span></b></p>
+<p class=MsoNormal>Before attempting to run the installation checklist/script
+in the DAD/Source directory, you must first install the following
+packages.<span style='mso-spacerun:yes'>  </span>The order of installation is
+not particularly important with the exception of Apache and PHP.<span
+style='mso-spacerun:yes'>  </span>Apache must be installed first for the PHP
+installation to go smoothly.</p>
 
-<p class=MsoNormal><b><span style='font-size:10.0pt;font-family:"Arial","sans-serif"'>http://dev.mysql.com/get/Downloads/MySQL-5.0/mysql-5.0.37-win32.zip/from/pick<o:p></o:p></span></b></p>
+<p class=MsoNormal>MySQL – <a href="http://www.mysql.com/"><span
+style='font-size:9.0pt;font-family:"Arial","sans-serif"'>http://www.mysql.com</span></a><br>
+(The free Community version is more than sufficient.<span
+style='mso-spacerun:yes'>  </span>Version 5.0 or higher.<span
+style='mso-spacerun:yes'>  </span>We recommend version 5.1 or higher because of
+improved stored procedure support.)</p>
 
-<p class=MsoNormal><b><span style='font-size:10.0pt;font-family:"Arial","sans-serif"'>http://www.php.net/get/php-5.2.1-win32-installer.msi/from/a/mirror<o:p></o:p></span></b></p>
+<p class=MsoNormal>Perl – <a href="http://www.activestate.com/"><span
+style='font-size:9.0pt;font-family:"Arial","sans-serif"'>http://www.activestate.com</span></a><br>
+(Version 5.8 or higher recommended for improved thread support)</p>
 
-<p class=MsoNormal><b><span style='font-size:10.0pt;font-family:"Arial","sans-serif"'><o:p>&nbsp;</o:p></span></b></p>
+<p class=MsoNormal>PHP – <a href="http://www.php.net/"><span style='font-size:
+9.0pt;font-family:"Arial","sans-serif"'>http://www.php.net</span></a><br>
+(Version 5.2.1 or higher recommended.<span style='mso-spacerun:yes'>  </span>Be
+sure to install this <i style='mso-bidi-font-style:normal'>after</i> your
+Apache server)</p>
 
-<p class=MsoNormal><b><span style='font-size:10.0pt;font-family:"Arial","sans-serif"'>Before
-proceeding you should download these packages.<span style='mso-spacerun:yes'> 
-</span>You should install Perl and MySQL.<span style='mso-spacerun:yes'> 
-</span>Do NOT install PHP until AFTER the Apache installation has completed
-during the installation script.<o:p></o:p></span></b></p>
+<p class=MsoNormal>Apache – <a href="http://www.apache.org/"><span
+style='font-size:9.0pt;font-family:"Arial","sans-serif"'>http://www.apache.org</span></a><br>
+(Most current version of either the 1.3, 2.0 or 2.2 tree.<span
+style='mso-spacerun:yes'>  </span>We recommend using the binary installer that
+includes OpenSSL support so that you can run DAD over SSL)</p>
 
-<h2 style='margin-top:12.0pt;margin-right:0in;margin-bottom:3.0pt;margin-left:
-0in;line-height:115%;page-break-after:avoid'><b><i><span style='font-size:14.0pt;
-line-height:115%;mso-bidi-font-family:Cambria'>MySQL<o:p></o:p></span></i></b></h2>
+<p class=MsoNormal>Java – <a href="http://www.java.com/en/download/index.jsp"><span
+style='font-size:9.0pt;font-family:"Arial","sans-serif"'>http://www.java.com/en/download/index.jsp</span></a><br>
+(Any Java Virtual Machine should work that is Java 2 compliant.<span
+style='mso-spacerun:yes'>  </span>We recommend the most current Sun JVM
+available from the link above.<span style='mso-spacerun:yes'>  </span>If you
+use a different brand of virtual machine it may be necessary for you to find a
+JDBC driver other than the one included with DAD)</p>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'>Using the MySQL
-installer that you have downloaded, perform a typical install by accepting all
-of the defaults.<span style='mso-spacerun:yes'>  </span>If you wish to perform
-a more detailed installation and configuration, you can choose to exclude the
-InnoDB database engine since we use the MySQL engine exclusively.<span
-style='mso-spacerun:yes'>  </span>It is not necessary to perform a MySQL.com
-Sign-Up during the installation though you are welcome to do so.<span
-style='mso-spacerun:yes'>  </span>When asked about configuration options,
-please be sure to configure MySQL to start as a service.<span
-style='mso-spacerun:yes'>  </span>It is also recommended that you configure the
-installer to put MySQL in your path.<o:p></o:p></span></p>
+<div style='mso-element:para-border-div;border:none;border-bottom:solid #365F91 1.5pt;
+mso-border-bottom-themecolor:accent1;mso-border-bottom-themeshade:191;
+padding:0in 0in 1.0pt 0in'>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'><o:p>&nbsp;</o:p></span></p>
+<h1><span style='mso-font-kerning:16.0pt'>Unpacking DAD<o:p></o:p></span></h1>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'>If after 'executing'
-the installation, it may prompt saying that the service is not enable or there
-is a firewall turned on. Ensure that the firewall is off of that the port is
-allowed to communicate. Also, the service simply maybe slow to start, so you
-should 'retry' on the 'error' window.<o:p></o:p></span></p>
+</div>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><b><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'><o:p>&nbsp;</o:p></span></b></p>
+<p class=MsoNormal>DAD in its current incarnation comes as a ZIP file
+containing DAD itself, a starter data set and a number of useful jobs and
+alerts.<span style='mso-spacerun:yes'>  </span>After your target server has
+been built, the first task is to unpack the DAD suite.<span
+style='mso-spacerun:yes'>  </span>To do this, please unzip the DAD archive into
+C:\.<span style='mso-spacerun:yes'>  </span>When you have done this you should
+have a &quot;C:\DAD&quot; directory structure in which you will find a copy of
+this file, a &quot;Source&quot; folder, a &quot;Web&quot; folder and a
+&quot;Jobs&quot; folder.<span style='mso-spacerun:yes'>  </span>Once you have
+unpacked everything, you should progress through this document step by step.</p>
 
-<h2 style='margin-top:12.0pt;margin-right:0in;margin-bottom:3.0pt;margin-left:
-0in;line-height:115%;page-break-after:avoid'><b><i><span style='font-size:14.0pt;
-line-height:115%;mso-bidi-font-family:Cambria'>Perl<o:p></o:p></span></i></b></h2>
+<p class=MsoNormal style='text-indent:0in'><o:p>&nbsp;</o:p></p>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'>Using the installer
-that you have downloaded, please complete a default installation of Perl.<span
-style='mso-spacerun:yes'>  </span>You can accept all of the defaults to
-complete the installation most easily.<o:p></o:p></span></p>
+<p class=MsoNormal><b><span style='color:red'>NOTE:</span></b> If you are
+installing on a 64 bit OS, the installation path for the various supporting
+packages will depend on whether you are installing the 32 bit or 64 bit
+versions of the software.<span style='mso-spacerun:yes'>  </span>Typically, if
+you install a 32 bit package, you will find that “C:\Program Files” changes to
+“C:\Program Files (x86)”.</p>
 
-<h2 style='margin-top:12.0pt;margin-right:0in;margin-bottom:3.0pt;margin-left:
-0in;line-height:115%;page-break-after:avoid'><b><i><span style='font-size:14.0pt;
-line-height:115%;mso-bidi-font-family:Cambria'>PHP<o:p></o:p></span></i></b></h2>
+<div style='mso-element:para-border-div;border:none;border-bottom:solid #365F91 1.5pt;
+mso-border-bottom-themecolor:accent1;mso-border-bottom-themeshade:191;
+padding:0in 0in 1.0pt 0in'>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><b><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'>AFTER Apache has been
-installed and when the installation script prompts you to, you should install
-the PHP package that you downloaded.<span style='mso-spacerun:yes'>  </span></span></b><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'>Using the PHP 5
-installer that you downloaded, please perform a standard installation of
-PHP.<span style='mso-spacerun:yes'>  </span>During the installation process you
-should select support for a <b>&quot;Apache 2.0.x&quot;</b> server.<span
-style='mso-spacerun:yes'>  </span>You <b>must</b> also configure PHP to install
-the GD2, MySQL and MySQLi modules.<o:p></o:p></span></p>
+<h1>MySQL</h1>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'><o:p>&nbsp;</o:p></span></p>
+</div>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><b><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'><o:p>&nbsp;</o:p></span></b></p>
+<p class=MsoNormal>Using the MySQL installer that you have downloaded, perform
+a typical install by accepting all of the defaults.<span
+style='mso-spacerun:yes'>  </span>The only adjustment that we would strongly
+recommend is that, when prompted, you choose to include the MySQL binary
+directory in your executable path.</p>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><b><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'>Important DAD
-Information:<o:p></o:p></span></b></p>
+<p class=MsoNormal><o:p>&nbsp;</o:p></p>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'><o:p>&nbsp;</o:p></span></p>
+<p class=MsoNormal>The DAD database tables that will be installed are all
+configured to use MyISAM.<span style='mso-spacerun:yes'>  </span>If you wish to
+conserve memory, you can tell the installer that you will not need InnoDB.<span
+style='mso-spacerun:yes'>  </span>On the other hand, if you prefer to take
+advantage of the transaction based InnoDB engine, please feel free to do
+so.<span style='mso-spacerun:yes'>  </span>You will need to change the database
+engine for the tables that you wish to store using this engine.<span
+style='mso-spacerun:yes'>  </span>We will assume that if you have a strong
+desire for this then you likely have the expertise to change the database
+engine for the various tables so we will exclude specific step by step
+directions.</p>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'>Default DAD account
-after installation:<o:p></o:p></span></p>
+<p class=MsoNormal><o:p>&nbsp;</o:p></p>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'><span
-style='mso-tab-count:1'>      </span>User ID:<span style='mso-tab-count:2'>                  </span>admin<o:p></o:p></span></p>
+<p class=MsoNormal>On some systems we have seen that the MySQL installer will
+return an error when you try to “Execute” the installation of the service and
+configuration of the server.<span style='mso-spacerun:yes'>  </span>If the
+installer informs you that the service is not enabled or there is a firewall
+turned on. Ensure that the firewall is off of that the port is allowed to
+communicate. Also, the service simply maybe slow to start, so your first
+troubleshooting step should be to click 'retry' on the 'error' window.</p>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'><span
-style='mso-tab-count:1'>      </span>Password:<span style='mso-tab-count:1'>  </span>Password1<o:p></o:p></span></p>
+<div style='mso-element:para-border-div;border:none;border-bottom:solid #365F91 1.5pt;
+mso-border-bottom-themecolor:accent1;mso-border-bottom-themeshade:191;
+padding:0in 0in 1.0pt 0in'>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'><o:p>&nbsp;</o:p></span></p>
+<h1>Perl</h1>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'><o:p>&nbsp;</o:p></span></p>
+</div>
 
-<h1 style='margin-top:12.0pt;margin-right:0in;margin-bottom:3.0pt;margin-left:
-0in;line-height:115%;page-break-after:avoid'><b><span style='font-size:16.0pt;
-line-height:115%;mso-bidi-font-family:Cambria;mso-font-kerning:16.0pt'>Recommended
-OS Configuration</span></b><b><span style='font-size:16.0pt;line-height:115%;
-font-family:"Times New Roman","serif";mso-font-kerning:16.0pt'><o:p></o:p></span></b></h1>
+<p class=MsoNormal>Using the installer that you have downloaded, please
+complete a default installation of Perl.<span style='mso-spacerun:yes'> 
+</span>You can accept all of the defaults to complete the installation most
+easily.<span style='mso-spacerun:yes'>  </span>If you wish to conserve space
+you could exclude the sample code and documentation files.</p>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'>Install server
-2003.<span style='mso-spacerun:yes'>  </span>Standard edition is just
-fine.<span style='mso-spacerun:yes'>  </span>If 2003 Server is unavailable, you
-can certainly install DAD on a 2000 Server or even an XP or 2000 desktop, but
-the overall performance should be best on a Server platform.<o:p></o:p></span></p>
+<div style='mso-element:para-border-div;border:none;border-bottom:solid #365F91 1.5pt;
+mso-border-bottom-themecolor:accent1;mso-border-bottom-themeshade:191;
+padding:0in 0in 1.0pt 0in'>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'>We recommend that you
-set block size of data drive to 64k to allow for better space utilization for
-the database.<span style='mso-spacerun:yes'>  </span>We also recommend that the
-drive where the database files will reside be configured as a Dynamic Disk so
-that future expansion will be easily accomplished by simply adding drives to
-the volume set.<o:p></o:p></span></p>
+<h1>Apache</h1>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'><o:p>&nbsp;</o:p></span></p>
+</div>
 
-<h1 style='margin-top:12.0pt;margin-right:0in;margin-bottom:3.0pt;margin-left:
-0in;line-height:115%;page-break-after:avoid'><b><span style='font-size:16.0pt;
-line-height:115%;mso-bidi-font-family:Cambria;mso-font-kerning:16.0pt'>Unpacking
-DAD<o:p></o:p></span></b></h1>
+<p class=MsoNormal>Using the Apache installer that you downloaded, please
+perform a default installation of Apache.<span style='mso-spacerun:yes'> 
+</span>As the installation process is proceeding, please take note of the
+installation directory where the Apache files are located.<span
+style='mso-spacerun:yes'>  </span>You will need to give this path to the PHP
+installer to facilitate the installation of PHP as an Apache module.<b
+style='mso-bidi-font-weight:normal'><i style='mso-bidi-font-style:normal'><span
+style='font-size:14.0pt;mso-bidi-font-size:10.0pt'><o:p></o:p></span></i></b></p>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'>DAD in its current
-incarnation comes as a ZIP file containing DAD itself, a starter data set and
-all of the software necessary to get DAD up and running, with the exception of
-software with redistribution restrictions.<span style='mso-spacerun:yes'> 
-</span>After your target server has been built, the first task is to unpack the
-DAD suite.<span style='mso-spacerun:yes'>  </span>To do this, please unzip the
-DAD archive into C:\.<span style='mso-spacerun:yes'>  </span>When you have done
-this you should have a &quot;C:\DAD&quot; directory structure in which you will
-find a copy of this file, a &quot;Source&quot; folder, a &quot;Web&quot; folder
-and a &quot;Jobs&quot; folder.<span style='mso-spacerun:yes'>  </span>Once you
-have unpacked everything, you should progress through this document step by
-step.<o:p></o:p></span></p>
+<div style='mso-element:para-border-div;border:none;border-bottom:solid #365F91 1.5pt;
+mso-border-bottom-themecolor:accent1;mso-border-bottom-themeshade:191;
+padding:0in 0in 1.0pt 0in'>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'><o:p>&nbsp;</o:p></span></p>
+<h1>PHP</h1>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'>If you choose to
-install DAD into some other source directory or drive, you MUST modify the
-“install_dad.bat” script to reflect the new location and any drive location
-changes.<span style='mso-spacerun:yes'>  </span>You will also need to modify
-the paths in the various configuration files for PHP, Apache and MySQL in
-addition to the Jobs scripts within the DAD\Jobs directories.<o:p></o:p></span></p>
+</div>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'><o:p>&nbsp;</o:p></span></p>
+<p class=MsoNormal><b>AFTER Apache has been installed you should install the
+PHP package that you downloaded.<span style='mso-spacerun:yes'>  </span></b>Using
+the PHP installer that you downloaded, please perform a standard installation
+of PHP.<span style='mso-spacerun:yes'>  </span>During the installation process
+you should select support for whichever version family of Apache that you
+installed.<span style='mso-spacerun:yes'>  </span>You <b>must</b> also
+configure PHP to install the GD2, MySQL and MySQLi modules.<span
+style='mso-spacerun:yes'>  </span>The PHP installer will also prompt you to
+select the Apache configuration directory.<span style='mso-spacerun:yes'> 
+</span>This is typically something like “C:\Program Files\Apache
+Foundation\Apache\conf”.<span style='font-size:10.0pt;font-family:"Arial","sans-serif"'><o:p></o:p></span></p>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><b><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif";color:red'>NOTE:</span></b><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'> If you are
-installing on a 64 bit OS, you MUST change all of the paths in the installation
-files and in all of the configuration files that point to “C:\Program Files” to
-“C:\Program Files (x86)”.<o:p></o:p></span></p>
+<div style='mso-element:para-border-div;border:none;border-bottom:solid #365F91 1.5pt;
+mso-border-bottom-themecolor:accent1;mso-border-bottom-themeshade:191;
+padding:0in 0in 1.0pt 0in'>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'><o:p>&nbsp;</o:p></span></p>
+<h1>Recommended<span style='mso-font-kerning:16.0pt'> OS Configuration</span><span
+style='font-family:"Times New Roman","serif";mso-font-kerning:16.0pt'><o:p></o:p></span></h1>
 
-<h1 style='margin-top:12.0pt;margin-right:0in;margin-bottom:3.0pt;margin-left:
-0in;line-height:115%;page-break-after:avoid'><b><span style='font-size:16.0pt;
-line-height:115%;mso-bidi-font-family:Cambria;mso-font-kerning:16.0pt'>Installing
-DAD<o:p></o:p></span></b></h1>
+</div>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'>The simplest way to
-perform the installation is to, after unpacking DAD into C:\DAD, start a
-command prompt, change to “C:\DAD\source” and run the “install_dad.bat”
-script.<span style='mso-spacerun:yes'>  </span>Simply follow the directions as
-prompted to complete the installation.<o:p></o:p></span></p>
+<p class=MsoNormal>One of the most common questions that we hear is, “Can I run
+DAD on Windows XP?”<span style='mso-spacerun:yes'>  </span>The answer is that
+DAD will work on any version of Microsoft Windows in the 2000 family.<span
+style='mso-spacerun:yes'>  </span>This includes 2000, 2003, XP Professional,
+Vista and Longhorn.<span style='mso-spacerun:yes'>  </span>Generally we recommend
+that you use Server 2003.<span style='mso-spacerun:yes'>  </span>The Standard Edition
+of 2003 Server is just fine.<span style='mso-spacerun:yes'>  </span>If 2003
+Server is unavailable, you can certainly install DAD on a 2000 Server or even
+an XP or 2000 desktop, but the overall performance should be best on a Server
+platform.</p>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'><o:p>&nbsp;</o:p></span></p>
+<p class=MsoNormal>We recommend that you set block size of data drive to 64k to
+allow for better space utilization for the database.<span
+style='mso-spacerun:yes'>  </span>We also recommend that the drive where the
+database files will reside be configured as a Dynamic Disk so that future
+expansion will be easily accomplished by simply adding drives to the volume
+set.<span style='mso-spacerun:yes'>  </span>When DAD is installed it expects
+the data drive to be C.<span style='mso-spacerun:yes'>  </span>Internally, DAD
+only accesses the data drive through the MySQL database API, but when reporting
+available space the DAD\web\config\config.php file will report on whichever
+drive is listed in the configuration file.<span style='mso-spacerun:yes'> 
+</span>If you store the database files on a different drive we would recommend
+that you adjust this setting.</p>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'><o:p>&nbsp;</o:p></span></p>
-
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><b><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif";color:red'>EXTREMELY
-IMPORTANT:</span></b><span style='font-size:10.0pt;font-family:"Arial","sans-serif";
-color:red'><o:p></o:p></span></p>
-
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'>As distributed, DAD
-has a default password of &quot;All4Fun&quot; configured as the password for
-the 'root' user in the MySQL database.<span style='mso-spacerun:yes'> 
-</span>If you wish to get up and running ASAP, you might wish to set this as
-the password for your root user on your SQL server.<span
-style='mso-spacerun:yes'>  </span>Please note that we do not -recommend- this,
-we simply are pointing out that you might choose to do this.<span
-style='mso-spacerun:yes'>  </span>What we recommend is that you choose a good
-password and then create another user for DAD to operate with.<span
-style='mso-spacerun:yes'>  </span>This second account should only have rights
-to the DAD database and tables.<o:p></o:p></span></p>
-
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'><o:p>&nbsp;</o:p></span></p>
-
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'>After the installation
-has been completed, you MUST modify the C:\DAD\Web\Config\dbconfig.php file to
-reflect the correct IP address (should you choose to install the SQL service on
-another server), the DAD username used to access the database and the password
-used by this user.<o:p></o:p></span></p>
-
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'><o:p>&nbsp;</o:p></span></p>
-
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'>You MUST also edit
-the C:\DAD\jobs\Log Parser\Aggregator.ph file.<span style='mso-spacerun:yes'> 
-</span>In this file you will find these lines:<o:p></o:p></span></p>
-
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'><o:p>&nbsp;</o:p></span></p>
-
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'>$MYSQL_SERVER=&quot;localhost&quot;;<o:p></o:p></span></p>
-
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'>$MYSQL_USER=&quot;root&quot;;<o:p></o:p></span></p>
-
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'>$MYSQL_PASSWORD=&quot;All4Fun&quot;;<o:p></o:p></span></p>
-
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'><o:p>&nbsp;</o:p></span></p>
-
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'>You must adjust the
-server, user and password appropriately to allow the aggregator to access the
-database.<o:p></o:p></span></p>
-
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'><o:p>&nbsp;</o:p></span></p>
+<div style='mso-element:para-border-div;border:none;border-bottom:solid #365F91 1.5pt;
+mso-border-bottom-themecolor:accent1;mso-border-bottom-themeshade:191;
+padding:0in 0in 1.0pt 0in'>
 
 <h1 style='margin-top:12.0pt;margin-right:0in;margin-bottom:3.0pt;margin-left:
-0in;line-height:115%;page-break-after:avoid'><b><span style='font-size:16.0pt;
-line-height:115%;mso-bidi-font-family:Cambria;mso-font-kerning:16.0pt'>Post
-Installation</span></b><b><span style='font-size:16.0pt;line-height:115%;
-font-family:"Times New Roman","serif";mso-font-kerning:16.0pt'><o:p></o:p></span></b></h1>
+0in;line-height:115%;page-break-after:avoid'><span style='font-size:16.0pt;
+line-height:115%;mso-bidi-font-family:Cambria;mso-font-kerning:16.0pt;
+font-weight:normal'>Completing the Installation<o:p></o:p></span></h1>
+
+</div>
+
+<p class=MsoNormal>The simplest way to complete the installation is to browse
+to the “C:\DAD\source” directory and double-click on the “Installation”
+VBScript file.<span style='mso-spacerun:yes'>  </span>This script does not
+actually do anything other than tell you what you should do.<span
+style='mso-spacerun:yes'>  </span>Up until this point we have been very
+reluctant to make any changes to your system.<span style='mso-spacerun:yes'> 
+</span>In the future we may change over to an automated installer that can take
+over after you’ve installed Apache, PHP, Perl, Java and MySQL.<span
+style='mso-spacerun:yes'>  </span><span style='mso-spacerun:yes'> </span>Simply
+follow the directions as prompted to complete the installation.</p>
+
+<p class=MsoNormal><o:p>&nbsp;</o:p></p>
+
+<p class=MsoNormal><o:p>&nbsp;</o:p></p>
+
+<p class=MsoNormal style='text-indent:0in'><b><span style='color:red'>EXTREMELY
+IMPORTANT:</span></b><span style='color:red'><o:p></o:p></span></p>
+
+<p class=MsoNormal>As distributed, DAD has a default password of
+&quot;All4Fun&quot; configured as the password for the 'root' user in the MySQL
+database.<span style='mso-spacerun:yes'>  </span>If you wish to get up and
+running ASAP, you might wish to set this as the password for your root user on
+your SQL server.<span style='mso-spacerun:yes'>  </span>Please note that we do
+not -recommend- this, we simply are pointing out that you might choose to do
+this.<span style='mso-spacerun:yes'>  </span>What we recommend is that you
+choose a good password and then create another user for DAD to operate
+with.<span style='mso-spacerun:yes'>  </span>This second account should only
+have rights to the DAD database and tables.</p>
+
+<p class=MsoNormal><o:p>&nbsp;</o:p></p>
+
+<p class=MsoNormal>After the installation has been completed, you MUST modify
+the C:\DAD\Web\Config\dbconfig.php file to reflect the correct IP address
+(should you choose to install the SQL service on another server), the DAD
+username used to access the database and the password used by this user.<span
+style='mso-spacerun:yes'>  </span>This same change needs to be made to the
+C:\DAD\dbconfig.jv file (this is the database configuration for the various
+pieces of Java code) , the C:\DAD\jobs\dbconfig.ph file (this contains the
+database configuration for the various alerts and reports) and to the
+C:\DAD\jobs\Log Parser\aggregator.ph file (this contains the configuration
+parameters for the log aggregator).</p>
+
+<p class=MsoNormal style='text-indent:0in'><o:p>&nbsp;</o:p></p>
+
+<p class=MsoNormal>You must adjust the server, user and password appropriately
+to allow the various aspects of the DAD system to access the database.</p>
+
+<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
+style='font-size:10.0pt;font-family:"Arial","sans-serif"'><o:p>&nbsp;</o:p></span></p>
+
+<div style='mso-element:para-border-div;border:none;border-bottom:solid #365F91 1.5pt;
+mso-border-bottom-themecolor:accent1;mso-border-bottom-themeshade:191;
+padding:0in 0in 1.0pt 0in'>
+
+<h1 style='margin-top:12.0pt;margin-right:0in;margin-bottom:3.0pt;margin-left:
+0in;line-height:115%;page-break-after:avoid'><span style='font-size:16.0pt;
+line-height:115%;mso-bidi-font-family:Cambria;mso-font-kerning:16.0pt;
+font-weight:normal'>Post Installation</span><span style='font-size:16.0pt;
+line-height:115%;font-family:"Times New Roman","serif";mso-font-kerning:16.0pt;
+font-weight:normal'><o:p></o:p></span></h1>
+
+</div>
+
+<div style='mso-element:para-border-div;border:none;border-bottom:solid #4F81BD 1.0pt;
+mso-border-bottom-themecolor:accent1;padding:0in 0in 1.0pt 0in'>
 
 <h2 style='margin-top:12.0pt;margin-right:0in;margin-bottom:3.0pt;margin-left:
 0in;line-height:115%;page-break-after:avoid'><b><i><span style='font-size:14.0pt;
 line-height:115%;mso-bidi-font-family:Cambria'>DAD Credentials</span></i></b><b><i><span
 style='font-size:14.0pt;line-height:115%;font-family:"Times New Roman","serif"'><o:p></o:p></span></i></b></h2>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'>Once DAD is
-installed, there are a few things that you'll need to do to get up and
-running.<span style='mso-spacerun:yes'>  </span>First off, you will need to
-either create an account under which the DAD Scheduler will run or decide whose
-credentials DAD will use.<span style='mso-spacerun:yes'>  </span>Once you have
-done this, we recommend that you use group policy in your domain to grant this
-account the &quot;Manage Security and Audit Logs&quot; right to computers in
-the domain.<span style='mso-spacerun:yes'>  </span>In most installations we
-would recommend applying this right for all computers, domain servers and
-domain controllers.<span style='mso-spacerun:yes'>  </span><b><i>Please note:</i></b><span
-style='mso-spacerun:yes'>  </span>If you wish to import logs other than the
-Security log, the simplest solution is to add the service account to the local
-administrators group for all of the systems that are monitored.<span
-style='mso-spacerun:yes'>  </span>There are more difficult ways to add this
-capability without making the service account an administrator.<span
-style='mso-spacerun:yes'>  </span>We will include details on how to configure
-these access control lists for Windows logs in a future release.<o:p></o:p></span></p>
+</div>
+
+<p class=MsoNormal>Once DAD is installed, there are a few things that you'll
+need to do to get up and running.<span style='mso-spacerun:yes'>  </span>First
+off, you will need to either create an account under which the DAD Scheduler
+will run or decide whose credentials DAD will use.<span
+style='mso-spacerun:yes'>  </span>Once you have done this, we recommend that
+you use group policy in your domain to grant this account the &quot;Manage
+Security and Audit Logs&quot; right to computers in the domain.<span
+style='mso-spacerun:yes'>  </span>In most installations we would recommend
+applying this right for all computers, domain servers and domain controllers.<span
+style='mso-spacerun:yes'>  </span></p>
+
+<p class=MsoNormal><o:p>&nbsp;</o:p></p>
+
+<p class=MsoNormal><b><i>Please note:</i></b><span style='mso-spacerun:yes'> 
+</span>If you wish to import logs other than the Security log, the simplest
+solution is to add the service account to the local administrators group for
+all of the systems that are monitored.<span style='mso-spacerun:yes'> 
+</span>There are more difficult ways to add this capability without making the
+service account an administrator.<span style='mso-spacerun:yes'>  </span>We
+will include details on how to configure these access control lists for Windows
+logs in a future release.</p>
 
 <p class=MsoNormal><span style='font-size:10.0pt;font-family:"Arial","sans-serif"'><o:p>&nbsp;</o:p></span></p>
+
+<div style='mso-element:para-border-div;border:none;border-bottom:solid #4F81BD 1.0pt;
+mso-border-bottom-themecolor:accent1;padding:0in 0in 1.0pt 0in'>
 
 <h2 style='margin-top:12.0pt;margin-right:0in;margin-bottom:3.0pt;margin-left:
 0in;line-height:115%;page-break-after:avoid'><b><i><span style='font-size:14.0pt;
 line-height:115%;mso-bidi-font-family:Cambria'>Starting the Scheduler<o:p></o:p></span></i></b></h2>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'>If you used the
-installer script, it automatically starts the scheduler when it completes.<span
-style='mso-spacerun:yes'>  </span>To restart the scheduler in the future (and
-thereby all of the scheduled jobs including the Aggregator) you will need to
-run the following commands:<o:p></o:p></span></p>
+</div>
+
+<p class=MsoNormal>If you used the installer script, it automatically starts
+the scheduler when it completes.<span style='mso-spacerun:yes'>  </span>To
+restart the scheduler in the future (and thereby all of the scheduled jobs
+including the Aggregator) you will need to run the following commands:</p>
+
+<p class=MsoNormal><o:p>&nbsp;</o:p></p>
+
+<p class=MsoNormal>cd \DAD\jobs</p>
+
+<p class=MsoNormal>.\start_scheduler.bat</p>
+
+<p class=MsoNormal><o:p>&nbsp;</o:p></p>
+
+<p class=MsoNormal>We expect to push out the Scheduler as a service in the very
+next release which will eliminate the need for this step.<span
+style='mso-spacerun:yes'>  </span>Until then, we recommend that you create a
+job using the Windows scheduling service that will start this batch script on
+startup using the credentials that you have created for DAD.</p>
 
 <p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
 style='font-size:10.0pt;font-family:"Arial","sans-serif"'><o:p>&nbsp;</o:p></span></p>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'>cd \DAD\jobs<o:p></o:p></span></p>
-
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'>.\start_scheduler.bat<o:p></o:p></span></p>
-
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'><o:p>&nbsp;</o:p></span></p>
-
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'>We expect to push out
-the Scheduler as a service in the very next release which will eliminate the
-need for this step.<o:p></o:p></span></p>
-
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'><o:p>&nbsp;</o:p></span></p>
+<div style='mso-element:para-border-div;border:none;border-bottom:solid #4F81BD 1.0pt;
+mso-border-bottom-themecolor:accent1;padding:0in 0in 1.0pt 0in'>
 
 <h2 style='margin-top:12.0pt;margin-right:0in;margin-bottom:3.0pt;margin-left:
 0in;line-height:115%;page-break-after:avoid'><b><i><span style='font-size:14.0pt;
 line-height:115%;mso-bidi-font-family:Cambria'>Adding Servers and Computers to
 Process<o:p></o:p></span></i></b></h2>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'>The final step in
-setting up DAD is to add systems to the list of servers to aggregate logs
-from.<span style='mso-spacerun:yes'>  </span>To add servers and workstations,
-log in as an administrator.<span style='mso-spacerun:yes'>  </span>Under the
-“Maintenance” tab, select the “Systems” option.<span style='mso-spacerun:yes'> 
-</span>Enter all of the pertinent information including, most importantly, the
-NETBIOS name of the system that you wish to add.<span
-style='mso-spacerun:yes'>  </span>Please also include a priority value of 1 or
-higher.<span style='mso-spacerun:yes'>  </span>A zero will disable collection
-from the host.<span style='mso-spacerun:yes'>  </span>Lower numbers (1, for
-instance) indicate higher priority.<span style='mso-spacerun:yes'> 
-</span>Typically, we recommend setting DCs and Global Catalog servers as
-priority 1.<span style='mso-spacerun:yes'>  </span>Domain Servers would be
-priority 2.<span style='mso-spacerun:yes'>  </span>Everything else would be
-priority 3 or more.<span style='mso-spacerun:yes'>  </span>Once you have
-entered the necessary information, be sure to select which logs you wish to
-collect from this system.<span style='mso-spacerun:yes'>  </span>Finally, click
-on the “Save as New” button to begin collections from that system.<o:p></o:p></span></p>
+</div>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'><o:p>&nbsp;</o:p></span></p>
+<p class=MsoNormal>The final step in setting up DAD is to add systems to the
+list of servers to aggregate logs from.<span style='mso-spacerun:yes'> 
+</span>To add servers and workstations, log in as an administrator.<span
+style='mso-spacerun:yes'>  </span>Under the “Maintenance” tab, select the
+“Systems” option.<span style='mso-spacerun:yes'>  </span>Enter all of the
+pertinent information including, most importantly, the NETBIOS name of the
+system that you wish to add.<span style='mso-spacerun:yes'>  </span>Please also
+include a priority value of 1 or higher.<span style='mso-spacerun:yes'> 
+</span>A zero will disable collection from the host.<span
+style='mso-spacerun:yes'>  </span>Lower numbers (1, for instance) indicate
+higher priority.<span style='mso-spacerun:yes'>  </span>Typically, we recommend
+setting DCs and Global Catalog servers as priority 1.<span
+style='mso-spacerun:yes'>  </span>Domain Servers would be priority 2.<span
+style='mso-spacerun:yes'>  </span>Everything else would be priority 3 or
+more.<span style='mso-spacerun:yes'>  </span>Once you have entered the
+necessary information, be sure to select which logs you wish to collect from
+this system.<span style='mso-spacerun:yes'>  </span>Finally, click on the “Save
+as New” button to begin collections from that system.</p>
+
+<p class=MsoNormal><o:p>&nbsp;</o:p></p>
+
+<p class=MsoNormal>You will also want to configure all of your UNIX servers,
+routers, firewalls and other syslog based systems to forward their logs to the
+DAD server.<span style='mso-spacerun:yes'>  </span>By default, the scheduler
+will start a syslog daemon.<span style='mso-spacerun:yes'>  </span>No further
+interaction is required for DAD to begin to process and make available syslog
+data.<span style='mso-spacerun:yes'>  </span>If you have web access logs or
+Dansguardian logs that you wish to process (or any other text based log), you
+can schedule a job to periodically drop the new logs to process into the
+C:\jobs\LogsToProcess directory.</p>
 
 <p class=MsoNormal><span style='font-size:10.0pt;font-family:"Arial","sans-serif"'><o:p>&nbsp;</o:p></span></p>
 
-<b><span style='font-size:16.0pt;line-height:115%;font-family:"Times New Roman","serif";
-mso-fareast-font-family:"Times New Roman";mso-fareast-theme-font:minor-fareast;
-mso-font-kerning:16.0pt;mso-ansi-language:EN-US;mso-fareast-language:EN-US;
-mso-bidi-language:AR-SA'><br clear=all style='page-break-before:always'>
-</span></b>
+<span style='font-size:16.0pt;line-height:115%;font-family:"Times New Roman","serif";
+mso-fareast-font-family:"Times New Roman";mso-fareast-theme-font:major-fareast;
+color:#365F91;mso-themecolor:accent1;mso-themeshade:191;mso-font-kerning:16.0pt;
+mso-ansi-language:EN-US;mso-fareast-language:EN-US;mso-bidi-language:AR-SA'><br
+clear=all style='page-break-before:always'>
+</span>
+
+<div style='mso-element:para-border-div;border:none;border-bottom:solid #365F91 1.5pt;
+mso-border-bottom-themecolor:accent1;mso-border-bottom-themeshade:191;
+padding:0in 0in 1.0pt 0in'>
 
 <h1 style='margin-top:12.0pt;margin-right:0in;margin-bottom:3.0pt;margin-left:
-0in;line-height:115%;page-break-after:avoid'><b><span style='font-size:16.0pt;
-line-height:115%;mso-bidi-font-family:Cambria;mso-font-kerning:16.0pt'>Troubleshooting:<o:p></o:p></span></b></h1>
+0in;line-height:115%;page-break-after:avoid'><span style='font-size:16.0pt;
+line-height:115%;mso-bidi-font-family:Cambria;mso-font-kerning:16.0pt;
+font-weight:normal'>Troubleshooting:<o:p></o:p></span></h1>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><i><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'>1) Apache error log
-reports &quot;PHP Warning:<span style='mso-spacerun:yes'>  </span>PHP Startup:
-Unable to load dynamic library 'C:\\PHP\\php_mysql.dll' - The specified module
-could not be found.\r\n in Unknown on line 0&quot;<o:p></o:p></span></i></p>
+</div>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'><o:p>&nbsp;</o:p></span></p>
+<p class=MsoNormal>1) Apache error log reports &quot;PHP Warning:<span
+style='mso-spacerun:yes'>  </span>PHP Startup: Unable to load dynamic library
+'C:\\PHP\\php_mysql.dll' - The specified module could not be found.\r\n in
+Unknown on line 0&quot;</p>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'><span
-style='mso-tab-count:1'>      </span>This error, when the php_mysql.dll is in
-fact in the C:\PHP directory (and the correct version), is very misleading.<span
-style='mso-spacerun:yes'>  </span>The actual problem is that
-&quot;libmysql.dll&quot; is not in the Apache\bin directory (or otherwise in
-the Apache path).<o:p></o:p></span></p>
+<p class=MsoNormal><o:p>&nbsp;</o:p></p>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'><o:p>&nbsp;</o:p></span></p>
+<p class=MsoNormal><span style='mso-tab-count:1'>        </span>This error,
+when the php_mysql.dll is in fact in the C:\PHP directory (and the correct
+version), is very misleading.<span style='mso-spacerun:yes'>  </span>The actual
+problem is that &quot;libmysql.dll&quot; is not in the Apache\bin directory (or
+otherwise in the Apache path).</p>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><i><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'>2) I’ve added a
-workstation (or workstations) to the list of systems to collect data from but
-nothing seems to be entering the database from these systems.<span
-style='mso-spacerun:yes'>  </span>What’s wrong?</span></i><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'><br>
+<p class=MsoNormal><o:p>&nbsp;</o:p></p>
+
+<p class=MsoNormal>2) I’ve added a workstation (or workstations) to the list of
+systems to collect data from but nothing seems to be entering the database from
+these systems.<span style='mso-spacerun:yes'>  </span>What’s wrong?<br>
 <br>
 This problem is caused, strangely enough, by the Windows Firewall.<span
 style='mso-spacerun:yes'>  </span>Unfortunately, there is no simple granular
@@ -909,10 +1841,9 @@ future, if we have the energy, we’ll describe more specifically how this can be
 accomplished through Group Policy to only allow the DAD server to collect logs
 without completely opening up file sharing.<span style='mso-spacerun:yes'> 
 </span>Of course, opening the file sharing ports doesn’t actually share
-anything; it just makes the connections possible.<o:p></o:p></span></p>
+anything; it just makes the connections possible.</p>
 
-<p class=MsoNormal style='margin-left:.25in;text-indent:-.25in'><span
-style='font-size:10.0pt;font-family:"Arial","sans-serif"'><o:p>&nbsp;</o:p></span></p>
+<p class=MsoNormal><o:p>&nbsp;</o:p></p>
 
 </div>
 
