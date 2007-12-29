@@ -27,7 +27,7 @@ if(isset($_GET["ContextQuery"]))
 	{
 		$word=$_GET["ContextQuery"];
 		$Start = (isset($_GET["Start"]) ? ($_GET["Start"] > 0 ? $_GET["Start"] : 1) : 1);
-		$strSQL=String_To_Query($word, 10000000, $Start, 50);
+		$strSQL=String_To_Query($word, 100000000, $Start, 50);
 		$Result_Contents = Query_to_Table($strSQL, 1, $Start);//, "PopupTable");
 		//Popup("Test", $Popup_Contents, 980, 650, 5, 5);
 		$strHTML = "<p><a href='$strURL&ContextQuery=$word&Start=".($Start-50)."'>< Previous</a> | ".
@@ -137,20 +137,29 @@ function FulltextQuery($SearchTerms, $TimeFrame=86400, $start=1, $limit=10)
 			$MATCHES.=" AND a.Events_ID=$table_ref.Events_ID";
 		}
    	}
+   	# The MySQL query optimizer does a bad job in deciding which index to use
+   	# when we limit the query based on the time generated.  This code forces
+   	# the queries that are time limited to use the idxTimeGenerated index rather
+   	# than the Event_ID PRIMARY key.
+   	$IDXFORCE="";
+   	if($TimeFrame < 604800) # 1 week
+   	{
+   		$IDXFORCE="FORCE INDEX(idxTimeGenerated)";
+   	}
    	$strSQL=<<<ENDSQL
 		SELECT 
 			DISTINCT a.Events_ID,
 			a.Time_Written,
 			a.Time_Generated 
 		FROM 
-			events as a $JOINS 
+			events as a $IDXFORCE $JOINS 
 		WHERE 
 			$StringIDFilter 
-			AND (UNIX_TIMESTAMP(NOW())-$TimeFrame) < a.Time_Generated 
-			$MATCHES 
-		LIMIT $start,$limit
+			$MATCHES
+			AND a.Time_Generated > (UNIX_TIMESTAMP(NOW())-$TimeFrame)  
+		LIMIT $start,$limit 
 ENDSQL;
-   	#add_element($strSQL."<br><br>");
+   	add_element($strSQL."<br><br>");
    	$Event_IDs = runQueryReturnArray($strSQL);
 	if(!$Event_IDs)
 	{

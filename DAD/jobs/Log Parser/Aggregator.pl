@@ -682,8 +682,8 @@ sub _insert_thread
 			$empty_loops = 0;
 			$Inserted += $Queue_Size;
 #print "$InsertString\n\n$Bulk_Event_Insert\n";
-			&SQL_Insert("INSERT INTO event_fields (Events_ID, Position, String_ID) VALUES ".$InsertString);
-			&SQL_Insert("INSERT INTO events (Events_ID,Time_Written, Time_Generated, System_ID, Service_ID) VALUES $Bulk_Event_Insert");
+			&SQL_Insert("INSERT DELAYED INTO event_fields (Events_ID, Position, String_ID) VALUES ".$InsertString);
+			&SQL_Insert("INSERT DELAYED INTO events (Events_ID,Time_Written, Time_Generated, System_ID, Service_ID) VALUES $Bulk_Event_Insert");
 			undef $InsertString;
 			undef $Bulk_Event_Insert;
 			$Queue_Size = 0;
