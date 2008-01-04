@@ -35,7 +35,7 @@ public class Main {
     
     static private boolean DEBUG = true;
     static private ScheduleDBInterface schedule;
-    static private String Version="0.3";
+    static private String Version="0.4";
     static private ArrayList<SpawnProcess> processes;
     static private boolean KeepRunning;
     
@@ -71,7 +71,7 @@ public class Main {
         {
             new Shutdown().runProgram();
             schedule = new ScheduleDBInterface();
-            System.out.println("Copyright (C) 2007, David Hoelzer/Cyber-Defense.org");
+            System.out.println("Copyright (C) 2007, 2008, David Hoelzer/Cyber-Defense.org");
             System.out.println("DAD Scheduler (v"+Version+") now operational.");
             System.out.println("---------------------------------------------------");
             System.out.println("Starting persistent jobs");
@@ -115,7 +115,7 @@ public class Main {
                     try
                     {
                         DoThis=null;
-                        Thread.sleep(10000);
+                        Thread.sleep(45000); // 60 seconds - Jobs can only run on the minute.
                         if(DEBUG)
                         {
                             System.out.println("Sleeping");
