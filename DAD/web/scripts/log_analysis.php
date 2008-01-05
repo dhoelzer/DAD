@@ -99,7 +99,156 @@ function generateEventQuery($strSQL, $start=1, $limit=10)
 	$SearchTerms = $result[0]['Query'];
 	$TimeFrame = $result[0]['Timeframe'];
 
-	return(FulltextQuery($SearchTerms, $TimeFrame, $start, $limit));
+	return(GetQueryByStringsPosition($SearchTerms, $TimeFrame, $start, $limit));
+}
+
+function GetQueryByStringsPosition($SearchTerms, $TimeFrame=86400, $start=1, $limit=10)
+{
+	$Array = split(" ",$SearchTerms);	
+	$num_terms = sizeof($Array);
+	if(($num_terms % 2) != 0 )
+	{
+		return "SELECT 'Format for GetEventsByStringsPostion is TimeFrame(in seconds), String, Position[,String, Position...]'";
+	}
+	if($num_terms < 1)
+	{
+		return "SELECT 'No search terms present'";
+	}
+	$num_terms /= 2;
+	#$TimeFrame = time()-$TimeFrame;
+	$Report = "";
+	$SearchTerms = "";
+	$StringIDFilter="";
+	#print "Searching for events that occurred since $TimeFrame with the terms:\n";
+	for($i=0; $i!= $num_terms; $i++)
+	{
+		$t = strtolower($Array[$i * 2]);
+		$p = $Array[($i * 2) + 1];
+		#print "$t - $p\n";
+		$Terms[$i] = $t;
+		if(ereg("[0-9]+", $p))
+		{
+print "Position $p";			$Positions[$t] = $p;
+		}	
+		if(!$SearchTerms)
+		{
+			$SearchTerms = "'$t'";
+		}
+		else
+		{
+			$SearchTerms .= ",'$t'";
+		}
+	}
+
+	# Events to find:	
+	$SQL =<<<EndSQL
+	SELECT * 
+	FROM event_unique_strings 
+	WHERE String IN ( $SearchTerms )
+EndSQL;
+	$string_ids = runQueryReturnArray($SQL);
+	print "$SQL";
+	if(!isset($string_ids)) { return "SELECT 'No matching strings found'";}
+	foreach($string_ids as $row)
+	{
+		if(!isset($Positions[$row[1]]))
+		{
+			if($StringIDFilter == "")
+			{
+				$table_ref = 'b';
+				$StringIDFilter = " $table_ref.String_ID=$row[0]";
+				$JOINS=" JOIN event_fields as $table_ref";
+				$MATCHES=" AND a.Events_ID=$table_ref.Events_ID";
+			}
+			else # ORs should be in here somewhere attached to the $StringIDFilter
+			{
+				$table_ref++;
+				$StringIDFilter .= " AND $table_ref.String_ID=$row[0]";
+				$JOINS.=" JOIN event_fields as $table_ref";
+				$MATCHES.=" AND a.Events_ID=$table_ref.Events_ID";
+			}
+		}
+		else
+		{
+			if($StringIDFilter=="")
+				{
+					$table_ref = 'b';
+					$StringIDFilter = "\n($table_ref.String_ID=$row[0] AND $table_ref.Position=".$Positions[strtolower($row[1])].")";
+					$JOINS="\nJOIN event_fields as $table_ref";
+					$MATCHES="\nAND a.Events_ID=$table_ref.Events_ID";
+				}
+				else
+				{			
+					$table_ref++;
+					$StringIDFilter .= "\nAND ($table_ref.String_ID=$row[0] AND $table_ref.Position=".$Positions[strtolower($row[1])].")";
+					$JOINS.="\nJOIN event_fields as $table_ref";
+					$MATCHES.="\nAND a.Events_ID=$table_ref.Events_ID";
+				}
+		}
+
+   	}
+   	# The MySQL query optimizer does a bad job in deciding which index to use
+   	# when we limit the query based on the time generated.  This code forces
+   	# the queries that are time limited to use the idxTimeGenerated index rather
+   	# than the Event_ID PRIMARY key.
+   	$IDXFORCE="";
+   	if($TimeFrame < 604800) # 1 week
+   	{
+   		$IDXFORCE="FORCE INDEX(idxTimeGenerated)";
+   	}
+   	$strSQL=<<<ENDSQL
+		SELECT 
+			DISTINCT a.Events_ID,
+			a.Time_Written,
+			a.Time_Generated 
+		FROM 
+			events as a $IDXFORCE $JOINS 
+		WHERE 
+			$StringIDFilter 
+			$MATCHES
+			AND a.Time_Generated > (UNIX_TIMESTAMP(NOW())-$TimeFrame)  
+		LIMIT $start,$limit 
+ENDSQL;
+   	add_element($strSQL."<br><br>");
+   	$Event_IDs = runQueryReturnArray($strSQL);
+	if(!$Event_IDs)
+	{
+		return "SELECT 'No Events Matching Criteria Found.'";
+	}
+   	foreach($Event_IDs as $row)
+   	{
+   		if(!isset($Events_ID_in))
+   		{
+   			$Events_ID_in = "$row[0]";
+   		}
+   		else
+   		{
+   			$Events_ID_in .= ", $row[0]";
+   		}
+   	}
+   	$strSQL=<<<ENDSQL
+   				SELECT distinct
+   					f.Events_ID as "Event Number",
+   					FROM_UNIXTIME(e.Time_Generated) as "Time",
+   					systems.System_Name as "System",
+   					GROUP_CONCAT(s.String ORDER BY f.Position ASC separator ' ') as "Event Detail"
+   				FROM
+   					events as e,
+   					event_fields as f,
+   					event_unique_strings as s,
+   					dad_sys_systems as systems
+   				WHERE
+   					e.Events_ID IN ( $Events_ID_in )
+   					AND f.Events_ID=e.Events_ID
+   					AND (
+   						f.String_ID=s.String_ID
+   						)
+   					AND systems.System_ID=e.System_ID
+   					GROUP BY f.Events_ID
+   					ORDER BY e.Time_Generated,f.Events_ID,f.Position
+ENDSQL;
+   #add_element($strSQL);
+   	return($strSQL);
 }
 
 function FulltextQuery($SearchTerms, $TimeFrame=86400, $start=1, $limit=10)
