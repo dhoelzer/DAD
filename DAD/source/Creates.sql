@@ -333,7 +333,7 @@ CREATE TABLE `dad_alerts` (
   PRIMARY KEY (`dad_alert_id`),
   KEY `Acknowledged_idx` (`Acknowledged`),
   KEY `Time_idx` (`Alert_Time`)
-) ENGINE=MyISAM AUTO_INCREMENT=2169 DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM AUTO_INCREMENT=2171 DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
 
 --
@@ -785,7 +785,7 @@ CREATE TABLE `dad_sys_event_stats` (
   PRIMARY KEY (`Stats_ID`),
   KEY `Systems` (`System_Name`),
   KEY `Stats_Type` (`Stat_Type`) USING BTREE
-) ENGINE=MyISAM AUTO_INCREMENT=7832984 DEFAULT CHARSET=latin1 COMMENT='Tracks event log gathering statistics';
+) ENGINE=MyISAM AUTO_INCREMENT=7837830 DEFAULT CHARSET=latin1 COMMENT='Tracks event log gathering statistics';
 SET character_set_client = @saved_cs_client;
 
 --
@@ -943,7 +943,7 @@ CREATE TABLE `dad_sys_queries` (
   `Roles` varchar(256) NOT NULL DEFAULT '',
   `Timeframe` int(10) unsigned NOT NULL DEFAULT '86400',
   PRIMARY KEY (`Query_ID`)
-) ENGINE=MyISAM AUTO_INCREMENT=69 DEFAULT CHARSET=latin1 COMMENT='Used for stored queries';
+) ENGINE=MyISAM AUTO_INCREMENT=81 DEFAULT CHARSET=latin1 COMMENT='Used for stored queries';
 SET character_set_client = @saved_cs_client;
 
 --
@@ -1015,7 +1015,7 @@ CREATE TABLE `event_unique_strings` (
   PRIMARY KEY (`String_ID`),
   UNIQUE KEY `StringIDX` (`String`),
   FULLTEXT KEY `idxStringFT` (`String`)
-) ENGINE=MyISAM AUTO_INCREMENT=2063246 DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM AUTO_INCREMENT=2071216 DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
 
 --
@@ -1036,7 +1036,7 @@ CREATE TABLE `events` (
   KEY `idxSystem` (`System_ID`),
   KEY `idxService` (`Service_ID`),
   KEY `idxTimeWritten` (`Time_Written`)
-) ENGINE=MyISAM AUTO_INCREMENT=21103835 DEFAULT CHARSET=latin1 ROW_FORMAT=DYNAMIC;
+) ENGINE=MyISAM AUTO_INCREMENT=21111938 DEFAULT CHARSET=latin1 ROW_FORMAT=DYNAMIC;
 SET character_set_client = @saved_cs_client;
 
 --
@@ -1315,4 +1315,4 @@ SET character_set_client = @saved_cs_client;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2008-01-05 20:12:38
+-- Dump completed on 2008-01-06  5:55:45

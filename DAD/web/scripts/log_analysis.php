@@ -119,16 +119,16 @@ function GetQueryByStringsPosition($SearchTerms, $TimeFrame=86400, $start=1, $li
 	$Report = "";
 	$SearchTerms = "";
 	$StringIDFilter="";
-	#print "Searching for events that occurred since $TimeFrame with the terms:\n";
+	#f "Searching for events that occurred since $TimeFrame with the terms:\n";
 	for($i=0; $i!= $num_terms; $i++)
 	{
 		$t = strtolower($Array[$i * 2]);
 		$p = $Array[($i * 2) + 1];
-		#print "$t - $p\n";
+		# "$t - $p\n";
 		$Terms[$i] = $t;
 		if(ereg("[0-9]+", $p))
 		{
-print "Position $p";			$Positions[$t] = $p;
+			$Positions[$t] = $p;
 		}	
 		if(!$SearchTerms)
 		{
@@ -147,12 +147,11 @@ print "Position $p";			$Positions[$t] = $p;
 	WHERE String IN ( $SearchTerms )
 EndSQL;
 	$string_ids = runQueryReturnArray($SQL);
-	print "$SQL";
 	if(!isset($string_ids)) { return "SELECT 'No matching strings found'";}
 	foreach($string_ids as $row)
 	{
-		if(!isset($Positions[$row[1]]))
-		{
+		if(!isset($Positions[strtolower($row[1])]))
+		{ 
 			if($StringIDFilter == "")
 			{
 				$table_ref = 'b';
@@ -169,7 +168,7 @@ EndSQL;
 			}
 		}
 		else
-		{
+		{ 
 			if($StringIDFilter=="")
 				{
 					$table_ref = 'b';
@@ -209,7 +208,7 @@ EndSQL;
 			AND a.Time_Generated > (UNIX_TIMESTAMP(NOW())-$TimeFrame)  
 		LIMIT $start,$limit 
 ENDSQL;
-   	add_element($strSQL."<br><br>");
+   	#add_element($strSQL."<br><br>");
    	$Event_IDs = runQueryReturnArray($strSQL);
 	if(!$Event_IDs)
 	{
@@ -528,79 +527,35 @@ function acknowledge_events()
 function show_query_builder()
 {
 	global $Global;
-	global $HTTP_POST_VARS;
-
-	$PrimaryTable = isset($Global["primary_table"]) ? $Global["primary_table"] : NULL;
-	$strHTML="";
-# Added special case to pop up a window with the field name contents if we're looking at dad_sys_events
-	if($PrimaryTable == "dad_sys_events")
-	{
-		$Popup_Contents = <<<END
-			<STYLE TYPE='text/css'><!--.PopupTable{	font-size:7pt;}	--> </STYLE>
-END;
-		$Popup_Contents .= Query_to_Table("SELECT dad_sys_field_descriptions.Service_ID, dad_sys_services.Service_Name, ".
-			"Field_0_Name, Field_1_Name, Field_2_Name, Field_3_Name, Field_4_Name, ".
-			"Field_5_Name, Field_6_Name, Field_7_Name, Field_8_Name, Field_9_Name ".
-			"FROM dad_sys_field_descriptions,dad_sys_services WHERE dad_sys_field_descriptions.Service_ID=dad_sys_services.Service_ID",
-			1, "PopupTable");
-		Popup("Field Mappings for Events", $Popup_Contents, 800, 100);
-	}
-	# Retrieve the table names to populate the table selectors
-	$aResults = runQueryReturnArray("SHOW TABLES LIKE 'dad%'");
-	$OptionList="";
-	foreach($aResults as $row)
-	{
-		if($PrimaryTable == $row[0]) { $selected = " selected"; } else { $selected = ""; }
-		$OptionList .= "<option value=\"$row[0]\"$selected>$row[0]";
-	}
+	global $_POST;
 
     $strURL  = getOptionURL(OPTIONID_QUERY_BUILDER);
 
-/* We've decided to make the pain stop.  Secondary tables for joins are here but not completed:
-	# Build the secondary table lists
-	for($num_tables = 0; isset($HTTP_POST_VARS["table_$num_tables"]); $num_tables++)
-	{
-		$tables_selected[$num_tables] = $HTTP_POST_VARS["table_$num_tables"];
-	}
-
-	$num_tables = ($num_tables < 1 ? 0 : $num_tables-=1);
-	for($i=0;$i != $num_tables+2;$i++)
-	{
-		foreach($aResults as $row)
-		{
-			if($tables_selected[$i] == $row[0]) { $selected = " selected";} else { $selected = ""; }
-			$TablesList[$i] .= "<option value=\"$row[0]\"$selected>$row[0]";
-		}
-	}
-
-	#Add one to the visible fields if we're actively adding a visible field with the last click
-	if($HTTP_POST_VARS["Operation"] == "Add Table") { $num_tables++; }
-*/
+	# PrintMapping($_POST);
 	# Retrieve the currently posted options for visible columns in the result set
-	for($num_visible_fields = 0; isset($HTTP_POST_VARS["visible_fields_$num_visible_fields"]); $num_visible_fields++)
+	for($num_visible_fields = 0; isset($_POST["visible_fields_$num_visible_fields"]); $num_visible_fields++)
 	{
 		$visible_fields_selected[$num_visible_fields] = $HTTP_POST_VARS["visible_fields_$num_visible_fields"];
 	}
 
 	$num_visible_fields = ($num_visible_fields < 1 ? 0 : $num_visible_fields-=1);
 	#Add one to the visible fields if we're actively adding a visible field with the last click
-	if($HTTP_POST_VARS["Operation"] == "Add Field") { $num_visible_fields++; }
+	if(isset($_POST["Operation"]) && $_POST["Operation"] == "Add Filter") { $num_visible_fields++; }
 
 	#Retrieve the currently posted options for the filters in the result set
-	for($num_filters = 0; isset($HTTP_POST_VARS["filter_$num_filters"]); $num_filters++)
-	{
-		$filters_selected[$num_filters] = $HTTP_POST_VARS["filter_$num_filters"];
-		$filter_types[$num_filters] = $HTTP_POST_VARS["filter_type_$num_filters"];
-		$filter_values[$num_filters] = $HTTP_POST_VARS["filter_value_$num_filters"];
+	for($num_filters = 0; isset($_POST["filter_value_$num_filters"]); $num_filters++)
+	{ 
+		#$filters_selected[$num_filters] = $_POST["filter_$num_filters"];
+		$filter_types[$num_filters] = $_POST["filter_type_$num_filters"];
+		$filter_values[$num_filters] = $_POST["filter_value_$num_filters"];
 	}
-
 	$num_filters = ($num_filters < 1 ? 0 : $num_filters-=1);
-	if($HTTP_POST_VARS["Operation"] == "Add Filter") { $num_filters++; }
-	if($HTTP_POST_VARS["Operation"] == "Remove Filter") { $num_filters--;  add_element("Remove");}
+	if(isset($_POST["Operation"]) && $_POST["Operation"] == "Add Filter") { $num_filters++;}
+	if(isset($_POST["Operation"]) && $_POST["Operation"] == "Remove Filter") { $num_filters--; }
 	
 # Set the javascript preamble for postbacks
 	# The JavaScript below is intended to simulate the "Postback" functionality that ASP.NET has
-	$strHTML .= <<<END
+	$strHTML = <<<END
 		<script language="javascript">  
 		<!--  
 		function PostBack() 
@@ -620,106 +575,21 @@ END;
 		<font align=center size=+1>Please use the query builder below to create new searches</font>
 		<form id=frmQueryBuilder name="QueryBuilder" action="$strURL" method="post" style="position:relative; top:25px;">
 		<table cellpadding=5>
-			<tr>
-				<td colspan=2 bgcolor="#ddddff"><center>Primary Table</center></td>
-			</tr>
-			<tr>
-				<td>Primary table to select from</td>
-				<td><select OnChange="PostBack()" name="primary_table">$OptionList</select></td>
-			</tr>
 END;
 
-	if($PrimaryTable)
-	{
-
-		$SelectedTables[0] = $PrimaryTable;
-/*		for($i=0; $i!=$num_tables+1; $i++)
-		{
-			$SelectedTables[$i+1] = $tables_selected[$i];
-		}
-*/
-		for($field_num = 0; $field_num != $num_visible_fields+1; $field_num++)
-		{
-			$FieldOptionList[$field_num]="";
-			foreach($SelectedTables as $Table_Name)
-			{
-				$aResults = SQLListFields($Table_Name);
-				foreach($aResults as $row)
-				{
-					if(isset($visible_fields_selected[$field_num]) && 
-						$visible_fields_selected[$field_num] == "$Table_Name.$row[0]") 
-					{ 
-						$selected = " selected"; 
-					} 
-					else 
-					{
-						$selected = "";
-					}
-					$FieldOptionList[$field_num] .= "<option value=\"$Table_Name.$row[0]\"$selected>$Table_Name.$row[0]";
-				}
-			}
-		}
-/*		$strHTML .= <<<END
-			<tr>
-				<td colspan=2 bgcolor="#ddddff"><center>Secondary Tables</center></td>
-			</tr>
-END;
-		for($i=0; $i <= $num_tables; $i++)
-		{
-			$enabled = ($i == $num_tables ? "" : " disabled");
-			$strHTML .= <<<END
-			<tr>
-				<td><select OnChange="PostBack()" name="table_$i">$TablesList[$i]</select></td>
-				<td><input name="Operation" type=submit value="Add Table" $enabled></td>
-			</tr>
-END;
-		}
-*/
-		$strHTML .= <<<END
-			<tr>
-				<td colspan=2 bgcolor="#ddddff"><center>Select Fields to Display in Results</center></td>
-			</tr>
-END;
-		$goto = $num_visible_fields;
-		for($i = 0; $i <= $num_visible_fields; $i++)
-		{
-			$enabled = ($i == $num_visible_fields ? "" : " disabled");
-			$strHTML .= <<<END
-			<tr>
-				<td><select name="visible_fields_$i">$FieldOptionList[$i]</td>
-				<td><input name="Operation" type=submit value="Add Field" $enabled></td>
-			</tr>
-END;
-		}
-	}
 /* Next we set the filter conditions */
-	if($PrimaryTable) # If we have visible column fields then we must have at least one field selected even if it's only the default
+	if(1) # If we have visible column fields then we must have at least one field selected even if it's only the default
 	{
-		$Options[0] = "EQUALS";
-		$Options[1] = "GREATER";
-		$Options[2] = "LESS";
-		$Options[3] = "CONTAINS";
-		$Options[4] = "NOT EQUAL";
-		$Options[5] = "DOES NOT CONTAIN";
+		$Options[0] = "Any";
+		for($i=1; $i != 100; $i++)
+		{
+			$Options[$i] = "$i";
+		}
 		for($filter_num = 0; $filter_num != $num_filters+1; $filter_num++)
 		{
 			$FilterOptionList[$filter_num]="";
 			$Filter_Type_List[$filter_num]="";
-			$aResults = SQLListFields($PrimaryTable);
-			foreach($aResults as $row)
-			{
-				if(isset($filters_selected[$filter_num]) && 
-					$filters_selected[$filter_num] == $row[0]) 
-				{ 
-					$selected = " selected";
-				} 
-				else 
-				{ 
-					$selected = "";
-				}
-				$FilterOptionList[$filter_num] .= "<option value=\"$row[0]\"$selected>$row[0]";
-			}
-			for($i = 0; $i != 6; $i++)
+			for($i = 0; $i != 100; $i++)
 			{
 				$selected = ( 
 					(isset($filter_types[$filter_num])?
@@ -728,9 +598,56 @@ END;
 				$Filter_Type_List[$filter_num] .= "<option value=\"$i\"$selected>$Options[$i]";
 			}
 		}
+		$query_name = (isset($_POST["query_name"]) ? $_POST["query_name"] : "");
+		$query_popup = (isset($_POST["query_popup"]) ? $_POST["query_popup"] : "");
+		$query_category = (isset($_POST["query_category"]) ? $_POST["query_category"] : "");
+		$query_timeframe = (isset($_POST["timeframe"]) ? $_POST["timeframe"] : "0");
+		switch($query_timeframe)
+		{
+			case 0 : $TimeFrame = 1000000000;
+				break;
+			case 1 : $TimeFrame = 2592000;
+				break;
+			case 2 : $TimeFrame = 604800;
+				break;
+			case 3 : $TimeFrame = 86400;
+				break;
+			case 4 : $TimeFrame = 3600;
+				break;
+			case 5 : $TimeFrame = 600;
+				break;
+			default : $TimeFrame = 1000000000;
+		}
+		if($query_timeframe == 0) { $established = "selected"; } else { $established = ""; }
+		$timeframe_options = "<option value='0' $established>Any Time";
+		if($query_timeframe == 1) { $established = "selected"; } else { $established = ""; }
+		$timeframe_options .= "<option value='1' $established>30 Days";
+		if($query_timeframe == 2) { $established = "selected"; } else { $established = ""; }
+		$timeframe_options .= "<option value='2' $established>1 Week";
+		if($query_timeframe == 3) { $established = "selected"; } else { $established = ""; }
+		$timeframe_options .= "<option value='3' $established>24 Hours";
+		if($query_timeframe == 4) { $established = "selected"; } else { $established = ""; }
+		$timeframe_options .= "<option value='4' $established>1 Hour";
+		if($query_timeframe == 5) { $established = "selected"; } else { $established = ""; }
+		$timeframe_options .= "<option value='5' $established>10 Minutes";
+		$Total_Strings = $filter_num;
 		$strHTML .= <<<END
 			<tr>
-				<td colspan=2 bgcolor="#ddddff"><center>Select Filters to Apply to the Results</center></td>
+				<td>Query Short Name:</td><td><input type="text" name="query_name" value="$query_name" width=20></td>
+			</tr>
+			<tr>
+				<td>Query Popup Description:</td><td><input type="text" name="query_popup" value="$query_popup" width=20></td>
+			</tr>
+			<tr>
+				<td>Query Category:</td><td><input type="text" name="query_category" value="$query_category" width=20></td>
+			</tr>
+			<tr>
+				<td>Query Timeframe Limit:</td><td><select name="timeframe">$timeframe_options</select></td>
+			</tr>
+				
+				<td colspan=2 bgcolor="#ddddff"><center>Specify Strings and Positions for your result set</center></td>
+			</tr>
+				<th>String</th><th align=left>Position</th>
 			</tr>
 END;
 		$goto = $num_filters;
@@ -742,9 +659,8 @@ END;
 			$local_filter_value = (isset($filter_values[$i])?$filter_values[$i]:"");
 			$strHTML .= <<<END
 			<tr>
-				<td><select name="filter_$i">$FilterOptionList[$i]</td>
+				<td><input type="text" name="filter_value_$i" value="$local_filter_value" width=20></td>
 				<td><select name="filter_type_$i">$Filter_Type_List[$i]</td>
-				<td><input type="text" name="filter_value_$i" value="$local_filter_value" width=15></td>
 				<td>
 					<input name="Operation" type=submit value="Add Filter" $enabled>
 					<input name="Operation" type="submit" OnClick="PostBack()" value="Remove Filter"$enabled2>
@@ -763,50 +679,49 @@ END;
 			<td colspan=2>
 				<center>
 					<input name="Operation" type=submit value="Process Result Set">
-					<input type="submit" name="btnSave" value="Save Query">
+					<input type="submit" name="Operation" value="Save Query">
 				</center>
 			</td>
 		</tr>
 END;
 	add_element($strHTML . "</table><hr>");
-	if(isset($HTTP_POST_VARS["Operation"]) and $HTTP_POST_VARS["Operation"] == "Process Result Set")
+/* Build out the raw strings and positions in case we need to query or save. */
+	for($i=0; $i!=$Total_Strings; $i++)
+	{  
+		$String = (isset($filter_values[$i])?$filter_values[$i]:'empty');
+		$Position = (isset($filter_types)?($filter_types[$i] == 0 ? 'any' : $filter_types[$i]):'any');
+		if(!isset($SearchString))
+		{
+			$SearchString = "$String $Position";
+		}
+		else
+		{
+			$SearchString .= " $String $Position";
+		}
+
+	}
+/* Query string built */
+	if(isset($_POST["Operation"]) and $_POST["Operation"] == "Process Result Set")
 	{
-		for($i=0; $i!=$num_visible_fields+1; $i++)
+
+		$SQL = GetQueryByStringsPosition($SearchString, $TimeFrame, 1, 20);
+		add_element(query_to_table($SQL));
+	}
+	if(isset($_POST["Operation"]) and $_POST["Operation"] == "Save Query")
+	{
+		$strSQL = "INSERT INTO dad_sys_queries (Query, Description, Name, Category, Roles, Timeframe) ".
+			"VALUES ('$SearchString', '$query_popup', '$query_name', '$query_category', '1,2', $TimeFrame)";
+		$intRowsAffected = runSQLReturnAffected($strSQL);
+		if ($intRowsAffected < 1)
 		{
-			$fields .= ($i ? ",". $visible_fields_selected[$i] : $visible_fields_selected[$i]);
+		$MYSQL_ERRNO = mysql_errno();
+           $MYSQL_ERROR = mysql_error();
+			add_element("<h4>Error inserting new saved query! $MYSQL_ERRNO : $MYSQL_ERROR</h4>");
 		}
-		for($i=0; $i!=$num_filters+1; $i++)
+		else
 		{
-			switch($filter_types[$i]) {
-				case 0:
-					$expr = "$filters_selected[$i]='$filter_values[$i]' ";
-					break;
-				case 1:
-					$expr = "$filters_selected[$i]>'$filter_values[$i]' ";
-					break;
-				case 2:
-					$expr = "$filters_selected[$i]<'$filter_values[$i]' ";
-					break;
-				case 3:
-					$expr = "$filters_selected[$i] LIKE '%".$filter_values[$i]."%' ";
-					break;
-				case 4:
-					$expr = "NOT $filters_selected[$i]='$filter_values[$i]' ";
-					break;
-				case 5:
-					$expr = "NOT $filters_selected[$i] LIKE '%".$filter_values[$i]."%' ";
-					break;
-				}
-			if($i > 0) { $TheFilter .= "AND "; }
-			$TheFilter .= $expr;
+			add_element("<h4>Saved '$query_name'!</h4>");
 		}
-		$flag = 0;
-		foreach($SelectedTables as $Table)
-		{
-			if($flag++ > 0) { $Tables .= ","; }
-			$Tables .= "$Table";
-		}
-		add_element(query_to_table("SELECT $fields FROM $Tables WHERE $TheFilter"));
 	}
 }
 
