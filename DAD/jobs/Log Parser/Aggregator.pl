@@ -156,6 +156,7 @@ End
 		close(STATS);
 	}
 							#See which queues are waiting and queue them as appropriate
+	@Systems=();
 	if($SQL_Queue->pending() < 200000)
 	{
 		@Systems = &_get_systems_to_process;
