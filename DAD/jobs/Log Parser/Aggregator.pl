@@ -157,7 +157,7 @@ End
 	}
 							#See which queues are waiting and queue them as appropriate
 	@Systems=();
-	if($SQL_Queue->pending() < 200000)
+	if($SQL_Queue->pending() < 25000)
 	{
 		@Systems = &_get_systems_to_process;
 	}
@@ -193,7 +193,7 @@ End
 		undef(@logfiles);
 	}
 
-	sleep(15);				# Time between interations
+	sleep(60);				# Time between interations
 }
 # If we reach here, time to die has passed and all other threads have exited
 print "No more threads!\n";
