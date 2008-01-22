@@ -299,7 +299,7 @@ sub _event_thread
 	while((!$Time_To_Die))
 	{
 		$system="";
-		while($SQL_Queue->Pending() > 100000)
+		while($SQL_Queue->pending() > 100000)
 		{
 			$Status{"log $who_am_i"} = "Pausing.. More than 100,000 inserts pending.";
 			sleep(15);
