@@ -61,6 +61,7 @@ $Hash_hits = 0;
 $Events_ID_DB=-1;
 ##################################################################
 
+my $Output = 1;
 my $BackupSQLFile;
 my $TZ_Offset;
 my $Stat_Time_Period;
@@ -80,6 +81,7 @@ open(FILE,"Aggregator.ph") or die "Could not find configuration file!\n";
 foreach (<FILE>) { eval(); }
 close(FILE);
 
+if($ARGV[0] > 1) { $Output = 0; } 	#Should be true if called by scheduler.
 	
 $dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
 $dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
@@ -95,6 +97,7 @@ $Process_Queue = Thread::Queue->new;
 $Log_File_Queue = Thread::Queue->new;
 $High_Priority_Queue = Thread::Queue->new;
 $System_Started = mktime(localtime());
+$Total_Run_Time = 3600; # 1 hour recycle timer
 
 # Initialize the list of filtered events before starting threads
 # These are events that we never insert into the database
@@ -103,7 +106,7 @@ $System_Started = mktime(localtime());
 	
 #Fire up the threads
 &_start_threads;
-print "Entering event loop\n";
+if($Output) { print "Entering event loop\n"; }
 #Start the main event loop
 my $loop=0;
 while(1)						#Always running, never getting anywhere
@@ -113,8 +116,9 @@ while(1)						#Always running, never getting anywhere
 	my $pending, $hpending;
 	
 	$loop++;					# Number of times through this run
-#	$Time_Remaining = $Total_Run_Time - (mktime(localtime())- $System_Started);
-	$Time_Remaining = "Continuously running.";
+	$Time_Remaining = $Total_Run_Time - (mktime(localtime())- $System_Started);
+	if($Time_Remaining < 0) { $Time_To_Die = 1; }
+#	$Time_Remaining = "Continuously running.";
 	{
 		#Recreate the quick stats every time through.
 		open(STATS, ">$OUTPUT_LOCATION/stats2.html") or print "Couldn't open stats file.\n";
@@ -157,7 +161,7 @@ End
 	}
 							#See which queues are waiting and queue them as appropriate
 	@Systems=();
-	if($SQL_Queue->pending() < 25000)
+	if(($SQL_Queue->pending() < 75000) && $Time_Remaining > 0)
 	{
 		@Systems = &_get_systems_to_process;
 	}
@@ -180,7 +184,7 @@ End
 			}
 		}
 	}
-	if(($loop-1)%10 == 0)
+	if((($loop-1)%10 == 0) && $Time_Remaining > 0)
 	{
 		if($Output){print "Grabbing log paths\n";}
 		@logfiles = &Get_Unprocessed_Log_Paths($LOG_LOCATION);
@@ -192,11 +196,16 @@ End
 		}
 		undef(@logfiles);
 	}
-
+	if($Time_To_Die == 1 && $SQL_Queue->pending()==0)
+	{
+		if($Output) { print "Recycling.  Pausing 120 seconds to allow SQL server to catch up with delayed writes.\n"; }
+		sleep(120);
+		exit(0);
+	}
 	sleep(60);				# Time between interations
 }
 # If we reach here, time to die has passed and all other threads have exited
-print "No more threads!\n";
+if($Output) { print "No more threads!\n"; }
 
 ############################################################################
 #
@@ -360,7 +369,7 @@ sub _event_thread
 			$handle = Win32::EventLog->new($log, $system) or $continue=0;
 			if(!$continue)
 			{
-				print "Can't open $log EventLog on $system\n";
+				if($Output) { print "Can't open $log EventLog on $system\n"; }
 				&mark_log_processed($log, $system, -1, 0, 0);
 				next; 	#Can't open log, go to the next one.
 			}
@@ -380,7 +389,7 @@ sub _event_thread
 				if($total > 0 && $lastprocessed > $total)
 				{
 # If a Windows log is cleared, the internal event numbers are reset.  This looks for this behavior.
-					print "\nLikely log reset on $system, $log log.  Forcing pull.\n";
+					if($Output) { print "\nLikely log reset on $system, $log log.  Forcing pull.\n"; }
 					$lastprocessed = $base;
 				}
 				if($total <= $lastprocessed) 
@@ -394,7 +403,7 @@ sub _event_thread
 			}
 			else
 			{
-				print "\t\t* New Log\n";
+				if($Output) { print "\t\t* New Log\n"; }
 				&SQL_Insert("INSERT INTO dad_sys_cis_imported (Log_Name, System_Name, LastLogEntry) VALUES ('$log', '$system', '0')");
 			}
 # Set up for reading.  Position at one record before the actual base.
@@ -497,7 +506,7 @@ sub _event_thread
 	delete $Processing{$system};
 	$Status{"log $who_am_i"} = "Waiting";
 	}
-print "\t$who_am_i Exited\n";
+if($Output) { print "\t$who_am_i Exited\n"; }
 $Status{"log $who_am_i"} = "Dead.";
 delete $Processing{$system};
 return;
@@ -554,7 +563,7 @@ sub Get_Unique_ID
 	$String_ID = &__Get_Unique_ID_Or_Insert($this_string);
 	if($Hash_Size > $MAX_UNIQUE_STRINGS)
 		{
-			print "Clearing strings hash: ".scalar(keys(%Unique_Strings))."\n";
+			if($Output) { print "Clearing strings hash: ".scalar(keys(%Unique_Strings))."\n"; }
 			%Unique_Strings = ();
 			$Hash_Size = 0;
 		}
@@ -569,7 +578,7 @@ sub Get_Block
 	lock $Events_ID_DB;
 	if($Events_ID_DB == -1)
 	{
-		print "Inserting marker event\n";
+		if($Output) { print "Inserting marker event\n"; }
 		$Event_ID=&SQL_Insert("INSERT INTO events (Time_Written, Time_Generated, System_ID, Service_ID) VALUES ".
 			"(UNIX_TIMESTAMP(NOW()), (UNIX_TIMESTAMP(NOW())), 0, 0)");
 		$Events_ID_DB = $Event_ID;
@@ -734,7 +743,7 @@ sub _spew_sql
 sub _start_threads
 {
 	my $i;
-	print "Starting threads ($INSERT_THREADS, $EVENT_HANDLER_THREADS):\n";
+	if($Output) { print "Starting threads ($INSERT_THREADS, $EVENT_HANDLER_THREADS):\n"; }
 	for($i=0;$i!=$INSERT_THREADS;$i++)
 	{
 		my $thread;
@@ -743,7 +752,7 @@ sub _start_threads
 		$Insert_Threads{$i} = $thread;
 		$thread->detach();
 	}
-	print "\tInsert threads started: $INSERT_THREADS.\n";
+	if($Output) { print "\tInsert threads started: $INSERT_THREADS.\n"; }
 	for($i=0;$i!=$EVENT_HANDLER_THREADS;$i++)
 	{
 		my $thread;
@@ -755,7 +764,7 @@ sub _start_threads
 	$thread = threads->new(\&_log_thread, $i);
 	$Log_Threads{$i} = $thread;
 	$thread->detach();
-	print "\tEvent handlers started: $EVENT_HANDLER_THREADS.\n";
+	if($Output) { print "\tEvent handlers started: $EVENT_HANDLER_THREADS.\n"; }
 }
 
 ##########################
@@ -984,9 +993,9 @@ sub _log_thread
 			$log = $Log_File_Queue->dequeue_nb();
 			if(!$log)
 			{
-				$Total_Sleep+=5;
+				$Total_Sleep+=30;
 				$Status{"log $who_am_i"} = "Sleeping: $Total_Sleep";
-				sleep(5);
+				sleep(30);
 				if($Time_To_Die)
 				{
 				  $Status{"log $who_am_i"} = "Dead.";
@@ -1113,7 +1122,7 @@ sub _log_thread
 		$Total_Sleep=0;
 		$Status{"log $who_am_i"} = "Waiting";
 	}
-print "\t$who_am_i Exited\n";
+if($Output) { print "\t$who_am_i Exited\n"; }
 $Status{"log $who_am_i"} = "Dead.";
 delete $Processing{$system};
 return;
