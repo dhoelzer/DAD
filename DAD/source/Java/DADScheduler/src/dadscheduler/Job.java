@@ -28,6 +28,7 @@ public class Job {
     private String last_run;
     private int db_job_ID;
     private boolean exists;
+    private boolean persistent;
     private File WorkingDirectory;
 
     
@@ -37,11 +38,20 @@ public class Job {
         executable = "";
         arg1 = "";
         arg2 = "";
+        persistent = false;
         db_job_ID = -1;
         next_start = 0;
         last_run = "0";
         exists = false;
         WorkingDirectory = new File(".");
+    }
+    public void SetIsPersistent(Boolean torf)
+    {
+        persistent = torf;
+    }
+    public Boolean IsPersistent()
+    {
+        return persistent;
     }
     public void SetNextStart(int x)
     {

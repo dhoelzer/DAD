@@ -97,7 +97,7 @@ $Process_Queue = Thread::Queue->new;
 $Log_File_Queue = Thread::Queue->new;
 $High_Priority_Queue = Thread::Queue->new;
 $System_Started = mktime(localtime());
-$Total_Run_Time = 3600; # 1 hour recycle timer
+$Total_Run_Time = 7200; # 2 hour recycle timer
 
 # Initialize the list of filtered events before starting threads
 # These are events that we never insert into the database
@@ -161,7 +161,7 @@ End
 	}
 							#See which queues are waiting and queue them as appropriate
 	@Systems=();
-	if(($SQL_Queue->pending() < 75000) && $Time_Remaining > 0)
+	if(($SQL_Queue->pending() < 75000) && ! $Time_To_Die)
 	{
 		@Systems = &_get_systems_to_process;
 	}
@@ -184,7 +184,7 @@ End
 			}
 		}
 	}
-	if((($loop-1)%10 == 0) && $Time_Remaining > 0)
+	if((($loop-1)%10 == 0) && ! $Time_To_Die)
 	{
 		if($Output){print "Grabbing log paths\n";}
 		@logfiles = &Get_Unprocessed_Log_Paths($LOG_LOCATION);
@@ -202,7 +202,7 @@ End
 		sleep(120);
 		exit(0);
 	}
-	sleep(60);				# Time between interations
+	sleep(10);				# Time between interations
 }
 # If we reach here, time to die has passed and all other threads have exited
 if($Output) { print "No more threads!\n"; }

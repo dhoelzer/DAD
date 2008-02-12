@@ -113,29 +113,37 @@ public class ScheduleDBInterface {
         java.util.Date now = new java.util.Date();
         dbo = new DatabaseClass(DBURL, DBUser, DBPassword);
         
-        now.getTime();
+        now.getTime();System.out.println("\tGot time");
         String SQL = "SELECT * FROM dad_adm_job WHERE id_dad_adm_job='" + 
                 job + "'";
-        Job thisResult = dbo.SQLQuery(SQL);
-        last_started = thisResult.GetNextStart();
+        Job thisResult = dbo.SQLQuery(SQL);System.out.println("\tGot job");
+        last_started = thisResult.GetNextStart();System.out.println("\tGot next start");
         if(last_started == 0)
         {
             last_started = (now.getTime()/1000);
         }
-        minutes = thisResult.GetMin() * 60;
-        hours = thisResult.GetHour() * 3600;
-        days = thisResult.GetDay() * 86400;
-        next_start_time = last_started + minutes + hours + days;
-
-        while(next_start_time < (now.getTime()/1000))
+        if( ! thisResult.IsPersistent())
         {
-            next_start_time += minutes + hours + days;
+            minutes = thisResult.GetMin() * 60;
+            hours = thisResult.GetHour() * 3600;
+            days = thisResult.GetDay() * 86400;
+            next_start_time = last_started + minutes + hours + days;
+
+            while(next_start_time < (now.getTime()/1000))
+            {
+                next_start_time += (minutes + hours + days);
+            }
+        }
+        else
+        {
+            next_start_time = last_started;
         }
         SQL = "UPDATE dad_adm_job SET "+
                 "is_running=FALSE, last_ran=" + last_started +
                 ", next_start=" + next_start_time + " WHERE " +
                 "id_dad_adm_job='" + job + "'";
-        dbo.SQLQueryNoResult(SQL);
+        System.out.println("\t"+SQL);
+        dbo.SQLQueryNoResult(SQL);System.out.println("\tSet next start");
         now = null;
         dbo = null;
     }

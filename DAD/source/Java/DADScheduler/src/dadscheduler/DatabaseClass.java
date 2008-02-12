@@ -93,6 +93,7 @@ public class DatabaseClass {
             ThisJob.SetName(rs.getString("descrip"));
             ThisJob.SetJobID(rs.getInt("id_dad_adm_job"));
             ThisJob.SetLastExecTime(rs.getString("last_ran"));
+            ThisJob.SetIsPersistent(rs.getBoolean("persistent"));
             
             rs.close();
             s.close();

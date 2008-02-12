@@ -35,7 +35,7 @@ public class Main {
     
     static private boolean DEBUG = true;
     static private ScheduleDBInterface schedule;
-    static private String Version="0.4";
+    static private String Version="0.5";
     static private ArrayList<SpawnProcess> processes;
     static private boolean KeepRunning;
     
@@ -52,10 +52,10 @@ public class Main {
     {
         if(DEBUG)
         {
-            System.out.println("Killing JobID: " + job);
+            System.out.println("Job Finished: " + job);
         }
-        schedule.SetFinished(job);
-        schedule.Reschedule(job);
+        schedule.SetFinished(job);System.out.println("Set finished\n");
+        schedule.Reschedule(job);System.out.println("Rescheduled\n");
     }
     /**
      * @param args the command line arguments
@@ -94,17 +94,12 @@ public class Main {
             // Persistent jobs started.
             while(KeepRunning)
             {
-                if(DEBUG)
-                {
-                    System.out.println("Main while loop");
-                }
-
                 DoThis = schedule.GetNextJob();
                 if(DoThis != null)
                 {
                     if(DEBUG)
                     {
-                        System.out.println("\tJob triggered");
+                        System.out.println("\tJob triggered: "+DoThis.GetName());
                     }
                     process = new SpawnProcess(DoThis);
                     process.start();
@@ -116,6 +111,7 @@ public class Main {
                     {
                         DoThis=null;
                         Thread.sleep(45000); // 60 seconds - Jobs can only run on the minute.
+                        PruneDeadJobs(processes);
                         if(DEBUG)
                         {
                             System.out.println("Sleeping");
@@ -132,7 +128,6 @@ public class Main {
                         throw(e); 
                     }
                 }
-                PruneDeadJobs(processes);
             }
         }
         catch(InterruptedException e)
@@ -201,7 +196,9 @@ public class Main {
             if(! i.IsRunning())
             {
                 JobFinished(i.QueryJobID());
+                System.out.println("Back\n");
                 ProcessList.remove(i);
+                System.out.println("Removed from list\n");
             }
         }
     }
