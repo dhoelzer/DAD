@@ -118,6 +118,7 @@ while(1)						#Always running, never getting anywhere
 	$loop++;					# Number of times through this run
 	$Time_Remaining = $Total_Run_Time - (mktime(localtime())- $System_Started);
 	if($Time_Remaining < 0) { $Time_To_Die = 1; }
+	if(keys(%Unique_Strings) > $MAX_UNIQUE_STRINGS) { $Time_To_Die = 1; }
 #	$Time_Remaining = "Continuously running.";
 	{
 		#Recreate the quick stats every time through.
@@ -126,7 +127,7 @@ while(1)						#Always running, never getting anywhere
 		<html>
 		<head>
 		<title>Aggregator Status</title>
-		<meta http-equiv="Refresh" CONTENT="30;URL=/stats/stats2.html" />
+		<meta http-equiv="Refresh" CONTENT="15;URL=/stats/stats2.html" />
 		</title>
 		<body>
 End
@@ -161,7 +162,7 @@ End
 	}
 							#See which queues are waiting and queue them as appropriate
 	@Systems=();
-	if(($SQL_Queue->pending() < 75000) && ! $Time_To_Die)
+	if(($SQL_Queue->pending() < 150000) && ! $Time_To_Die)
 	{
 		@Systems = &_get_systems_to_process;
 	}
@@ -308,10 +309,10 @@ sub _event_thread
 	while((!$Time_To_Die))
 	{
 		$system="";
-		while($SQL_Queue->pending() > 100000)
+		while($SQL_Queue->pending() > 150000)
 		{
 			$Status{"log $who_am_i"} = "Pausing.. More than 100,000 inserts pending.";
-			sleep(15);
+			sleep(60);
 		}
 		while(!$system)
 		{
@@ -322,9 +323,9 @@ sub _event_thread
 			}
 			if(!$system)
 			{
-				$Total_Sleep+=30;
+				$Total_Sleep+=15;
 				$Status{"log $who_am_i"} = "Sleeping: $Total_Sleep";
-				sleep(30);
+				sleep(15);
 				if($Time_To_Die)
 				{
 				  $Status{"log $who_am_i"} = "Dead.";
@@ -561,12 +562,16 @@ sub Get_Unique_ID
 		}
 	lock $GET_UNIQUE_LOCK;
 	$String_ID = &__Get_Unique_ID_Or_Insert($this_string);
-	if($Hash_Size > $MAX_UNIQUE_STRINGS)
-		{
-			if($Output) { print "Clearing strings hash: ".scalar(keys(%Unique_Strings))."\n"; }
-			%Unique_Strings = ();
-			$Hash_Size = 0;
-		}
+#
+# Removed - Filling the hash list now causes it to recycle.  Might move to a time based purging in the future
+# to extend run time if this improves insert speeds.
+#
+#	if($Hash_Size > $MAX_UNIQUE_STRINGS)
+#		{
+#			if($Output) { print "Clearing strings hash: ".scalar(keys(%Unique_Strings))."\n"; }
+#			%Unique_Strings = ();
+#			$Hash_Size = 0;
+#		}
 	return $String_ID;
 }
 
