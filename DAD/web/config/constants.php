@@ -22,7 +22,7 @@ define('ERR_NOTICES', true); // ignore notices
 define('ERR_SCREEN_ERRORS', true); // do print
 //define('ERR_LOG_ERRORS', true);
 
-define('D_LOG', 'c:/dad/');
+define('D_LOG', '../');
 
 /* 
    These used tags in you calls to trigger_error($strMessage) calls by prepending 
@@ -57,7 +57,7 @@ define('ARG_USERINFO', 'user');
 define('RETURN_SUCCESS', 0);
 define('RETURN_FAILURE', -1);
 define('RETURN_LOGIN', -2);
-define('MYSQL_DRIVE', "c:");
+define('MYSQL_DRIVE', "/");
 //define('MYSQL_BOTH', 1);
 //define('MYSQL_ASSOC', 2);
 

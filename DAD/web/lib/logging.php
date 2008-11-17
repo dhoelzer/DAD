@@ -32,9 +32,9 @@
  * DSH - 6/24/05
  */
  
- error_reporting( E_NOTICE | E_WARNING | E_CORE_WARNING | E_USER_ERROR | E_USER_WARNING);
- //error_reporting( E_USER_ERROR );
- //set_error_handler("error_handler");
+// error_reporting( E_NOTICE | E_WARNING | E_CORE_WARNING | E_USER_ERROR | E_USER_WARNING);
+//error_reporting( E_USER_ERROR );
+//set_error_handler("error_handler");
  
  function error_handler($Error, $ErrorText, $ErrorFile, $ErrorLine, $SymbolTable)
  {

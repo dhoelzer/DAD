@@ -873,7 +873,7 @@ function GetRoleTable($RolesWithAccess)
             ro.RoleID,
             ro.RoleName,
             ro.RoleDescr
-          FROM DAD.Role ro";
+          FROM dad.Role ro";
   $RoleResults = runQueryReturnArray($sql);
   $RoleTable = "";
   foreach($RoleResults as $row)

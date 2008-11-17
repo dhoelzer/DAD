@@ -66,16 +66,12 @@ function getConnection($strAddress = DB_ADDRESS,
 					   #Client multi keeps producing errors.  Commented out for now.  Only needed to send
 					   # multiple SQL statements in one query.  This might actually be a BAD thing!
 	$objDb = mysqli_connect($strAddress, $strUsername, $strPassword);
-   if(!$objDb) { 
+   if(! is_object($objDb)) { 
       trigger_error("Error opening connection to database server at $strAddress: ".mysqli_error()); 
       return null;
    }
 
-   if($strDbName != null) {
-      if(false == mysqli_select_db($objDb, $strDbName)) {
-         return null;
-      }
-   }
+   $objDb -> select_db("dad");
    return($objDb);
 }
 
@@ -142,7 +138,7 @@ global	$Global;
         $intError = $objDb->errno;
 
         if ($intError != 0) {
-            trigger_error("SQL Error:<br />\n" . $objDb->error(). "<br /><br />\n\n   SQL->$strSQL");
+            trigger_error("SQL Error:<br />\n" . mysqli_error($objDb). "<br /><br />\n\n   SQL->$strSQL");
             $objResult=NULL;
             return NULL;
         }
@@ -199,7 +195,7 @@ function runSQLReturnAffected($strSQL) {
    $intError = $objDb->errno;
    
    if($intError!=0) {
-     trigger_error("SQL error:". $objDb->error()."\n$strSQL");
+     trigger_error("SQL error:". mysqli_error($objDb)."\n$strSQL");
      return NULL;
    }
    if ($objResult) {

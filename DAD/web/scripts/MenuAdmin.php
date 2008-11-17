@@ -50,18 +50,18 @@ function SubmitNewOption()
   $Sequence = $Global['Sequence'];
   $tmp = '';
   
-  $sql = "SELECT MenuOptionID FROM DAD.MenuOption WHERE OptionName='$NewOptionName' AND MenuID = '$ParentMenuID'";
+  $sql = "SELECT MenuOptionID FROM dad.MenuOption WHERE OptionName='$NewOptionName' AND MenuID = '$ParentMenuID'";
   $tmp = runQueryReturnArray($sql);
   if( !$tmp[0][0] == '' ){
       add_element("Error: That Menu Option Name exists on that Tab already");
   }else{
   
-      $sql = "INSERT INTO DAD.MenuOption (OptionName, MenuID, SequenceNum, ContentPathName,FunctionName)
+      $sql = "INSERT INTO dad.MenuOption (OptionName, MenuID, SequenceNum, ContentPathName,FunctionName)
               VALUES ('$NewOptionName', $ParentMenuID, $Sequence, '$CodeLocation', '$FunctionName')";
       $NewOptionID = runInsertReturnID($sql);
   
       $sql = "SELECT RoleID, RoleName
-             FROM DAD.Role";
+             FROM dad.Role";
       $RolesReturn = runQueryReturnArray($sql);
       foreach($RolesReturn as $row)
       {
@@ -73,7 +73,7 @@ function SubmitNewOption()
       if( is_array($RolesToInsert) ){
           foreach($RolesToInsert as $Role)
           {
-            $sql = "INSERT INTO DAD.RoleMenuOption (RoleID, MenuOptionID)
+            $sql = "INSERT INTO dad.RoleMenuOption (RoleID, MenuOptionID)
                     VALUES ($Role, $NewOptionID)";
             $success = runInsertReturnID($sql);
             if(!$success)
@@ -83,7 +83,7 @@ function SubmitNewOption()
           }
       }else{
           /*if the user did not give it a role, we will default to Software Developer*/
-          $sql = "INSERT INTO DAD.RoleMenuOption (RoleID, MenuOptionID)
+          $sql = "INSERT INTO dad.RoleMenuOption (RoleID, MenuOptionID)
                   VALUES (1, $NewOptionID)";
           $success = runInsertReturnID($sql);
           add_element("<font color=red>Default role asssigned</font><br>");
@@ -190,7 +190,7 @@ function GetMenuSelectList($Parent)
   $sql = "SELECT
             me.MenuID,
             me.MenuName
-          FROM DAD.Menu me
+          FROM dad.Menu me
           ORDER BY me.MenuName ASC";
   $MenuResults = runQueryReturnArray($sql);
   $MenuSelectList = "<select name=\"ParentMenu\" style=\"width:155pt\">";
@@ -214,7 +214,7 @@ function GetRolesForOption($ThisMenuOption)
 {
   $sql = "SELECT
             ro.RoleID
-            FROM DAD.RoleMenuOption ro
+            FROM dad.RoleMenuOption ro
             WHERE ro.MenuOptionID=$ThisMenuOption";
   $RolesThisOption = runQueryReturnArray($sql);
 
@@ -235,7 +235,7 @@ function GetRoleTable($RolesWithAccess)
             ro.RoleID,
             ro.RoleName,
             ro.RoleDescr
-          FROM DAD.Role ro";
+          FROM dad.Role ro";
   $RoleResults = runQueryReturnArray($sql);
   $RoleTable = "";
   foreach($RoleResults as $row)
@@ -257,7 +257,7 @@ function GetMenuOptionList($ThisMenuOption)
   $sql = "SELECT
             mo.MenuOptionID,
             mo.OptionName
-          FROM DAD.MenuOption mo
+          FROM dad.MenuOption mo
           ORDER BY mo.OptionName";
   $OptionResults = runQueryReturnArray($sql);
   $strOptionList = "<select name=\"SelectOption\" onchange=\"form.submit();\">";
@@ -290,10 +290,10 @@ function GetMenuOptionDetails($ThisMenuOption)
                    mo.ContentPathName,
                    mo.FunctionName,
                    rmo.RoleID
-              FROM DAD.UserRole ur
-              LEFT JOIN DAD.RoleMenuOption rmo ON rmo.MenuOptionID = $ThisMenuOption
-              JOIN DAD.MenuOption mo ON mo.MenuOptionID = rmo.MenuOptionID
-              JOIN DAD.Menu m ON m.MenuID = mo.MenuID
+              FROM dad.UserRole ur
+              LEFT JOIN dad.RoleMenuOption rmo ON rmo.MenuOptionID = $ThisMenuOption
+              JOIN dad.MenuOption mo ON mo.MenuOptionID = rmo.MenuOptionID
+              JOIN dad.Menu m ON m.MenuID = mo.MenuID
               WHERE mo.MenuOptionID = $ThisMenuOption";
   $aResults = runQueryReturnArray($sql);
 
@@ -313,7 +313,7 @@ function SubmitOptionEdit()
   $CodeLocation = $Global['CodeLocation'];
   $FunctionName = $Global['FunctionName'];
   $Sequence = $Global['Sequence'];
-  $sql = "UPDATE DAD.MenuOption SET 
+  $sql = "UPDATE dad.MenuOption SET 
             OptionName='$NewOptionName',
             MenuID=$ParentMenuID, 
             SequenceNum=$Sequence, 
@@ -327,11 +327,11 @@ function SubmitOptionEdit()
     return;
   }
   
-  $sql = "DELETE FROM DAD.RoleMenuOption WHERE MenuOptionID=$NewOptionID";
+  $sql = "DELETE FROM dad.RoleMenuOption WHERE MenuOptionID=$NewOptionID";
   $sqlResults = runSQLReturnAffected($sql);
   add_element("$sqlResults rows removed from the roles table.<BR>");
   $sql = "SELECT RoleID, RoleName
-          FROM DAD.Role";
+          FROM dad.Role";
   $RolesReturn = runQueryReturnArray($sql);
   foreach($RolesReturn as $row)
   {
@@ -343,7 +343,7 @@ function SubmitOptionEdit()
   if( is_array($RolesToInsert) ){
       foreach($RolesToInsert as $Role)
       {
-        $sql = "INSERT INTO DAD.RoleMenuOption (RoleID, MenuOptionID)
+        $sql = "INSERT INTO dad.RoleMenuOption (RoleID, MenuOptionID)
                 VALUES ($Role, $NewOptionID)";
         $success = runInsertReturnID($sql);
         if(!$success)
@@ -353,7 +353,7 @@ function SubmitOptionEdit()
       }
   }else{
       /*if the user did not give it a role, we will default to Software Developer*/
-      $sql = "INSERT INTO DAD.RoleMenuOption (RoleID, MenuOptionID)
+      $sql = "INSERT INTO dad.RoleMenuOption (RoleID, MenuOptionID)
               VALUES (1, $NewOptionID)";
       $success = runInsertReturnID($sql);
       add_element("<font color=red>Default role asssigned</font><br>");

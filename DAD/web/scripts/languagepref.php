@@ -27,7 +27,7 @@ function showLanguagePrefs()
 {
   global $Global;
   $sql = "SELECT LanguageID,LanguageCode,LanguageName FROM
-            DAD.Language";
+            dad.Language";
   $aResults = runQueryReturnArray($sql);
   $strOptionList = "<select name='LanguagePref'>";
   foreach($aResults as $row)
@@ -55,7 +55,7 @@ function setLanguagePrefs()
   
   $SubmittedLanguagePref = (isset($Global['LanguagePref']) ? $Global['LanguagePref'] : 1);
   $sql = "SELECT LanguageID,LanguageCode,LanguageName FROM
-            DAD.Language WHERE LanguageID='$SubmittedLanguagePref'";
+            dad.Language WHERE LanguageID='$SubmittedLanguagePref'";
   $aResults = runQueryReturnArray($sql);
   $LanguageName = $aResults[0]['LanguageName'];
   $LanguageID = $aResults[0]['LanguageID'];
@@ -70,7 +70,7 @@ function setLanguagePrefs()
   add_global("LanguageCode", $aResults[0]["LanguageCode"]);
   add_global("LanguageName", $aResults[0]["LanguageName"]);
   getAllLiteralsForUserLang();
-  $sql = "UPDATE DAD.User SET LanguageID='$LanguageID' WHERE UserID='$UserID'";
+  $sql = "UPDATE dad.User SET LanguageID='$LanguageID' WHERE UserID='$UserID'";
   $result = runSQLReturnAffected($sql);
   if($result)
   {

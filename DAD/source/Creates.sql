@@ -296,7 +296,7 @@ CREATE TABLE `dad_adm_log` (
   `jobstoptime` datetime DEFAULT NULL,
   `acknowledged` tinyint(1) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`id_dad_adm_log`),
-  KEY `idx_dad_adm_log_idlogtype` (`id_dad_adm_logtype`) USING BTREE
+  KEY `idx_dad_adm_log_idlogtype` (`id_dad_adm_logtype`) 
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
 
@@ -369,9 +369,9 @@ CREATE TABLE `dad_ds_groupmembership` (
   `callerinactive` varchar(255) DEFAULT NULL,
   `timeinactive` datetime DEFAULT NULL,
   PRIMARY KEY (`dad_ds_groupmembership_id`),
-  KEY `idx_dad_ds_groupmembership_idgroup` (`objectsid_dad_ds_object_group`,`objectsid_dad_ds_object_member`,`activeyesno`) USING BTREE,
-  KEY `idx_dad_ds_groupmembership_idmember` (`objectsid_dad_ds_object_member`,`objectsid_dad_ds_object_group`,`activeyesno`) USING BTREE,
-  KEY `idx_dad_ds_groupmembership_activeyesno` (`activeyesno`) USING BTREE
+  KEY `idx_dad_ds_groupmembership_idgroup` (`objectsid_dad_ds_object_group`,`objectsid_dad_ds_object_member`,`activeyesno`) ,
+  KEY `idx_dad_ds_groupmembership_idmember` (`objectsid_dad_ds_object_member`,`objectsid_dad_ds_object_group`,`activeyesno`) ,
+  KEY `idx_dad_ds_groupmembership_activeyesno` (`activeyesno`) 
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
 
@@ -436,7 +436,7 @@ CREATE TABLE `dad_ds_object` (
   `objectguid` varchar(36) DEFAULT NULL,
   PRIMARY KEY (`dad_ds_object_id`),
   UNIQUE KEY `id` (`dad_ds_object_id`),
-  KEY `idx_dad_ds_object_objectsid` (`objectsid`,`samaccountname`) USING BTREE
+  KEY `idx_dad_ds_object_objectsid` (`objectsid`,`samaccountname`) 
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
 
@@ -456,7 +456,7 @@ CREATE TABLE `dad_ds_object_cl` (
   `calleractive` varchar(45) NOT NULL DEFAULT '',
   `timeactive` datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
   PRIMARY KEY (`dad_ds_object_cl_id`),
-  KEY `idx_dad_ds_object_cl_idobject` (`sid_dad_ds_object`,`id_dad_adm_action`,`id_dad_adm_alertgroup`,`id_dad_cl_classification`) USING BTREE
+  KEY `idx_dad_ds_object_cl_idobject` (`sid_dad_ds_object`,`id_dad_adm_action`,`id_dad_adm_alertgroup`,`id_dad_cl_classification`) 
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
 
@@ -475,7 +475,7 @@ CREATE TABLE `dad_ds_samaccounttype` (
   `description` varchar(50) DEFAULT NULL,
   `genericdescription` varchar(20) DEFAULT NULL,
   PRIMARY KEY (`dad_ds_samaccounttype_id`),
-  KEY `idx_dad_ds_samaccounttype_samaccounttype` (`samaccounttype`) USING BTREE
+  KEY `idx_dad_ds_samaccounttype_samaccounttype` (`samaccounttype`) 
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
 
@@ -493,7 +493,7 @@ CREATE TABLE `dad_ds_wks` (
   `displayname` varchar(255) DEFAULT NULL,
   `description` text,
   PRIMARY KEY (`id_dad_ds_wks`),
-  KEY `idx_dad_ds_wks` (`id_dad_ds_wks`) USING BTREE
+  KEY `idx_dad_ds_wks` (`id_dad_ds_wks`) 
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
 
@@ -526,7 +526,7 @@ CREATE TABLE `dad_fs_alertgroup` (
   `calleractive` varchar(45) DEFAULT NULL,
   `timeactive` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
   PRIMARY KEY (`dad_fs_alertgroup_id`),
-  KEY `idx_dad_fs_path_alertgroup_id_dad_fs_path` (`id_dad_fs_path`,`id_dad_adm_alertgroup`) USING BTREE
+  KEY `idx_dad_fs_path_alertgroup_id_dad_fs_path` (`id_dad_fs_path`,`id_dad_adm_alertgroup`) 
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
 
@@ -543,7 +543,7 @@ CREATE TABLE `dad_fs_dacl` (
   `description` text,
   `querytime` datetime DEFAULT NULL,
   PRIMARY KEY (`dad_fs_dacl_id`),
-  KEY `idx_dad_fs_dacl_dacl` (`dacl`) USING BTREE
+  KEY `idx_dad_fs_dacl_dacl` (`dacl`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
 
@@ -582,7 +582,7 @@ CREATE TABLE `dad_fs_path` (
   `parent_id` int(10) unsigned DEFAULT NULL,
   `timeinactive` datetime DEFAULT '0000-00-00 00:00:00',
   PRIMARY KEY (`id_dad_fs_path`),
-  KEY `idx_dad_fs_path_fullpath` (`fullpath`(140),`depth`,`activeyesno`,`id_dad_fs_path`) USING BTREE
+  KEY `idx_dad_fs_path_fullpath` (`fullpath`(140),`depth`,`activeyesno`,`id_dad_fs_path`) 
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
 
@@ -603,7 +603,7 @@ CREATE TABLE `dad_fs_path_cl` (
   `calleractive` varchar(45) DEFAULT NULL,
   `timeactive` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`dad_fs_path_cl_id`),
-  KEY `idx_dad_fs_path_cl_idpath` (`id_dad_fs_path`,`id_dad_cl_classification_read`,`id_dad_cl_classification_write`,`id_dad_adm_action_read`,`id_dad_adm_action_write`) USING BTREE
+  KEY `idx_dad_fs_path_cl_idpath` (`id_dad_fs_path`,`id_dad_cl_classification_read`,`id_dad_cl_classification_write`,`id_dad_adm_action_read`,`id_dad_adm_action_write`) 
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
 
@@ -622,8 +622,8 @@ CREATE TABLE `dad_fs_permission` (
   `querytime` datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
   PRIMARY KEY (`dad_fs_permission_id`),
   UNIQUE KEY `id` (`dad_fs_permission_id`),
-  KEY `idx_dad_fs_permission_id_dad_fs_path` (`id_dad_fs_path`,`objectsid_dad_ds_object`,`querytime`) USING BTREE,
-  KEY `idx_dad_fs_permission_objectsid_dad_ds_object` (`objectsid_dad_ds_object`,`id_dad_fs_path`,`querytime`) USING BTREE
+  KEY `idx_dad_fs_permission_id_dad_fs_path` (`id_dad_fs_path`,`objectsid_dad_ds_object`,`querytime`) ,
+  KEY `idx_dad_fs_permission_objectsid_dad_ds_object` (`objectsid_dad_ds_object`,`id_dad_fs_path`,`querytime`) 
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
 
@@ -639,8 +639,8 @@ CREATE TABLE `dad_org_department` (
   `iddept` int(10) unsigned NOT NULL DEFAULT '0',
   `subdeptname` varchar(100) NOT NULL DEFAULT '',
   `idsubdept` int(10) unsigned NOT NULL DEFAULT '0',
-  KEY `idx_dad_org_department_dept` (`iddept`) USING BTREE,
-  KEY `idx_dad_org_department_subdept` (`idsubdept`) USING BTREE
+  KEY `idx_dad_org_department_dept` (`iddept`) ,
+  KEY `idx_dad_org_department_subdept` (`idsubdept`) 
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
 
@@ -662,8 +662,8 @@ CREATE TABLE `dad_org_person` (
   `idsubdept` int(10) unsigned DEFAULT NULL,
   `activeyesno` tinyint(1) unsigned DEFAULT NULL,
   `timeinactive` datetime DEFAULT NULL,
-  KEY `idx_dad_org_person_id` (`id_dad_org_person`,`name`,`activeyesno`) USING BTREE,
-  KEY `idx_dad_org_person_name` (`name`,`id_dad_org_person`,`activeyesno`) USING BTREE
+  KEY `idx_dad_org_person_id` (`id_dad_org_person`,`name`,`activeyesno`) ,
+  KEY `idx_dad_org_person_name` (`name`,`id_dad_org_person`,`activeyesno`) 
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
 
@@ -681,7 +681,7 @@ CREATE TABLE `dad_sr_groupmembership` (
   `server` varchar(20) NOT NULL DEFAULT '',
   `querytime` datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
   PRIMARY KEY (`dad_sr_groupmembership_id`),
-  KEY `idx_dad_sr_groupmembership_querytime` (`querytime`) USING BTREE,
+  KEY `idx_dad_sr_groupmembership_querytime` (`querytime`) ,
   KEY `idx_dad_sr_groupmembership_groupname` (`groupname`,`membername`,`server`,`querytime`),
   KEY `idx_dad_sr_groupmembership_membername` (`membername`,`groupname`,`server`,`querytime`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
@@ -708,9 +708,9 @@ CREATE TABLE `dad_sr_object` (
   `querytime` datetime DEFAULT NULL,
   `id` int(11) NOT NULL AUTO_INCREMENT,
   PRIMARY KEY (`id`),
-  KEY `idx_dad_sr_object_id` (`sid_dad_sr_object`,`samaccountname`,`description`,`server`,`querytime`) USING BTREE,
-  KEY `idx_dad_sr_object_samaccountname` (`samaccountname`,`sid_dad_sr_object`,`server`,`querytime`) USING BTREE,
-  KEY `idx_dad_sr_object_description` (`description`,`sid_dad_sr_object`,`server`,`querytime`) USING BTREE
+  KEY `idx_dad_sr_object_id` (`sid_dad_sr_object`,`samaccountname`,`description`,`server`,`querytime`) ,
+  KEY `idx_dad_sr_object_samaccountname` (`samaccountname`,`sid_dad_sr_object`,`server`,`querytime`) ,
+  KEY `idx_dad_sr_object_description` (`description`,`sid_dad_sr_object`,`server`,`querytime`) 
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
 
@@ -784,7 +784,7 @@ CREATE TABLE `dad_sys_event_stats` (
   `Stat_Time` int(10) unsigned NOT NULL,
   PRIMARY KEY (`Stats_ID`),
   KEY `Systems` (`System_Name`),
-  KEY `Stats_Type` (`Stat_Type`) USING BTREE
+  KEY `Stats_Type` (`Stat_Type`) 
 ) ENGINE=MyISAM AUTO_INCREMENT=7837830 DEFAULT CHARSET=latin1 COMMENT='Tracks event log gathering statistics';
 SET character_set_client = @saved_cs_client;
 
