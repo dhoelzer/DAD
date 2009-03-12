@@ -141,7 +141,7 @@ function updUserStats($intUserID) {
    $intRowsAffected = runSQLReturnAffected($strSQL);
    if ($intRowsAffected < 1) {
       // Perhaps no row exists for this user yet - do an insert instead...
-      $strSQL = "INSERT INTO UserStat (UserStatID, UserID, LoginCount) 
+      $strSQL = "INSERT INTO userstat (UserStatID, UserID, LoginCount) 
                       VALUES (null, $intUserID, 1)";
       $intRowsAffected = runSQLReturnAffected($strSQL);
       if ($intRowsAffected < 1) {
