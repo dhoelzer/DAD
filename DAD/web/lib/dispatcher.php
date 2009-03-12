@@ -71,7 +71,7 @@ function getMenuOption($intOptionID){
       $strSQL = "SELECT mo.MenuOptionID,
                         mo.ContentPathName,
                         mo.FunctionName
-                   FROM MenuOption mo
+                   FROM menuoption mo
                   WHERE mo.MenuOptionID = $intOptionID";
  /*   
    $strSQL = "SELECT DISTINCT 
