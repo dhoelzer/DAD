@@ -112,7 +112,7 @@ function loginFailed() {
 function getUser ($strUserName, $strPassword) {    
 
    $strSQL = "SELECT u.UserID
-                FROM User u
+                FROM user u
                WHERE u.Username = '$strUserName'
                  AND u.PasswordText = sha('$strPassword')
                  AND u.DeletedDatetime < 1"; 

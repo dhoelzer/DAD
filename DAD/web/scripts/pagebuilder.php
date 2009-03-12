@@ -92,10 +92,10 @@ function showpage() {
                    m.MenuName,
                    mo.ContentPathName,
                    0 SelectedFlag
-              FROM UserRole ur
-              JOIN RoleMenuOption rmo ON rmo.RoleID = ur.RoleID
-              JOIN MenuOption mo ON mo.MenuOptionID = rmo.MenuOptionID
-              JOIN Menu m ON m.MenuID = mo.MenuID
+              FROM userrole ur
+              JOIN rolemenuoption rmo ON rmo.RoleID = ur.RoleID
+              JOIN menuoption mo ON mo.MenuOptionID = rmo.MenuOptionID
+              JOIN menu m ON m.MenuID = mo.MenuID
              WHERE ur.UserID = $UserIDForQuery
           ORDER BY m.ParentMenuOptionID, m.LevelNum, m.SequenceNum, mo.SequenceNum";
 

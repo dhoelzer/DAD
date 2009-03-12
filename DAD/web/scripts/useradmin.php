@@ -47,7 +47,7 @@ function CreateUserForm() {
             $arrVals['username'][1] = $gaLiterals{'Required'};
             $flgBad = 1;
         } else {
-            $tmp = runQueryReturnArray( "SELECT UserID FROM User WHERE UserName = '${Global['username']}'" );
+            $tmp = runQueryReturnArray( "SELECT UserID FROM user WHERE UserName = '${Global['username']}'" );
             if( $tmp ) {
                 //username already in use
                 $flgBad = 1;
@@ -118,7 +118,7 @@ function CreateUserForm() {
                      '${Global['email']}',
                      '${Global['language']}',
                      NOW(),
-                     ( SELECT UserID FROM Session WHERE SessionID = '${Global['SessionID']}' ),
+                     ( SELECT UserID FROM session WHERE SessionID = '${Global['SessionID']}' ),
                      NOW()
                    );";
 
@@ -134,10 +134,10 @@ function CreateUserForm() {
 
     }
 
-    $strSQL  = "SELECT LanguageID, LanguageName FROM Language ORDER BY LanguageName ASC";
+    $strSQL  = "SELECT LanguageID, LanguageName FROM language ORDER BY LanguageName ASC";
     $arrLang = runQueryReturnArray( $strSQL );
 
-    $strSQL  = "SELECT RoleID, RoleDescr FROM Role ORDER BY RoleDescr ASC";
+    $strSQL  = "SELECT RoleID, RoleDescr FROM role ORDER BY RoleDescr ASC";
     $arrRole = runQueryReturnArray( $strSQL );
 
     $strHTML =  "<b><font size=2>${gaLiterals['Create New User']}</font></b><br><br>";
@@ -296,12 +296,12 @@ function DeleteUserForm() {
 
             //we do left joins just incase a role or language was deleted, but the user was never update... will still beable to interact with the account
             $strSQL = "SELECT u.UserName, u.FirstName, u.LastName, u.EmailAddress, l.LanguageName, r.RoleDescr
-                       FROM User AS u
-                         LEFT JOIN Language AS l
+                       FROM user AS u
+                         LEFT JOIN language AS l
                            ON u.LanguageID = l.LanguageID
-                         LEFT JOIN UserRole AS ur
+                         LEFT JOIN userrole AS ur
                            ON u.UserID = ur.UserID
-                         LEFT JOIN Role AS r
+                         LEFT JOIN role AS r
                            ON ur.RoleID = r.RoleID
                        WHERE u.UserID = '${Global['deleteuserid']}' ";
             $arrUser = runQueryReturnArray( $strSQL );
@@ -323,7 +323,7 @@ function DeleteUserForm() {
 
     $strHTML  = "<b><font size=2>${gaLiterals['Delete Current User']}</font></b><br><br>";
 
-    $strSQL   = "SELECT UserID, CONCAT( LastName, ', ', FirstName, ' (', UserName, ')' ) AS 'Name' FROM User ORDER BY LastName ASC, FirstName ASC";
+    $strSQL   = "SELECT UserID, CONCAT( LastName, ', ', FirstName, ' (', UserName, ')' ) AS 'Name' FROM user ORDER BY LastName ASC, FirstName ASC";
     $arrUsers = runQueryReturnArray( $strSQL );
 
     $strHTML .= "<form id='deleteuserform' action='$strURL' method='post'>\n";
@@ -380,7 +380,7 @@ function ChangeOwnPasswordForm() {
     if( isset( $Global['bt'] ) && $Global['bt'] === $gaLiterals['Change'] ) {
 
         //check to see if old password is correct, if not, fail and return
-        $strSQL  = "SELECT UserID FROM User WHERE UserID = '${Global['UserID']}' AND PasswordText = sha( '${Global['oldpassword']}' )";
+        $strSQL  = "SELECT UserID FROM user WHERE UserID = '${Global['UserID']}' AND PasswordText = sha( '${Global['oldpassword']}' )";
         $arrUser = runQueryReturnArray( $strSQL );
         if( ! $arrUser ) {
 
@@ -474,12 +474,12 @@ function ResetUserPasswordForm(){
             }
         }
 
-        $strSQL  = "UPDATE User SET PasswordText = sha( '$strPass' ) WHERE UserID = '${Global['useridtoreset']}'";
+        $strSQL  = "UPDATE user SET PasswordText = sha( '$strPass' ) WHERE UserID = '${Global['useridtoreset']}'";
         $strAff  = runSQLReturnAffected( $strSQL );
 
         if( $strAff ) {
 
-            $strSQL  = "SELECT UserName FROM User WHERE UserID = '${Global['useridtoreset']}'";
+            $strSQL  = "SELECT UserName FROM user WHERE UserID = '${Global['useridtoreset']}'";
             $arrUser = runQueryReturnArray( $strSQL );
 
             $strMsg  = '<b>' . $arrUser[0][0] . '</b> ' . $gaLiterals['password rest to'] . ' <b>' . $strPass . '</b>';
@@ -494,7 +494,7 @@ function ResetUserPasswordForm(){
 
     }        // end if isset( $Global['bt'] )
 
-    $strSQL   = "SELECT UserID, CONCAT( LastName, ', ', FirstName, ' (', UserName, ')' ) AS 'Name' FROM User ORDER BY LastName ASC, FirstName ASC";
+    $strSQL   = "SELECT UserID, CONCAT( LastName, ', ', FirstName, ' (', UserName, ')' ) AS 'Name' FROM user ORDER BY LastName ASC, FirstName ASC";
     $arrUsers = runQueryReturnArray( $strSQL );
 
     $strHTML  = "<form id='resetuserpasswordform' action='$strURL' method='post'>\n";
@@ -540,7 +540,7 @@ function ChangeUserRoleForm() {
     if( isset( $Global['bt'] ) && $Global['bt'] === $gaLiterals['Change'] ) {
 
         //does sure UserID exists?
-        $strSQL      = "SELECT UserID, UserName FROM User WHERE UserID = '${Global['useridchange']}'";
+        $strSQL      = "SELECT UserID, UserName FROM user WHERE UserID = '${Global['useridchange']}'";
         $arrUser     = runQueryReturnArray( $strSQL );
         $strUserName = $arrUser[0][1];
 
@@ -552,7 +552,7 @@ function ChangeUserRoleForm() {
         } else {      //UserID does exist
 
             //does user have entry in UserRole?
-            $strSQL = "SELECT UserID, RoleID FROM UserRole WHERE UserID = '${Global['useridchange']}'";
+            $strSQL = "SELECT UserID, RoleID FROM userrole WHERE UserID = '${Global['useridchange']}'";
             $arrUser = runQueryReturnArray( $strSQL );
             if( $arrUser ) {
 
@@ -566,7 +566,7 @@ function ChangeUserRoleForm() {
                 } else {     //user does not have the rights
 
                     //make sure RoleID exists
-                    $strSQL  = "SELECT RoleID FROM Role WHERE RoleID = '${Global['roleidchange']}'";
+                    $strSQL  = "SELECT RoleID FROM role WHERE RoleID = '${Global['roleidchange']}'";
                     $arrRole = runQueryReturnArray( $strSQL );
 
                     if( ! $arrRole ) {    //role does not exist
@@ -617,10 +617,10 @@ function ChangeUserRoleForm() {
                    u.UserID,
                    CONCAT( u.LastName, ', ', u.FirstName, ' (', u.UserName, ')' ) AS 'Name', 
                    r.RoleDescr
-                 FROM User AS u
-                   LEFT JOIN UserRole AS ur
+                 FROM user AS u
+                   LEFT JOIN userrole AS ur
                      ON u.UserID = ur.UserID
-                   LEFT JOIN Role AS r
+                   LEFT JOIN role AS r
                      ON r.RoleID = ur.RoleID
                  ORDER BY u.LastName ASC, u.FirstName ASC";
     $arrUsers = runQueryReturnArray( $strSQL );
@@ -643,7 +643,7 @@ function ChangeUserRoleForm() {
     $strHTML .= "</select><br>\n";
 
     //Build role select list
-    $strSQL   = "SELECT RoleID, RoleDescr FROM Role ORDER BY RoleDescr ASC";
+    $strSQL   = "SELECT RoleID, RoleDescr FROM role ORDER BY RoleDescr ASC";
     $arrRoles = runQueryReturnArray( $strSQL );
 
     $strHTML .= "<select name='roleidchange'><option></option>";
@@ -698,10 +698,10 @@ function ChangeUserDetailsForm() {
                       u.CreatedDatetime,
                       u.LatestChangeStamp,
                       cu.UserName
-                    FROM User AS u
-                      LEFT JOIN UserRole AS r
+                    FROM user AS u
+                      LEFT JOIN userrole AS r
                         ON u.UserID = r.UserID
-                      LEFT JOIN User AS cu
+                      LEFT JOIN user AS cu
                         ON u.LatestChangeUserID = cu.UserID
                     WHERE u.UserID = '${Global['useridselect']}'";
         $arrUser = runQueryReturnArray( $strSQL );
@@ -720,7 +720,7 @@ function ChangeUserDetailsForm() {
             $arrVals['username'][1] = 'required';
             $flgBad = 1;
         }else{
-            $tmp = runQueryReturnArray( "SELECT UserID FROM User WHERE UserName = '${Global['username']}' AND UserID != '${Global['useridfield']}' " );
+            $tmp = runQueryReturnArray( "SELECT UserID FROM user WHERE UserName = '${Global['username']}' AND UserID != '${Global['useridfield']}' " );
             if( $tmp ){
                 //username already in use
                 $flgBad = 1;
@@ -784,7 +784,7 @@ function ChangeUserDetailsForm() {
             //  if he doesn't even have an entry in the UserRole table, we'll just INSERT
 
             //does user have entry in UserRole?
-            $strSQL = "SELECT UserID, RoleID FROM UserRole WHERE UserID = '${Global['useridselect']}'";
+            $strSQL = "SELECT UserID, RoleID FROM userrole WHERE UserID = '${Global['useridselect']}'";
             $arrUser = runQueryReturnArray( $strSQL );
             if( $arrUser ) {
 
@@ -796,7 +796,7 @@ function ChangeUserDetailsForm() {
                 } else {     //user does not have the rights
 
                     //make sure RoleID exists
-                    $strSQL  = "SELECT RoleID FROM Role WHERE RoleID = '${Global['role']}'";
+                    $strSQL  = "SELECT RoleID FROM role WHERE RoleID = '${Global['role']}'";
                     $arrRole = runQueryReturnArray( $strSQL );
 
                     if( ! $arrRole ) {    //role does not exist
@@ -852,10 +852,10 @@ function ChangeUserDetailsForm() {
                           u.CreatedDatetime,
                           u.LatestChangeStamp,
                           cu.UserName
-                        FROM User AS u
-                          LEFT JOIN UserRole AS r
+                        FROM user AS u
+                          LEFT JOIN userrole AS r
                             ON u.UserID = r.UserID
-                          LEFT JOIN User AS cu
+                          LEFT JOIN user AS cu
                             ON u.LatestChangeUserID = cu.UserID
                         WHERE u.UserID = '${Global['useridselect']}'";
             $arrUser = runQueryReturnArray( $strSQL );
@@ -873,7 +873,7 @@ function ChangeUserDetailsForm() {
     $strHTML  = "<form name='changeuserdetailsform' action='$strURL' method='post'>\n";
 
     //Build select list of usernames
-    $strSQL   = "SELECT CONCAT( LastName, ', ', FirstName, ' (', UserName, ')' ) AS Name, UserID FROM User";
+    $strSQL   = "SELECT CONCAT( LastName, ', ', FirstName, ' (', UserName, ')' ) AS Name, UserID FROM user";
     $arrUsers = runQueryReturnArray( $strSQL );
 
     $strHTML .= "${gaLiterals['User']}&nbsp;&nbsp;<select name='useridselect'><option></option>";
@@ -958,7 +958,7 @@ function ChangeUserDetailsForm() {
               <option></option>";
 
 
-        $strSQL  = "SELECT LanguageID, LanguageName FROM Language ORDER BY LanguageName ASC";
+        $strSQL  = "SELECT LanguageID, LanguageName FROM language ORDER BY LanguageName ASC";
         $arrLang = runQueryReturnArray( $strSQL );
         foreach( $arrLang as $lang ){
             $strHTML .= "<OPTION VALUE=${lang['LanguageID']}";
@@ -975,7 +975,7 @@ function ChangeUserDetailsForm() {
         $strHTML .="</select></td><td><font color=red>" . ( isset( $arrVals['language'][1] ) ? $arrVals['language'][1] : '') . "</font></td></tr>";
         $strHTML .= "<tr><td>${gaLiterals['Role']}</td><td><select name='role'><option></option>";
 
-        $strSQL  = "SELECT RoleID, RoleDescr FROM Role ORDER BY RoleDescr ASC";
+        $strSQL  = "SELECT RoleID, RoleDescr FROM role ORDER BY RoleDescr ASC";
         $arrRole = runQueryReturnArray( $strSQL );
         foreach( $arrRole as $role ){
 
