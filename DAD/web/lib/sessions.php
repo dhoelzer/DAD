@@ -38,7 +38,7 @@ function PopulateUserGlobals ()
    }
    $CurrentUserID = (isset($Global['UserID']) ? $Global['UserID'] : 0);
    $strSQL = "SELECT u.UserID,l.LanguageCode, l.LanguageName, u.UserName
-                FROM User u, Language l
+                FROM user u, language l
                 WHERE u.UserID = '$CurrentUserID' AND u.LanguageID = l.LanguageID";
    
    $aResults = runQueryReturnArray($strSQL);
@@ -58,7 +58,7 @@ function PopulateUserGlobals ()
 */ 
 function delSessionForUserID($intUserID) {
 
-  $strSQL = "DELETE FROM Session
+  $strSQL = "DELETE FROM session
               WHERE UserID=$intUserID";
               
   $intRowsAffected = runSQLReturnAffected($strSQL);
@@ -106,7 +106,7 @@ function getUserSession ($strSessionID) {
                   UserID,
                   IPAddress,
                   ExpireTime
-             FROM Session
+             FROM session
             WHERE SessionID = '" . $strSessionID . "'";
 
   $aResults=RunQueryReturnArray($strSQL, KEY_COLUMN1);
@@ -123,7 +123,7 @@ function insSession($intUserID) {
    $strSessionID = genRandomString(64);
    $numExpireTime = gmmktime() + SESSION_DURATION; 
 
-   $strSQL = "INSERT INTO Session (SessionID, UserID, IPAddress, ExpireTime)
+   $strSQL = "INSERT INTO session (SessionID, UserID, IPAddress, ExpireTime)
           VALUES ('$strSessionID', $intUserID, '$strIPAddress', $numExpireTime)";
    $intRowsAffected = runSQLReturnAffected($strSQL);
  
@@ -145,7 +145,7 @@ function insSession($intUserID) {
  */ 
 function updSession($strSessionID, $numNewExpireTime) {
 
-   $strSQL = "UPDATE Session
+   $strSQL = "UPDATE session
                  SET ExpireTime = $numNewExpireTime
                WHERE SessionID = '" . $strSessionID . "'";
    
