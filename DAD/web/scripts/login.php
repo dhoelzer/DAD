@@ -134,7 +134,7 @@ function getUser ($strUserName, $strPassword) {
 */
 function updUserStats($intUserID) {
 
-   $strSQL = "UPDATE UserStat 
+   $strSQL = "UPDATE userstat 
                  SET LoginCount = LoginCount + 1
                WHERE UserID = $intUserID";
 
