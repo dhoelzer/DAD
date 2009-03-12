@@ -85,7 +85,7 @@ function getMenuOption($intOptionID){
                    m.MenuName,
                    mo.ContentPathName,
                    0 SelectedFlag
-              FROM UserRole ur
+              FROM userrole ur
               JOIN RoleMenuOption rmo ON rmo.RoleID = ur.RoleID
               JOIN MenuOption mo ON mo.MenuOptionID = rmo.MenuOptionID
               JOIN Menu m ON m.MenuID = mo.MenuID
