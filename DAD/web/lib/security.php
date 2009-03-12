@@ -25,10 +25,10 @@
  */
 function checkOptionPermission( $UserID, $OptionID ){
     $strSQL = "SELECT u.UserID 
-               FROM User AS u
-                 INNER JOIN UserRole AS ur
+               FROM user AS u
+                 INNER JOIN userrole AS ur
                    ON u.UserID = ur.UserID
-                 INNER JOIN RoleMenuOption as rmo
+                 INNER JOIN rolemenuoption as rmo
                    ON ur.RoleID = rmo.RoleID
                WHERE u.UserID = '$UserID'
                  AND rmo.MenuOptionID = '$OptionID'";
