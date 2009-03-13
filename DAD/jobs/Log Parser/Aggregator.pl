@@ -83,7 +83,7 @@ close(FILE);
 
 if($ARGV[0] > 1) { $Output = 0; } 	#Should be true if called by scheduler.
 	
-$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
+$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=dad";
 $dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
 	or die ("Could not connect to DB server to import the list of servers to poll.\n");
 
