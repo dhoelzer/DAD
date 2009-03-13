@@ -608,7 +608,7 @@ sub _insert_thread
 
 	$Block_End=0;
 	$Block_Pos=1;
-	$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
+	$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=dad";
 	$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
 		or die ("Insert thread $who_am_i could not connect to database server.\n");
 	$Status{"sql $who_am_i"} = "Waiting";
@@ -822,7 +822,7 @@ sub SQL_Query
 		print "Caught error: $@\n";
 		undef $dsn;
 		undef $dhb;
-		$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
+		$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=dad";
 		$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
 			or die ("Could not connect to DB server\n");
 		$query->execute();
@@ -912,7 +912,7 @@ sub _pending_inserts_thread
 	$Pending_Running = 1;
 	open(QUERIES, "$BackupSQLFile.pnd");
 	print "Found pending SQL statements.  Loading now.\n";
-	$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
+	$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=dad";
 	for($connection=0; $connection != 10; $connection++)
 	{
 		$dbh[$connection] = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
