@@ -218,7 +218,7 @@ sub _event_thread
 {
 	my	$dsn, 						# Database connection
 		$dbh;
-	$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
+	$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=dad";
 	$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
 		or die ("Could not connect to DB server to update filtered event list.\n");
 
