@@ -27,7 +27,8 @@ if(isset($_GET["ContextQuery"]))
 	{
 		$word=$_GET["ContextQuery"];
 		$Start = (isset($_GET["Start"]) ? ($_GET["Start"] > 0 ? $_GET["Start"] : 1) : 1);
-		$strSQL=String_To_Query($word, 100000000, $Start, 50);
+		#		$strSQL=String_To_Query($word, 100000000, $Start, 50);
+		$strSQL=GetQueryByStringsPosition($word, 10000000, $Start, 50);
 		$Result_Contents = Query_to_Table($strSQL, 1, $Start);//, "PopupTable");
 		//Popup("Test", $Popup_Contents, 980, 650, 5, 5);
 		$strHTML = "<p><a href='$strURL&ContextQuery=$word&Start=".($Start-50)."'>< Previous</a> | ".
