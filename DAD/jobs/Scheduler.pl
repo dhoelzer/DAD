@@ -12,6 +12,12 @@
 
 require "dbconfig.ph";
 
+use Time::Local;
+#use Thread eval;
+# Modules for DB and Event logs.  POSIX is required for Unix time stamps
+use DBI;
+use POSIX;
+
 &DB_Connect;
 @PendingJobs = &_get_pending_jobs;
 foreach(@PendingJobs)
