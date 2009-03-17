@@ -222,7 +222,7 @@ sub GetEventsByStrings
 		return "No search terms present\n";
 	}
 	$TimeFrame = time()-$TimeFrame;
-	$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
+	$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=dad";
 	$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
 		or return "Could not connect to DB server to run alerting.\n";
 	$Report = "";
@@ -381,7 +381,7 @@ sub GetEventsByStrings
 	##################################################
 	sub SQL_Query
 	{
-		my $dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
+		my $dsn = "DBI:mysql:host=$MYSQL_SERVER;database=dad";
 		my $dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
 		or return "Could not connect to DB server to run alerting.\n";
 
@@ -395,7 +395,7 @@ sub GetEventsByStrings
 	}
 	sub SQL_Insert
 	{
-		my $dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
+		my $dsn = "DBI:mysql:host=$MYSQL_SERVER;database=dad";
 		my $dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
 		or return "Could not connect to DB server to run alerting.\n";
 		my $SQL = $_[0];
