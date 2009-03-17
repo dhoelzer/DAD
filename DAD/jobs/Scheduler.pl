@@ -95,7 +95,7 @@ sub _get_pending_jobs
 	my @TheseJobs;
 	
 	$PERSIST = (($_[0] eq "Persistent") ? " WHERE persistent=1" : "WHERE persistent=0");
-	$results_ref = &SQL_Query("SELECT id_dad_adm_job, descrip, path, package_name, argument_1, next_start, is_running, persistent, min, hour, day, month, last_run FROM dad_adm_job $PERSIST");
+	$results_ref = &SQL_Query("SELECT id_dad_adm_job, descrip, path, package_name, argument_1, next_start, is_running, persistent, min, hour, day, month, last_ran FROM dad_adm_job $PERSIST");
 	while($row = shift(@$results_ref) ) 
 	{
 		@this_row = @$row;
