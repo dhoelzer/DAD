@@ -73,7 +73,7 @@ sub StartJob
 							$Executable{$JobID},
 							"$Arguments{$JobID}",
 							0,\
-							NORMAL_PRIORITY_CLASS,
+							NORMAL_PRIORITY_CLASS || CREATE_NEW_CONSOLE,
 							$Paths{$JobID});
 	$RunningJobs{$JobID} = $ThisProcess;
 	my $now = mktime(localtime());
