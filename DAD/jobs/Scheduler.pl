@@ -13,12 +13,12 @@
 require "dbconfig.ph";
 
 use Time::Local;
-#use Thread eval;
-# Modules for DB and Event logs.  POSIX is required for Unix time stamps
+use Win32;
+use Win32::Process;
 use DBI;
 use POSIX;
 
-my @RunningJobs;
+my %RunningJobs;
 
 &DB_Connect;
 while(1)
@@ -26,16 +26,61 @@ while(1)
 	@PendingJobs = &_get_persistent_jobs;
 	foreach(@PendingJobs)
 	{
-		print "Pending Persistent: $Descriptions{$_} : $CommandLines{$_}\n";
+		&StartJob($_);
 	}	
 	@PendingJobs = &_get_pending_jobs;
 	foreach(@PendingJobs)
 	{
-		print "Pending: $Descriptions{$_} : $CommandLines{$_}\n";
+		&StartJob($_);
+	}
+	print "Process list:\n";
+	foreach(keys %RunningJobs)
+	{
+		my $exitcode;
+		$RunningJobs{$_}->GetExitCode($exitcode);
+		if($exitcode == STILL_ACTIVE)
+		{
+			print "\t$Descriptions{$_} -> Running\n";
+		}
+		else
+		{
+			print "\t$Descriptions{$_} -> Completed - Deleting job\n";
+			delete $RunningJobs{$_};
+		}
 	}
 	sleep(60);
 }
 
+sub StartJob
+{
+	my $JobID = shift();
+	my $ThisProcess;
+	
+	if($RunningJobs{$JobID})
+	{
+		my $exitcode;
+		$ThisProcess = $RunningJobs{$JobID};
+		$ThisProcess->GetExitCode($exitcode);
+		if($exitcode = STILL_ACTIVE)
+		{
+			print "Won't restart $Descriptions{$JobID}, still running.";
+			return;
+		}
+	}
+	print "Starting $Descriptions{$JobID}\n";
+	Win32::Process::Create($ThisProcess,
+							$Executable{$JobID},
+							$Arguments{$JobID},
+							0,
+							NORMAL_PRIORITY_CLASS,
+							$Paths{$JobID});
+	$RunningJobs{$JobID} = $ThisProcess;
+	my $now = mktime(localtime());
+	my $next = $now + $Intervals{$JobID};
+	my $SQL = "UPDATE dad_adm_job SET is_running=1, last_ran=$now, next_start=$next WHERE id_dad_adm_job=$JobID";
+	&SQLInsert($SQL);
+}
+	
 sub _get_persistent_jobs
 {
 	return(&_get_pending_jobs("Persistent"));
@@ -48,8 +93,8 @@ sub _get_pending_jobs
 	@this_row;					#Current row
 	my @TheseJobs;
 	
-	$PERSIST = (($_[0] eq "Persistent") ? " WHERE persistent=1" : "");
-	$results_ref = &SQL_Query("SELECT id_dad_adm_job, descrip, path, package_name, argument_1, next_start, is_running, persistent FROM dad_adm_job $PERSIST");
+	$PERSIST = (($_[0] eq "Persistent") ? " WHERE persistent=1" : "WHERE persistent=0");
+	$results_ref = &SQL_Query("SELECT id_dad_adm_job, descrip, path, package_name, argument_1, next_start, is_running, persistent, min, hour, day, month FROM dad_adm_job $PERSIST");
 	while($row = shift(@$results_ref) ) 
 	{
 		@this_row = @$row;
@@ -57,8 +102,10 @@ sub _get_pending_jobs
 		{
 			unshift(@TheseJobs, $this_row[0]);
 			$Descriptions{$this_row[0]} = $this_row[1];
-			$CommandLines{$this_row[0]} = "$this_row[3] $this_row[4]";
+			$Executable{$this_row[0]} = $this_row[3];
+			$Arguments{$this_row[0]} = $this_row[4];
 			$Paths{$this_row[0]} = $this_row[2];
+			$Intervals{$this_row[0]} = $this_row[8] * 60 + $this_row[9] * 3600 + $this_row[10] * 86400 + ($this_row[11] * 86400 * 30)
 		}
 	}
 	undef $results_ref;
