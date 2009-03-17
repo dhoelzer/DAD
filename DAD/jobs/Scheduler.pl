@@ -13,10 +13,10 @@
 require "dbconfig.ph";
 
 use Time::Local;
-use Win32;
-use Win32::Process;
 use DBI;
 use POSIX;
+use Win32::Process;
+use Win32;
 
 my %RunningJobs;
 
@@ -78,7 +78,7 @@ sub StartJob
 	my $now = mktime(localtime());
 	my $next = $now + $Intervals{$JobID};
 	my $SQL = "UPDATE dad_adm_job SET is_running=1, last_ran=$now, next_start=$next WHERE id_dad_adm_job=$JobID";
-	&SQLInsert($SQL);
+	&SQL_Insert($SQL);
 }
 	
 sub _get_persistent_jobs
