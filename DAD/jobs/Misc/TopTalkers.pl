@@ -38,7 +38,7 @@ $SQL = "select System_Name, count(events.System_ID) as 'Event Count'
 		AND events.System_ID=dad_sys_systems.System_ID 
 	group by events.System_ID order by count(events.System_ID) DESC LIMIT 5";
 
-$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
+$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=dad";
 $dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
 	or die ("Could not connect to DB server to run alerting.\n");
 
