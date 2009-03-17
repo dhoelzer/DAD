@@ -72,8 +72,8 @@ sub StartJob
 	Win32::Process::Create($ThisProcess,
 							$Executable{$JobID},
 							"$Arguments{$JobID}",
-							0,\
-							NORMAL_PRIORITY_CLASS || CREATE_NEW_CONSOLE,
+							0,
+							CREATE_NEW_CONSOLE,
 							$Paths{$JobID});
 	$RunningJobs{$JobID} = $ThisProcess;
 	my $now = mktime(localtime());
