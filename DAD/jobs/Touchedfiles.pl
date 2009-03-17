@@ -2,8 +2,9 @@
 #package dump_renno;
 
 use dbi;
+require "dbconfig.ph";
 
-my $db  = DBI->connect( 'DBI:mysql:database=DAD;host=ussrv124a;port=3306', 'root', 'All4Fun' );
+my $db  = DBI->connect( 'DBI:mysql:database=dad;host=$MYSQL_SERVER;port=3306', "$MYSQL_USER", "$MYSQL_PASSWORD" );
 
 
 my @cols;

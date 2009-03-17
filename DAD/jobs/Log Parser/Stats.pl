@@ -28,7 +28,7 @@ open(FILE,"Aggregator.ph") or die "Could not find configuration file!\n";
 foreach (<FILE>) { eval(); }
 close(FILE);
 
-$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
+$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=dad";
 $dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
 	or die ("Could not connect to DB server to import the list of servers to poll.\n");
 
