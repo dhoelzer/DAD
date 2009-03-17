@@ -18,11 +18,26 @@ use Time::Local;
 use DBI;
 use POSIX;
 
+my @RunningJobs;
+
 &DB_Connect;
-@PendingJobs = &_get_pending_jobs;
-foreach(@PendingJobs)
+while(1)
 {
-	print "Pending: $Descriptions{$_} : $CommandLines{$_}\n";
+	@PendingJobs = &_get_persistent_jobs;
+	foreach(@PendingJobs)
+	{
+		print "Pending Persistent: $Descriptions{$_} : $CommandLines{$_}\n";
+	}	@PendingJobs = &_get_pending_jobs;
+	foreach(@PendingJobs)
+	{
+		print "Pending: $Descriptions{$_} : $CommandLines{$_}\n";
+	}
+	sleep(60);
+}
+
+sub _get_persistent_jobs
+{
+	return(&_get_pending_jobs("Persistent");
 }
 
 sub _get_pending_jobs
@@ -32,7 +47,8 @@ sub _get_pending_jobs
 	@this_row;					#Current row
 	my @TheseJobs;
 	
-	$results_ref = &SQL_Query("SELECT id_dad_adm_job, descrip, path, package_name, argument_1, next_start, is_running, persistent FROM dad_adm_job");
+	$PERSIST = (($_[0] eq "Persistent") ? " WHERE persistent=1" : "");
+	$results_ref = &SQL_Query("SELECT id_dad_adm_job, descrip, path, package_name, argument_1, next_start, is_running, persistent FROM dad_adm_job $PERSIST");
 	while($row = shift(@$results_ref) ) 
 	{
 		@this_row = @$row;
