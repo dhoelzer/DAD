@@ -70,7 +70,7 @@ sub StartJob
 	print "Starting $Descriptions{$JobID}\n";
 	Win32::Process::Create($ThisProcess,
 							$Executable{$JobID},
-							$Arguments{$JobID},
+							"$Executable{$JobID} $Arguments{$JobID}",
 							0,
 							NORMAL_PRIORITY_CLASS,
 							$Paths{$JobID});
