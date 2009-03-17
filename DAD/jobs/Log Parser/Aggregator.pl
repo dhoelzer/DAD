@@ -676,16 +676,16 @@ sub _insert_thread
 			}
 			$StringToInsert="";
 			$StringToInsert .= " $_" foreach(@values);
-			$StringToInsert =~ s/([\[\]{},'"<>\@:#()=])/ $1 /g;
+			$StringToInsert =~ s/([\[\]{},'"<>\@:#()=])/ $1 /g; #" Cleaning up for formatters in editors
 			$StringToInsert =~ s/\\/\//g;
 			$StringToInsert =~ s/  / /g;
-			$StringToInsert =~ s/ ['"] / /g;
+			$StringToInsert =~ s/ ['"] / /g;	#" Cleaning up for formatters in editors
 			@insert_strings = split(/ /,$StringToInsert);
 			$Queue_Size++;
 			my $string_position=0;
 			foreach(@insert_strings)
 			{
-				s/(['"])//g;
+				s/(['"])//g;		#" Cleaning up for formatters in editors
 				$value = substr($_, 0, 766);
 				$String_ID = &Get_Unique_ID($value);
 				if($InsertString eq "")
