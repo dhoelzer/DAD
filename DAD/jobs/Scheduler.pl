@@ -27,7 +27,8 @@ while(1)
 	foreach(@PendingJobs)
 	{
 		print "Pending Persistent: $Descriptions{$_} : $CommandLines{$_}\n";
-	}	@PendingJobs = &_get_pending_jobs;
+	}	
+	@PendingJobs = &_get_pending_jobs;
 	foreach(@PendingJobs)
 	{
 		print "Pending: $Descriptions{$_} : $CommandLines{$_}\n";
@@ -37,7 +38,7 @@ while(1)
 
 sub _get_persistent_jobs
 {
-	return(&_get_pending_jobs("Persistent");
+	return(&_get_pending_jobs("Persistent"));
 }
 
 sub _get_pending_jobs
