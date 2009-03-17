@@ -95,7 +95,7 @@ sub _get_pending_jobs
 	my @TheseJobs;
 	
 	$PERSIST = (($_[0] eq "Persistent") ? " WHERE persistent=1" : "WHERE persistent=0");
-	$results_ref = &SQL_Query("SELECT id_dad_adm_job, descrip, path, package_name, argument_1, next_start, is_running, persistent, min, hour, day, month FROM dad_adm_job $PERSIST");
+	$results_ref = &SQL_Query("SELECT id_dad_adm_job, descrip, path, package_name, argument_1, next_start, is_running, persistent, min, hour, day, month, last_run FROM dad_adm_job $PERSIST");
 	while($row = shift(@$results_ref) ) 
 	{
 		@this_row = @$row;
@@ -104,7 +104,7 @@ sub _get_pending_jobs
 			unshift(@TheseJobs, $this_row[0]);
 			$Descriptions{$this_row[0]} = $this_row[1];
 			$Executable{$this_row[0]} = $this_row[3];
-			$Arguments{$this_row[0]} = $this_row[4];
+			$Arguments{$this_row[0]} = "$this_row[4] $this_row[12]";
 			$Paths{$this_row[0]} = $this_row[2];
 			$Intervals{$this_row[0]} = $this_row[8] * 60 + $this_row[9] * 3600 + $this_row[10] * 86400 + ($this_row[11] * 86400 * 30)
 		}
