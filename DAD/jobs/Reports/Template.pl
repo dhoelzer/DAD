@@ -48,7 +48,7 @@ sub GetEventsByStrings
 		return "No search terms present\n";
 	}
 	$TimeFrame = time()-$TimeFrame;
-	$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
+	$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=dad";
 	$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
 		or return "Could not connect to DB server to run alerting.\n";
 	$Report = "Search terms report for $SearchTerms in the past $days day".

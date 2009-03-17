@@ -42,7 +42,7 @@ $SQL = "SELECT TimeGenerated, Computer, Field_3 as 'User', Field_0 ".
 	"as 'Added', Field_1 as 'Domain' FROM dad_sys_events WHERE EventID='645' ".
 	"AND TimeWritten>'$LastChecked' ORDER BY TimeGenerated";
 
-$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
+$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=dad";
 $dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
 	or die ("Could not connect to DB server to run alerting.\n");
 
