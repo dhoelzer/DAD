@@ -16,6 +16,7 @@ use Time::Local;
 use DBI;
 use POSIX;
 use Win32::Process;
+use Win32::Process qw(STILL_ACTIVE);
 use Win32;
 
 my %RunningJobs;
