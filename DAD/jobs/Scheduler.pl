@@ -69,12 +69,12 @@ sub StartJob
 		}
 	}
 	print "Starting $Descriptions{$JobID}\n";
-	Win32::Process::Create($ThisProcess,
-							$Executable{$JobID},
-							"perl $Arguments{$JobID}",
-							0,
-							NORMAL_PRIORITY_CLASS,
-							$Paths{$JobID});
+	print "Win32::Process::Create($ThisProcess,\
+							$Executable{$JobID},\
+							\"perl $Arguments{$JobID}\",\
+							0,\
+							NORMAL_PRIORITY_CLASS,\
+							$Paths{$JobID});\n";
 	$RunningJobs{$JobID} = $ThisProcess;
 	my $now = mktime(localtime());
 	my $next = $now + $Intervals{$JobID};
