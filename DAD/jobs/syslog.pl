@@ -13,4 +13,5 @@ do{
 sub logit{
 	my $host = shift;
 	my $message = shift;
+	print "h:$host m:$message\n";
 }
