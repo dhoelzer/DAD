@@ -167,7 +167,7 @@ sub _get_system_stat_data
 	my $Time_Period;
 	($system,$Log_Size,$Inserted, $ALog, $AInserted, $Service, $Time_Period)=@_ or die("Incorrect arguments to _get_system_stat_data.\n");
 	
-	$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=DAD";
+	$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=dad";
 	$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
 		or die ("Could not connect to DB server to import the list of servers to poll.\n");
 
