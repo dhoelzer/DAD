@@ -20,7 +20,6 @@
 # Modules for DB and Event logs.  POSIX is required for Unix time stamps
 use DBI;
 use POSIX;
-use Win32::EventLog;
 use GD::Graph::lines;
 
 #Read in and evaluate the configuration values

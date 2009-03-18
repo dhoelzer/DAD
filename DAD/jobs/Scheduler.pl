@@ -27,6 +27,7 @@ while(1)
 	@PendingJobs = &_get_persistent_jobs;
 	foreach(@PendingJobs)
 	{
+		print "Persistent job restarting:\n";
 		&StartJob($_);
 	}	
 	@PendingJobs = &_get_pending_jobs;
@@ -64,7 +65,7 @@ sub StartJob
 		$ThisProcess->GetExitCode($exitcode);
 		if($exitcode = STILL_ACTIVE)
 		{
-			print "Won't restart $Descriptions{$JobID}, still running.";
+			print "Won't restart $Descriptions{$JobID}, still running.\n";
 			return;
 		}
 	}
