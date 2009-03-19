@@ -24,7 +24,8 @@ sub logit{
 	my $host = shift;
 	my $message = shift;
 	&RotateLog;
-	print "h:$host m:$message\n";
+	chomp($message);
+	print LOG "$host $message\n";
 }
 
 sub RotateLog
