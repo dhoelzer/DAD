@@ -705,7 +705,7 @@ END;
 	if(isset($_POST["Operation"]) and $_POST["Operation"] == "Process Result Set")
 	{
 
-		$SQL = GetQueryByStringsPosition($SearchString, $TimeFrame, 1, 2000);
+		$SQL = GetQueryByStringsPosition($SearchString, $TimeFrame, 1, 500);
 		add_element(query_to_table($SQL));
 	}
 	if(isset($_POST["Operation"]) and $_POST["Operation"] == "Save Query")
