@@ -210,7 +210,7 @@ EndSQL;
 ENDSQL;
 	#LIMIT $start,$limit 
 
-   	#add_element($strSQL."<br><br>");
+   	add_element($strSQL."<br><br>");
    	$Event_IDs = runQueryReturnArray($strSQL);
 	if(!$Event_IDs)
 	{
