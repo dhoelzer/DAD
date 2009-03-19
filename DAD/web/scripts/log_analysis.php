@@ -207,8 +207,9 @@ EndSQL;
 			$StringIDFilter 
 			$MATCHES
 			AND a.Time_Generated > (UNIX_TIMESTAMP(NOW())-$TimeFrame)  
-		LIMIT $start,$limit 
 ENDSQL;
+	#LIMIT $start,$limit 
+
    	#add_element($strSQL."<br><br>");
    	$Event_IDs = runQueryReturnArray($strSQL);
 	if(!$Event_IDs)
