@@ -309,7 +309,7 @@ function FulltextQuery($SearchTerms, $TimeFrame=86400, $start=1, $limit=10)
 			AND a.Time_Generated > (UNIX_TIMESTAMP(NOW())-$TimeFrame)  
 		LIMIT $start,$limit 
 ENDSQL;
-   	add_element($strSQL."<br><br>");
+   	add_element("Event ID query: $strSQL <br><br>");
    	$Event_IDs = runQueryReturnArray($strSQL);
 	if(!$Event_IDs)
 	{
