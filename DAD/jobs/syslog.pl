@@ -7,7 +7,10 @@ my $buf;
 do{
 	$sock->recv($buf, 1540);
 	my ($port, $ipaddr) = sockaddr_in($sock->peername);
-	logit($ipaddr, $buf);
+	@dq = unpack("C4", $ipaddr);
+	$address = join(".", @dq);
+	$buf =~ s/^<[0-9]+>//;
+	logit($address, $buf);
 }while(1);
 
 sub logit{
