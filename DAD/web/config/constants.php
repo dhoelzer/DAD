@@ -20,7 +20,7 @@
 // System wide settings
 define('ERR_NOTICES', true); // ignore notices
 define('ERR_SCREEN_ERRORS', true); // do print
-//define('ERR_LOG_ERRORS', true);
+define('ERR_LOG_ERRORS', true);
 
 define('D_LOG', '../');
 
