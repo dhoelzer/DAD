@@ -53,6 +53,10 @@ while(1)
 	sleep(60);
 }
 
+sub ErrorReport{
+                print Win32::FormatMessage( Win32::GetLastError() );
+        }
+ 		
 sub StartJob
 {
 	my $JobID = shift();
@@ -75,7 +79,7 @@ sub StartJob
 							"$Arguments{$JobID}",
 							0,
 							NORMAL_PRIORITY_CLASS,
-							$Paths{$JobID});
+							$Paths{$JobID}) || die ErrorReport();
 	$RunningJobs{$JobID} = $ThisProcess;
 	my $now = mktime(localtime());
 	my $next = $now + $Intervals{$JobID};

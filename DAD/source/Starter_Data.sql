@@ -1,8 +1,8 @@
--- MySQL dump 10.13
+-- MySQL dump 10.13  Distrib 5.1.41, for Win32 (ia32)
 --
 -- Host: 127.0.0.1    Database: dad
 -- ------------------------------------------------------
--- Server version	5.1.21-beta-community-log
+-- Server version	5.1.41-community
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -20,8 +20,8 @@
 --
 
 DROP TABLE IF EXISTS `dad_adm_action`;
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `dad_adm_action` (
   `id_dad_adm_action` mediumint(8) unsigned NOT NULL AUTO_INCREMENT,
   `abbreviation` char(1) DEFAULT NULL,
@@ -31,7 +31,7 @@ CREATE TABLE `dad_adm_action` (
   `timeactive` datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
   PRIMARY KEY (`id_dad_adm_action`)
 ) ENGINE=MyISAM AUTO_INCREMENT=11 DEFAULT CHARSET=latin1;
-SET character_set_client = @saved_cs_client;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Dumping data for table `dad_adm_action`
@@ -48,8 +48,8 @@ UNLOCK TABLES;
 --
 
 DROP TABLE IF EXISTS `dad_adm_carvers`;
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `dad_adm_carvers` (
   `dad_adm_carvers_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `match_rule` varchar(768) NOT NULL DEFAULT '',
@@ -61,7 +61,7 @@ CREATE TABLE `dad_adm_carvers` (
   `rule_name` varchar(45) NOT NULL DEFAULT '',
   PRIMARY KEY (`dad_adm_carvers_id`)
 ) ENGINE=MyISAM AUTO_INCREMENT=3 DEFAULT CHARSET=latin1 COMMENT='Contains matching and carving rules for log extraction';
-SET character_set_client = @saved_cs_client;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Dumping data for table `dad_adm_carvers`
@@ -78,8 +78,8 @@ UNLOCK TABLES;
 --
 
 DROP TABLE IF EXISTS `dad_adm_computer_group`;
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `dad_adm_computer_group` (
   `id_dad_adm_computer_group` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `group_name` varchar(45) DEFAULT NULL,
@@ -88,7 +88,7 @@ CREATE TABLE `dad_adm_computer_group` (
   `timeactive` int(11) DEFAULT NULL,
   PRIMARY KEY (`id_dad_adm_computer_group`)
 ) ENGINE=MyISAM AUTO_INCREMENT=25 DEFAULT CHARSET=latin1;
-SET character_set_client = @saved_cs_client;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Dumping data for table `dad_adm_computer_group`
@@ -105,8 +105,8 @@ UNLOCK TABLES;
 --
 
 DROP TABLE IF EXISTS `dad_adm_job`;
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `dad_adm_job` (
   `id_dad_adm_job` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `descrip` varchar(256) DEFAULT NULL,
@@ -132,8 +132,8 @@ CREATE TABLE `dad_adm_job` (
   `persistent` tinyint(1) NOT NULL DEFAULT '0',
   `argument_1` varchar(45) NOT NULL,
   PRIMARY KEY (`id_dad_adm_job`)
-) ENGINE=MyISAM AUTO_INCREMENT=21 DEFAULT CHARSET=latin1;
-SET character_set_client = @saved_cs_client;
+) ENGINE=MyISAM AUTO_INCREMENT=23 DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Dumping data for table `dad_adm_job`
@@ -141,7 +141,7 @@ SET character_set_client = @saved_cs_client;
 
 LOCK TABLES `dad_adm_job` WRITE;
 /*!40000 ALTER TABLE `dad_adm_job` DISABLE KEYS */;
-INSERT INTO `dad_adm_job` VALUES (1,'Generate Statistics',NULL,'DAD Internals','C:\\dad\\jobs\\log parser\\','perl.exe','',1199599200,'','','',NULL,0,'2007-04-16','00:00:00',1199598000,20,0,0,0,0,0,'Stats.pl'),(4,'Alert on Domain Joins',NULL,'Alert','C:\\\\dad\\\\jobs\\\\alerts\\\\','perl.exe',NULL,1199598998,NULL,NULL,NULL,NULL,NULL,'2007-04-16',NULL,1199598698,5,NULL,NULL,NULL,0,0,'DomainJoins.pl'),(5,'Alert on Audit Log Cleared',NULL,'Alert','C:\\dad\\jobs\\alerts\\','perl.exe','',1199599320,'','','',NULL,0,'2007-04-16','13:02:00',1199598720,10,0,0,0,0,0,'AuditLogCleared.pl'),(19,'Start Aggregator',NULL,'DAD Internals','C:/dad/jobs/log parser/','perl.exe','',1177026720,'','','',NULL,0,'2007-04-19','16:52:00',0,0,0,0,0,1,1,'Aggregator.pl'),(8,'DAD Update Status',NULL,'DAD Internals','c:\\\\dad\\\\jobs\\\\alerts\\\\','perl.exe','',1199599260,'','','',NULL,0,'2007-04-19','22:31:00',1199598360,15,0,0,0,0,0,'Updates.pl'),(10,'Run Syslog Service',NULL,'DAD Internals','c:/dad/jobs/','java','',1199599140,'','','',NULL,0,'2007-04-20','19:59:00',1199598840,5,0,0,0,0,1,'-jar DADSyslog.jar'),(11,'Check logon types',NULL,'Alert','c:\\\\dad\\\\jobs\\\\alerts\\\\','perl.exe','',1199599260,'','','',NULL,0,'2007-04-25','11:51:00',1199598660,10,0,0,0,0,0,'LogonType.pl'),(12,'Administrator Logons',NULL,'Alert','c:\\dad\\jobs\\alerts\\','perl.exe','',1199599089,'','','',NULL,0,'2007-04-25','11:51:00',1199598489,10,0,0,0,0,0,'ShouldntLogon.pl'),(13,'Forbidden Logons',NULL,'Alert','c:\\dad\\jobs\\alerts\\','perl.exe','',1199599260,'','','',NULL,0,'2007-04-25','11:51:00',1199598660,10,0,0,0,0,0,'NeverLogon.pl'),(14,'Forbidden Logons 2',NULL,'Alert','c:\\dad\\jobs\\alerts','perl.exe','',1199599260,'','','',NULL,0,'2007-04-25','11:51:00',1199598660,10,0,0,0,0,0,'NeverLogon2.pl'),(20,'Remote Desktop Connections',NULL,'Alert','C:/dad/jobs/alerts/','perl.exe','',1199599080,'','','',NULL,0,'2007-04-16','09:18:00',1199598780,5,0,0,0,0,0,'RemoteDesktop.pl'),(16,'Find Most Active Servers',NULL,'Stats','C:/dad/jobs/misc','perl.exe','',1199608200,'','','',NULL,0,'2007-07-05','16:30:00',1199586600,0,6,0,0,0,0,'TopTalkers.pl');
+INSERT INTO `dad_adm_job` VALUES (12,'Administrator Logons',NULL,'Alert','c:/dad/jobs/alerts/','c:/perl/bin/perl.exe','',1262365893,'','','',NULL,0,'2007-04-25','11:51:00',1262365293,10,0,0,0,1,0,'perl ShouldntLogon.pl'),(22,'Start Aggregator',NULL,'DAD Internals','C:/dad/jobs/log parser/','c:/perl/bin/perl.exe','',1262365293,'','','',NULL,0,'2007-04-19','16:52:00',1262365293,0,0,0,0,1,1,'perl Aggregator.pl'),(10,'Run Syslog Service',NULL,'DAD Internals','c:/dad/jobs/','c:/perl/bin/perl.exe','',1262365593,'','','',NULL,0,'2007-04-20','19:59:00',1262365293,5,0,0,0,1,1,'perl syslog.pl'),(20,'Remote Desktop Connections',NULL,'Alert','C:/dad/jobs/alerts/','c:/perl/bin/perl.exe','',1262365593,'','','',NULL,0,'2007-04-16','09:18:00',1262365293,5,0,0,0,1,0,'perl RemoteDesktop.pl'),(16,'Find Most Active Servers',NULL,'Stats','C:/dad/jobs/misc','c:/perl/bin/perl.exe','',1262386893,'','','',NULL,0,'2007-07-05','16:30:00',1262365293,0,6,0,0,1,0,'perl TopTalkers.pl'),(8,'DAD Update Status',NULL,'DAD Internals','c:/dad/jobs/alerts/','c:/perl/bin/perl.exe','',1262366193,'','','',NULL,0,'2007-04-19','22:31:00',1262365293,15,0,0,0,1,0,'perl Updates.pl'),(11,'Check logon types',NULL,'Alert','c:/dad/jobs/alerts/','c:/perl/bin/perl.exe','',1262365893,'','','',NULL,0,'2007-04-25','11:51:00',1262365293,10,0,0,0,1,0,'perl LogonType.pl'),(4,'Alert on Domain Joins',NULL,'Alert','C:/dad/jobs/alerts/','c:/perl/bin/perl.exe','',1262365593,'','','',NULL,0,'2007-04-16','08:39:00',1262365293,5,0,0,0,1,0,'perl DomainJoins.pl'),(21,'Audit Log Cleared',NULL,'Alert','c:/dad/jobs/alerts/','c:/perl/bin/perl.exe','',1262365893,'','','',NULL,0,'2007-04-25','11:51:00',1262365293,10,0,0,0,1,0,'perl AuditLogCleared.pl'),(1,'Generate Statistics',NULL,'DAD Internals','C:/dad/jobs/log parser/','c:/perl/bin/perl.exe','',1262366493,'','','',NULL,0,'2007-04-16','00:00:00',1262365293,20,0,0,0,1,0,'perl Stats.pl');
 /*!40000 ALTER TABLE `dad_adm_job` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -150,15 +150,15 @@ UNLOCK TABLES;
 --
 
 DROP TABLE IF EXISTS `dad_event_log_types`;
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `dad_event_log_types` (
   `Event_Log_Type_ID` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `Log_Type` varchar(45) NOT NULL,
   `Log_Type_Value` int(10) unsigned NOT NULL,
   PRIMARY KEY (`Event_Log_Type_ID`)
 ) ENGINE=MyISAM AUTO_INCREMENT=8 DEFAULT CHARSET=utf8 COMMENT='Used to map event log types to binary values';
-SET character_set_client = @saved_cs_client;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Dumping data for table `dad_event_log_types`
@@ -175,8 +175,8 @@ UNLOCK TABLES;
 --
 
 DROP TABLE IF EXISTS `dad_sys_events_aging`;
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `dad_sys_events_aging` (
   `Aging_ID` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `Event_ID` int(10) unsigned NOT NULL,
@@ -184,7 +184,7 @@ CREATE TABLE `dad_sys_events_aging` (
   `Retention_Time` int(10) unsigned NOT NULL,
   PRIMARY KEY (`Aging_ID`)
 ) ENGINE=MyISAM AUTO_INCREMENT=14 DEFAULT CHARSET=latin1 COMMENT='Aging schedule for various Windows events';
-SET character_set_client = @saved_cs_client;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Dumping data for table `dad_sys_events_aging`
@@ -201,8 +201,8 @@ UNLOCK TABLES;
 --
 
 DROP TABLE IF EXISTS `dad_sys_event_desc`;
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `dad_sys_event_desc` (
   `dad_sys_event_desc_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `event_id` int(10) unsigned DEFAULT NULL,
@@ -214,7 +214,7 @@ CREATE TABLE `dad_sys_event_desc` (
   `os_ver` varchar(20) DEFAULT NULL,
   PRIMARY KEY (`dad_sys_event_desc_id`)
 ) ENGINE=MyISAM AUTO_INCREMENT=6730 DEFAULT CHARSET=latin1;
-SET character_set_client = @saved_cs_client;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Dumping data for table `dad_sys_event_desc`
@@ -231,15 +231,15 @@ UNLOCK TABLES;
 --
 
 DROP TABLE IF EXISTS `dad_sys_filtered_events`;
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `dad_sys_filtered_events` (
   `Filtered_ID` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `Event_ID` int(10) unsigned NOT NULL,
   `Description` varchar(45) NOT NULL,
   PRIMARY KEY (`Filtered_ID`)
 ) ENGINE=MyISAM AUTO_INCREMENT=12 DEFAULT CHARSET=latin1 COMMENT='Event IDs that are filtered from incoming logs';
-SET character_set_client = @saved_cs_client;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Dumping data for table `dad_sys_filtered_events`
@@ -256,8 +256,8 @@ UNLOCK TABLES;
 --
 
 DROP TABLE IF EXISTS `dad_sys_linked_queries`;
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `dad_sys_linked_queries` (
   `Query_ID` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `SQL` varchar(768) NOT NULL,
@@ -265,7 +265,7 @@ CREATE TABLE `dad_sys_linked_queries` (
   `Query_Desc` varchar(255) NOT NULL,
   PRIMARY KEY (`Query_ID`)
 ) ENGINE=MyISAM AUTO_INCREMENT=2 DEFAULT CHARSET=latin1 COMMENT='These queries are linked to by other queries, never called d';
-SET character_set_client = @saved_cs_client;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Dumping data for table `dad_sys_linked_queries`
@@ -282,8 +282,8 @@ UNLOCK TABLES;
 --
 
 DROP TABLE IF EXISTS `dad_sys_queries`;
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `dad_sys_queries` (
   `Query_ID` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `Query` varchar(1024) NOT NULL,
@@ -294,7 +294,7 @@ CREATE TABLE `dad_sys_queries` (
   `Timeframe` int(10) unsigned NOT NULL DEFAULT '86400',
   PRIMARY KEY (`Query_ID`)
 ) ENGINE=MyISAM AUTO_INCREMENT=81 DEFAULT CHARSET=latin1 COMMENT='Used for stored queries';
-SET character_set_client = @saved_cs_client;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Dumping data for table `dad_sys_queries`
@@ -311,8 +311,8 @@ UNLOCK TABLES;
 --
 
 DROP TABLE IF EXISTS `language`;
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `language` (
   `LanguageID` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `LanguageCode` char(3) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
@@ -320,7 +320,7 @@ CREATE TABLE `language` (
   `LatestChangeStamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`LanguageID`)
 ) ENGINE=MyISAM AUTO_INCREMENT=7 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-SET character_set_client = @saved_cs_client;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Dumping data for table `language`
@@ -337,8 +337,8 @@ UNLOCK TABLES;
 --
 
 DROP TABLE IF EXISTS `menu`;
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `menu` (
   `MenuID` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `MenuName` char(40) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
@@ -348,7 +348,7 @@ CREATE TABLE `menu` (
   `LatestChangeStamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`MenuID`)
 ) ENGINE=MyISAM AUTO_INCREMENT=9 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-SET character_set_client = @saved_cs_client;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Dumping data for table `menu`
@@ -365,8 +365,8 @@ UNLOCK TABLES;
 --
 
 DROP TABLE IF EXISTS `menuoption`;
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `menuoption` (
   `MenuOptionID` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `OptionName` char(40) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
@@ -377,7 +377,7 @@ CREATE TABLE `menuoption` (
   `LatestChangeStamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`MenuOptionID`)
 ) ENGINE=MyISAM AUTO_INCREMENT=72 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-SET character_set_client = @saved_cs_client;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Dumping data for table `menuoption`
@@ -394,8 +394,8 @@ UNLOCK TABLES;
 --
 
 DROP TABLE IF EXISTS `role`;
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `role` (
   `RoleID` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `RoleName` char(40) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
@@ -405,7 +405,7 @@ CREATE TABLE `role` (
   `LatestChangeStamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`RoleID`)
 ) ENGINE=MyISAM AUTO_INCREMENT=7 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-SET character_set_client = @saved_cs_client;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Dumping data for table `role`
@@ -422,8 +422,8 @@ UNLOCK TABLES;
 --
 
 DROP TABLE IF EXISTS `rolemenuoption`;
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `rolemenuoption` (
   `RoleMenuOptionID` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `RoleID` int(10) unsigned NOT NULL DEFAULT '0',
@@ -431,7 +431,7 @@ CREATE TABLE `rolemenuoption` (
   `LatestChangeStamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`RoleMenuOptionID`)
 ) ENGINE=MyISAM AUTO_INCREMENT=132 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-SET character_set_client = @saved_cs_client;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Dumping data for table `rolemenuoption`
@@ -448,8 +448,8 @@ UNLOCK TABLES;
 --
 
 DROP TABLE IF EXISTS `user`;
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `user` (
   `UserID` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `UserName` char(20) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
@@ -464,7 +464,7 @@ CREATE TABLE `user` (
   `LatestChangeStamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`UserID`)
 ) ENGINE=MyISAM AUTO_INCREMENT=5 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-SET character_set_client = @saved_cs_client;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Dumping data for table `user`
@@ -485,7 +485,7 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2008-01-06  5:55:45
+-- Dump completed on 2010-01-01  9:04:25
 --
 -- Dumping data for table `userrole`
 --
