@@ -49,12 +49,12 @@ sub _build_stats
 		my $size, @times, $i;
 		my $log_change, $inserted, $insert_ratio;
 		my @Times, @Logged, @Inserted, $this_time;
-	
+
 		$insert_ratio = 0;
 		&_get_system_stat_data($system,\%Log_Size,\%Inserted, \%ALog_Size, \%AInserted, "Security", $Stat_Time_Period);
 		@times = reverse(sort(keys(%Log_Size)));
 		$size=@times;
-	
+
 		foreach $i (0..($size))
 		{
 			$log_change = $Log_Size{$times[$i]};
@@ -69,7 +69,7 @@ sub _build_stats
 		if($points)
 		{
 			my $graph = GD::Graph::lines->new(400, 100);
-			$graph->set( 
+			$graph->set(
 				title				=> "$system Event/Insert Rate",
 				x_label_position	=> 0.5,
 				line_width			=> 1,
@@ -118,11 +118,11 @@ sub _build_stats
 		if($inserted < 0) {print "$system: $this_time Logged - $log_change  Inserted - $inserted  Difference - $insert_ratio\n";}
 		#print "$system: $this_time Logged - $log_change  Inserted - $inserted  Difference - $insert_ratio\n";
 	}
-	
+
 	#Print Aggregate
 	my $points = @Times;
 	my $graph = GD::Graph::lines->new(400,200);
-	$graph->set( 
+	$graph->set(
 		title				=> "$system Event/Insert Rate",
 		x_label_position	=> 0.5,
 		line_width			=> 1,
@@ -153,7 +153,7 @@ sub _get_time_string
 	{
 		$theTime = ($hour<10 ? "0$hour" : "$hour").":".($minute<10? "0$minute" : "$minute");
 	}
-	return $theTime; 
+	return $theTime;
 }
 ##########################
 # Grabs the raw data for each system.
@@ -165,7 +165,7 @@ sub _get_system_stat_data
 	my $system, $Log_Size, $Inserted, $ALog, $AInserted, $Service;
 	my $Time_Period;
 	($system,$Log_Size,$Inserted, $ALog, $AInserted, $Service, $Time_Period)=@_ or die("Incorrect arguments to _get_system_stat_data.\n");
-	
+
 	$dsn = "DBI:mysql:host=$MYSQL_SERVER;database=dad";
 	$dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
 		or die ("Could not connect to DB server to import the list of servers to poll.\n");
@@ -174,7 +174,7 @@ sub _get_system_stat_data
 	my $SQL = "SELECT Total_In_Log,Number_Inserted,Stat_Time,Service_Name FROM dad_sys_event_stats WHERE Service_Name='$Service' AND System_Name='$system' AND Stat_Time>$Time_Period ORDER BY Stat_Time";
 	$results_ref = &SQL_Query($SQL);
 	my $last_logged = -1;
-	while($row = shift(@$results_ref) ) 
+	while($row = shift(@$results_ref) )
 	{
 		@this_row = @$row;
 		my $this_time = $this_row[2];
@@ -204,17 +204,17 @@ sub _get_aggregate_system_stat_data
 	my $system, $Log_Size, $Inserted, $ALog, $AInserted, $Service;
 	my $Time_Period;
 	($system,$Log_Size,$Inserted, $ALog, $AInserted, $Service, $Time_Period)=@_ or die("Incorrect arguments to _get_system_stat_data.\n");
-	
+
 	$Time_Period = time()-$Time_Period;
 	my $SQL = "SELECT Total_In_Log,Number_Inserted,Stat_Time,Service_Name FROM dad_sys_event_stats WHERE Service_Name='$Service' AND System_Name='$system' AND Stat_Time>$Time_Period ORDER BY Stat_Time";
 	$results_ref = &SQL_Query($SQL);
 	my $last_logged = -1;
-	while($row = shift(@$results_ref) ) 
+	while($row = shift(@$results_ref) )
 	{
 		@this_row = @$row;
 		my $this_time = $this_row[2];
 		$this_time = int($this_time/86400) * 86400;
-		if($this_row[0] > 0)
+		if($this_row[0] > 0 && $this_time > $Time_Period)
 		{
 			my $log_change = 0;
 			if($last_logged != -1)
@@ -236,13 +236,13 @@ sub _get_stats_to_process
 		$row,						#Row array reference
 		@this_row;					#Current row
 	my @Systems;
-	
 
-	# Fetch the names of the systems to poll.  To add a system simply add its name to the dad_sys_event_import table. 
+
+	# Fetch the names of the systems to poll.  To add a system simply add its name to the dad_sys_event_import table.
 	# There is no need to restart this process to pick up the new system names or remove old names.
 	$results_ref = &SQL_Query("SELECT DISTINCT System_Name FROM dad_sys_event_stats");
 	# Populate the @Systems array
-	while($row = shift(@$results_ref) ) 
+	while($row = shift(@$results_ref) )
 	{
 		@this_row = @$row;
 		unshift(@Systems, $this_row[0]);
@@ -260,10 +260,10 @@ sub _get_stats_to_process
 sub SQL_Query
 {
 	my $SQL = $_[0];
-	
+
 	my $query = $dbh->prepare($SQL);
 	$query -> execute();
-	my $ref_to_array_of_row_refs = $query->fetchall_arrayref(); 
+	my $ref_to_array_of_row_refs = $query->fetchall_arrayref();
 	$query->finish();
 	return $ref_to_array_of_row_refs;
 }
