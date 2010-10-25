@@ -98,7 +98,7 @@ sub _build_stats
 	%AInserted = ();
 	foreach $system (@Systems)
 	{
-		&_get_aggregate_system_stat_data($system,\%Log_Size,\%Inserted, \%ALog_Size, \%AInserted, "Security", (60*60*24*30));   # 30 days
+		&_get_aggregate_system_stat_data($system,\%Log_Size,\%Inserted, \%ALog_Size, \%AInserted, "Security", (60*60*24*7));   # 7 days
 		#Previous line gathers all aggregate data for all time
 	}
 	@times = reverse(sort(keys(%ALog_Size)));
@@ -120,7 +120,7 @@ sub _build_stats
 	my $graph = GD::Graph::lines->new(400,200);
 	$graph->set(
 		title				=> "Aggregate Events/Insert Rate",
-		x_label_position	=> 0.5,
+		x_label_position	=> 1,
 		line_width			=> 1,
 		x_label_skip		=> int($points/10),
 		x_labels_vertical	=> 1
