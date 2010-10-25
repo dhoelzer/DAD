@@ -122,7 +122,8 @@ sub _build_stats
 		title				=> "Aggregate Events/Insert Rate",
 		x_label_position	=> 1,
 		line_width			=> 1,
-		x_label_skip		=> int($points/10),
+		x_label_skip		=> int($points/7),
+		x_tick_offset       => 1,
 		x_labels_vertical	=> 1
 	) or die $graph->error;
 	my @Data=([@Times],[@Logged],[@Inserted]);#,[@Insert_Ratio]);
