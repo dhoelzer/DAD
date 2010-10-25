@@ -31,8 +31,6 @@ $dsn = "DBI:mysql:host=$MYSQL_SERVER;database=dad";
 $dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
 	or die ("Could not connect to DB server to import the list of servers to poll.\n");
 
-open(STATS, ">>$OUTPUT_LOCATION/stats.html") or print "Couldn't open stats file.\n";
-close(STATS);
 &_build_stats();
 
 
@@ -90,7 +88,6 @@ sub _build_stats
 		%Log_Size = ();
 		%Inserted = ();
 	}
-	print "Generating aggregate.\n";
 	@Times=();
 	@Logged=();
 	@Inserted=();
@@ -204,7 +201,7 @@ sub _get_aggregate_system_stat_data
 	my $Time_Period;
 	($system,$Log_Size,$Inserted, $ALog, $AInserted, $Service, $Time_Period)=@_ or die("Incorrect arguments to _get_system_stat_data.\n");
 
-	#$Time_Period = time()-$Time_Period;
+	$Time_Period = time()-$Time_Period;
 	my $SQL = "SELECT Total_In_Log,Number_Inserted,Stat_Time,Service_Name FROM dad_sys_event_stats WHERE Service_Name='$Service' AND System_Name='$system' AND Stat_Time>$Time_Period ORDER BY Stat_Time";
 	$results_ref = &SQL_Query($SQL);
 	my $last_logged = -1;
@@ -212,8 +209,8 @@ sub _get_aggregate_system_stat_data
 	{
 		@this_row = @$row;
 		my $this_time = $this_row[2];
-		$this_time = int($this_time/86400) * 86400;
-		if($this_row[0] > 0 && $this_time > $Time_Period)
+		$this_time = int($this_time/600) * 600;
+		if($this_row[0] > 0)
 		{
 			my $log_change = 0;
 			if($last_logged != -1)
