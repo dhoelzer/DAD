@@ -32,7 +32,6 @@ $dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
 	or die ("Could not connect to DB server to import the list of servers to poll.\n");
 
 open(STATS, ">>$OUTPUT_LOCATION/stats.html") or print "Couldn't open stats file.\n";
-print STATS "Building statistics\n";
 close(STATS);
 &_build_stats();
 
@@ -205,7 +204,7 @@ sub _get_aggregate_system_stat_data
 	my $Time_Period;
 	($system,$Log_Size,$Inserted, $ALog, $AInserted, $Service, $Time_Period)=@_ or die("Incorrect arguments to _get_system_stat_data.\n");
 
-	$Time_Period = time()-$Time_Period;
+	#$Time_Period = time()-$Time_Period;
 	my $SQL = "SELECT Total_In_Log,Number_Inserted,Stat_Time,Service_Name FROM dad_sys_event_stats WHERE Service_Name='$Service' AND System_Name='$system' AND Stat_Time>$Time_Period ORDER BY Stat_Time";
 	$results_ref = &SQL_Query($SQL);
 	my $last_logged = -1;
