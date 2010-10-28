@@ -98,7 +98,7 @@ sub _build_stats
 	%AInserted = ();
 	foreach $system (@Systems)
 	{
-		&_get_aggregate_system_stat_data($system,\%Log_Size,\%Inserted, \%ALog_Size, \%AInserted, "Security", (60*60*24*7));   # 7 days
+		&_get_aggregate_system_stat_data($system,\%Log_Size,\%Inserted, \%ALog_Size, \%AInserted, "Security", (60*60*24*5));   # 7 days
 		#Previous line gathers all aggregate data for all time
 	}
 	@times = reverse(sort(keys(%ALog_Size)));
