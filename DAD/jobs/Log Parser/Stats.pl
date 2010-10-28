@@ -122,7 +122,7 @@ sub _build_stats
 		title				=> "Aggregate Events/Insert Rate",
 		x_label_position	=> 1,
 		line_width			=> 1,
-		x_label_skip		=> int($points/7),
+		x_label_skip		=> int($points/5),
 		x_tick_offset       => 1,
 		x_labels_vertical	=> 1
 	) or die $graph->error;
