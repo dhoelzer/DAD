@@ -418,7 +418,7 @@ function show_log_stats()
 //	$num_strings = $strings[0][0];
     $strSQL   = 'SELECT System_Name FROM dad_sys_event_import_from';
     $systems = runQueryReturnArray( $strSQL );
-    $num_systems = count($systems)
+    $num_systems = count($systems);
 //    $strSQL   = 'SELECT COUNT(*) FROM dad_sys_services';
 //    $num_services = runQueryReturnArray( $strSQL );
 	$FreeSpace = disk_free_space(MYSQL_DRIVE);
