@@ -407,31 +407,26 @@ function show_log_stats()
     global $gaLiterals;
 	global	$Global;
 	
-    $strSQL   = 'SELECT COUNT(*) FROM events';;
-    $events2 = runQueryReturnArray( $strSQL );
-	$num_events2 = $events2[0][0];
-    $strSQL   = 'SELECT COUNT(*) FROM event_fields';;
-    $fields = runQueryReturnArray( $strSQL );
-	$num_fields = $fields[0][0];
-    $strSQL   = 'SELECT COUNT(*) FROM event_unique_strings';;
-    $strings = runQueryReturnArray( $strSQL );
-	$num_strings = $strings[0][0];
-    $strSQL   = 'SELECT COUNT(*) FROM dad_sys_event_import_from';
-    $num_systems = runQueryReturnArray( $strSQL );
+//    $strSQL   = 'SELECT COUNT(*) FROM events';;
+//    $events2 = runQueryReturnArray( $strSQL );
+//	$num_events2 = $events2[0][0];
+//    $strSQL   = 'SELECT COUNT(*) FROM event_fields';;
+//    $fields = runQueryReturnArray( $strSQL );
+//	$num_fields = $fields[0][0];
+//    $strSQL   = 'SELECT COUNT(*) FROM event_unique_strings';;
+//    $strings = runQueryReturnArray( $strSQL );
+//	$num_strings = $strings[0][0];
     $strSQL   = 'SELECT System_Name FROM dad_sys_event_import_from';
     $systems = runQueryReturnArray( $strSQL );
-    $strSQL   = 'SELECT COUNT(*) FROM dad_sys_services';
-    $num_services = runQueryReturnArray( $strSQL );
+    $num_systems = count($systems)
+//    $strSQL   = 'SELECT COUNT(*) FROM dad_sys_services';
+//    $num_services = runQueryReturnArray( $strSQL );
 	$FreeSpace = disk_free_space(MYSQL_DRIVE);
 	$TotalSpace = disk_total_space(MYSQL_DRIVE);
-	$MoreEvents = $FreeSpace/(($TotalSpace-$FreeSpace) / ($num_events2 + 1)+1);
+//	$MoreEvents = $FreeSpace/(($TotalSpace-$FreeSpace) / ($num_events2 + 1)+1);
 	$PercentFree = round((($FreeSpace/($TotalSpace + 1)) * 100), 2);
 	$PercentUsed = 100 - $PercentFree;
-	$strHTML = "Disk Utilization: $PercentFree% Free -- There is room for approximately ".number_format($MoreEvents)." more events.<BR> ".
-		$num_systems[0][0]." systems monitored<br>Tracking ".number_format($num_events2).
-		" events with ".number_format($num_fields)." fields with ".
-		number_format($num_strings)." unique strings.  <br>";
-	$strHTML .= "Average event length is ". number_format(($num_fields/($num_events2>0?$num_events2:1)),2)." fields.";
+	$strHTML = "Disk Utilization: $PercentFree% Free<br>";
 	$top_talkers = file("../TopTalkers.html");
 	foreach($top_talkers as $line)
 	{
@@ -445,13 +440,13 @@ function show_log_stats()
 	}
 	$strURL  = getOptionURL(OPTIONID_LOG_ANALYSIS);
 	$strHTML .=<<<endHTML
-		<iframe src='/stats/stats2.html' width=300px height=390px align=right></iframe>
+		<!-- <iframe src='/stats/stats2.html' width=300px height=390px align=right></iframe> -->
 		<form id='acknowledge_alerts' align=left action='$strURL' method='post'>
 		<input type='hidden' name='AckMarker' value='1'></input>
 		<p><h3>Pending Alerts</h3><input type='submit' value='Acknowledge Marked'></input></h3>
 <div id="Scrollable" height=350px>
 		<font size=-2>
-		<table border='0' cellpadding='5'>
+		<table border='1' cellpadding='5'>
 			<tr><th>Ack</th><th>Alert Time</th><th>Event Time</th><th>Alert</th></tr>
 endHTML;
 	$strSQL = "SELECT FROM_UNIXTIME(Alert_Time) as 'Alerted at', ".
