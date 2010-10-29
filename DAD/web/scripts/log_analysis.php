@@ -477,8 +477,7 @@ endHTML;
 	}
 	$strHTML .= "</table></font></div>";
 // Stats
-	$strHTML .= "<p><table><tr><td><h3>Aggregate Log Statistics</h3><img src='/Stats/Aggregate.gif'></td>".
-		"<td><div id='ScrollableStats'>";	
+	$strHTML .= "<p><h3>Aggregate Log Statistics</h3><img src='/Stats/Aggregate.gif'>";
 	if($systems) 
 	{
 		foreach($systems as $row)
@@ -490,7 +489,6 @@ endHTML;
 	{
 		$strHTML .= "<p><h3>No systems are currently being monitored.</h3>";
 	}
-	$strHTML .= "</div></td><table>";
     add_element($strHTML);
 }
 

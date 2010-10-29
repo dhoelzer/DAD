@@ -65,7 +65,7 @@ sub _build_stats
 		my $points = @Times;
 		if($points)
 		{
-			my $graph = GD::Graph::lines->new(400, 100);
+			my $graph = GD::Graph::lines->new(700, 100);
 			$graph->set(
 				title				=> "$system Event/Insert Rate",
 				x_label_position	=> 0.5,
@@ -117,7 +117,7 @@ sub _build_stats
 
 	#Print Aggregate
 	my $points = @Times;
-	my $graph = GD::Graph::lines->new(400,200);
+	my $graph = GD::Graph::lines->new(700,200);
 	$graph->set(
 		title				=> "Aggregate Events/Insert Rate",
 		x_label_position	=> 1,
