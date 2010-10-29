@@ -1,7 +1,7 @@
 /**** Scrolling area ****/
 #Scrollable{
 	height:300px;
-	width:500px;
+	width:700px;
 	overflow:auto;
 	border: 1px solid #000000; 
 }		
