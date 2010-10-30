@@ -426,7 +426,7 @@ $num_results = @$results_ref;
 			@this_row = @$row;
 			$event_data = "$AlertDesc<br>".$this_row[3];
 			$SQL = "INSERT INTO dad_alerts SET Alert_Time=".time().", Event_Time='".$this_row[1]."', ".
-				"Event_Data='".$event_data."', Acknowledged=FALSE, Severity=$Severity";
+				"Event_Data='".substr($event_data, 0, 199)."', Acknowledged=FALSE, Severity=$Severity";
 			&SQL_Insert($SQL);
 		}
 	}
