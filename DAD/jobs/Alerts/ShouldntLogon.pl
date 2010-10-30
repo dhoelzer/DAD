@@ -23,3 +23,5 @@ $LastChecked = $ARGV[0];
 $Severity = 1;
 $AlertDescription = "Administrator Logon";
 &Alert($AlertDescription, $Severity, $LastChecked, "528", 5, "Administrator", 7);
+$AlertDescription = "Remote Desktop Administrator Logon";
+&Alert($AlertDescription, $Severity, $LastChecked, "682", 5, "Administrator", 7);
