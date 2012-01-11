@@ -1,6 +1,0 @@
-echo Initializing schema...
-call mysql.exe -u root -p < Creates.sql
-echo Installing stored procedures
-call mysql.exe -u root -p < Procedures.sql
-echo Importing starter data...
-call mysql.exe -u root -p -D DAD < Starter_Data.sql
