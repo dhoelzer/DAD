@@ -1,0 +1,11 @@
+DAD is a Free Open Source Software (FOSS) log aggregation and analysis tool.
+
+DAD was created as a result of my needling of a particular customer regarding their log management solution.  After listening to me wax poetic on how easy it would be to improve upon the commercial solution that they were using, the customer finally said, "Put your code where your mouth is" and funded the development of the initial version of DAD.
+
+While DAD was created with Windows log management specifically in mind, the tool also natively supports Syslog as well as the ability to import any other text based log file that you'd like to let it get its paws on.  The log data is aggregated into a full text indexed database system, allowing for easy searches.
+
+Aside from the fairly user-friendly web based dashboard, the other great thing about DAD is the ability to create triggers, alerts and correlation events based on log activity.  Currently these types of events are created using external scripts (written in any scripting language you choose) through a very simple API into the event, correlation and alerting system.
+
+If you choose to use DAD, please follow the installation instructions closely.  We strongly recommend that you use GIT to pull down a copy of DAD and then continue to use GIT to pull down updates, rather than downloading an archive and trying to run things from there.  If you do choose to go the route of an archive, updating will be painful.  If you choose to use GIT, updates are full of goodness and light.
+
+If you have updates, suggestions or additions to DAD, please feel free to send them our way!  This is a completely free solution and will remain so under the terms of the GPL.

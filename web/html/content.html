@@ -1,0 +1,123 @@
+<?php
+
+
+require_once "../config/constants.php";
+require_once "../config/OptionIDs.php";
+require_once "../lib/globalizer.php"; 
+require_once "../lib/logging.php";
+require_once "../lib/language.php";
+require_once "../scripts/pagebuilder.php";
+require_once "../lib/dispatcher.php";
+require_once "../lib/sessions.php";
+require_once "../lib/database.php";
+require_once "../lib/encryption.php";
+require_once "../lib/security.php";
+require_once "../lib/strings.php";
+require_once "../lib/html_formatter.php";
+/*
+    option_id = 1 - Windows Event Log message lookup
+    option_id = 2 - message lookup
+
+*/
+	$option_id = 1;
+	$criteria = $_GET['criteria'];
+	//print "$option_id - $criteria<br>";
+get_content(1,$criteria,0);
+/*---------------------------------------------------------------------
+ * get_content( $option_id, $criteria, $session );
+ *---------------------------------------------------------------------
+ * The get_content function fetches data from the database and builds
+ *  specific content, based on an option ID, and passes back raw HTML.
+ *  The intent of the function is to build content that will be used 
+ *  to fill fields (DIV, INPUT values, etc) on an already displayed
+ *  page - more of a live lookup. This is (and probably should only be) 
+ *  called from html/content.html.
+ *    $option_id - one of the following:
+ *      1 - querying Windows Event Log messages, where $criteria is 
+ *        either an Event ID or text to be matched against the message
+ *        field
+ *      2 - alert template subject lookup, where $critera is template ID
+ *      3 - alert template body lookup, where $critera is template ID
+ *    $criteria (see specific $option_id above)
+ *    $session - a valid session ID
+ */
+
+function get_content( $option_id, $criteria, $session ){
+    global $Global;
+    $Global['SessionID'] = $_GET['session'];                 //have to use $_GET since this was not loaded through index.php, nor are we going to mimic all that stuff; this file needs to be fast since it is feeding user's clicks....
+    $tmp = '';
+	$html = "";
+    //if( validateSessionID($session) == -1 ){     /*validateSessionID() returns zero on success, -1 on failure*/
+        /*not a valid session, thus halting*/
+    //    break;
+    //}
+
+    //////////////////////////
+    // IF WE ADD SECURITY TO THESE LOOKUPS, WE SHOULD DO THE LOOKUP IN EACH OPTOINID SINCE IT COULD VARY PER SECTION.
+    //  LEAVING SECURITY OUT FOR NOW, SINCE WE ARE ONLY LOOKING UP NON-PRIVATE DATA
+    //////////////////////////
+
+    
+    if( $option_id == 1 ){
+        /* LOOKUP WINDOWS EVENT ID DETAILS */
+        if( $criteria!='' ){
+            $tmp = $criteria;
+            $tmp = preg_replace( '/[^\d]/', '', $tmp );       /*checking to see if there are non-digits in the criteria field; if so, then this is not an event ID*/
+			//print "$criteria - $tmp<br>";
+            if( $tmp === $criteria ){
+                /*strings are the same, which means its all digits; will match against event id field*/
+                $strSQL  = "SELECT event_id, event_log, event_source, event_type, os_name, os_ver, message FROM dad_sys_event_desc WHERE event_id = $criteria ORDER BY event_id ASC";
+            }else{
+                /*string were not the same, which means there were non-digit characters; will match against message field*/
+                $strSQL  = "SELECT event_id, event_log, event_source, event_type, os_name, os_ver, message FROM dad_sys_event_desc WHERE message like '%$criteria%' ORDER BY event_id ASC";
+            }
+            $html  = "<table id='event_table' name='event_table'>";
+            $arr = runQueryReturnArray( $strSQL );
+            if( is_array($arr) ){
+                foreach( $arr as $row ) {
+                    $row[6] = preg_replace('/\%t/','&nbsp;',$row[6]);
+                    $row[6] = preg_replace('/\%n\\\r\\\n/','<br>',$row[6]);
+                    $row[6] = preg_replace('/\\\r\\\n/','<br>',$row[6]);
+                    $row[6] = preg_replace("/\%(\d+)/e","'field_' . (\\1-1)",$row[6]);    // field 1 in the event translates to field_0 in our database.
+                    $row[6] = preg_replace('/field_-1/','',$row[6]);                      //in some events, there is a "%0"... which we don't want to translate or display.
+
+                    $html .= "  <tr><td><b>ID</b></td><td><b>${row[0]}<b></td></tr>";
+                    $html .= "  <tr><td><b>Log</b></td><td>${row[1]}</td></tr>";
+                    $html .= "  <tr><td><b>Source</b></td><td>${row[2]}</td></tr>";
+                    $html .= "  <tr><td><b>Type</b></td><td>${row[3]}</td></tr>";
+                    $html .= "  <tr><td><b>OS</b></td><td>${row[4]}</td></tr>";
+                    $html .= "  <tr><td><b>Version</b></td><td>${row[5]}</td></tr>";
+                    $html .= "  <tr><td valign='top'><b>Message</b></td><td width=300pt>${row[6]}</td></tr>";
+                    $html .= "  <tr><td>&nbsp;</td><td></td></tr>";
+                }
+            }
+            $html .= "</table>";
+            
+        }
+    }elseif( $option_id == 2 ){
+        /* LOOKUP ALERT MESSAGE TEMPLATE SUBJECT */
+        if( $criteria!='' ){
+            $strSQL = "SELECT subject FROM dad_adm_alert_message WHERE id_dad_adm_alert_message = $criteria";
+            $arr = runQueryReturnArray( $strSQL );
+            if( is_array($arr) ){
+                //row = array_shift($arr);
+                $html = $arr[0][0];
+            }
+        }
+    }elseif( $option_id == 3 ){
+        /* LOOKUP ALERT MESSAGE TEMPLATE BODY */
+        if( $criteria!='' ){
+            $strSQL = "SELECT body FROM dad_adm_alert_message WHERE id_dad_adm_alert_message = $criteria";
+            
+            $arr = runQueryReturnArray( $strSQL );
+            if( is_array($arr) ){
+                //row = array_shift($arr);
+                $html = $arr[0][0];
+            }
+        }
+    }
+
+    //$html = '<META HTTP-EQUIV="Expires" CONTENT="' . date(DATE_COOKIE) . '">' . $html;
+    print $html;
+}
+

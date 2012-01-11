@@ -1,0 +1,73 @@
+<?php
+#   This file is a part of the DAD Log Aggregation and Analysis tool
+#    Copyright (C) 2006, David Hoelzer/Cyber-Defense.org
+#
+#    This program is free software; you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation; either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program; if not, write to the Free Software
+#    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+/*
+ * index.php 6/21/05
+ *
+ * This is the only entry point to the web application.  All that happens
+ * is that several files are included and then control is handed off to the dispatcher.
+ *
+ */
+
+require_once "../config/constants.php";
+require_once "../config/OptionIDs.php";
+require_once "../lib/globalizer.php"; 
+require_once "../lib/logging.php";
+require_once "../lib/language.php";
+require_once "../scripts/pagebuilder.php";
+require_once "../lib/dispatcher.php";
+require_once "../lib/sessions.php";
+require_once "../lib/database.php";
+require_once "../lib/encryption.php";
+require_once "../lib/security.php";
+require_once "../lib/strings.php";
+require_once "../lib/html_formatter.php";
+
+// Encryption requires that we tell it which key to use.
+// set_public_key("key@localhost"); // Define your public key here if using assymetric encryption within the database
+
+$strSessionID = isset($_COOKIE["SessionID"]) ? $_COOKIE["SessionID"] : NULL;
+$intOptionID = isset($_GET[ARG_OPTION]) ? $_GET[ARG_OPTION] : NULL;
+
+// Add POST values to $Globals array
+if ($_POST) {
+   add_global($_POST);
+}
+// Add POST values to $Globals array
+if ($_GET) {
+   add_global($_GET);
+}
+if ($_COOKIE) {
+	add_global($_COOKIE);
+}
+
+// Retrieve language preference from cookie or default to English
+$LanguageCode = (isset($_REQUEST["Language"]) ? $_REQUEST["Language"] : 'E');
+add_global("LanguageCode", $LanguageCode);
+
+// Validate session here and then go straight to dispatch
+if ($strSessionID) {
+   validateSessionID($strSessionID);
+} else {
+   add_global("ValidSession", false);
+}
+// This main dispatch function determines where to send user...
+if($intOptionID==0) { $intOptionID=1;}
+dispatch($intOptionID);
+showPage();
+
+?>
