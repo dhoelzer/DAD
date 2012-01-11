@@ -1,3 +1,4 @@
+
 Before Installing
 EXTREMELY IMPORTANT:
    DAD is not a standalone program.  In order for DAD to function, you need several pieces of supporting infrastructure to be in place first.  In almost all cases we have chosen not to distribute these pieces of third party software for two reasons.  The first is so that you can determine which versions of the various software packages you choose to run.  The second is to avoid any and all redistribution licensing issues that can arise since the various pieces of software, while FOSS, are released under a variety of licenses.
