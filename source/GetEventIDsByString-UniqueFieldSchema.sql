@@ -1,4 +1,4 @@
-USE DAD;
+USE dad;
 CREATE DEFINER=`root`@`%` PROCEDURE `GetEventIDsByString`(IN strString VARCHAR(767))
 BEGIN
 SELECT ef.Events_ID FROM event_fields as ef, unique_fields as uf, event_unique_strings as eus

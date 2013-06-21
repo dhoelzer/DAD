@@ -18,7 +18,7 @@
 --
 -- Table structure for table `proc`
 --
-USE DAD;
+USE dad;
 
 DROP TABLE IF EXISTS `proc`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;

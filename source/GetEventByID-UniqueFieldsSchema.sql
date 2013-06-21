@@ -1,4 +1,4 @@
-USE DAD;
+USE dad;
 CREATE DEFINER=`root`@`%` PROCEDURE `GetEventByID`(IN intEventID BIGINT(20))
 BEGIN
   select
