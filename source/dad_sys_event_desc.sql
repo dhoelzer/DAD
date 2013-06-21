@@ -18,6 +18,7 @@
 --
 -- Table structure for table `dad_sys_event_desc`
 --
+USE dad;
 
 DROP TABLE IF EXISTS `dad_sys_event_desc`;
 CREATE TABLE `dad_sys_event_desc` (
