@@ -1,3 +1,5 @@
+This branch is being converted to Linux
+
 DAD is a Free Open Source Software (FOSS) log aggregation and analysis tool.
 
 DAD was created as a result of my needling of a particular customer regarding their log management solution.  After listening to me wax poetic on how easy it would be to improve upon the commercial solution that they were using, the customer finally said, "Put your code where your mouth is" and funded the development of the initial version of DAD.
