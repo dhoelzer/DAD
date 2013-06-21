@@ -1,3 +1,4 @@
+USE DAD;
 CREATE DEFINER=`root`@`%` PROCEDURE `ResetEvents`()
 BEGIN
   UPDATE dad_sys_event_import_from SET Next_Run=0;

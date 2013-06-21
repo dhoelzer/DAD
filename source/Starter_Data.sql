@@ -18,6 +18,7 @@
 --
 -- Table structure for table `dad_adm_action`
 --
+USE DAD;
 
 DROP TABLE IF EXISTS `dad_adm_action`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
