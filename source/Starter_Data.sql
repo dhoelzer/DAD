@@ -473,7 +473,7 @@ CREATE TABLE `user` (
 
 LOCK TABLES `user` WRITE;
 /*!40000 ALTER TABLE `user` DISABLE KEYS */;
-INSERT INTO `user` VALUES (1,'admin','70ccd9007338d6d81dd3b6271621b9cf9a97ea00','The','Administrator','',0,'2005-06-30 20:41:19','0000-00-00 00:00:00',3,'2007-03-13 23:00:59'),(2,'eholl','9ef7d35982880838b267d9c894ef3b808f618513','Eric','Hollis','eholl@usa.wtbts.net',1,'2007-07-04 13:32:34','0000-00-00 00:00:00',1,'2007-07-04 17:33:08'),(3,'shashimu','9d72f63c568dd6f0ac1dd2e0b90d41f0b75cb2a8','Steven','Hashimura','shashimu@usa.wtbts.net',1,'2007-07-11 14:52:05','0000-00-00 00:00:00',2,'2007-07-11 19:57:46'),(4,'dhoelzer','fc8657ff8a0bd8174706a12dc9dc237f7da277c0','David','Hoelzer','',1,'2007-07-16 15:46:40','0000-00-00 00:00:00',1,'2007-07-16 19:47:17');
+INSERT INTO `user` VALUES (1,'admin','70ccd9007338d6d81dd3b6271621b9cf9a97ea00','The','Administrator','',0,'2005-06-30 20:41:19','0000-00-00 00:00:00',3,'2007-03-13 23:00:59');
 /*!40000 ALTER TABLE `user` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
