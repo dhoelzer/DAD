@@ -1,0 +1,11 @@
+Requirements:
+
+Apache
+MySQL
+mysqli for PHP (will likely satisfy PHP requirement)
+PHP
+
+
+Recommended:
+
+Git (allows for updating)
