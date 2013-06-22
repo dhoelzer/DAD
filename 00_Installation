@@ -9,3 +9,9 @@ PHP
 Recommended:
 
 Git (allows for updating)
+
+Post install:
+
+* Fix permissions for application directories so that Apache can read them.
+* Set document root in httpd.conf
+* AddHandler for PHP: .html
