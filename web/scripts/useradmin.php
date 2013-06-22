@@ -100,7 +100,7 @@ function CreateUserForm() {
         //if all the above checks pass, will go ahead and create the user
         if( $flgBad != 1 ){
 
-            $strSQL = "INSERT INTO User( 
+            $strSQL = "INSERT INTO user( 
                      UserName, 
                      PasswordText, 
                      FirstName, 
@@ -124,7 +124,7 @@ function CreateUserForm() {
 
             $strUserID  =  runInsertReturnID( $strSQL );
 
-            $strSQL = "INSERT INTO UserRole( UserID, RoleID ) VALUES ( '$strUserID', '${Global['role']}' );";
+            $strSQL = "INSERT INTO userrole( UserID, RoleID ) VALUES ( '$strUserID', '${Global['role']}' );";
             $strAff =  runSQLReturnAffected( $strSQL );
 
             //LOGGING
@@ -404,7 +404,7 @@ function ChangeOwnPasswordForm() {
                     if( IsPasswordComplex( $Global['newpassword'], 0 ) ) {
 
                         //passed all checks; will go ahead and change password for current user
-                        $strSQL = "UPDATE User SET PasswordText = sha( '${Global['newpassword']}' ) WHERE UserID = '${Global['UserID']}'";
+                        $strSQL = "UPDATE user SET PasswordText = sha( '${Global['newpassword']}' ) WHERE UserID = '${Global['UserID']}'";
                         $strAff = runSQLReturnAffected( $strSQL );
 
                         if( $strAff ) {
@@ -576,7 +576,7 @@ function ChangeUserRoleForm() {
 
                     } else {    //All is good, go ahead and make the change
 
-                        $strSQL = "UPDATE UserRole SET RoleID = '${Global['roleidchange']}', LatestChangeUserID = '${Global['UserID']}' WHERE UserID = '${Global['useridchange']}'";
+                        $strSQL = "UPDATE userrole SET RoleID = '${Global['roleidchange']}', LatestChangeUserID = '${Global['UserID']}' WHERE UserID = '${Global['useridchange']}'";
                         $strAff = runSQLReturnAffected( $strSQL );
 
                         if( $strAff ) {
@@ -593,7 +593,7 @@ function ChangeUserRoleForm() {
 
             } else {  //does not have entry in UserRole; will do INSERT instead
 
-                $strSQL = "INSERT INTO UserRole( UserID, RoleID, LatestChangeUserID ) VALUES ( '${Global['useridchange']}', '${Global['roleidchange']}', '${Global['UserID']}' )";
+                $strSQL = "INSERT INTO userrole( UserID, RoleID, LatestChangeUserID ) VALUES ( '${Global['useridchange']}', '${Global['roleidchange']}', '${Global['UserID']}' )";
                 $strAff = runSQLReturnAffected( $strSQL );
 
                 if( $strAff ) {
@@ -760,7 +760,7 @@ function ChangeUserDetailsForm() {
         if( $flgBad != 1 ) {
 
             //UPDATE User table
-            $strSQL = "UPDATE User SET
+            $strSQL = "UPDATE user SET
                          UserName           = '${Global['username']}',
                          FirstName          = '${Global['firstname']}',
                          LastName           = '${Global['lastname']}',
@@ -806,7 +806,7 @@ function ChangeUserDetailsForm() {
 
                     } else {    //All is good, go ahead and make the change
 
-                        $strSQL = "UPDATE UserRole SET RoleID = '${Global['role']}', LatestChangeUserID = '${Global['UserID']}' WHERE UserID = '${Global['useridselect']}'";
+                        $strSQL = "UPDATE userrole SET RoleID = '${Global['role']}', LatestChangeUserID = '${Global['UserID']}' WHERE UserID = '${Global['useridselect']}'";
                         $strAff = runSQLReturnAffected( $strSQL );
 
                         if( $strAff ) {
@@ -823,7 +823,7 @@ function ChangeUserDetailsForm() {
 
             } else {  //does not have entry in UserRole; will do INSERT instead
 
-                $strSQL = "INSERT INTO UserRole( UserID, RoleID, LatestChangeUserID ) VALUES ( '${Global['useridselect']}', '${Global['role']}', '${Global['UserID']}' )";
+                $strSQL = "INSERT INTO userrole( UserID, RoleID, LatestChangeUserID ) VALUES ( '${Global['useridselect']}', '${Global['role']}', '${Global['UserID']}' )";
                 $strAff = runSQLReturnAffected( $strSQL );
 
                 if( $strAff ) {
