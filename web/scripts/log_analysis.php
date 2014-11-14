@@ -519,7 +519,7 @@ function acknowledge_events()
  * acknowledge_events_all() takes care of marking all pending alerts as handled.
  * 11/2014
  */
-function acknowledge_events()
+function acknowledge_events_all()
 {
 			$strSQL = "update dad_alerts set Acknowledged=TRUE, Acknowledged_by='".
 				$Global['UserID']."', Acknowledged_Time=UNIX_TIMESTAMP(NOW())";
