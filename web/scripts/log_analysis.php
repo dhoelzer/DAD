@@ -436,14 +436,18 @@ function show_log_stats()
 // Alerts
 	if(isset($Global['AckMarker']) && $Global['AckMarker'] == '1')
 	{
-		acknowledge_events();
+		if(isset($Global['AckAll']))
+		{
+			acknowledge_events_all();
+		}
+		else acknowledge_events();
 	}
 	$strURL  = getOptionURL(OPTIONID_LOG_ANALYSIS);
 	$strHTML .=<<<endHTML
 		<!-- <iframe src='/stats/stats2.html' width=300px height=390px align=right></iframe> -->
 		<form id='acknowledge_alerts' align=left action='$strURL' method='post'>
 		<input type='hidden' name='AckMarker' value='1'></input>
-		<p><h3>Pending Alerts</h3><input type='submit' value='Acknowledge Marked'></input></h3>
+		<p><h3>Pending Alerts</h3><input name='AckSelect' type='submit' value='Acknowledge Marked'></input><input name='AckAll' type='submit' value='Acknowledge All'></input></h3>
 <div id="Scrollable" height=350px>
 		<font size=-2>
 		<table border='1' cellpadding='5'>
@@ -511,6 +515,16 @@ function acknowledge_events()
 	}
 }
 
+/*
+ * acknowledge_events_all() takes care of marking all pending alerts as handled.
+ * 11/2014
+ */
+function acknowledge_events()
+{
+			$strSQL = "update dad_alerts set Acknowledged=TRUE, Acknowledged_by='".
+				$Global['UserID']."', Acknowledged_Time=UNIX_TIMESTAMP(NOW())";
+			runSQLReturnAffected($strSQL);
+}
 /*
  *	Query builder takes care of the dynamic interactive web interface for creating simple SQL
  *	queries.  Initially, some time was invested in creating an interface that would also support joins.
