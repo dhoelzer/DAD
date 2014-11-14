@@ -34,9 +34,14 @@ $HTML = "";
 
 $SQL = "select System_Name, count(events.System_ID) as 'Event Count' 
 	FROM dad.events, dad.dad_sys_systems 
-	WHERE Time_Written>(UNIX_TIMESTAMP(NOW())-86400) 
-		AND events.System_ID=dad_sys_systems.System_ID 
+	WHERE events.System_ID=dad_sys_systems.System_ID 
 	group by events.System_ID order by count(events.System_ID) DESC LIMIT 5";
+
+#	$SQL = "select System_Name, count(events.System_ID) as 'Event Count' 
+#		FROM dad.events, dad.dad_sys_systems 
+#		WHERE Time_Written>(UNIX_TIMESTAMP(NOW())-86400) 
+#			AND events.System_ID=dad_sys_systems.System_ID 
+#		group by events.System_ID order by count(events.System_ID) DESC LIMIT 5";
 
 $dsn = "DBI:mysql:host=$MYSQL_SERVER;database=dad";
 $dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
