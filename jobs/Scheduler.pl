@@ -1,4 +1,6 @@
-#!c:/perl/bin/perl.exe
+#!/usr/bin/perl
+
+# Converted to UNIX systems in 11/2014 because I'm sick of supporting Windows weirdness.
 
 # Scheduler.pl
 # DAD
@@ -15,9 +17,6 @@ require "dbconfig.ph";
 use Time::Local;
 use DBI;
 use POSIX;
-use Win32::Process;
-use Win32::Process qw(STILL_ACTIVE);
-use Win32;
 
 my %RunningJobs;
 
@@ -74,12 +73,17 @@ sub StartJob
 		}
 	}
 	print "Starting $Descriptions{$JobID}\n";
-	Win32::Process::Create($ThisProcess,
-							$Executable{$JobID},
-							"$Arguments{$JobID}",
-							0,
-							NORMAL_PRIORITY_CLASS,
-							$Paths{$JobID}) || die ErrorReport();
+	       if(!defined($ThisProcess = fork()))
+	       {
+	               die "Fork failed";
+	       }
+	       elsif ($ThisProcess == 0)
+	       {
+	               #Fork succeeded.
+	               #system($Executable{$JobID} . " " . $Arguments{$JobID});
+	               print "Executing cd $Paths{$JobID} && $Executable{$JobID} $Arguments{$JobID}\n";
+	               exit 0;
+	       }
 	$RunningJobs{$JobID} = $ThisProcess;
 	my $now = mktime(localtime());
 	my $next = $now + $Intervals{$JobID};
