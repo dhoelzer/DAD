@@ -71,7 +71,7 @@ sub StartJob
 			print "Won't restart $Descriptions{$JobID}, still running.\n";
 			return;
 		}
-		else $ThisProcess->join;
+		else $ThisProcess->join();
 	}
 	print "Starting $Descriptions{$JobID}\n";
     print "Executing cd $Paths{$JobID} && $Executable{$JobID} $Arguments{$JobID}\n";
