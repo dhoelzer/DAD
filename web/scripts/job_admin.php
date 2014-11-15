@@ -207,9 +207,9 @@ function edit_job() {
 		  <tr>
           <td align='right'>Repeat every:</td>
           <td colspan=4><INPUT TYPE='text' NAME='month' ID='month' SIZE='1' title='values: 0-12' VALUE='" . (isset($arrDetails['month'])?$arrDetails['month']:'0')  . "'> months,
-			<INPUT TYPE='text' NAME='day' ID='day' SIZE='1' title='values: 0-31' VALUE='" . (isset($arrDetails['day'])?$arrDetails['day']:'0')  . "'> days, 
-			<INPUT TYPE='text' NAME='hour' ID='hour' SIZE='1' title='values: 0-23' VALUE='" . (isset($arrDetails['hour'])?$arrDetails['hour']:'0')  . "'> hours, 
-			<INPUT TYPE='text' NAME='min' ID='min' SIZE='1' title='values: 0-59' VALUE='" . (isset($arrDetails['min'])?$arrDetails['min']:'0')  . "'> minutes</td>
+			<INPUT TYPE='text' NAME='day' ID='day' SIZE='5' title='values: 0-31' VALUE='" . (isset($arrDetails['day'])?$arrDetails['day']:'0')  . "'> days, 
+			<INPUT TYPE='text' NAME='hour' ID='hour' SIZE='5' title='values: 0-23' VALUE='" . (isset($arrDetails['hour'])?$arrDetails['hour']:'0')  . "'> hours, 
+			<INPUT TYPE='text' NAME='min' ID='min' SIZE='5' title='values: 0-59' VALUE='" . (isset($arrDetails['min'])?$arrDetails['min']:'0')  . "'> minutes</td>
 		</td>
 		<td align='right'>Persistent: <input type='checkbox' name=persistent " . (isset($arrDetails['persistent']) ? ($arrDetails['persistent']==1 ? 'CHECKED' : '') : '') . ">
         </tr>
