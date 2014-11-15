@@ -17,6 +17,7 @@ require "dbconfig.ph";
 use Time::Local;
 use DBI;
 use POSIX;
+use threads;
 
 my %RunningJobs;
 
@@ -65,26 +66,17 @@ sub StartJob
 	{
 		my $exitcode;
 		$ThisProcess = $RunningJobs{$JobID};
-		$ThisProcess->GetExitCode($exitcode);
-		if($exitcode = STILL_ACTIVE)
+		if($ThisProcess->is_running();)
 		{
 			print "Won't restart $Descriptions{$JobID}, still running.\n";
 			return;
 		}
+		else $ThisProcess->join;
 	}
 	print "Starting $Descriptions{$JobID}\n";
-	       if(!defined($ThisProcess = fork()))
-	       {
-	               die "Fork failed";
-	       }
-	       elsif ($ThisProcess == 0)
-	       {
-	               #Fork succeeded.
-	               #system($Executable{$JobID} . " " . $Arguments{$JobID});
-	               print "Executing cd $Paths{$JobID} && $Executable{$JobID} $Arguments{$JobID}\n";
-	               exit 0;
-	       }
-	$RunningJobs{$JobID} = $ThisProcess;
+    print "Executing cd $Paths{$JobID} && $Executable{$JobID} $Arguments{$JobID}\n";
+    my $thread = threads->new (sub { system($Executable{$JobID} . " " . $Arguments{$JobID}) };
+	$RunningJobs{$JobID} = $thread;
 	my $now = mktime(localtime());
 	my $next = $now + $Intervals{$JobID};
 	my $SQL = "UPDATE dad_adm_job SET is_running=1, last_ran=$now, next_start=$next WHERE id_dad_adm_job=$JobID";
