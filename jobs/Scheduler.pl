@@ -39,8 +39,7 @@ while(1)
 	foreach(keys %RunningJobs)
 	{
 		my $exitcode;
-		$RunningJobs{$_}->GetExitCode($exitcode);
-		if($exitcode == STILL_ACTIVE)
+		if($exitcode == $RunningJobs{$_}->is_running())
 		{
 			print "\t$Descriptions{$_} -> Running\n";
 		}
