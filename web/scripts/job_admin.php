@@ -206,7 +206,7 @@ function edit_job() {
 		  </tr>
 		  <tr>
           <td align='right'>Repeat every:</td>
-          <td colspan=4><INPUT TYPE='text' NAME='month' ID='month' SIZE='1' title='values: 0-12' VALUE='" . (isset($arrDetails['month'])?$arrDetails['month']:'0')  . "'> months,
+          <td colspan=4><INPUT TYPE='text' NAME='month' ID='month' SIZE='5' title='values: 0-12' VALUE='" . (isset($arrDetails['month'])?$arrDetails['month']:'0')  . "'> months,
 			<INPUT TYPE='text' NAME='day' ID='day' SIZE='5' title='values: 0-31' VALUE='" . (isset($arrDetails['day'])?$arrDetails['day']:'0')  . "'> days, 
 			<INPUT TYPE='text' NAME='hour' ID='hour' SIZE='5' title='values: 0-23' VALUE='" . (isset($arrDetails['hour'])?$arrDetails['hour']:'0')  . "'> hours, 
 			<INPUT TYPE='text' NAME='min' ID='min' SIZE='5' title='values: 0-59' VALUE='" . (isset($arrDetails['min'])?$arrDetails['min']:'0')  . "'> minutes</td>
