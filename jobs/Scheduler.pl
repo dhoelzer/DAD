@@ -66,7 +66,7 @@ sub StartJob
 	{
 		my $exitcode;
 		$ThisProcess = $RunningJobs{$JobID};
-		if($ThisProcess->is_running();)
+		if($ThisProcess->is_running())
 		{
 			print "Won't restart $Descriptions{$JobID}, still running.\n";
 			return;
@@ -75,7 +75,7 @@ sub StartJob
 	}
 	print "Starting $Descriptions{$JobID}\n";
     print "Executing cd $Paths{$JobID} && $Executable{$JobID} $Arguments{$JobID}\n";
-    my $thread = threads->new (sub { system($Executable{$JobID} . " " . $Arguments{$JobID}) };
+    my $thread = threads->new (sub { system($Executable{$JobID} . " " . $Arguments{$JobID}) } );
 	$RunningJobs{$JobID} = $thread;
 	my $now = mktime(localtime());
 	my $next = $now + $Intervals{$JobID};
