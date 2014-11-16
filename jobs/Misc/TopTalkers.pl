@@ -35,7 +35,7 @@ $HTML = "";
 $SQL = "select System_Name, count(events.System_ID) as 'Event Count' 
 	FROM dad.events, dad.dad_sys_systems 
 	WHERE events.System_ID=dad_sys_systems.System_ID 
-	group by events.System_ID order by count(events.System_ID) DESC LIMIT 5";
+	group by events.System_ID order by count(events.System_ID) DESC LIMIT 20";
 
 #	$SQL = "select System_Name, count(events.System_ID) as 'Event Count' 
 #		FROM dad.events, dad.dad_sys_systems 
