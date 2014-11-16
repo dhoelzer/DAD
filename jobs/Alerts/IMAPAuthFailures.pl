@@ -10,7 +10,7 @@ $Severity = 2;
 $AlertDescription = "IMAP Authentication Failures";
 $results = &GetEventsByStrings($LastChecked, "imap", 14, "auth", 16, "failure;", 20);
 
-if !count($results) { exit; }
+if !$results { exit; }
 foreach($results)
 	{
 		$server = $_[9];
