@@ -278,7 +278,7 @@ sub GetEventsByStrings
 			FROM events as a
 			}. $JOINS .q{
 			WHERE }. $StringIDFilter .q{ 
-			}. $MATCHES .q{ };
+			}. $MATCHES .q{ LIMIT 100};
 #print "$SQL\n";
 			
 		my $results_ref2 = &SQL_Query($SQL);
