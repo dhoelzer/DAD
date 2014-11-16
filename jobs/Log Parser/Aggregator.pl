@@ -1,3 +1,5 @@
+#!/usr/bin/perl
+
 #   DAD Windows Log Aggregator
 #    Copyright (C) 2006, David Hoelzer/Cyber-Defense.org
 #
@@ -15,7 +17,7 @@
 #    along with this program; if not, write to the Free Software
 #    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
 
-#!c:/perl/bin/perl.exe
+
 
 # Threaded model for multiple queues
 use threads;
@@ -26,7 +28,6 @@ use Time::Local;
 # Modules for DB and Event logs.  POSIX is required for Unix time stamps
 use DBI;
 use POSIX;
-use Win32::EventLog;
 
 ################################################################
 #
@@ -286,9 +287,6 @@ sub _event_thread
 # End local functions
 ############################################################
 
-	$Win32::EventLog::GetMessageText = 0;	# If this is off, there should be no ntdll.dll calls!
-	# We've discovered that NTDLL.dll is -not- thread safe.  If you turn this back on, expect your aggregator
-	# to die horribly.
 	
 	my $TotalEvents=0;
 	my $who_am_i = shift;
@@ -367,7 +365,7 @@ sub _event_thread
 			}
 			$stop_time = mktime(localtime())+$my_execution_time;
 			$continue = 1;
-			$handle = Win32::EventLog->new($log, $system) or $continue=0;
+#			$handle = Win32::EventLog->new($log, $system) or $continue=0;
 			if(!$continue)
 			{
 				if($Output) { print "Can't open $log EventLog on $system\n"; }
