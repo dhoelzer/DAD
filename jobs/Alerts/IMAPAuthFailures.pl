@@ -12,9 +12,9 @@ $resultsref = &GetEventsByStringsPosition($LastChecked, "imap", 14, "auth", 16, 
 $num_results = @$resultsref;
 print "results: $num_results";
 
-foreach(@$resultsref)
+while($arow = shift(@$resultsref))
 	{
-		@row = @$_;
+		@row = @$arow;
 		print "--@row--";
 		$server = $row[9];
 		$user = $row[38];
