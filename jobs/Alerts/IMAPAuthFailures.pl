@@ -16,9 +16,9 @@ while($arow = shift(@$result_ref))
 	{
 		@row = @$arow;
 		print "\t@row\n";
-		print "\t\t$row[0] - $row[1]\n";
-		$server = $row[9];
-		$user = $row[38];
+		print "\t\t$row[3] - $row[4]\n";
+		$server = $row[11];
+		$user = $row[40];
 		$failures{"$user on $server"} = 1;
 	}
 foreach(keys %failures)
