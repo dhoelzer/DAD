@@ -17,7 +17,7 @@ foreach(%results)
 		$user = $_{38};
 		$failures{'$user on $server'} = 1;
 	}
-foreach(%failures)
+foreach(keys %failures)
 {
 	&ManualAlert($AlertDescription . " - $_", $Severity);	
 }
