@@ -147,7 +147,7 @@ sub GetEventsByStringsPosition
 			}. $JOINS .q{
 			WHERE }. $StringIDFilter . $MATCHES . 
 			q{ AND a.Time_Written > }. $TimeFrame .q{ LIMIT 100};
-#print "$SQL\n";
+print "$SQL\n";
 			
 		my $results_ref2 = &SQL_Query($SQL);
 		$num_results = @$results_ref2;
