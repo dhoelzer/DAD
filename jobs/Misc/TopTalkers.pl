@@ -52,7 +52,7 @@ $num_results = @$results_ref;
 if($num_results)
 {
 	$HTML .="<table><tr><th colspan=2>Top Talkers</th></tr><tr><td><table width=300px border=0>";
-	$HTML .="<tr><th colspan=2>Most Active Servers</th></tr>";
+	$HTML .="<tr><th colspan=2>Most Active Servers (All Time)</th></tr>";
 	$HTML .="<tr><th>Server</th><th>Event Count</th></tr>\n";
 	while($row = shift(@$results_ref))
 	{
@@ -64,24 +64,28 @@ if($num_results)
 	$HTML .="</table></td>\n";
 }
 	
-$SQL="
-	select String,  count(event_fields.String_ID) as 'Event Count' 
-		FROM event_fields, event_unique_strings 
-		WHERE Position=5 
-			AND event_unique_strings.String_ID=event_fields.String_ID
-			AND (event_unique_strings.String > 0 AND event_unique_strings.String < 999999)
-		group by event_fields.String_ID ORDER BY Count(event_fields.String_ID) DESC LIMIT 5";
-
-
-	$results_ref = &SQL_Query($SQL);
-$num_results = @$results_ref;
+#$SQL="
+#	select String,  count(event_fields.String_ID) as 'Event Count' 
+#		FROM event_fields, event_unique_strings 
+#		WHERE Position=5 
+#			AND event_unique_strings.String_ID=event_fields.String_ID
+#			AND (event_unique_strings.String > 0 AND event_unique_strings.String < 999999)
+#		group by event_fields.String_ID ORDER BY Count(event_fields.String_ID) DESC LIMIT 5";
+#
+#
+#	$results_ref = &SQL_Query($SQL);
+#$num_results = @$results_ref;
+$SQL = "select System_Name, count(events.System_ID) as 'Event Count' 
+	FROM dad.events, dad.dad_sys_systems 
+	WHERE Time_Written>(UNIX_TIMESTAMP(NOW())-86400) AND events.System_ID=dad_sys_systems.System_ID 
+	group by events.System_ID order by count(events.System_ID) DESC LIMIT 20";
 if($num_results)
 {
 	open(OUTPUT, "> ../../web/TopTalkers.html");
 	print OUTPUT "$HTML";
 	print OUTPUT "<td><table width=300px border=0>";
-	print OUTPUT "<tr><th colspan=2>Most Common Events</th></tr>";
-	print OUTPUT "<tr><th>Event ID</th><th>Event Count</th></tr>\n";
+	print OUTPUT "<tr><th colspan=2>Most Active Systems (24 Hours)</th></tr>";
+	print OUTPUT "<tr><th>System</th><th>Event Count</th></tr>\n";
 	while($row = shift(@$results_ref))
 	{
 		@this_row = @$row;
