@@ -17,7 +17,7 @@ while($arow = shift(@$result_ref))
 		@row = @$arow;
 		print "\t@row\n";
 		print "\t\t$row[0] - $row[1]\n"
-		$server = $riw[9];
+		$server = $row[9];
 		$user = $row[38];
 		$failures{"$user on $server"} = 1;
 	}
