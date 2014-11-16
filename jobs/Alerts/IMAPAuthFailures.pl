@@ -14,7 +14,7 @@ print $num_results;
 
 foreach(@$results)
 	{
-		$row = @$_
+		$row = @$_;
 		print "--$row--";
 		$server = $row[9];
 		$user = $row[38];
