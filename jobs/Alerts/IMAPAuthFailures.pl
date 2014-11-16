@@ -8,14 +8,14 @@ require "../Reports/Reports.pm";
 $LastChecked = $ARGV[0];
 $Severity = 2;
 $AlertDescription = "IMAP Authentication Failures";
-$resultsref = &GetEventsByStringsPosition($LastChecked, "imap", 14, "auth", 16, "failure;", 20);
-$num_results = @$resultsref;
-print "results: $num_results";
+$result_ref = &GetEventsByStringsPosition($LastChecked, "imap", 14, "auth", 16, "failure;", 20);
+$num_results = @$result_ref;
+print "results: $num_results\n";
 
-while($arow = shift(@$resultsref))
+while($arow = shift(@$result_ref))
 	{
 		@row = @$arow;
-		print "--@row--";
+		print "\t--@row--\n";
 		$server = $row[9];
 		$user = $row[38];
 		$failures{"$user on $server"} = 1;
