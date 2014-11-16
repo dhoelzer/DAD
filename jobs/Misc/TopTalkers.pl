@@ -79,6 +79,8 @@ $SQL = "select System_Name, count(events.System_ID) as 'Event Count'
 	FROM dad.events, dad.dad_sys_systems 
 	WHERE Time_Written>(UNIX_TIMESTAMP(NOW())-86400) AND events.System_ID=dad_sys_systems.System_ID 
 	group by events.System_ID order by count(events.System_ID) DESC LIMIT 20";
+	$results_ref = &SQL_Query($SQL);
+	$num_results = @$results_ref;
 if($num_results)
 {
 	open(OUTPUT, "> ../../web/TopTalkers.html");
