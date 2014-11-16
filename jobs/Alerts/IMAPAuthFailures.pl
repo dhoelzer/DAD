@@ -16,8 +16,9 @@ while($arow = shift(@$result_ref))
 	{
 		@row = @$arow;
 		print "\t--@row--\n";
-		$server = $row[9];
-		$user = $row[38];
+		@fields = split(/ /, @row);
+		$server = $fields[9];
+		$user = $fields[38];
 		$failures{"$user on $server"} = 1;
 	}
 foreach(keys %failures)
