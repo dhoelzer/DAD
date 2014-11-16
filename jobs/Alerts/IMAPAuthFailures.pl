@@ -11,15 +11,15 @@ $AlertDescription = "IMAP Authentication Failures";
 $results = &GetEventsByStrings($LastChecked, "imap", 14, "auth", 16, "failure;", 20);
 
 if !count($results) { exit; }
-foreach($results as $row)
+foreach($results)
 	{
-		$server = $row[9];
-		$user = $row[38];
+		$server = $_[9];
+		$user = $_[38];
 		$failures{'$user on $server'} = 1;
 	}
-foreach(%failures as $key)
+foreach(%failures)
 {
-	&ManualAlert($AlertDescription . " - $key", $Severity);	
+	&ManualAlert($AlertDescription . " - $_", $Severity);	
 }
 
 
