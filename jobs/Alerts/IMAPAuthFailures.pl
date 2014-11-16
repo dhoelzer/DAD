@@ -18,7 +18,7 @@ while($arow = shift(@$result_ref))
 		print "\t@row\n";
 		$line = $row[3];
 		@fields = split(/ +/, $line);
-		print "\t\t$fields[1]\n";
+		print "\t\t$fields[2]\n";
 		$server = $fields[9];
 		$user = $fields[38];
 		$failures{"$user on $server"} = 1;
