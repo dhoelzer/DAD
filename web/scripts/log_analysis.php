@@ -521,6 +521,7 @@ function acknowledge_events()
  */
 function acknowledge_events_all()
 {
+	Global $Global;
 			$strSQL = "update dad_alerts set Acknowledged=TRUE, Acknowledged_by='".
 				$Global['UserID']."', Acknowledged_Time=UNIX_TIMESTAMP(NOW())";
 			runSQLReturnAffected($strSQL);
