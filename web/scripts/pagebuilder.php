@@ -242,9 +242,11 @@ $i = 0;
             {
 			  $table .= "<td><font size=-1>";
 			  $words = split(" ", $row[$key]);
+			  $position = 0;
 			  foreach($words as $word)
 			  {
-				$table .= "<a href='$strURL&ContextQuery=$word&Start=".($Start-10)."'>$word </a>";
+				$table .= "<a title='Field $position' href='$strURL&ContextQuery=$word&Start=".($Start-10)."'>$word </a>";
+				$position++;
 			  }
 			  $table .= "</font></td>";
             }
