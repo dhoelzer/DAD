@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="description" content="DAD : Log aggregation, analysis, alerting and correlation for Windows, Syslog and text based logs.">
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>DAD</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/dhoelzer/DAD">View on GitHub</a>
+
+          <h1 id="project_title">DAD</h1>
+          <h2 id="project_tagline">Log aggregation, analysis, alerting and correlation for Windows, Syslog and text based logs.</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/dhoelzer/DAD/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/dhoelzer/DAD/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <p>This branch is being converted to Linux and progress is well along!  At this point here's what is working and what's not:</p>
+
+<h1>
+<a id="working" class="anchor" href="#working" aria-hidden="true"><span class="octicon octicon-link"></span></a>Working:</h1>
+
+<ul>
+<li>Threaded task scheduler</li>
+<li>Syslog aggregator</li>
+<li>Text log aggregator</li>
+<li>Web interface more or less fully functional
+** Searching
+** Alerting
+** Job Scheduling
+** Search Builder</li>
+</ul>
+
+<h1>
+<a id="not-yet-working" class="anchor" href="#not-yet-working" aria-hidden="true"><span class="octicon octicon-link"></span></a>Not Yet Working:</h1>
+
+<ul>
+<li>I have not yet converted the Windows event log extraction to a Linux WMIC solution.  I've found a solution and tested it out - works great - I just haven't integrated it yet.</li>
+</ul>
+
+<p>DAD is a Free Open Source Software (FOSS) log aggregation and analysis tool.</p>
+
+<p>DAD was created as a result of my needling of a particular customer regarding their log management solution.  After listening to me wax poetic on how easy it would be to improve upon the commercial solution that they were using, the customer finally said, "Put your code where your mouth is" and funded the development of the initial version of DAD.</p>
+
+<p>While DAD was created with Windows log management specifically in mind, the tool also natively supports Syslog as well as the ability to import any other text based log file that you'd like to let it get its paws on.  The log data is aggregated into a full text indexed database system, allowing for easy searches.</p>
+
+<p>Aside from the fairly user-friendly web based dashboard, the other great thing about DAD is the ability to create triggers, alerts and correlation events based on log activity.  Currently these types of events are created using external scripts (written in any scripting language you choose) through a very simple API into the event, correlation and alerting system.</p>
+
+<p>If you choose to use DAD, please follow the installation instructions closely.  We strongly recommend that you use GIT to pull down a copy of DAD and then continue to use GIT to pull down updates, rather than downloading an archive and trying to run things from there.  If you do choose to go the route of an archive, updating will be painful.  If you choose to use GIT, updates are full of goodness and light.</p>
+
+<p>If you have updates, suggestions or additions to DAD, please feel free to send them our way!  This is a completely free solution and will remain so under the terms of the GPL.</p>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">DAD maintained by <a href="https://github.com/dhoelzer">dhoelzer</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
