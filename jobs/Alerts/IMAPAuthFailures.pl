@@ -14,8 +14,8 @@ print $num_results;
 
 foreach(@$results)
 	{
-		$row = @$_;
-		print "--$row--";
+		@row = @$_;
+		print "--@row--";
 		$server = $row[9];
 		$user = $row[38];
 		$failures{"$user on $server"} = 1;
