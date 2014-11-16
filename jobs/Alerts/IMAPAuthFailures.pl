@@ -13,7 +13,7 @@ $AlertDescription = "IMAP Authentication Failures";
 if(scalar @results < 1) { exit; }
 foreach(@results)
 	{
-		print $_;
+		print "--$_--";
 		$server = $_{9};
 		$user = $_{38};
 		$failures{"$user on $server"} = 1;
