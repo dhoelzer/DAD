@@ -29,6 +29,7 @@ use Time::Local;
 use DBI;
 use POSIX;
 
+$DEBUG = 1;
 ################################################################
 #
 # The following are "Shared".  This means that all threads can see the contents or modify the contents of these
@@ -232,6 +233,17 @@ sub _event_thread
 	##################################################
 	sub record_event
 	{
+		if($DEBUG)
+		{
+			$field = 0;
+			foreach $i (@_)
+			{
+				print "$field: $i ";
+				$field++;
+			}
+			print "\n";
+			return;
+		}
 		$SQL_Queue->enqueue(join('~~~~~',@_));
 	}
 
