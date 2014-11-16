@@ -15,7 +15,7 @@ foreach(%results)
 	{
 		$server = $_{9};
 		$user = $_{38};
-		$failures{'$user on $server'} = 1;
+		$failures{"$user on $server"} = 1;
 	}
 foreach(keys %failures)
 {
