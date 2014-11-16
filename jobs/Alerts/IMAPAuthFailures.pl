@@ -9,13 +9,15 @@ $LastChecked = $ARGV[0];
 $Severity = 2;
 $AlertDescription = "IMAP Authentication Failures";
 $resultsref = &GetEventsByStrings($LastChecked, "imap", 14, "auth", 16, "failure;", 20);
+$num_results = @$results;
+print $num_results;
 
-#if(scalar @$results < 1) { exit; }
 foreach(@$results)
 	{
-		print "--$_--";
-		$server = $_[9];
-		$user = $_[38];
+		$row = @$_
+		print "--$row--";
+		$server = $row[9];
+		$user = $row[38];
 		$failures{"$user on $server"} = 1;
 	}
 foreach(keys %failures)
