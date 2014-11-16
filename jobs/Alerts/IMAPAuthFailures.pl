@@ -20,7 +20,7 @@ while($arow = shift(@$result_ref))
 		@fields = split(/ +/, $line);
 		print "\t\t$fields[2]\n";
 		$server = $fields[9];
-		$user = $fields[38];
+		$user = $fields[37];
 		$failures{"$user on $server"} = 1;
 	}
 foreach(keys %failures)
