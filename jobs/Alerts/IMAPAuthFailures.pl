@@ -16,7 +16,8 @@ while($arow = shift(@$result_ref))
 	{
 		@row = @$arow;
 		print "\t@row\n";
-		@fields = $row[3];
+		$line = $row[3];
+		@fields = split(/ +/, $line);
 		print "\t\t$fields[0]\n";
 		$server = $fields[9];
 		$user = $fields[38];
