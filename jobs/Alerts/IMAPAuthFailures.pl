@@ -15,10 +15,8 @@ print "results: $num_results\n";
 while($arow = shift(@$result_ref))
 	{
 		@row = @$arow;
-		print "\t@row\n";
 		$line = $row[3];
 		@fields = split(/ +/, $line);
-		print "\t\t$fields[2]\n";
 		$server = $fields[9];
 		$user = $fields[37];
 		$failures{"$user on $server"} = 1;
