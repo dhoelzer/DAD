@@ -413,11 +413,10 @@ sub GetEventsByStrings
 
 sub ManualAlert
 {
-# Grab all matching events that have occured since last alert job ran.
 $AlertDesc = shift;
 $Severity = shift;
 $event_data = "$AlertDesc";
-$SQL = "INSERT INTO dad_alerts SET Alert_Time=".time().", Event_Time='".$this_row[1]."', ".
+$SQL = "INSERT INTO dad_alerts SET Alert_Time=".time().", Event_Time='".time()."', ".
 		"Event_Data='".substr($event_data, 0, 199)."', Acknowledged=FALSE, Severity=$Severity";
 &SQL_Insert($SQL);
 }

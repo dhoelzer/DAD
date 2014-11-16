@@ -8,10 +8,10 @@ require "../Reports/Reports.pm";
 $LastChecked = $ARGV[0];
 $Severity = 2;
 $AlertDescription = "IMAP Authentication Failures";
-@results = &GetEventsByStrings($LastChecked, "imap", 14, "auth", 16, "failure;", 20);
+%results = &GetEventsByStrings($LastChecked, "imap", 14, "auth", 16, "failure;", 20);
 
-if(scalar @results < 1) { exit; }
-foreach(@results)
+if(scalar %results < 1) { exit; }
+foreach(%results)
 	{
 		print "--$_--";
 		$server = $_{9};
