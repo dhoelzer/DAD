@@ -8,7 +8,7 @@ require "../Reports/Reports.pm";
 $LastChecked = $ARGV[0];
 $Severity = 2;
 $AlertDescription = "IMAP Authentication Failures";
-$result_ref = &GetEventsByStringsPosition($LastChecked, "imap", 13, "auth", 15, "failure;", 19);
+$result_ref = &GetEventsByStringsPosition($LastChecked, "imap", 15, "auth", 17, "failure;", 21);
 $num_results = @$result_ref;
 print "results: $num_results\n";
 
