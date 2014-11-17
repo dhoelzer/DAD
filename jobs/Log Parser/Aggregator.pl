@@ -77,6 +77,7 @@ my $System_Started;				# Time this process started
 my	$dsn, 						# Database connection
 	$dbh;
 
+no warnings qw(internal);
 #Read in and evaluate the configuration values
 open(FILE,"Aggregator.ph") or die "Could not find configuration file!\n";
 foreach (<FILE>) { eval(); }
