@@ -1041,7 +1041,7 @@ sub _log_thread
 						@fields = split(/,/, $line);
 						
 						$_ = $line;
-						if (/(\S+)\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d+)\s+(\d+):(\d+):(\d+)\s+(\S+)\s+(\S+):\s+(.*)/)
+						if (/(\S+)\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d+)\s+(\d+):(\d+):(\d+)\s+(\S+)\s+([^0-9:\[\]]+)[:\[\]0-9]+]\s+(.*)/)
 						{
 							if($DEBUG){print "$who_am_i: Matched 0\n";}
 							$month = $2;
