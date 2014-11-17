@@ -1147,7 +1147,7 @@ sub _log_thread
 							$syslog_service = 'LogParser';
 						}
 						&record_event($syslog_reporting_system, $syslog_service, $syslog_timestamp, $syslog_timestamp, $line);
-						print "Reporting: $syslog_reporting_system - Service: $syslog_service - Timestamp: $syslog_timestamp - Syslog Time: $syslog_timestamp\n";
+						if($DEBUG) { print "Reporting: $syslog_reporting_system - Service: $syslog_service - Timestamp: $syslog_timestamp - Syslog Time: $syslog_timestamp\n"; }
 					}
 					close(LOG);
 					&move_log_processed($logfile);
