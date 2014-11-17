@@ -29,7 +29,6 @@ use Time::Local;
 use DBI;
 use POSIX;
 
-$DEBUG = 1;
 ################################################################
 #
 # The following are "Shared".  This means that all threads can see the contents or modify the contents of these
@@ -990,7 +989,7 @@ sub _log_thread
 		my $logfile = shift;
 		$newname = $logfile;
 		$newname =~ s/.*\/(.*)/$1/;
-		rename($logfile, $LOG_PROCESSED_LOCATION."/$newname") or die("Could not move processed log $newname!\n");
+		if (!$DEBUG) { rename($logfile, $LOG_PROCESSED_LOCATION."/$newname") or die("Could not move processed log $newname!\n"); }
 	}
 
 #
