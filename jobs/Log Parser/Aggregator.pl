@@ -1027,7 +1027,6 @@ sub _log_thread
 				@field_1, 					# Holds first field plus syslog header information
 				@fields;					# Holds all service fields
 
-				if($DEBUG){ print "$who_am_i: About to process $logfile\n";}
 				# Process the log line by line.  Log is not read into memory to prevent swapping huge logs.
 				$logfile = $log;
 				if( -f $logfile) 
@@ -1044,7 +1043,7 @@ sub _log_thread
 						$_ = $line;
 						if (/(\S+)\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d+)\s+(\d+):(\d+):(\d+)\s+(\S+)\s+(\S+):\s+(.*)/)
 						{
-							if($DEBUG){print "$who_am_i: Matched 0";}
+							if($DEBUG){print "$who_am_i: Matched 0\n";}
 							$month = $2;
 							$day = $3;
 							$hour=$4;
@@ -1056,7 +1055,7 @@ sub _log_thread
 						}
 						if (/^(\S+)\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d+)\s+(\d+):(\d+):(\d+)\s+(\S+)\s+(\d{4}).{1,2}([a-zA-Z0-9._]+)[^a-zA-Z]*([a-zA-Z_\/]+)/)
 						{
-							if($DEBUG){print "$who_am_i: Matched 1";}
+							if($DEBUG){print "$who_am_i: Matched 1\n";}
 							$month=$2;
 							$day=$3;
 							$hour=$4;
@@ -1069,7 +1068,7 @@ sub _log_thread
 						}
 						if (/^(\S+) - - \[(\d+)\/(\S+)\/(\d+):(\d+):(\d+):(\d+) (\S+)\]/)
 						{
-							if($DEBUG){print "$who_am_i: Matched 2";}
+							if($DEBUG){print "$who_am_i: Matched 2\n";}
 							$month=$3;
 							$day=$2;
 							$hour=$5;
@@ -1082,7 +1081,7 @@ sub _log_thread
 						}				
 						if (/^\[(\S{3})\s\S{3}\s\d{1,2}\s\d{2}:\d{2}\d{2}\s\d{4}\]/)
 						{
-							if($DEBUG){print "$who_am_i: Matched 3";}
+							if($DEBUG){print "$who_am_i: Matched 3\n";}
 							$month=$2;
 							if($1 eq "Sun") { $day=1; }
 							if($1 eq "Mon") { $day=2; }
@@ -1101,7 +1100,7 @@ sub _log_thread
 						}
 						if (/^(\d{4})\.(\d{1,2})\.(\d{1,2})\s(\d+):(\d+):(\d+)\s-\s(\S+)\]/)
 						{
-							if($DEBUG){print "$who_am_i: Matched 4";}
+							if($DEBUG){print "$who_am_i: Matched 4\n";}
 							$month=$2;
 							$day=$3;
 							$hour=$4;
@@ -1114,7 +1113,7 @@ sub _log_thread
 						}
 						if (/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d+)\s+(\d+):(\d+):(\d+)\s+(\S+)\s+([a-zA-Z0-9._]+)/)
 						{
-							if($DEBUG){print "$who_am_i: Matched 5";}
+							if($DEBUG){print "$who_am_i: Matched 5\n";}
 							$month=$1;
 							$day=$2;
 							$hour=$3;
@@ -1148,6 +1147,7 @@ sub _log_thread
 							$syslog_service = 'LogParser';
 						}
 						&record_event($syslog_reporting_system, $syslog_service, $syslog_timestamp, $syslog_timestamp, $line);
+						print "Reporting: $syslog_reporting_system - Service: $syslog_service - Timestamp: $syslog_timestamp - Syslog Time: $syslog_timestamp\n";
 					}
 					close(LOG);
 					&move_log_processed($logfile);
