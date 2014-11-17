@@ -1043,6 +1043,7 @@ sub _log_thread
 						$_ = $line;
 						if (/^(\S+)\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d+)\s+(\d+):(\d+):(\d+)\s+(\S+)\s+(\d{4}).{1,2}([a-zA-Z0-9._]+)[^a-zA-Z]*([a-zA-Z_\/]+)/)
 						{
+							if($DEBUG){print "$who_am_i: Matched 1";}
 							$month=$2;
 							$day=$3;
 							$hour=$4;
@@ -1055,6 +1056,7 @@ sub _log_thread
 						}
 						if (/^(\S+) - - \[(\d+)\/(\S+)\/(\d+):(\d+):(\d+):(\d+) (\S+)\]/)
 						{
+							if($DEBUG){print "$who_am_i: Matched 2";}
 							$month=$3;
 							$day=$2;
 							$hour=$5;
@@ -1067,6 +1069,7 @@ sub _log_thread
 						}				
 						if (/^\[(\S{3})\s\S{3}\s\d{1,2}\s\d{2}:\d{2}\d{2}\s\d{4}\]/)
 						{
+							if($DEBUG){print "$who_am_i: Matched 3";}
 							$month=$2;
 							if($1 eq "Sun") { $day=1; }
 							if($1 eq "Mon") { $day=2; }
@@ -1085,6 +1088,7 @@ sub _log_thread
 						}
 						if (/^(\d{4})\.(\d{1,2})\.(\d{1,2})\s(\d+):(\d+):(\d+)\s-\s(\S+)\]/)
 						{
+							if($DEBUG){print "$who_am_i: Matched 4";}
 							$month=$2;
 							$day=$3;
 							$hour=$4;
@@ -1097,6 +1101,7 @@ sub _log_thread
 						}
 						if (/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d+)\s+(\d+):(\d+):(\d+)\s+(\S+)\s+([a-zA-Z0-9._]+)/)
 						{
+							if($DEBUG){print "$who_am_i: Matched 5";}
 							$month=$1;
 							$day=$2;
 							$hour=$3;
@@ -1118,7 +1123,7 @@ sub _log_thread
 							$syslog_service=$7;
 						}
 						
-							#		print "$1 $2 $3 $4 $5 $6 $7 $8 $9 $10\n";
+							if($DEBUG){ print "$who_am_i: $1 $2 $3 $4 $5 $6 $7 $8 $9 $10\n";}
 						if($year > 1990 && $year < 2015)
 						{		
 							$syslog_timestamp=&timestring_to_unix("$month/$day/$year","$hour:$minute:$second");
