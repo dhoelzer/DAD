@@ -1009,6 +1009,7 @@ sub _log_thread
 			{
 				$Total_Sleep+=30;
 				$Status{"log $who_am_i"} = "Sleeping: $Total_Sleep";
+				if($DEBUG){ print "$who_am_i: Sleeping - $Total_Sleep";}
 				sleep(30);
 				if($Time_To_Die)
 				{
@@ -1026,12 +1027,14 @@ sub _log_thread
 				@field_1, 					# Holds first field plus syslog header information
 				@fields;					# Holds all service fields
 
+				if($DEBUG){ print "$who_am_i: About to process $logfile\n";}
 				# Process the log line by line.  Log is not read into memory to prevent swapping huge logs.
 				$logfile = $log;
 				if( -f $logfile) 
 				{ 
 					open(LOG, "$logfile") or die("Could not open log $logfile\n");
 					$Status{"log $who_am_i"} = "Processing: $logfile";
+					if($DEBUG) { print "$who_am_i: Processing $logfile\n";}
 					foreach $line (<LOG>)
 					{
 						chomp($line);
