@@ -1038,6 +1038,7 @@ sub _log_thread
 					foreach $line (<LOG>)
 					{
 						chomp($line);
+						if($DEBUG){ print "$who_am_i: $line\n";}
 						@fields = split(/,/, $line);
 						
 						$_ = $line;
