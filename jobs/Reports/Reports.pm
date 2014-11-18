@@ -146,7 +146,7 @@ sub GetEventsByStringsPosition
 			FROM events as a
 			}. $JOINS .q{
 			WHERE }. $StringIDFilter . $MATCHES . 
-			q{ AND a.Time_Written > }. $TimeFrame .q{ LIMIT 100};
+			q{ AND a.Time_Written > }. $TimeFrame .q{ };
 #print "$SQL\n";
 			
 		my $results_ref2 = &SQL_Query($SQL);
@@ -278,7 +278,7 @@ sub GetEventsByStrings
 			FROM events as a
 			}. $JOINS .q{
 			WHERE }. $StringIDFilter .q{ 
-			}. $MATCHES .q{ LIMIT 100};
+			}. $MATCHES .q{ };
 #print "$SQL\n";
 			
 		my $results_ref2 = &SQL_Query($SQL);
