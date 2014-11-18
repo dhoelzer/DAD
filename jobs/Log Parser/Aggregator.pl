@@ -1053,6 +1053,7 @@ sub _log_thread
 							$year = ((localtime(time))[5]) + 1900;
 							$syslog_reporting_system=$7;
 							$syslog_service=$8;			
+							print "Year: $year $syslog_reporting_system $syslog_service\n";
 							goto CONTINUE;				
 						}
 						if (/^(\S+)\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d+)\s+(\d+):(\d+):(\d+)\s+(\S+)\s+(\d{4}).{1,2}([a-zA-Z0-9._]+)[^a-zA-Z]*([a-zA-Z_\/]+)/)
