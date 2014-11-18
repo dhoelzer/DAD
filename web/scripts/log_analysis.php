@@ -444,7 +444,7 @@ function show_log_stats()
 	}
 	$strURL  = getOptionURL(OPTIONID_LOG_ANALYSIS);
 	$strHTML .=<<<endHTML
-		<!-- <iframe src='/stats/stats2.html' width=300px height=390px align=right></iframe> -->
+		<iframe src='/stats/stats2.html' width=300px height=390px align=right></iframe>
 		<form id='acknowledge_alerts' align=left action='$strURL' method='post'>
 		<input type='hidden' name='AckMarker' value='1'></input>
 		<p><h3>Pending Alerts</h3><input name='AckSelect' type='submit' value='Acknowledge Marked'></input><input name='AckAll' type='submit' value='Acknowledge All'></input></h3>
