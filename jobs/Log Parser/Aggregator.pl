@@ -1042,7 +1042,7 @@ sub _log_thread
 						@fields = split(/,/, $line);
 						
 						$_ = $line;
-						if (/(\S+)\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d+)\s+(\d+):(\d+):(\d+)\s+(\S+)\s+([^0-9:\[\]]+)[:\[\]0-9]+]\s+(.*)/)
+						if (/(\S+)\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d+)\s+(\d+):(\d+):(\d+)\s+(\S+)\s+([^0-9:\[\]]+)[:\[\]0-9]+]?\s+(.*)/)
 						{
 							if($DEBUG){print "$who_am_i: Matched 0\n";}
 							$month = $2;
@@ -1138,7 +1138,7 @@ sub _log_thread
 							$syslog_service=$7;
 						}
 					CONTINUE:
-							if($DEBUG){ print "$who_am_i: $1 $2 $3 $4 $5 $6 $7 $8 $9 $10\n";}
+						if($DEBUG){ print "$who_am_i: $1 $2 $3 $4 $5 $6 $7 $8 $9 $10\n";}
 						if($year > 1990 && $year < 2050)
 						{		
 							$syslog_timestamp=&timestring_to_unix("$month/$day/$year","$hour:$minute:$second");
