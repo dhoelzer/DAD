@@ -1052,7 +1052,8 @@ sub _log_thread
 							$second=$6;
 							$year = ((localtime(time))[5]) + 1900;
 							$syslog_reporting_system=$7;
-							$syslog_service=$8;							
+							$syslog_service=$8;			
+							goto CONTINUE;				
 						}
 						if (/^(\S+)\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d+)\s+(\d+):(\d+):(\d+)\s+(\S+)\s+(\d{4}).{1,2}([a-zA-Z0-9._]+)[^a-zA-Z]*([a-zA-Z_\/]+)/)
 						{
@@ -1135,9 +1136,9 @@ sub _log_thread
 							$syslog_reporting_system=$6;
 							$syslog_service=$7;
 						}
-						
+					CONTINUE:
 							if($DEBUG){ print "$who_am_i: $1 $2 $3 $4 $5 $6 $7 $8 $9 $10\n";}
-						if($year > 1990 && $year < 2015)
+						if($year > 1990 && $year < 2050)
 						{		
 							$syslog_timestamp=&timestring_to_unix("$month/$day/$year","$hour:$minute:$second");
 						}
