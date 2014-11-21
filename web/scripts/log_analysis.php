@@ -428,7 +428,7 @@ function show_log_stats()
 	$PercentUsed = 100 - $PercentFree;
 	$strSQL   = 'SELECT COUNT(*) FROM events';;
 	$events2 = runQueryReturnArray( $strSQL );
-	$num_events2 = $events2[0][0];
+	$num_events2 = number_format($events2[0][0]);
 	$strHTML = "Disk Utilization: $PercentFree% Free<br>Total Events Available: $num_events2<br>";
 	$top_talkers = file("../TopTalkers.html");
 	foreach($top_talkers as $line)
