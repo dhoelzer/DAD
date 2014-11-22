@@ -423,7 +423,7 @@ function show_log_stats()
 	$UsedSpace = $TotalSpace / $FreeSpace;
 	$PercentFree = round((($FreeSpace/($TotalSpace + 1)) * 100), 2);
 	$PercentUsed = 100 - $PercentFree;
-	$BytesPerEvent = $UsedSpace/$num_events2;
+	$BytesPerEvent = floatval($UsedSpace/$num_events2);
 	$MoreEvents = $FreeSpace / ($BytesPerEvent+1);
 
 	$top_talkers = file("../TopTalkers.html");
@@ -431,7 +431,7 @@ function show_log_stats()
 
 
 	$strHTML = "Disk Utilization: $PercentFree% Free<br>Total Events Available: ".number_format($num_events2)."<br>";
-	$strHTML = "Approximately ".number_format($BytesPerEvent)." bytes per event.  Instance can store more than ".$MoreEvents." more events.<br>";
+	$strHTML .= "Approximately ".number_format($BytesPerEvent)." bytes per event.  Instance can store more than ".number_format($MoreEvents)." more events.<br>";
 	$strHTML .= "DAD Uptime: $up and $hours hours.<br>";
 	foreach($top_talkers as $line)
 	{
