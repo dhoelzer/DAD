@@ -407,31 +407,31 @@ function show_log_stats()
     global $gaLiterals;
 	global	$Global;
 	
-//    $strSQL   = 'SELECT COUNT(*) FROM events';;
-//    $events2 = runQueryReturnArray( $strSQL );
-//	$num_events2 = $events2[0][0];
-//    $strSQL   = 'SELECT COUNT(*) FROM event_fields';;
-//    $fields = runQueryReturnArray( $strSQL );
-//	$num_fields = $fields[0][0];
-//    $strSQL   = 'SELECT COUNT(*) FROM event_unique_strings';;
-//    $strings = runQueryReturnArray( $strSQL );
-//	$num_strings = $strings[0][0];
+    $strSQL   = 'SELECT COUNT(*) FROM event_unique_strings';;
+    $strings = runQueryReturnArray( $strSQL );
+	$num_unique_strings = number_format($strings[0][0]);
     $strSQL   = 'SELECT System_Name FROM dad_sys_event_import_from';
     $systems = runQueryReturnArray( $strSQL );
     $num_systems = count($systems);
-//    $strSQL   = 'SELECT COUNT(*) FROM dad_sys_services';
-//    $num_services = runQueryReturnArray( $strSQL );
-	$FreeSpace = disk_free_space(MYSQL_DRIVE);
-	$TotalSpace = disk_total_space(MYSQL_DRIVE);
-//	$MoreEvents = $FreeSpace/(($TotalSpace-$FreeSpace) / ($num_events2 + 1)+1);
-	$PercentFree = round((($FreeSpace/($TotalSpace + 1)) * 100), 2);
-	$PercentUsed = 100 - $PercentFree;
+
 	$strSQL   = 'SELECT COUNT(*) FROM events';;
 	$events2 = runQueryReturnArray( $strSQL );
-	$num_events2 = number_format($events2[0][0]);
-	$strHTML = "Disk Utilization: $PercentFree% Free<br>Total Events Available: $num_events2<br>";
+	$num_events2 = $events2[0][0];
+
+	$FreeSpace = disk_free_space(MYSQL_DRIVE);
+	$TotalSpace = disk_total_space(MYSQL_DRIVE);
+	$UsedSpace = $TotalSpace / $FreeSpace;
+	$PercentFree = round((($FreeSpace/($TotalSpace + 1)) * 100), 2);
+	$PercentUsed = 100 - $PercentFree;
+	$BytesPerEvent = $UsedSpace/$num_events2;
+	$MoreEvents = $FreeSpace / ($BytesPerEvent+1);
+
 	$top_talkers = file("../TopTalkers.html");
 	list($up, $hours, $extra) = split(',', exec('uptime'));
+
+
+	$strHTML = "Disk Utilization: $PercentFree% Free<br>Total Events Available: ".number_format($num_events2)."<br>";
+	$strHTML = "Approximately ".number_format($BytesPerEvent)." bytes per event.  Instance can store more than ".$MoreEvents." more events.<br>"
 	$strHTML .= "DAD Uptime: $up and $hours hours.<br>";
 	foreach($top_talkers as $line)
 	{
