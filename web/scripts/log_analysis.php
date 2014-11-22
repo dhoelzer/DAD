@@ -432,7 +432,7 @@ function show_log_stats()
 
 	$strHTML = "Disk Utilization: $PercentFree% Free (".number_format($FreeSpace)." bytes)<br>Total Events Available: ".number_format($num_events2)."<br>";
 	$strHTML .= "Approximately ".number_format($BytesPerEvent)." bytes per event.  Instance can store more than ".number_format($MoreEvents)." more events.<br>";
-	$strHTML .= "(Note: The number of bytes per event does not take into account system and other files.  Additionally, bytes per event decreases over time as unique strings are never stored more than one time.)";
+	$strHTML .= "(Note: The number of bytes per event does not take into account system and other files.  Additionally, bytes per event decreases over time as unique strings are never stored more than one time.)<br>";
 	$strHTML .= "DAD Uptime: $up and $hours hours.<br>";
 	foreach($top_talkers as $line)
 	{
