@@ -423,7 +423,7 @@ function show_log_stats()
 	$UsedSpace = $TotalSpace / $FreeSpace;
 	$PercentFree = round((($FreeSpace/($TotalSpace + 1)) * 100), 2);
 	$PercentUsed = 100 - $PercentFree;
-	$BytesPerEvent = floatval($UsedSpace)/(floatval($num_events2)+1.0);
+	$BytesPerEvent = floatval($TotalSpace - $FreeSpace)/(floatval($num_events2)+1.0);
 	$MoreEvents = $FreeSpace / ($BytesPerEvent+1);
 
 	$top_talkers = file("../TopTalkers.html");
