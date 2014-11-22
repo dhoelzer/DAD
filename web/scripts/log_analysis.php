@@ -431,7 +431,7 @@ function show_log_stats()
 
 
 	$strHTML = "Disk Utilization: $PercentFree% Free<br>Total Events Available: ".number_format($num_events2)."<br>";
-	$strHTML = "Approximately ".number_format($BytesPerEvent)." bytes per event.  Instance can store more than ".$MoreEvents." more events.<br>"
+	$strHTML = "Approximately ".number_format($BytesPerEvent)." bytes per event.  Instance can store more than ".$MoreEvents." more events.<br>";
 	$strHTML .= "DAD Uptime: $up and $hours hours.<br>";
 	foreach($top_talkers as $line)
 	{
