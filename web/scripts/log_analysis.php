@@ -431,7 +431,7 @@ function show_log_stats()
 	$num_events2 = number_format($events2[0][0]);
 	$strHTML = "Disk Utilization: $PercentFree% Free<br>Total Events Available: $num_events2<br>";
 	$top_talkers = file("../TopTalkers.html");
-	list($up, $hours, $extra) = split(',', system('uptime > /dev/null'));
+	list($up, $hours, $extra) = split(',', exec('uptime'));
 	$strHTML .= "DAD Uptime: $up and $hours hours.<br>";
 	foreach($top_talkers as $line)
 	{
