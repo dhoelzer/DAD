@@ -194,6 +194,164 @@ sub GetEventsByStringsPosition
 
 }
 
+
+sub EventsExistByStringsPosition
+{
+	my $TimeFrame = shift(@_);
+	my $num_terms = @_;
+	my $SearchTerms = "";
+	my @Terms = ();
+	my %Positions = {};
+	
+	if(($num_terms % 2) != 0 )
+	{
+		return "Format for EventsExistByStringsPostion is TimeFrame(in seconds), String, Position[,String, Position...]";
+	}
+	if($num_terms < 1)
+	{
+		return "No search terms present\n";
+	}
+	$num_terms /= 2;
+	#$TimeFrame = time()-$TimeFrame;
+	$Report = "";
+	#print "Searching for events that occurred since $TimeFrame with the terms:\n";
+	for($i=0; $i!= $num_terms; $i++)
+	{
+		$t = lc($_[$i * 2]);
+		$p = $_[($i * 2) + 1];
+		#print "$t - $p\n";
+		$_ = $p;
+		$Terms[$i] = $t;
+		$Positions{$t} = $p  unless /\D/;	
+		if(!$SearchTerms)
+		{
+			$SearchTerms = "'$t'";
+		}
+		else
+		{
+			$SearchTerms .= ",'$t'";
+		}
+	}
+
+	# Events to find:	
+	$SQL = q{
+	SELECT * 
+	FROM event_unique_strings 
+	WHERE String IN ( }. $SearchTerms .q{ )
+	};#print "$SQL\n";
+	$results_ref = &SQL_Query($SQL);
+	$num_results = @$results_ref;
+	if($num_results < $num_terms)
+	{
+		return "Could only find $num_results out of $num_terms terms.  Search cancelled.\n";
+	}
+	$StringIDFilter = "";
+	if($num_results)
+	{
+		while($row = shift(@$results_ref))
+		{
+			@this_row = @$row;
+			#print $this_row[0]."-".$this_row[1]."-".$Positions{lc($this_row[1])}."\n";
+			if(!$Positions{lc($this_row[1])})
+			{ #print "\tNo Position\n";
+				if($StringIDFilter eq "")
+				{
+					$table_ref = 'b';
+					$StringIDFilter="\n$table_ref.String_ID=$this_row[0]";
+					$JOINS="\nJOIN event_fields as $table_ref";
+					$MATCHES="\nAND a.Events_ID=$table_ref.Events_ID";
+				}
+				else
+				{
+					$table_ref++;
+					$StringIDFilter .= "\nAND $table_ref.String_ID=$this_row[0]";
+					$JOINS.="\nJOIN event_fields as $table_ref";
+					$MATCHES.="\nAND a.Events_ID=$table_ref.Events_ID";
+				}
+				next;
+			}
+			if($StringIDFilter eq "")
+			{
+				$table_ref = 'b';
+				if($Positions{$this_row[1]} == int($Positions{$this_row[1]}))
+				{
+					$StringIDFilter = "\n($table_ref.String_ID=$this_row[0] AND $table_ref.Position=".$Positions{lc($this_row[1])}.")";
+				}
+				else
+				{
+					$StringIDFilter = "\n$table_ref.String_ID=$this_row[0]";
+				}
+				$JOINS="\nJOIN event_fields as $table_ref";
+				$MATCHES="\nAND a.Events_ID=$table_ref.Events_ID";
+			}
+			else
+			{			
+				$table_ref++;
+				if($Positions{$this_row[1]} == int($Positions{$this_row[1]}))
+				{
+					$StringIDFilter .= "\nAND ($table_ref.String_ID=$this_row[0] AND $table_ref.Position=".$Positions{lc($this_row[1])}.")";
+				}
+				else
+				{
+					$StringIDFilter .= "\nAND $table_ref.String_ID=$this_row[0]";
+				}
+				$JOINS.="\nJOIN event_fields as $table_ref";
+				$MATCHES.="\nAND a.Events_ID=$table_ref.Events_ID";
+			}
+		}
+		$SQL=q{
+			SELECT DISTINCT a.Events_ID,a.Time_Written,a.Time_Generated
+			FROM events as a
+			}. $JOINS .q{
+			WHERE }. $StringIDFilter . $MATCHES . 
+			q{ AND a.Time_Written > }. $TimeFrame .q{ LIMIT 1};
+#print "$SQL\n";
+			
+		my $results_ref2 = &SQL_Query($SQL);
+		$num_results = @$results_ref2;
+		if($num_results)
+		{
+			my $Events_ID_in = "";
+			while($trow = shift(@$results_ref2))
+			{
+				my @mrow = @$trow;
+				if($Events_ID_in eq "")
+				{
+					$Events_ID_in = "$mrow[0]";
+				}
+				else
+				{
+					$Events_ID_in .= ", $mrow[0]";
+				}
+			}	
+			$SQL = q{
+				SELECT 
+					f.Events_ID, 
+					e.Time_Generated,
+					systems.System_Name, 
+					GROUP_CONCAT(s.String ORDER BY f.Position ASC separator ' ')
+				FROM
+					events as e,
+					event_fields as f,
+					event_unique_strings as s, 
+					dad_sys_systems as systems
+				WHERE
+					e.Events_ID IN (}. $Events_ID_in .q{)
+					AND f.Events_ID=e.Events_ID
+					AND (
+						f.String_ID=s.String_ID
+						)
+					AND systems.System_ID=e.System_ID
+					GROUP BY f.Events_ID
+					ORDER BY f.Events_ID,f.Position	, e.Time_Generated		
+				};#print "$SQL\n";
+			$event_detail_ref = &SQL_Query($SQL);
+		}
+	}
+	return $event_detail_ref;
+
+}
+
 sub GetEventsByStringsPositionText
 {
 	$event_detail_ref = GetEventsByStringsPosition(@_);
