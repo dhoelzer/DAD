@@ -35,8 +35,39 @@ $dsn = "DBI:mysql:host=$MYSQL_SERVER;database=dad";
 $dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
 	or die ("Could not connect to DB server to import the list of servers to poll.\n");
 
-@Systems = &_get_systems();
-foreach(@Systems) { print "Found $_\n";}
+@Systems = &get_systems();
+foreach(@Systems) { 
+	$numevents = &get_num_events($_,time()-86400,time());
+	print "$_ had $numevents in that time period.\n";
+}
+
+sub get_num_events
+{
+	($system, $start, $end) = @_ or die("Wrong number of arguments to get_num_events:  system name, start time, end time\n");
+	$results_ref = &SQL_Query("select count(*) from events where System_ID=$system and (($start>Time_Generated and $end<Time_Generated) or ($start>Time_Written and $end<Time_Written))");
+	$row = shift(@$results_ref);
+	return $row[0];
+}
+
+sub get_systems
+{
+	my	$results_ref,				# Used to hold query responses
+		$row,						#Row array reference
+		@this_row;					#Current row
+	my @Systems;
+
+
+	# Fetch the names of the systems to poll.
+	# There is no need to restart this process to pick up the new system names or remove old names.
+	$results_ref = &SQL_Query("select distinct System_ID from events where Time_Generated>UNIX_TIMESTAMP(NOW())-86400");
+	# Populate the @Systems array
+	while($row = shift(@$results_ref) )
+	{
+		@this_row = @$row;
+		 if ($this_row[0] !~ /:/) { unshift(@Systems, $this_row[0]); }
+	}
+	return(@Systems);
+}
 
 sub _get_time_string
 {
@@ -128,25 +159,6 @@ sub _get_aggregate_system_stat_data
 }
 
 
-sub _get_systems
-{
-	my	$results_ref,				# Used to hold query responses
-		$row,						#Row array reference
-		@this_row;					#Current row
-	my @Systems;
-
-
-	# Fetch the names of the systems to poll.
-	# There is no need to restart this process to pick up the new system names or remove old names.
-	$results_ref = &SQL_Query("select System_Name from dad_sys_systems where System_ID in(select distinct System_ID from events where Time_Generated>UNIX_TIMESTAMP(NOW())-86400)");
-	# Populate the @Systems array
-	while($row = shift(@$results_ref) )
-	{
-		@this_row = @$row;
-		 if ($this_row[0] !~ /:/) { unshift(@Systems, $this_row[0]); }
-	}
-	return(@Systems);
-}
 
 ##################################################
 #
