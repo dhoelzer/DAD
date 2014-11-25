@@ -37,8 +37,9 @@ $dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
 
 @Systems = &get_systems();
 foreach(@Systems) { 
-	$numevents = &get_num_events($_,time()-86400,time());
 	$system_name = &get_system_name($_);
+	if($system_name ~ /:/) continue;
+	$numevents = &get_num_events($_,time()-86400,time());
 	print "$system_name had $numevents in that time period.\n";
 }
 
