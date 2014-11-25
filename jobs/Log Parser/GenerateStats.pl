@@ -41,7 +41,7 @@ foreach(@Systems) {
 	if($system_name =~ /:/) {next;}
 	$numevents = &get_num_events($_,time()-86400,time());
 	$insert = "insert into dad_sys_event_stats (System_Name, Number_Inserted, Stat_Time) values ('$system_name', $numevents, time())";
-	&SQLQuery($insert);
+	&SQL_Query($insert);
 }
 
 sub get_system_name
