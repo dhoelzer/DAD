@@ -46,8 +46,8 @@ sub get_num_events
 	($system, $start, $end) = @_ or die("Wrong number of arguments to get_num_events:  system name, start time, end time\n");
 	$results_ref = &SQL_Query("select count(*) from events where System_ID=$system and (($start<Time_Generated and $end>Time_Generated) or ($start<Time_Written and $end>Time_Written))");
 	$row = shift(@$results_ref);
-	@this_row = @$row;
-	return $this_row[0];
+#	@this_row = @$row;
+	return $row[0][0];
 }
 
 sub get_systems
