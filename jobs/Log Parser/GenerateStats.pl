@@ -39,8 +39,8 @@ $dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
 foreach(@Systems) { 
 	$system_name = &get_system_name($_);
 	if($system_name =~ /:/) {next;}
-	$start = shift;
-	$end = $start+3600;
+	$start = int(shift);
+	$end = $start + 3600;
 	$numevents = &get_num_events($_,$start, $end);
 	$insert = "insert into dad_sys_event_stats (System_Name, Number_Inserted, Stat_Time) values ('$system_name', $numevents, $end)";
 	&SQL_Insert($insert);
