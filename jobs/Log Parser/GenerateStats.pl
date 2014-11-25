@@ -54,9 +54,27 @@ sub get_system_name
 sub get_num_events
 {
 	($system, $start, $end) = @_ or die("Wrong number of arguments to get_num_events:  system name, start time, end time\n");
-	$results_ref = &SQL_Query("select count(*) from events where System_ID=$system and (($start<Time_Generated and $end>Time_Generated) or ($start<Time_Written and $end>Time_Written))");
+	$results_ref = &SQL_Insert("select count(*) from events where System_ID=$system and (($start<Time_Generated and $end>Time_Generated) or ($start<Time_Written and $end>Time_Written))");
 	@row = shift(@$results_ref);
 	return $row[0][0];
+}
+
+##################################################
+#
+# SQL_Insert - Does the legwork for all SQL inserts including basic error checking
+# 	Takes a SQL string as an argument
+#
+##################################################
+sub SQL_Insert
+{
+	my $SQL = $_[0];
+	my $query = $dbh->prepare($SQL);
+	if($DEBUG){return; print"$SQL\n";return;}
+	$query -> execute();
+	my $in_id = $dbh->{ q{mysql_insertid}};
+	$query->finish();
+	undef $query;
+	return $in_id;
 }
 
 sub get_systems
