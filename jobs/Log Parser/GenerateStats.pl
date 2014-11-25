@@ -43,7 +43,7 @@ foreach(@Systems) {
 	$end = time();
 	$numevents = &get_num_events($_,$start, $end);
 	$insert = "insert into dad_sys_event_stats (System_Name, Number_Inserted, Stat_Time) values ('$system_name', $numevents, $end)";
-	&SQL_Query($insert);
+	&SQL_Insert($insert);
 }
 
 sub get_system_name
@@ -56,7 +56,7 @@ sub get_system_name
 sub get_num_events
 {
 	($system, $start, $end) = @_ or die("Wrong number of arguments to get_num_events:  system name, start time, end time\n");
-	$results_ref = &SQL_Insert("select count(*) from events where System_ID=$system and (($start<Time_Generated and $end>Time_Generated) or ($start<Time_Written and $end>Time_Written))");
+	$results_ref = &SQL_Query("select count(*) from events where System_ID=$system and (($start<Time_Generated and $end>Time_Generated) or ($start<Time_Written and $end>Time_Written))");
 	@row = shift(@$results_ref);
 	return $row[0][0];
 }
