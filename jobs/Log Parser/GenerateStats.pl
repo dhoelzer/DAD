@@ -143,7 +143,7 @@ sub _get_systems
 	while($row = shift(@$results_ref) )
 	{
 		@this_row = @$row;
-		 if (/[^:]$/) { unshift(@Systems, $this_row[0]); }
+		 if ($this_row[0] !~ /:/) { unshift(@Systems, $this_row[0]); }
 	}
 	return(@Systems);
 }
