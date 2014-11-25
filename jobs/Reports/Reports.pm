@@ -194,7 +194,9 @@ sub GetEventsByStringsPosition
 
 }
 
-
+# This is a very inelegant and extremely ineffecient kludge put in place to allow for quick faster detection of whether or
+# not any events exist that match a specific criteria.  Specifically, this was created to allow the "CheckLogs" alert script to
+# identify whether or not any systems have failed to report in a certain period of time.  TODO - Refactor this.
 sub EventsExistByStringsPosition
 {
 	my $TimeFrame = shift(@_);
