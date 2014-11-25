@@ -38,15 +38,22 @@ $dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
 @Systems = &get_systems();
 foreach(@Systems) { 
 	$numevents = &get_num_events($_,time()-86400,time());
-	print "$_ had $numevents in that time period.\n";
+	$system_name = &get_system_name($_);
+	print "$system_name had $numevents in that time period.\n";
 }
 
+sub get_system_name
+{
+	$ID = shift;
+	$results_ref = &SQL_Query("select System_Name from dad_sys_systems where System_ID=$ID");
+	@row = shift(@$results_ref);
+	return $row[0][0];
+}
 sub get_num_events
 {
 	($system, $start, $end) = @_ or die("Wrong number of arguments to get_num_events:  system name, start time, end time\n");
 	$results_ref = &SQL_Query("select count(*) from events where System_ID=$system and (($start<Time_Generated and $end>Time_Generated) or ($start<Time_Written and $end>Time_Written))");
 	@row = shift(@$results_ref);
-#	@this_row = @$row;
 	return $row[0][0];
 }
 
