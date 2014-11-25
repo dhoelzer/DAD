@@ -136,14 +136,14 @@ sub _get_systems
 	my @Systems;
 
 
-	# Fetch the names of the systems to poll.  To add a system simply add its name to the dad_sys_event_import table.
+	# Fetch the names of the systems to poll.
 	# There is no need to restart this process to pick up the new system names or remove old names.
 	$results_ref = &SQL_Query("select System_Name from dad_sys_systems where System_ID in(select distinct System_ID from events where Time_Generated>UNIX_TIMESTAMP(NOW())-86400)");
 	# Populate the @Systems array
 	while($row = shift(@$results_ref) )
 	{
 		@this_row = @$row;
-		 if ($_ !~ /:/) { unshift(@Systems, $this_row[0]); }
+		 if (/[^:]$/) { unshift(@Systems, $this_row[0]); }
 	}
 	return(@Systems);
 }
