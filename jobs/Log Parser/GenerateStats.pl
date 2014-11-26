@@ -73,7 +73,7 @@ foreach(@Systems) {
 			x_label_position	=> 0.5,
 			line_width			=> 1,
 			long_ticks			=> 1,
-			x_label_skip		=> 5,
+			x_label_skip		=> 10,
 			x_labels_vertical	=> 1
 		) or die $graph->error;
 		my @Data=([@Times],[@Events]);
@@ -92,12 +92,23 @@ my @Events = ();
 
 $sql = "select Number_Inserted,Stat_Time from dad_sys_event_stats where $graph_start_time>Stat_Time order by Stat_Time DESC";
 $results_ref = &SQL_Query($sql);
+$total = 0;
+$last_time=-1;
 while($row = shift(@$results_ref))
 {
 	@this_row = @$row;
 	#print $this_row[0]." -> ".$this_row[1]."\n";
-	unshift(@Times, &_get_time_string($this_row[1],1));
-	unshift(@Events, $this_row[0]);
+	$cur_time = $this_row[1];
+	if $cur_time != $last_time
+	{
+		unshift(@Times, &_get_time_string($cur_time,1));
+		unshift(@Events, $total);
+		$total = 0;
+	}
+	
+	$events_this_row = $this_row[0];
+	$total = $total + $event_this_row;
+	$last_time = $cur_time;
 }
 my $points = @Times;
 if($points)
