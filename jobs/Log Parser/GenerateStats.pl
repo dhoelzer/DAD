@@ -52,11 +52,13 @@ foreach(@Systems) {
 	my @Times = ();
 	my @Events = ();
 	
+	$results_ref = &SQL_Query("select System_Name from dad_sys_systems where System_ID=$_");
+	$row = shift(@$results_ref);
+	$system_name = $row[0][0];
 	$sql = "select Number_Inserted,Stat_Time from dad_sys_event_stats where System_Name='$_' and $graph_start_time>Stat_Time";
 	$results_ref = &SQL_Query($sql);
 	while($row = shift(@$results_ref))
 	{
-		print $row[0][0]." -> ".$row[0][1]."\n";
 		unshift(@Times, &_get_time_string($row[0][1],1));
 		unshift(@Events, $row[0][0]);
 	}
@@ -65,7 +67,7 @@ foreach(@Systems) {
 	{
 		my $graph = GD::Graph::lines->new(700, 100);
 		$graph->set(
-			title				=> "$_ Event/Insert Rate",
+			title				=> "$system_name Event/Insert Rate",
 			x_label_position	=> 0.5,
 			line_width			=> 1,
 			x_label_skip		=> int($points/10),
@@ -74,7 +76,7 @@ foreach(@Systems) {
 		my @Data=([@Times],[@Events]);
 		$graph->set_title_font('/fonts/arial.ttf', 24);
 		my $gd = $graph->plot(\@Data) or die $graph->error;
-		open(IMG, '>'.$OUTPUT_LOCATION."/$_.gif") or die $!;
+		open(IMG, '>'.$OUTPUT_LOCATION."/$system_name.gif") or die $!;
 		binmode IMG;
 		print IMG $gd->gif;
 		close IMG;
@@ -89,6 +91,7 @@ $sql = "select Number_Inserted,Stat_Time from dad_sys_event_stats where $graph_s
 $results_ref = &SQL_Query($sql);
 while($row = shift(@$results_ref))
 {
+	print $row[0][0]." -> ".$row[0][1]."\n";
 	unshift(@Times, &_get_time_string($row[0][1],1));
 	unshift(@Events, $row[0][0]);
 }
