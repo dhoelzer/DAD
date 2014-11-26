@@ -46,6 +46,72 @@ foreach(@Systems) {
 	&SQL_Insert($insert);
 }
 
+$graph_end_time = time();
+$graph_start_time = $graph_end_time - 60*60*24*7;
+foreach(@Systems) {
+	my @Times = ();
+	my @Events = ();
+	
+	$sql = "select Number_Inserted,Stat_Time from dad_sys_event_stats where System_Name='$_' and $graph_start_time>Stat_Time"
+	$results_ref = &SQL_Query($sql);
+	while($row = shift(@$results_ref))
+	{
+		unshift(@Times, &_get_time_string($row[0][1]));
+		unshift(@Events, $row[0][0]);
+	}
+	my $points = @Times;
+	if($points)
+	{
+		my $graph = GD::Graph::lines->new(700, 100);
+		$graph->set(
+			title				=> "$_ Event/Insert Rate",
+			x_label_position	=> 0.5,
+			line_width			=> 1,
+			x_label_skip		=> int($points/10),
+			x_labels_vertical	=> 1
+		) or die $graph->error;
+		my @Data=([@Times],[@Events]);
+		$graph->set_title_font('/fonts/arial.ttf', 24);
+		my $gd = $graph->plot(\@Data) or die $graph->error;
+		open(IMG, '>'.$OUTPUT_LOCATION."/$_.gif") or die $!;
+		binmode IMG;
+		print IMG $gd->gif;
+		close IMG;
+	}
+}
+
+#Aggregate
+my @Times = ();
+my @Events = ();
+
+$sql = "select Number_Inserted,Stat_Time from dad_sys_event_stats where $graph_start_time>Stat_Time"
+$results_ref = &SQL_Query($sql);
+while($row = shift(@$results_ref))
+{
+	unshift(@Times, &_get_time_string($row[0][1]));
+	unshift(@Events, $row[0][0]);
+}
+my $points = @Times;
+if($points)
+{
+	my $graph = GD::Graph::lines->new(700, 100);
+	$graph->set(
+		title				=> "Aggregate Events/Insert Rate",
+		x_label_position	=> 1,
+		line_width			=> 1,
+		x_label_skip		=> int($points/5),
+		x_tick_offset       => 1,
+		x_labels_vertical	=> 1
+	) or die $graph->error;
+	my @Data=([@Times],[@Events);
+	$graph->set_title_font('/fonts/arial.ttf', 24);
+	my $gd = $graph->plot(\@Data) or die $graph->error;
+	open(IMG, '>'.$OUTPUT_LOCATION.'/Aggregate.gif') or die $!;
+	binmode IMG;
+	print IMG $gd->gif;
+	close IMG;
+}
+
 sub get_system_name
 {
 	$ID = shift;
@@ -59,6 +125,24 @@ sub get_num_events
 	$results_ref = &SQL_Query("select count(*) from events where System_ID=$system and (($start<Time_Generated and $end>Time_Generated) or ($start<Time_Written and $end>Time_Written))");
 	@row = shift(@$results_ref);
 	return $row[0][0];
+}
+
+sub _get_time_string
+{
+	my @months = qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec);
+	my @weekDays = qw(Sun Mon Tue Wed Thu Fri Sat Sun);
+	my ($second, $minute, $hour, $dayOfMonth, $month, $yearOffset, $dayOfWeek, $dayOfYear, $daylightSavings) = localtime(shift);
+	my$year = 1900 + $yearOffset;
+	my $theTime;
+	if(shift())
+	{
+		$theTime = ($month+1)."/".($dayOfMonth+1);
+	}
+	else
+	{
+		$theTime = ($hour<10 ? "0$hour" : "$hour").":".($minute<10? "0$minute" : "$minute");
+	}
+	return $theTime;
 }
 
 ##################################################
