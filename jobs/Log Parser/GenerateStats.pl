@@ -52,7 +52,7 @@ foreach(@Systems) {
 	my @Times = ();
 	my @Events = ();
 	
-	$sql = "select Number_Inserted,Stat_Time from dad_sys_event_stats where System_Name='$_' and $graph_start_time>Stat_Time"
+	$sql = "select Number_Inserted,Stat_Time from dad_sys_event_stats where System_Name='$_' and $graph_start_time>Stat_Time";
 	$results_ref = &SQL_Query($sql);
 	while($row = shift(@$results_ref))
 	{
@@ -103,7 +103,7 @@ if($points)
 		x_tick_offset       => 1,
 		x_labels_vertical	=> 1
 	) or die $graph->error;
-	my @Data=([@Times],[@Events);
+	my @Data=([@Times],[@Events]);
 	$graph->set_title_font('/fonts/arial.ttf', 24);
 	my $gd = $graph->plot(\@Data) or die $graph->error;
 	open(IMG, '>'.$OUTPUT_LOCATION.'/Aggregate.gif') or die $!;
