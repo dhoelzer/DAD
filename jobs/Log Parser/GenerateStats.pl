@@ -56,6 +56,7 @@ foreach(@Systems) {
 	$results_ref = &SQL_Query($sql);
 	while($row = shift(@$results_ref))
 	{
+		print $row[0][0]." -> ".$row[0][1]."\n";
 		unshift(@Times, &_get_time_string($row[0][1],1));
 		unshift(@Events, $row[0][0]);
 	}
