@@ -55,7 +55,7 @@ foreach(@Systems) {
 	$results_ref = &SQL_Query("select System_Name from dad_sys_systems where System_ID=$_");
 	$row = shift(@$results_ref);
 	$system_name = $row[0][0];
-	$sql = "select Number_Inserted,Stat_Time from dad_sys_event_stats where System_Name='$_' and $graph_start_time>Stat_Time";
+	$sql = "select Number_Inserted,Stat_Time from dad_sys_event_stats where System_Name='$system_name' and $graph_start_time>Stat_Time";
 	$results_ref = &SQL_Query($sql);
 	while($row = shift(@$results_ref))
 	{
@@ -66,7 +66,7 @@ foreach(@Systems) {
 	my $points = @Times;
 	if($points)
 	{
-		my $graph = GD::Graph::lines->new(700, 100);
+		my $graph = GD::Graph::lines->new(1000, 100);
 		$graph->set(
 			title				=> "$system_name Event/Insert Rate",
 			x_label_position	=> 0.5,
@@ -100,7 +100,7 @@ while($row = shift(@$results_ref))
 my $points = @Times;
 if($points)
 {
-	my $graph = GD::Graph::lines->new(700, 100);
+	my $graph = GD::Graph::lines->new(1000, 300);
 	$graph->set(
 		title				=> "Aggregate Events/Insert Rate",
 		x_label_position	=> 1,
