@@ -99,7 +99,7 @@ while($row = shift(@$results_ref))
 	@this_row = @$row;
 	#print $this_row[0]." -> ".$this_row[1]."\n";
 	$cur_time = $this_row[1];
-	if $cur_time != $last_time
+	if($cur_time != $last_time)
 	{
 		unshift(@Times, &_get_time_string($cur_time,1));
 		unshift(@Events, $total);
