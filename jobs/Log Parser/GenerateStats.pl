@@ -54,7 +54,8 @@ foreach(@Systems) {
 	
 	$results_ref = &SQL_Query("select System_Name from dad_sys_systems where System_ID=$_");
 	$row = shift(@$results_ref);
-	$system_name = $row[0][0];
+	@this_row = @$row;
+	$system_name = $this_row[0];
 	$sql = "select Number_Inserted,Stat_Time from dad_sys_event_stats where System_Name='$system_name' and $graph_start_time>Stat_Time";
 	$results_ref = &SQL_Query($sql);
 	while($row = shift(@$results_ref))
