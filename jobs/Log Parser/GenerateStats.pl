@@ -56,7 +56,7 @@ foreach(@Systems) {
 	$row = shift(@$results_ref);
 	@this_row = @$row;
 	$system_name = $this_row[0];
-	$sql = "select Number_Inserted,Stat_Time from dad_sys_event_stats where System_Name='$system_name' and $graph_start_time>Stat_Time";
+	$sql = "select Number_Inserted,Stat_Time from dad_sys_event_stats where System_Name='$system_name' and $graph_start_time>Stat_Time order by Stat_Time DESC";
 	$results_ref = &SQL_Query($sql);
 	while($row = shift(@$results_ref))
 	{
@@ -89,7 +89,7 @@ foreach(@Systems) {
 my @Times = ();
 my @Events = ();
 
-$sql = "select Number_Inserted,Stat_Time from dad_sys_event_stats where $graph_start_time>Stat_Time";
+$sql = "select Number_Inserted,Stat_Time from dad_sys_event_stats where $graph_start_time>Stat_Time order by Stat_Time DESC";
 $results_ref = &SQL_Query($sql);
 while($row = shift(@$results_ref))
 {
