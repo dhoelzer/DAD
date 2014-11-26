@@ -72,7 +72,8 @@ foreach(@Systems) {
 			title				=> "$system_name Event/Insert Rate",
 			x_label_position	=> 0.5,
 			line_width			=> 1,
-			x_label_skip		=> int($points/10),
+			long_ticks			=> 1,
+			x_label_skip		=> 5,
 			x_labels_vertical	=> 1
 		) or die $graph->error;
 		my @Data=([@Times],[@Events]);
@@ -106,7 +107,8 @@ if($points)
 		title				=> "Aggregate Events/Insert Rate",
 		x_label_position	=> 1,
 		line_width			=> 1,
-		x_label_skip		=> int($points/5),
+		long_ticks			=> 1,
+		x_label_skip		=> 5,
 		x_tick_offset       => 1,
 		x_labels_vertical	=> 1
 	) or die $graph->error;
