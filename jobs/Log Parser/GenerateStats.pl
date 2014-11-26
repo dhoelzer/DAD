@@ -59,8 +59,9 @@ foreach(@Systems) {
 	$results_ref = &SQL_Query($sql);
 	while($row = shift(@$results_ref))
 	{
-		unshift(@Times, &_get_time_string($row[1],1));
-		unshift(@Events, $row[0]);
+		@this_row = @$row;
+		unshift(@Times, &_get_time_string($this_row[1],1));
+		unshift(@Events, $this_row[0]);
 	}
 	my $points = @Times;
 	if($points)
@@ -92,7 +93,7 @@ $results_ref = &SQL_Query($sql);
 while($row = shift(@$results_ref))
 {
 	@this_row = @$row;
-	print $this_row[0]." -> ".$this_row[1]."\n";
+	#print $this_row[0]." -> ".$this_row[1]."\n";
 	unshift(@Times, &_get_time_string($this_row[1],1));
 	unshift(@Events, $this_row[0]);
 }
