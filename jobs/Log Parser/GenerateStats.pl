@@ -47,7 +47,7 @@ foreach(@Systems) {
 }
 
 $graph_end_time = time();
-$graph_start_time = $graph_end_time - 60*60*24*7;
+$graph_start_time = $graph_end_time - 60*60*24;
 foreach(@Systems) {
 	my @Times = ();
 	my @Events = ();
@@ -73,7 +73,7 @@ foreach(@Systems) {
 			x_label_position	=> 0.5,
 			line_width			=> 1,
 			long_ticks			=> 1,
-			x_label_skip		=> 10,
+			x_label_skip		=> 15,
 			x_labels_vertical	=> 1
 		) or die $graph->error;
 		my @Data=([@Times],[@Events]);
@@ -107,7 +107,7 @@ while($row = shift(@$results_ref))
 	}
 	
 	$events_this_row = $this_row[0];
-	$total = $total + $event_this_row;
+	$total = $total + $events_this_row;
 	$last_time = $cur_time;
 }
 my $points = @Times;
@@ -119,7 +119,7 @@ if($points)
 		x_label_position	=> 1,
 		line_width			=> 1,
 		long_ticks			=> 1,
-		x_label_skip		=> 5,
+		x_label_skip		=> 15,
 		x_tick_offset       => 1,
 		x_labels_vertical	=> 1
 	) or die $graph->error;
