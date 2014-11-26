@@ -59,8 +59,8 @@ foreach(@Systems) {
 	$results_ref = &SQL_Query($sql);
 	while($row = shift(@$results_ref))
 	{
-		unshift(@Times, &_get_time_string($row[0][1],1));
-		unshift(@Events, $row[0][0]);
+		unshift(@Times, &_get_time_string($row[1],1));
+		unshift(@Events, $row[0]);
 	}
 	my $points = @Times;
 	if($points)
@@ -91,7 +91,7 @@ $sql = "select Number_Inserted,Stat_Time from dad_sys_event_stats where $graph_s
 $results_ref = &SQL_Query($sql);
 while($row = shift(@$results_ref))
 {
-	print $row[0][0]." -> ".$row[0][1]."\n";
+	print $row[0]." -> ".$row[1]."\n";
 	unshift(@Times, &_get_time_string($row[0][1],1));
 	unshift(@Events, $row[0][0]);
 }
