@@ -91,9 +91,10 @@ $sql = "select Number_Inserted,Stat_Time from dad_sys_event_stats where $graph_s
 $results_ref = &SQL_Query($sql);
 while($row = shift(@$results_ref))
 {
-	print $row[0]." -> ".$row[1]."\n";
-	unshift(@Times, &_get_time_string($row[0][1],1));
-	unshift(@Events, $row[0][0]);
+	@this_row = @$row;
+	print $this_row[0]." -> ".$this_row[1]."\n";
+	unshift(@Times, &_get_time_string($this_row[1],1));
+	unshift(@Events, $this_row[0]);
 }
 my $points = @Times;
 if($points)
