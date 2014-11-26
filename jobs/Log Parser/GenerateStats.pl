@@ -84,7 +84,7 @@ foreach(@Systems) {
 my @Times = ();
 my @Events = ();
 
-$sql = "select Number_Inserted,Stat_Time from dad_sys_event_stats where $graph_start_time>Stat_Time"
+$sql = "select Number_Inserted,Stat_Time from dad_sys_event_stats where $graph_start_time>Stat_Time";
 $results_ref = &SQL_Query($sql);
 while($row = shift(@$results_ref))
 {
