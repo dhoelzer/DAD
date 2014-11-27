@@ -258,7 +258,7 @@ $i = 0;
 					$localized_string = "Alternative timezones:";
 					foreach ($timezones as $zone)
 					{
-						$time = (new DateTime($timestamp, new DateTimeZone($zone)))->format('m/d/Y, H:i:s');
+						$time = (new DateTime($timestamp, "GMT"))->setTimezone(new DateTimeZone($zone))->format('m/d/Y, H:i:s');
 						$localized_string .= "\n$zone:\t$time";
 					}
 					$table .= "<a title='$localized_string'>$row[$key]</a>";
