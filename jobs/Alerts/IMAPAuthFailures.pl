@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 # Alert on imap logon failures.
 
+$MAX_FAILURES = 5;
 
 require "../Reports/Reports.pm";
 #Read in and evaluate the configuration values
@@ -18,11 +19,13 @@ while($arow = shift(@$result_ref))
 		@fields = split(/ +/, $line);
 		$server = $fields[9];
 		$user = $fields[37];
-		$failures{"$user on $server"} = 1;
+		$failures{"$user on $server"} += 1;
 	}
 foreach(keys %failures)
 {
-	&ManualAlert($AlertDescription . " - $_", $Severity);	
+	if($failures{$_} > $MAX_FAILURES)
+	{
+		&ManualAlert($AlertDescription . " - $_"." ".$failures{$_}." times.", $Severity);
+	}
 }
-
 
