@@ -243,11 +243,18 @@ $i = 0;
 			  $table .= "<td><font size=-1>";
 			  $words = split(" ", $row[$key]);
 			  $position = 0;
-			  foreach($words as $word)
+			  if ($key != "Time") 
 			  {
-				$table .= "<a title='Field $position' href='$strURL&ContextQuery=$word&Start=".($Start-10)."'>$word </a>";
-				$position++;
-			  }
+				foreach($words as $word)
+				  {
+					$table .= "<a title='Field $position' href='$strURL&ContextQuery=$word&Start=".($Start-10)."'>$word </a>";
+					$position++;
+				  }
+				}
+				if($key == "Time")
+				{
+					$table .= "<a title='EST:<br>GMT:<br>HKST:'>$word</a>";
+				}
 			  $table .= "</font></td>";
             }
          $table .= "</tr>";
