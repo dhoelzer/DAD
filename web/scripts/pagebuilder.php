@@ -253,7 +253,7 @@ $i = 0;
 				}
 				if($key == "Time")
 				{
-					$timestamp = strtotime($row[$key]);
+					$timestamp = $row[$key];
 					$timezones = ["GMT", "EST", "KST", "CST"];
 					$localized_string = "Alternative timezones:";
 					foreach ($timezones as $zone)
