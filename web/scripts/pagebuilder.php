@@ -254,7 +254,7 @@ $i = 0;
 				if($key == "Time")
 				{
 					$timestamp = $row[$key];
-					$timezones = ["Europe/London", "America/New York", "Asia/Seoul", "Asia/Shanghai"];
+					$timezones = ["Europe/London", "America/NewYork", "Asia/Seoul", "Asia/Shanghai"];
 					$localized_string = "Alternative timezones:";
 					foreach ($timezones as $zone)
 					{
