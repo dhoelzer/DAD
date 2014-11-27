@@ -253,7 +253,15 @@ $i = 0;
 				}
 				if($key == "Time")
 				{
-					$table .= "<a title='EST:\nGMT:\nHKST:'>$row[$key]</a>";
+					$timestamp = strtotime($row[$key]);
+					$timezones = ["GMT", "EST", "KST", "CST"];
+					$localized_string = "Alternative timezones:";
+					foreach ($timezones as $zone)
+					{
+						$time = (new DateTime($timestamp, new DateTimeZone($zone)))->format('m/d/Y, H:i:s');
+						$localized_string += "\n$zone:\t$time";
+					}
+					$table .= "<a title='$localized_string'>$row[$key]</a>";
 				}
 			  $table .= "</font></td>";
             }
