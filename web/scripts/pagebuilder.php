@@ -253,8 +253,8 @@ $i = 0;
 				}
 				if($key == "Time")
 				{
-					$timestamp = $row[$key];
-					$timezones = ["Europe/London", "EST", "Asia/Seoul", "Asia/Shanghai"];
+					$timestamp = $row[$key]." GMT";
+					$timezones = ["Europe/London", "America/New_York", "Asia/Seoul", "Asia/Shanghai"];
 					$localized_string = "Alternative timezones:";
 					foreach ($timezones as $zone)
 					{
