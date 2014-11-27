@@ -253,7 +253,7 @@ $i = 0;
 				}
 				if($key == "Time")
 				{
-					$table .= "<a title='EST:\nGMT:\nHKST:'>$words</a>";
+					$table .= "<a title='EST:\nGMT:\nHKST:'>$row[$key]</a>";
 				}
 			  $table .= "</font></td>";
             }
