@@ -259,7 +259,7 @@ $i = 0;
 					foreach ($timezones as $zone)
 					{
 						$time = (new DateTime($timestamp, new DateTimeZone($zone)))->format('m/d/Y, H:i:s');
-						$localized_string += "\n$zone:\t$time";
+						$localized_string .= "\n$zone:\t$time";
 					}
 					$table .= "<a title='$localized_string'>$row[$key]</a>";
 				}
