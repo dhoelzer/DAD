@@ -410,7 +410,7 @@ function show_log_stats()
     $strSQL   = 'SELECT COUNT(*) FROM event_unique_strings';;
     $strings = runQueryReturnArray( $strSQL );
 	$num_unique_strings = number_format($strings[0][0]);
-    $strSQL   = 'SELECT System_Name FROM dad_sys_event_import_from';
+    $strSQL   = 'SELECT distinct System_Name FROM dad_sys_event_stats';
     $systems = runQueryReturnArray( $strSQL );
     $num_systems = count($systems);
 
