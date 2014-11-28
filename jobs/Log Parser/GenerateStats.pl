@@ -48,7 +48,7 @@ foreach(@Systems) {
 }
 
 $graph_end_time = time();
-$graph_start_time = $graph_end_time - 60*60*24;
+$graph_start_time = $graph_end_time - 60*60*24*7;
 if($DEBUG){ print "Starting: ".&_get_time_string($graph_start_time,1)." Ending: ".&_get_time_string($graph_end_time,1)."\n"; }
 foreach(@Systems) {
 	my @Times = ();
@@ -59,7 +59,7 @@ foreach(@Systems) {
 	@this_row = @$row;
 	$system_name = $this_row[0];
 	# This should be refactored to allow the SQL server to do the adding for us rather than summing the results afterward.
-	$sql = "select Number_Inserted,Stat_Time from dad_sys_event_stats where System_Name='$system_name' and $graph_start_time>Stat_Time order by Stat_Time DESC";
+	$sql = "select Number_Inserted,Stat_Time from dad_sys_event_stats where System_Name='$system_name' and $graph_start_time<Stat_Time order by Stat_Time DESC";
 	$results_ref = &SQL_Query($sql);
 	while($row = shift(@$results_ref))
 	{
