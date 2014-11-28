@@ -37,17 +37,19 @@ $dbh = DBI->connect ($dsn, "$MYSQL_USER", "$MYSQL_PASSWORD")
 
 $start = int(shift);
 $end = $start + 3600;
+$DEBUG=int(shift);
 @Systems = &get_systems();
 foreach(@Systems) { 
 	$system_name = &get_system_name($_);
 	if($system_name =~ /:/) {next;}
 	$numevents = &get_num_events($_,$start, $end);
 	$insert = "insert into dad_sys_event_stats (System_Name, Number_Inserted, Stat_Time) values ('$system_name', $numevents, $end)";
-	&SQL_Insert($insert);
+	if(! $DEBUG) { &SQL_Insert($insert); }
 }
 
 $graph_end_time = time();
 $graph_start_time = $graph_end_time - 60*60*24;
+if($DEBUG){ print "Starting: ".&_get_time_string($graph_start_time)." Ending: ".$graph_end_time."\n"; }
 foreach(@Systems) {
 	my @Times = ();
 	my @Events = ();
