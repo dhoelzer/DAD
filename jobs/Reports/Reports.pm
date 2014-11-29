@@ -311,48 +311,8 @@ sub EventsExistByStringsPosition
 			
 		my $results_ref2 = &SQL_Query($SQL);
 		$num_results = @$results_ref2;
-		if($num_results)
-		{
-			my $Events_ID_in = "";
-			while($trow = shift(@$results_ref2))
-			{
-				my @mrow = @$trow;
-				if($Events_ID_in eq "")
-				{
-					$Events_ID_in = "$mrow[0]";
-				}
-				else
-				{
-					$Events_ID_in .= ", $mrow[0]";
-				}
-			}	
-			$SQL = q{
-				SELECT 
-					f.Events_ID, 
-					e.Time_Generated,
-					systems.System_Name, 
-					GROUP_CONCAT(s.String ORDER BY f.Position ASC separator ' ')
-				FROM
-					events as e,
-					event_fields as f,
-					event_unique_strings as s, 
-					dad_sys_systems as systems
-				WHERE
-					e.Events_ID IN (}. $Events_ID_in .q{)
-					AND f.Events_ID=e.Events_ID
-					AND (
-						f.String_ID=s.String_ID
-						)
-					AND systems.System_ID=e.System_ID
-					GROUP BY f.Events_ID
-					ORDER BY f.Events_ID,f.Position	, e.Time_Generated		
-				};#print "$SQL\n";
-			$event_detail_ref = &SQL_Query($SQL);
-		}
 	}
-	@rows = @$event_detail_ref;
-	$num_rows = @rows;
-	return $num_rows;
+	return $num_results;
 }
 
 sub GetEventsByStringsPositionText
