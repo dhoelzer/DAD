@@ -214,7 +214,7 @@ sub EventsExistByStringsPosition
 		return "No search terms present\n";
 	}
 	$num_terms /= 2;
-	#$TimeFrame = time()-$TimeFrame;
+	$TimeFrame = time()-$TimeFrame;
 	$Report = "";
 	#print "Searching for events that occurred since $TimeFrame with the terms:\n";
 	for($i=0; $i!= $num_terms; $i++)
