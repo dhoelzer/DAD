@@ -207,11 +207,11 @@ sub EventsExistByStringsPosition
 	
 	if(($num_terms % 2) != 0 )
 	{
-		return "Format for EventsExistByStringsPostion is TimeFrame(in seconds), String, Position[,String, Position...]";
+		return -1;
 	}
 	if($num_terms < 1)
 	{
-		return "No search terms present\n";
+		return -2;
 	}
 	$num_terms /= 2;
 	$TimeFrame = time()-$TimeFrame;
@@ -245,7 +245,7 @@ sub EventsExistByStringsPosition
 	$num_results = @$results_ref;
 	if($num_results < $num_terms)
 	{
-		return "Could only find $num_results out of $num_terms terms.  Search cancelled.\n";
+		return -3;
 	}
 	$StringIDFilter = "";
 	if($num_results)
@@ -350,8 +350,9 @@ sub EventsExistByStringsPosition
 			$event_detail_ref = &SQL_Query($SQL);
 		}
 	}
-	return $event_detail_ref;
-
+	@rows = @$event_detail_ref;
+	$num_rows = @rows;
+	return $num_rows;
 }
 
 sub GetEventsByStringsPositionText
