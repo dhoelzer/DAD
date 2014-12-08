@@ -690,6 +690,7 @@ sub _insert_thread
 			$StringToInsert =~ s/\\/\//g;
 			$StringToInsert =~ s/  / /g;
 			$StringToInsert =~ s/ ['"] / /g;	#" Cleaning up for formatters in editors
+			$StringToInsert =~ s/  / /g;
 			@insert_strings = split(/ /,$StringToInsert);
 			$Queue_Size++;
 			my $string_position=0;
@@ -1149,7 +1150,7 @@ sub _log_thread
 							$syslog_reporting_system = 'DAD';
 							$syslog_service = 'LogParser';
 						}
-						&record_event($syslog_reporting_system, $syslog_service, $syslog_timestamp, $syslog_timestamp, $line);
+						&record_event($syslog_reporting_system, $syslog_service, $syslog_timestamp, $syslog_timestamp, split(/ +/,$line));
 						if($DEBUG) { print "Reporting: $syslog_reporting_system - Service: $syslog_service - Timestamp: $syslog_timestamp - Syslog Time: $syslog_timestamp\n"; }
 					}
 					close(LOG);
