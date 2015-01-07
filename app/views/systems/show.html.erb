@@ -1,0 +1,29 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>Address:</strong>
+  <%= @system.address %>
+</p>
+
+<p>
+  <strong>Name:</strong>
+  <%= @system.name %>
+</p>
+
+<p>
+  <strong>Description:</strong>
+  <%= @system.description %>
+</p>
+
+<p>
+  <strong>Administrator:</strong>
+  <%= @system.administrator %>
+</p>
+
+<p>
+  <strong>Contact email:</strong>
+  <%= @system.contact_email %>
+</p>
+
+<%= link_to 'Edit', edit_system_path(@system) %> |
+<%= link_to 'Back', systems_path %>

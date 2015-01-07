@@ -1,0 +1,35 @@
+<h1>Listing systems</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Address</th>
+      <th>Name</th>
+      <th>Description</th>
+      <th>Administrator</th>
+      <th>Contact email</th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @systems.each do |system| %>
+      <tr>
+        <td><%= system.address %></td>
+        <td><%= system.name %></td>
+        <td><%= system.description %></td>
+        <td><%= system.administrator %></td>
+        <td><%= system.contact_email %></td>
+        <td><%= link_to 'Show', system %></td>
+        <td><%= link_to 'Edit', edit_system_path(system) %></td>
+        <td><%= link_to 'Destroy', system, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<br>
+
+<%= link_to 'New System', new_system_path %>

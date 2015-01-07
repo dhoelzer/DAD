@@ -1,0 +1,30 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>System:</strong>
+  <%= @event.system_id %>
+</p>
+
+<p>
+  <strong>Service:</strong>
+  <%= @event.service_id %>
+</p>
+
+<p>
+  <strong>Generated:</strong>
+  <%= @event.generated %>
+</p>
+
+<p>
+  <strong>Stored:</strong>
+  <%= @event.stored %>
+</p>
+
+<p>
+<% @event.positions.each do |position| %>
+	<%= position.word.text %> 
+<% end %>
+</p>
+
+<%= link_to 'Edit', edit_event_path(@event) %> |
+<%= link_to 'Back', events_path %>

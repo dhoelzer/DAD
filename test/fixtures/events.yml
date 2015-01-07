@@ -1,0 +1,13 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  system_id: 1
+  service_id: 1
+  generated: 2014-12-17 11:32:30
+  stored: 2014-12-17 11:32:30
+
+two:
+  system_id: 1
+  service_id: 1
+  generated: 2014-12-17 11:32:30
+  stored: 2014-12-17 11:32:30

@@ -1,0 +1,7 @@
+<%@events.each do |event| %>
+<p>
+<% event.positions.each do |position| %>
+	<%= position.word.text %> 
+<% end %>
+</p>
+<% end %>

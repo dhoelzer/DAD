@@ -1,0 +1,11 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  word_id: 1
+  position: 1
+  event_id: 1
+
+two:
+  word_id: 1
+  position: 1
+  event_id: 1

@@ -1,0 +1,27 @@
+<h1>Listing words</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Text</th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @words.each do |word| %>
+      <tr>
+        <td><%= word.text %></td>
+        <td><%= link_to 'Show', word %></td>
+        <td><%= link_to 'Edit', edit_word_path(word) %></td>
+        <td><%= link_to 'Destroy', word, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<br>
+
+<%= link_to 'New Word', new_word_path %>
