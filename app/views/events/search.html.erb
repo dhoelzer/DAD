@@ -1,6 +1,7 @@
 <div><%= @events.count %> events match that search:</div>
 <%@events.each do |event| %>
 <p>
+<%= event.system.display_name %>: <%= event.generated %> : 
 <% event.positions.each do |position| %>
 	<%= position.word.text %> 
 <% end %>

@@ -19,7 +19,7 @@
   <tbody>
     <% @events.each do |event| %>
       <tr>
-        <td><%= event.system.name %></td>
+        <td><%= event.system.display_name %></td>
         <td><%= event.service.name %></td>
         <td><%= event.generated %></td>
         <td><%= link_to 'Show', event %></td>

@@ -5,6 +5,11 @@ class System < ActiveRecord::Base
   @@cached_stuff = Hash.new
   @added = 0
   
+  def display_name
+    return self.name if self.description.nil?
+    "#{self.name}(#{self.description})"
+  end
+  
   def self.find_or_add(new_item)
     return @@cached_stuff[new_item] if @@cached_stuff.keys.include?(new_item)
     item=System.find_by name: new_item
