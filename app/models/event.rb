@@ -4,6 +4,11 @@ class Event < ActiveRecord::Base
   belongs_to :system
   belongs_to :service
   
+  @@nextEventID = -1
+  @@nextPositionID = -1
+  @@pendingEventValues = Array.new
+  @@pendingPositionValues = Array.new
+  
   def self.storeEvent(eventString)
     txtsystem = (eventString.split(' '))[4]
     system = System.find_or_add(txtsystem)
@@ -13,9 +18,13 @@ class Event < ActiveRecord::Base
     txtservice.gsub!(/[^a-zA-Z\/\-]/, "")
     service = Service.find_or_add(txtservice)
 
-    event = Event.create(:system_id => system.id, :service_id => service.id, :generated => timestamp, :stored => Time.now)
-    return nil if event.nil?
+    @@nextEventID = Event.last.id + 1 if @@nextEventID == -1
+    @@nextPositionID = Position.last.id + 1 if @@nextPositionID == -1
 
+    @@pendingEventValues.push "(#{@@nextEventID}, #{system.id}, #{service.id}, '#{timestamp}', '#{Time.now}')"
+#    event = Event.create(:system_id => system.id, :service_id => service.id, :generated => timestamp, :stored => Time.now)
+#    return nil if event.nil?
+    
     eventString.downcase!
     eventString.gsub!(/[\r\n]/, "")
     eventString.gsub!(/([^a-zA-Z0-9])/," \\1 " )
@@ -23,9 +32,26 @@ class Event < ActiveRecord::Base
     current_position = 0                  # Track which position we are at within the event
     words.each do |word|
       dbWord = Word.find_or_add(word)
-      #TODO: I feel like this next line should be refactored into Position.
-      position = Position.create(:word_id => dbWord.id, :position => current_position, :event_id => event.id)
+
+      @@pendingPositionValues.push "(#{@@nextPositionID}, #{dbWord.id}, #{current_position}, #{@@nextEventID})"
+#      position = Position.create(:word_id => dbWord.id, :position => current_position, :event_id => event.id)
+      @@nextPositionID += 1
       current_position += 1
     end
+    @@nextEventID += 1
+    self.performPendingInserts if @@pendingEventValues.count >= 1000
   end
+end
+
+def self.performPendingInserts
+  connection = ActiveRecord::Base.connection
+  
+  event_sql = "INSERT INTO events (`id`, `system_id`, `service_id`, `generated`, `stored`) VALUES #{@@pendingEventValues.join(", ")}"
+  connection.execute event_sql
+  
+  positions_sql = "INSERT INTO positons (`id`, `word_id`, `position`, `event_id`) VALUES #{@@pendingPositionValues.join(", ")}"
+  connection.execute positions_sql
+  
+  @@pendingEventValues = []
+  @@pendingPositionValues = []
 end

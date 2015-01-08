@@ -5,13 +5,17 @@ class Word < ActiveRecord::Base
   @added = 0
   
   def self.find_or_add(new_word)
-    return @@cached_words[new_word] if @@cached_words.keys.include?(new_word)
+    if @@cached_words.keys.include?(new_word) then
+      @@cached_words[new_word][:last] = Time.now
+      return @@cached_words[new_word][:id] 
+    end
     word=Word.find_by text: new_word
     if word.nil? then
       word = Word.create(:text => new_word)
       @added += 1
     end
-    @@cached_words[new_word] = word
+    @@cached_words[new_word] = {:id => word.id, :last => Time.now}
+    self.prune_words if @@cached_words.keys.count > 50000
     return word
   end
   
@@ -21,5 +25,9 @@ class Word < ActiveRecord::Base
   
   def self.added
     return @added
+  end
+  
+  def self.prune_words
+    @@cached_words = @@cached_words.select{|k,v| v[:last] > Time.now - 60 }
   end
 end
