@@ -43,7 +43,7 @@ class Event < ActiveRecord::Base
       current_position += 1
     end
     @@nextEventID += 1
-    self.performPendingInserts if @@pendingEventValues.count >= 1000
+    performPendingInserts if @@pendingEventValues.count >= 1000
   end
 end
 
