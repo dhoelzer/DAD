@@ -7,6 +7,6 @@ Dir['Logs/LogsToProcess/*'].each do |log|
     Event.storeEvent(line)
   end
   print "There were #{Word.number_of_cached_words} words cached and there are #{Word.count} words total.  #{Word.added} words were added.\n"
-  Event.performPendingInserts
     # move log
 end
+Event.performPendingInserts

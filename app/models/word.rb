@@ -3,10 +3,12 @@ class Word < ActiveRecord::Base
   has_many :events, :through => :positions
   @@cached_words = Hash.new
   @added = 0
+  @cache_hits = 0
   
   def self.find_or_add(new_word)
     if @@cached_words.keys.include?(new_word) then
       @@cached_words[new_word][:last] = Time.now
+      @cache_hits += 1
       return @@cached_words[new_word][:id] 
     end
     word=Word.find_by text: new_word
@@ -29,5 +31,7 @@ class Word < ActiveRecord::Base
   
   def self.prune_words
     @@cached_words = @@cached_words.select{|k,v| v[:last] > Time.now - 60 }
+    puts "Pruned approximately #{50000 - @@cached_words.keys.count}."
+    puts "There have been #{@cache_hits} hits in the word cache."
   end
 end
