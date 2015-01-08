@@ -26,7 +26,7 @@ module Events
       end
     end
 
-    @_models = ActiveRecord::Base.subclasses.collect { |type| type.name }.sort
+    $_models = ActiveRecord::Base.subclasses.collect { |type| type.name }.sort
     
   end
 end

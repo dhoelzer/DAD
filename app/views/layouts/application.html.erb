@@ -9,7 +9,7 @@
 <body>
 	<div id="navbar">
 		<ul>
-			<% @_models.each do |model| %>
+			<% $_models.each do |model| %>
 			<li id="<%= is_active(model) %>"><%= link_to model, model %></li>
 			<% end %>
 		</ul>
