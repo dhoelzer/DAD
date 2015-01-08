@@ -9,7 +9,6 @@
       <th>System</th>
       <th>Service</th>
       <th>Generated</th>
-      <th>Stored</th>
       <th></th>
       <th></th>
       <th></th>
@@ -19,10 +18,9 @@
   <tbody>
     <% @events.each do |event| %>
       <tr>
-        <td><%= event.system_id %></td>
-        <td><%= event.service_id %></td>
+        <td><%= event.system.name %></td>
+        <td><%= event.service.name %></td>
         <td><%= event.generated %></td>
-        <td><%= event.stored %></td>
         <td><%= link_to 'Show', event %></td>
         <td><%= link_to 'Edit', edit_event_path(event) %></td>
         <td><%= link_to 'Destroy', event, method: :delete, data: { confirm: 'Are you sure?' } %></td>
