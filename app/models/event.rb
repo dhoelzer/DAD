@@ -10,10 +10,10 @@ class Event < ActiveRecord::Base
   @@pendingPositionValues = Array.new
   
   def self.storeEvent(eventString)
-    txtsystem = (eventString.split(' '))[4]
+    txtsystem = (eventString.split(' '))[0]
     system = System.find_or_add(txtsystem)
     txttimestamp = (eventString.split(' '))[1..3].join(' ')
-    timestamp = DateTime.parse("#{txttimestamp} UTC")
+    timestamp = DateTime.parse("#{txttimestamp} GMT")
     txtservice = (eventString.split(' '))[5]
     txtservice.gsub!(/[^a-zA-Z\/\-]/, "")
     service = Service.find_or_add(txtservice)
