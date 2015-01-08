@@ -55,7 +55,7 @@ class Event < ActiveRecord::Base
     event_sql = "INSERT INTO events (id, system_id, service_id, generated, stored) VALUES #{@@pendingEventValues.join(", ")}"
     connection.execute event_sql
   
-    positions_sql = "INSERT INTO positons (id, word_id, position, event_id) VALUES #{@@pendingPositionValues.join(", ")}"
+    positions_sql = "INSERT INTO positions (id, word_id, position, event_id) VALUES #{@@pendingPositionValues.join(", ")}"
     connection.execute positions_sql
   
     @@pendingEventValues = []
