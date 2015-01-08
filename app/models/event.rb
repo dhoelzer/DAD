@@ -44,6 +44,7 @@ class Event < ActiveRecord::Base
 end
 
 def self.performPendingInserts
+  return if @@pendingEventValues.count < 1
   connection = ActiveRecord::Base.connection
   
   event_sql = "INSERT INTO events (`id`, `system_id`, `service_id`, `generated`, `stored`) VALUES #{@@pendingEventValues.join(", ")}"
