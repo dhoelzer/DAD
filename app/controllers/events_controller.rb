@@ -21,7 +21,7 @@ class EventsController < ApplicationController
     end
     @events = events[0] unless events.empty?
     events.each { |e| @events = @events & e }
-    @events = Event.includes(:positions, :words).order(generated: :asc).where("event_is in (?)", @events).offset(0).limit(20)
+    @events = Event.includes(:positions, :words).order(generated: :asc).where("event_id in (?)", @events).offset(0).limit(20)
   end
   
   # GET /events/1
