@@ -18,12 +18,14 @@ class Event < ActiveRecord::Base
     txtservice.gsub!(/[^a-zA-Z\/\-]/, "")
     service = Service.find_or_add(txtservice)
 
-    if Event.all.count == 0 then
-      @@nextEventID = 1
-      @@nextPositionID = 1
-    else
-      @@nextEventID = Event.last.id + 1 if @@nextEventID == -1
-      @@nextPositionID = Position.last.id + 1 if @@nextPositionID == -1
+    if @@nextEventID == -1 then
+      if Event.all.count == 0 then
+        @@nextEventID = 1
+        @@nextPositionID = 1
+      else
+        @@nextEventID = Event.last.id + 1 if @@nextEventID == -1
+        @@nextPositionID = Position.last.id + 1 if @@nextPositionID == -1
+      end
     end
     @@pendingEventValues.push "(#{@@nextEventID}, #{system.id}, #{service.id}, '#{timestamp}', '#{Time.now}')"
 #    event = Event.create(:system_id => system.id, :service_id => service.id, :generated => timestamp, :stored => Time.now)
