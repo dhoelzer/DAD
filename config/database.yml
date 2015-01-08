@@ -9,6 +9,7 @@ development:
   database: events_dev
   username: rails
   password: example
+  host: 127.0.0.1
   pool: 5
   timeout: 5000
 
@@ -27,5 +28,6 @@ production:
   database: events_prod
   username: rails
   password: example
+  host: 127.0.0.1
   pool: 5
   timeout: 5000
