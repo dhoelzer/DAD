@@ -11,3 +11,30 @@
  *= require_self
  *= require_tree .
  */
+
+#navbar	ul {
+		list-style-type: none;
+		margin: 0;
+		padding: 0;
+		overflow: hidden;
+	}
+#navbar	li {
+		float: left;
+		background-color:#000000;
+	}
+#navbar	a { 
+		display: block;
+		font-weight: bold;
+		color: #ffffff;
+		text-decoration: none;
+		text-transform: uppercase;
+		padding: 1px;
+		width: 120px;
+	}
+
+li#active {
+	background-color: #555555;
+}
+#navbar a:hover {
+	background-color: #888855;
+}

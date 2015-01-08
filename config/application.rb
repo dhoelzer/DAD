@@ -19,5 +19,14 @@ module Events
     # The default locale is :en and all translations from config/locales/*.rb,yml are auto loaded.
     # config.i18n.load_path += Dir[Rails.root.join('my', 'locales', '*.{rb,yml}').to_s]
     # config.i18n.default_locale = :de
+    Dir[Rails.root.to_s + '/app/models/**/*.rb'].each do |file| 
+      begin
+        require file
+      rescue
+      end
+    end
+
+    @_models = ActiveRecord::Base.subclasses.collect { |type| type.name }.sort
+    
   end
 end
