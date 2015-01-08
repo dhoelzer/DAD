@@ -16,7 +16,7 @@ class Word < ActiveRecord::Base
     end
     @@cached_words[new_word] = {:id => word.id, :last => Time.now}
     self.prune_words if @@cached_words.keys.count > 50000
-    return word
+    return word.id
   end
   
   def self.number_of_cached_words
