@@ -43,20 +43,20 @@ class Event < ActiveRecord::Base
       current_position += 1
     end
     @@nextEventID += 1
-    Event.performPendingInserts if @@pendingEventValues.count >= 1000
+    self.performPendingInserts if @@pendingEventValues.count >= 1000
   end
-end
 
-def self.performPendingInserts
-  return if @@pendingEventValues.count < 1
-  connection = ActiveRecord::Base.connection
+  def self.performPendingInserts
+    return if @@pendingEventValues.count < 1
+    connection = ActiveRecord::Base.connection
   
-  event_sql = "INSERT INTO events (`id`, `system_id`, `service_id`, `generated`, `stored`) VALUES #{@@pendingEventValues.join(", ")}"
-  connection.execute event_sql
+    event_sql = "INSERT INTO events (`id`, `system_id`, `service_id`, `generated`, `stored`) VALUES #{@@pendingEventValues.join(", ")}"
+    connection.execute event_sql
   
-  positions_sql = "INSERT INTO positons (`id`, `word_id`, `position`, `event_id`) VALUES #{@@pendingPositionValues.join(", ")}"
-  connection.execute positions_sql
+    positions_sql = "INSERT INTO positons (`id`, `word_id`, `position`, `event_id`) VALUES #{@@pendingPositionValues.join(", ")}"
+    connection.execute positions_sql
   
-  @@pendingEventValues = []
-  @@pendingPositionValues = []
+    @@pendingEventValues = []
+    @@pendingPositionValues = []
+  end
 end
