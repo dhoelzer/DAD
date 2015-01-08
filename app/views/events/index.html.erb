@@ -3,6 +3,7 @@
 <%= text_field_tag 'search_terms', "Search"%>
 <%= submit_tag "Search" %>
 <% end %>
+<div>There are currently <%= @total_events %> events available online made up of <%= @total_words %> words spread over <%= @total_positions %> fields.</div>
 <table>
   <thead>
     <tr>

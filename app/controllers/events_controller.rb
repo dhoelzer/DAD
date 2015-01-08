@@ -4,6 +4,9 @@ class EventsController < ApplicationController
   # GET /events
   # GET /events.json
   def index
+    @total_events = Event.all.count
+    @total_words = Word.all.count
+    @total_positions = Position.all.count
     @events = Event.all.offset(10).limit(20)
   end
 
