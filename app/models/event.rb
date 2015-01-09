@@ -10,11 +10,12 @@ class Event < ActiveRecord::Base
   @@pendingPositionValues = Array.new
   
   def self.storeEvent(eventString)
-    txtsystem = (eventString.split(' '))[0]
+    split_text = eventString.split(/\s+/)
+    txtsystem = split_text[0]
     system = System.find_or_add(txtsystem)
-    txttimestamp = (eventString.split(/\s+/))[1..3].join(' ')
-    timestamp = (txttimestamp.split(/\s+/)[1] != "Jan" ? DateTime.parse("#{txttimestamp} 2014 GMT") : DateTime.parse("#{txttimestamp} 2015 GMT"))
-    txtservice = (eventString.split(' '))[5]
+    txttimestamp = split_text[1..3].join(' ')
+    timestamp = (split_text[2] != "Jan" ? DateTime.parse("#{txttimestamp} 2014 GMT") : DateTime.parse("#{txttimestamp} 2015 GMT"))
+    txtservice = split_text[5]
     txtservice.gsub!(/[^a-zA-Z\/\-]/, "")
     service = Service.find_or_add(txtservice)
 
@@ -45,7 +46,7 @@ class Event < ActiveRecord::Base
       current_position += 1
     end
     @@nextEventID += 1
-    self.performPendingInserts if @@pendingEventValues.count >= 10000
+    self.performPendingInserts if @@pendingEventValues.count >= 20000
   end
 
   def self.performPendingInserts
