@@ -12,8 +12,8 @@ class Event < ActiveRecord::Base
   def self.storeEvent(eventString)
     txtsystem = (eventString.split(' '))[0]
     system = System.find_or_add(txtsystem)
-    txttimestamp = (eventString.split(' '))[1..3].join(' ')
-    timestamp = DateTime.parse("#{txttimestamp} GMT")
+    txttimestamp = (eventString.split(/\s+/))[1..3].join(' ')
+    timestamp = (txttimestamp.split(/\s+/)[1] != "Jan" ? DateTime.parse("#{txttimestamp} 2014 GMT") : DateTime.parse("#{txttimestamp} 2015 GMT"))
     txtservice = (eventString.split(' '))[5]
     txtservice.gsub!(/[^a-zA-Z\/\-]/, "")
     service = Service.find_or_add(txtservice)
@@ -45,7 +45,7 @@ class Event < ActiveRecord::Base
       current_position += 1
     end
     @@nextEventID += 1
-    self.performPendingInserts if @@pendingEventValues.count >= 4000
+    self.performPendingInserts if @@pendingEventValues.count >= 10000
   end
 
   def self.performPendingInserts
