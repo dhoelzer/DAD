@@ -9,10 +9,16 @@ pending_logs.each do |log|
   puts "Processing #{log}:  Log #{processed} out of #{pending_logs.count}"
   file = File.open(log)
   file.each_line do |line|
-    Event.storeEvent(line)
+    begin
+      Event.storeEvent(line)
+    rescue
+      puts "Error processing #{log}!"
+      Event.performPendingInserts
+      exit
+    end
   end
   file.close
   print ">>> There are #{Word.number_of_cached_words} words currently cached and there are #{Word.count} words total.  #{Word.added} words were added.\n"
-  File.rename log "../ProcessedLogs/#{log}"
+  File.rename(log, "../ProcessedLogs/#{log}")
 end
 Event.performPendingInserts
