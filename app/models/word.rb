@@ -4,6 +4,7 @@ class Word < ActiveRecord::Base
   @@cached_words = Hash.new
   @added = 0
   @cache_hits = 0
+  CACHESIZE=10000
   
   def self.find_or_add(new_word)
     if @@cached_words.keys.include?(new_word) then
@@ -17,7 +18,7 @@ class Word < ActiveRecord::Base
       @added += 1
     end
     @@cached_words[new_word] = {:id => word.id, :last => Time.now}
-    self.prune_words if @@cached_words.keys.count > 50000
+    self.prune_words if @@cached_words.keys.count > CACHESIZE
     return word.id
   end
   
@@ -31,7 +32,7 @@ class Word < ActiveRecord::Base
   
   def self.prune_words
     @@cached_words = @@cached_words.select{|k,v| v[:last] > Time.now - 60 }
-    puts "\t+++ Pruned approximately #{10000 - @@cached_words.keys.count}."
+    puts "\t+++ Pruned approximately #{CACHESIZE - @@cached_words.keys.count}."
     puts "\t+++ There have been #{@cache_hits} hits in the word cache."
   end
 end
