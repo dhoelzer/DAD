@@ -4,7 +4,7 @@
 <%= submit_tag "Search" %>
 <% end %>
 <div>There are currently <%= number_to_human(@total_events) %> events available online made up of <%= number_to_human(@total_words) %> words spread over <%= number_to_human(@total_positions) %> fields.</div>
-<div>Events range from <% @first.generated %> to <% @last.generated %></div>
+<div>Events range from <%= @first.generated %> to <%= @last.generated %></div>
 <table>
   <thead>
     <tr>
