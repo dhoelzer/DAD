@@ -31,7 +31,7 @@ class Word < ActiveRecord::Base
   
   def self.prune_words
     @@cached_words = @@cached_words.select{|k,v| v[:last] > Time.now - 60 }
-    puts "Pruned approximately #{10000 - @@cached_words.keys.count}."
-    puts "There have been #{@cache_hits} hits in the word cache."
+    puts "\t+++ Pruned approximately #{10000 - @@cached_words.keys.count}."
+    puts "\t+++ There have been #{@cache_hits} hits in the word cache."
   end
 end
