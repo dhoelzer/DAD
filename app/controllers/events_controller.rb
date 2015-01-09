@@ -6,6 +6,8 @@ class EventsController < ApplicationController
   def index
     @total_events = Event.all.count
     @total_words = Word.all.count
+    @first = Event.first
+    @last = Event.last
     @total_positions = Position.all.count
     @events = Event.all.offset(10).limit(20)
   end
