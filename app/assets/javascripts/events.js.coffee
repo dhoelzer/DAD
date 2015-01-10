@@ -23,7 +23,7 @@ big_picture = ->
 		type:'GET',
 		url:'/events.js',
 		dataType: 'text/javascript',
-		success: draw_graph
+		complete: draw_graph
 	})
 
 $(document).ready(big_picture)
