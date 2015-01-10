@@ -1,4 +1,4 @@
-function draw_graph(chart_div,title, graph_data)
+function draw_graph(chart_div, title, graph_data)
 {
    return new Highcharts.Chart({
       chart: {
@@ -17,8 +17,28 @@ function draw_graph(chart_div,title, graph_data)
     });
 }
 	
+function draw_gauge(chart_div, title, graph_data)
+{
+   return new Highcharts.Chart({
+      chart: {
+        renderTo: chart_div
+      },
+      title: {
+        text: title
+      },
+      series: [
+        {
+          type: "gauge",
+          name: "Logging Rate",
+          data: [graph_data]
+        }
+      ]
+    });
+}
+
 draw_graph("systems_chart","Aggregate Events by System",<%=raw system_stats %>);
 draw_graph("services_chart","Aggregate Events by Service",<%=raw service_stats %>);
-
-
+draw_gauge("30_days_chart", "30 Days", <%=raw total_events_since(30.days.ago) %>);
+draw_gauge("7_days_chart", "7 Days", <%=raw total_events_since(7.days.ago) %>);
+draw_gauge("1_day_chart", "24 Hours", <%=raw total_events_since(24.hours.ago) %>);
 	

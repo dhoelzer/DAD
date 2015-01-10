@@ -3,7 +3,7 @@ module EventsHelper
     counts = Event.group(:system_id).count
     results = Hash.new
     counts.each do |system_id, count|
-      results[System.find(system_id).name] = count
+      results[System.find(system_id).display_name] = count
     end
     results.map { |k,v| [k,v] }
   end
@@ -16,4 +16,8 @@ module EventsHelper
     end
     (results.map { |k,v| [k,v] }).inspect
   end  
+  
+  def total_events_since(time_frame)
+    Event.where("generated > ?",time_frame).count
+  end
 end

@@ -4,6 +4,7 @@ class Event < ActiveRecord::Base
   belongs_to :system
   belongs_to :service
   
+  BULK_INSERT_SIZE=(Rails.env.development? ? 1 : 30000)
   @@nextEventID = -1
   @@nextPositionID = -1
   @@pendingEventValues = Array.new
@@ -46,7 +47,7 @@ class Event < ActiveRecord::Base
       current_position += 1
     end
     @@nextEventID += 1
-    self.performPendingInserts if @@pendingEventValues.count >= 20000
+    self.performPendingInserts if @@pendingEventValues.count >= BULK_INSERT_SIZE
   end
 
   def self.performPendingInserts
