@@ -9,7 +9,6 @@ class EventsController < ApplicationController
     @first = Event.first
     @last = Event.last
     @total_positions = Position.all.count
-    @events = Event.all.offset(10).limit(20)
   end
 
   def search

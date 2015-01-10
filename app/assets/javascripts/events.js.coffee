@@ -1,10 +1,6 @@
 # Place all the behaviors and hooks related to the matching controller here.
 # All this logic will automatically be available in application.js.
 # You can use CoffeeScript in this file: http://coffeescript.org/
-
-$(document).ready(big_picture)
-$(document).on('page:load', big_picture)
-
 big_picture = ->
 	new Highcharts.Chart({
 		chart:
@@ -23,3 +19,7 @@ big_picture = ->
 				data: [ 3000, 5000, 10000]
 			}
 	})
+	
+$(document).ready(big_picture)
+$(document).on('page:load', big_picture)
+
