@@ -11,7 +11,7 @@ big_picture = ->
 			[{
 				type: "pie",
 				name: "Aggregate Events",
-				data: [ 3000, 5000, 10000]
+				data: [ ['KO-VPN', 3000], ['KO-DNS', 5000], ['KO-MAIL', 10000]]
 			}]
 	})
 	
