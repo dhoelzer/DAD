@@ -8,7 +8,7 @@ draw_graph  =  (ajaxData, statusCode, jqXHR) ->
 		chart:
 			renderTo: "big_picture_chart",
 		title:
-			text: "Big Picture"
+			text: "Big Picture",
 		series:
 			[{
 				type: "pie",
@@ -21,7 +21,7 @@ big_picture = ->
 	$("#big_picture_chart").html("Loading...")
 	jQuery.ajax({
 		type:'GET',
-		url:'/events',
+		url:'/event',
 		dataType: 'script',
 		success: draw_graph
 	})
