@@ -1,7 +1,7 @@
 # Place all the behaviors and hooks related to the matching controller here.
 # All this logic will automatically be available in application.js.
 # You can use CoffeeScript in this file: http://coffeescript.org/
-big_picture = ->
+big_picture (chart_data) = ->
 	new Highcharts.Chart({
 		chart:
 			renderTo: "big_picture_chart",
@@ -11,7 +11,7 @@ big_picture = ->
 			[{
 				type: "pie",
 				name: "Aggregate Events",
-				data: [ ['KO-VPN', 3000], ['KO-DNS', 5000], ['KO-MAIL', 10000]]
+				data: chart_data
 			}]
 	})
 	

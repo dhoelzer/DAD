@@ -4,10 +4,6 @@ class EventsController < ApplicationController
   # GET /events
   # GET /events.json
   def index
-    @total_events = Event.all.count
-    @total_words = Word.all.count
-
-    @total_positions = Position.all.count
   end
 
   def search
