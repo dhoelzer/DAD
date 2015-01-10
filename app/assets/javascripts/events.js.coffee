@@ -4,7 +4,7 @@
 
 render_graph = ->
 	{
-		$.ajax({
+		$().ajax({
 			type:'GET',
 			url:'/events',
 			dataType: 'script'
