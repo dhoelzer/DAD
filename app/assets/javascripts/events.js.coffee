@@ -19,6 +19,7 @@ draw_graph  =  (ajaxData, statusCode, jqXHR) ->
 
 big_picture = ->
 	alert("Fired")
+	$("big_picture_chart").innerHTML="Loading..."
 	jQuery.ajax({
 		type:'GET',
 		url:'/events',
