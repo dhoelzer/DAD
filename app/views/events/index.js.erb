@@ -1,11 +1,11 @@
-function draw_graph(graph_data)
+function draw_graph(chart_div,title, graph_data)
 {
    return new Highcharts.Chart({
       chart: {
-        renderTo: "big_picture_chart"
+        renderTo: chart_div
       },
       title: {
-        text: "Big Picture"
+        text: title
       },
       series: [
         {
@@ -17,7 +17,8 @@ function draw_graph(graph_data)
     });
 }
 	
-draw_graph(<%=raw system_stats %>);
+draw_graph("systems_chart","Aggregate Events by System",<%=raw system_stats %>);
+draw_graph("services_chart","Aggregate Events by Service",<%=raw system_stats %>);
 
 
 	

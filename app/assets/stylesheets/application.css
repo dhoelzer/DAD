@@ -12,6 +12,13 @@
  *= require_tree .
  */
 
+#services_chart {
+	float: left;
+}
+
+#systems_chart {
+	float: left;
+}
 #navbar	ul {
 		list-style-type: none;
 		margin: 0;
