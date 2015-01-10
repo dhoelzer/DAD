@@ -5,19 +5,14 @@ big_picture = ->
 	new Highcharts.Chart({
 		chart:
 			renderTo: "big_picture_chart",
-			type: "pie"
 		title:
 			text: "Big Picture"
-		xAxis:
-			categories: ["KO-VPN", "KO-BNB", "KO-DB"]
-		yAxis:
-			min: 0,
-			title: "Events"
 		series:
-			{
+			[{
+				type: "pie",
 				name: "Aggregate Events",
 				data: [ 3000, 5000, 10000]
-			}
+			}]
 	})
 	
 $(document).ready(big_picture)
