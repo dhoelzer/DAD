@@ -14,6 +14,6 @@ module EventsHelper
     counts.each do |service_id, count|
       results[Service.find(service_id).name] = count
     end
-    results.map { |k,v| [k,v] }
+    (results.map { |k,v| [k,v] }).inspect
   end  
 end
