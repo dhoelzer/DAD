@@ -1,12 +1,19 @@
-new Highcharts.Chart({
-	chart:
-		renderTo: "big_picture_chart",
-	title:
-		text: "Big Picture"
-	series:
-		[{
-			type: "pie",
-			name: "Aggregate Events",
-			data: [["Test 1", 12], ["Test 2", 20], ["Test 3", 29]]
-		}]
-})
+big_picture = ->
+	new Highcharts.Chart({
+		chart:
+			renderTo: "big_picture_chart",
+		title:
+			text: "Big Picture"
+		series:
+			[{
+				type: "pie",
+				name: "Aggregate Events",
+				data: [["Test 1", 12], ["Test 2", 20], ["Test 3", 29]]
+			}]
+	})
+	
+
+
+$(document).ready(big_picture)
+$(document).on('page:load', big_picture)
+
