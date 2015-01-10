@@ -21,7 +21,7 @@ big_picture = ->
 	$("#big_picture_chart").html("Loading...")
 	jQuery.ajax({
 		type:'GET',
-		url:'/events',
+		url:'/events.js',
 		dataType: 'script',
 		success: draw_graph
 	})
