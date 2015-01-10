@@ -3,7 +3,6 @@
 # You can use CoffeeScript in this file: http://coffeescript.org/
 
 draw_graph  =  (graph_data) ->
-	alert(statusCode)
 	new Highcharts.Chart({
 		chart:
 			renderTo: "big_picture_chart",
