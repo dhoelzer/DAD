@@ -1,1 +1,23 @@
+function draw_graph(graph_data)
+{
+   return new Highcharts.Chart({
+      chart: {
+        renderTo: "big_picture_chart"
+      },
+      title: {
+        text: "Big Picture"
+      },
+      series: [
+        {
+          type: "pie",
+          name: "Aggregate Events",
+          data: graph_data
+        }
+      ]
+    });
+}
+	
 draw_graph("[['test',12],['asd', 29]]");
+
+
+	
