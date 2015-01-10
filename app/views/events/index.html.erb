@@ -5,31 +5,8 @@
 <% end %>
 <div>There are currently <%= number_to_human(@total_events) %> events available online made up of <%= number_to_human(@total_words) %> words spread over <%= number_to_human(@total_positions) %> fields.</div>
 <div>Events range from <%= @first.generated %> to <%= @last.generated %></div>
-<table>
-  <thead>
-    <tr>
-      <th>System</th>
-      <th>Service</th>
-      <th>Generated</th>
-      <th></th>
-      <th></th>
-      <th></th>
-    </tr>
-  </thead>
 
-  <tbody>
-    <% @events.each do |event| %>
-      <tr>
-        <td><%= event.system.display_name %></td>
-        <td><%= event.service.name %></td>
-        <td><%= event.generated %></td>
-        <td><%= link_to 'Show', event %></td>
-        <td><%= link_to 'Edit', edit_event_path(event) %></td>
-        <td><%= link_to 'Destroy', event, method: :delete, data: { confirm: 'Are you sure?' } %></td>
-      </tr>
-    <% end %>
-  </tbody>
-</table>
+<div id="big_picture_chart"></div>
 
 <br>
 
