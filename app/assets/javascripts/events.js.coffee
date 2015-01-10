@@ -22,7 +22,7 @@ big_picture = ->
 	jQuery.ajax({
 		type:'GET',
 		url:'/events.js',
-		dataType: 'javascript',
+		dataType: 'text/javascript',
 		success: draw_graph
 	})
 
