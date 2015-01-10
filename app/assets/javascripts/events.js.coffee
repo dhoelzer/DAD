@@ -17,7 +17,7 @@ draw_graph  =  (graph_data) ->
 			}]
 	})
 
-results = (code, data, xhr)->
+results = (data, code, xhr)->
 	alert(code)
 	
 big_picture = ->
