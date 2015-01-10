@@ -3,7 +3,7 @@
 # You can use CoffeeScript in this file: http://coffeescript.org/
 
 draw_graph  =  (ajaxData, statusCode, jqXHR) ->
-	jQuery.alert(statusCode)
+	alert(statusCode)
 	new Highcharts.Chart({
 		chart:
 			renderTo: "big_picture_chart",
@@ -18,13 +18,14 @@ draw_graph  =  (ajaxData, statusCode, jqXHR) ->
 	})
 
 big_picture = ->
-	jQuery.alert("Fired")
+	alert("Fired")
 	jQuery.ajax({
 		type:'GET',
 		url:'/events',
 		dataType: 'script',
 		success: draw_graph
 	})
+	alert("ajax called")
 
 	
 
