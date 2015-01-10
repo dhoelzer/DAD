@@ -2,7 +2,7 @@
 # All this logic will automatically be available in application.js.
 # You can use CoffeeScript in this file: http://coffeescript.org/
 
-draw_graph  =  -> (ajaxData, statusCode, jqXHR)
+draw_graph  =  (ajaxData, statusCode, jqXHR) ->
 	jQuery.alert(statusCode)
 	new Highcharts.Chart({
 		chart:
