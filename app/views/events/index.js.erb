@@ -17,7 +17,7 @@ function draw_graph(chart_div, title, graph_data)
     });
 }
 	
-function draw_gauge(chart_div, title, graph_data)
+function draw_gauge(chart_div, title, graph_data, timeframe)
 {
    return new Highcharts.Chart({
       chart: {
@@ -26,20 +26,24 @@ function draw_gauge(chart_div, title, graph_data)
       title: {
         text: title
       },
+	  pane: {
+		startAngle: -150,
+		endAngle: 150
+	  },
 	  yAxis: {
 		min: 0,
-		max: (graph_data + .2 * graph_data),
+		max: (average_events * timeframe),
 		minorTickInterval: 'auto',
 		minorTickWidth:1,
 		minorTickLength: 10,
 		minorTickPosition: 'inside',
-		tickPixelInterval: 'auto',
+		tickPixelInterval: 1000,
 		tickWidth: 2,
 		tickPosition: 'inside',
 		tickLength: 10,
 		tickColor: '#555',
 		labels: {
-			step: 2,
+			step: 'auto',
 			rotation: 'auto'
 		}
 	},
@@ -53,9 +57,10 @@ function draw_gauge(chart_div, title, graph_data)
     });
 }
 
+var average_events = <%= daily_average %>
 draw_graph("systems_chart","Aggregate Events by System",<%=raw system_stats %>);
 draw_graph("services_chart","Aggregate Events by Service",<%=raw service_stats %>);
-draw_gauge("30_days_chart", "30 Days", <%=raw total_events_since(30.days.ago) %>);
-draw_gauge("7_days_chart", "7 Days", <%=raw total_events_since(7.days.ago) %>);
-draw_gauge("1_day_chart", "24 Hours", <%=raw total_events_since(24.hours.ago) %>);
+draw_gauge("30_days_chart", "30 Days", <%=raw total_events_since(30.days.ago) %>, 30);
+draw_gauge("7_days_chart", "7 Days", <%=raw total_events_since(7.days.ago) %>, 7);
+draw_gauge("1_day_chart", "24 Hours", <%=raw total_events_since(24.hours.ago) %>, 1);
 	

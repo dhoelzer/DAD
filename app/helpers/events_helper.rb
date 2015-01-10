@@ -20,4 +20,11 @@ module EventsHelper
   def total_events_since(time_frame)
     Event.where("generated > ?",time_frame).count
   end
+  
+  def daily_average
+    first = Event.order(:generated).first.generated
+    last = Event.order(:generated).last.generated
+    total = Event.count
+    total / ((last - first) / (60*60*24))
+  end
 end
