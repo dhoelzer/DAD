@@ -1,12 +1,9 @@
 # Place all the behaviors and hooks related to the matching controller here.
 # All this logic will automatically be available in application.js.
 # You can use CoffeeScript in this file: http://coffeescript.org/
-big_picture = ->
-	jQuery.ajax({
-		type:'GET',
-		url:'/events',
-		dataType: 'script'
-	});
+
+draw_graph = (ajaxData, statusCode, jqXHR)->	
+	$.alert(statusCode)
 	new Highcharts.Chart({
 		chart:
 			renderTo: "big_picture_chart",
@@ -16,9 +13,17 @@ big_picture = ->
 			[{
 				type: "pie",
 				name: "Aggregate Events",
-				data: [["Test 1", 12], ["Test 2", 20], ["Test 3", 29]]
+				data: ajaxData
 			}]
 	})
+
+big_picture = ->
+	jQuery.ajax({
+		type:'GET',
+		url:'/events',
+		dataType: 'script',
+		success: draw_graph
+	});
 	
 
 
