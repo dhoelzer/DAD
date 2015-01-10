@@ -2,20 +2,6 @@
 # All this logic will automatically be available in application.js.
 # You can use CoffeeScript in this file: http://coffeescript.org/
 
-draw_graph  =  (graph_data) ->
-	alert(graph_data)
-	new Highcharts.Chart({
-		chart:
-			renderTo: "big_picture_chart",
-		title:
-			text: "Big Picture",
-		series:
-			[{
-				type: "pie",
-				name: "Aggregate Events",
-				data: graph_data
-			}]
-	})
 
 results = (data, code, xhr)->
 	alert(code)
