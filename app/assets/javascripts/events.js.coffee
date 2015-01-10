@@ -17,12 +17,16 @@ draw_graph  =  (graph_data) ->
 			}]
 	})
 
+results = (code, data, xhr)->
+	alert(code)
+	
 big_picture = ->
 	$("#big_picture_chart").html("Loading...")
 	jQuery.ajax({
 		type:'GET',
 		url:'/events.js',
-		dataType: 'script'
+		dataType: 'script',
+		complete: results
 	})
 
 $(document).ready(big_picture)
