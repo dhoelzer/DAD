@@ -23,7 +23,8 @@ big_picture = ->
 		url:'/events',
 		dataType: 'script',
 		success: draw_graph
-	});
+	})
+	$.alert("Fired")
 	
 
 
