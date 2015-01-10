@@ -4,7 +4,8 @@
 
 
 results = (data, code, xhr)->
-	alert(code)
+	#alert(code)
+	{}
 	
 big_picture = ->
 	$("#big_picture_chart").html("Loading...")
