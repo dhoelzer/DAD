@@ -27,7 +27,7 @@ module Events
     end
 
     $_models = ActiveRecord::Base.subclasses.collect { |type| type.name }.sort
-    config.assets.enabled = false
+
     
   end
 end
