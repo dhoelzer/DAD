@@ -4,6 +4,10 @@ class EventsController < ApplicationController
   # GET /events
   # GET /events.json
   def index
+    respond_to do |format|
+      format.html
+      format.js
+    end
   end
 
   def search
