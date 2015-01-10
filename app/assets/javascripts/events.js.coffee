@@ -2,7 +2,7 @@
 # All this logic will automatically be available in application.js.
 # You can use CoffeeScript in this file: http://coffeescript.org/
 
-draw_graph  =  (ajaxData, statusCode, jqXHR) ->
+draw_graph  =  (graph_data) ->
 	alert(statusCode)
 	new Highcharts.Chart({
 		chart:
@@ -13,7 +13,7 @@ draw_graph  =  (ajaxData, statusCode, jqXHR) ->
 			[{
 				type: "pie",
 				name: "Aggregate Events",
-				data: ajaxData
+				data: graph_data
 			}]
 	})
 
@@ -22,8 +22,7 @@ big_picture = ->
 	jQuery.ajax({
 		type:'GET',
 		url:'/events.js',
-		dataType: 'script',
-		complete: draw_graph
+		dataType: 'script'
 	})
 
 $(document).ready(big_picture)
