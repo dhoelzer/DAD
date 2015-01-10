@@ -2,9 +2,9 @@
 # All this logic will automatically be available in application.js.
 # You can use CoffeeScript in this file: http://coffeescript.org/
 
-render_graph ->
+render_graph = ->
 	({
-		$().ajax({
+		$.ajax({
 			type:'GET',
 			url:'/events',
 			dataType: 'script'
