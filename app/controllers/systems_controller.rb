@@ -1,5 +1,5 @@
 class SystemsController < ApplicationController
-  before_action :set_system, only: [:show, :edit, :update, :destroy]
+  before_action :set_system, only: [:show, :edit, :update]
 
   # GET /systems
   # GET /systems.json
@@ -51,15 +51,6 @@ class SystemsController < ApplicationController
     end
   end
 
-  # DELETE /systems/1
-  # DELETE /systems/1.json
-  def destroy
-    @system.destroy
-    respond_to do |format|
-      format.html { redirect_to systems_url }
-      format.json { head :no_content }
-    end
-  end
 
   private
     # Use callbacks to share common setup or constraints between actions.
@@ -69,6 +60,6 @@ class SystemsController < ApplicationController
 
     # Never trust parameters from the scary internet, only allow the white list through.
     def system_params
-      params.require(:system).permit(:address, :name, :description, :administrator, :contact_email)
+      params.require(:system).permit(:address, :description, :administrator, :contact_email)
     end
 end
