@@ -8,7 +8,7 @@ module EventsHelper
     results.map { |k,v| [k,v] }
   end
   
-  def services_stats
+  def service_stats
     counts = Event.group(:service_id).count
     results = Hash.new
     counts.each do |service_id, count|
