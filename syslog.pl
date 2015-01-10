@@ -6,8 +6,8 @@ use POSIX;
 my $buf;
 my $Filename, $RotateTime = 0;
 
-$LOGSTAGING="/var/DAD/jobs/LogStaging";
-$LOGPROCESSING="/var/DAD/jobs/LogsToProcess";
+$LOGSTAGING="/var/DAD/Logs/LogStaging";
+$LOGPROCESSING="/var/DAD/Logs/LogsToProcess";
 
 $sock = IO::Socket::INET->new(LocalPort => '514', Proto => 'udp')||die("Socket: $@");
 
