@@ -9,6 +9,7 @@ class Event < ActiveRecord::Base
   @@nextPositionID = -1
   @@pendingEventValues = Array.new
   @@pendingPositionValues = Array.new
+  @@start_time = Time.now
   
   def self.storeEvent(eventString)
     split_text = eventString.split(/\s+/)
@@ -60,7 +61,10 @@ class Event < ActiveRecord::Base
     positions_sql = "INSERT INTO positions (id, word_id, position, event_id) VALUES #{@@pendingPositionValues.join(", ")}"
     connection.execute positions_sql
   
-    puts "-->> Flushed #{@@pendingEventValues.count} events with #{@@pendingPositionValues.count} positions. <<--"
+    puts "\t\t-->> Flushed #{@@pendingEventValues.count} events with #{@@pendingPositionValues.count} positions. <<--"
+    elapsed_time = (Time.now - @@start_time)
+    puts "\t\t-->> Started run: #{@@start_time}\t#{elapsed_time} seconds elapsed\t#{@@pendingEventValues.count/elapsed_time} events processed per second."
+    @@start_time = Time.now
     @@pendingEventValues = []
     @@pendingPositionValues = []
   end
