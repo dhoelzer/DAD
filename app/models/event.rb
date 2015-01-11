@@ -60,6 +60,7 @@ class Event < ActiveRecord::Base
     positions_sql = "INSERT INTO positions (id, word_id, position, event_id) VALUES #{@@pendingPositionValues.join(", ")}"
     connection.execute positions_sql
   
+    puts "-->> Flushed #{@@pendingEventValues.count} events with #{@@pendingPositionValues.count} positions. <<--"
     @@pendingEventValues = []
     @@pendingPositionValues = []
   end
