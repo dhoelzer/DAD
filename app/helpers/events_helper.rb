@@ -25,6 +25,6 @@ module EventsHelper
     first = Event.order(:generated).first.generated
     last = Event.order(:generated).last.generated
     total = Event.count
-    total / ((last - first) / (60*60*24))
+    total / ((last - first) / (100*60*60*24))
   end
 end

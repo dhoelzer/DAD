@@ -13,17 +13,20 @@
  */
 
 #services_chart {
-	width:50%;
+	width:30%;
 	float: left;
 }
 
+#clear {
+	clear: both;
+}
 #systems_chart {
-	width:50%;
+	width:30%;
 	float: left;
 }
 
 #event_rates div {
-	width: 30%;
+	width: 20%;
 	float: left;
 }
 #navbar	ul {

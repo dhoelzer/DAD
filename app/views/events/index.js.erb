@@ -13,7 +13,7 @@ function draw_graph(chart_div, title, graph_data)
       series: [
         {
           type: "pie",
-          name: "Aggregate Events",
+          name: "Events Online:",
           data: graph_data
         }
       ]
@@ -38,12 +38,12 @@ function draw_gauge(chart_div, title, graph_data, timeframe)
 	  },
 	  yAxis: {
 		min: 0,
-		max: (average_events * timeframe),
+		max: (average_events * timeframe + (average_events * .1)),
 		minorTickInterval: 'auto',
 		minorTickWidth:1,
 		minorTickLength: 10,
 		minorTickPosition: 'inside',
-		tickPixelInterval: 1000,
+		tickPixelInterval: (average_events /10),
 		tickWidth: 2,
 		tickPosition: 'inside',
 		tickLength: 10,
