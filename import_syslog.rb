@@ -21,7 +21,6 @@ begin
       end
     end
     file.close
-    print ">>> There are #{Word.number_of_cached_words} words currently cached and there are #{Word.count} words total.  #{Word.added} words were added.\n"
     File.rename(log, "../ProcessedLogs/#{log}")
   end
 rescue Interrupt
