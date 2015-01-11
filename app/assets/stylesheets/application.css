@@ -13,7 +13,7 @@
  */
 
 #services_chart {
-	width:30%;
+	width:45%;
 	float: left;
 }
 
@@ -21,7 +21,7 @@
 	clear: both;
 }
 #systems_chart {
-	width:30%;
+	width:45%;
 	float: left;
 }
 
