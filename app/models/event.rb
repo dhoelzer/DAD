@@ -18,7 +18,7 @@ class Event < ActiveRecord::Base
     txttimestamp = split_text[1..3].join(' ')
     timestamp = (split_text[1] != "Jan" ? DateTime.parse("#{txttimestamp} 2014 GMT") : DateTime.parse("#{txttimestamp} 2015 GMT"))
     txtservice = split_text[5]
-    txtservice.tr!("^a-zA-Z\/\-", "")
+    txtservice.tr!("^a-zA-Z/\-", "")
     service = Service.find_or_add(txtservice)
 
     if @@nextEventID == -1 then
@@ -35,7 +35,7 @@ class Event < ActiveRecord::Base
 #    return nil if event.nil?
     
     eventString.downcase!
-    eventString.tr!("\r\n]", "")
+    eventString.tr!("\r\n", "")
     eventString.gsub!(/([^a-zA-Z0-9])/," \\1 " )
     words = eventString.split(/\s+/)
     current_position = 0                  # Track which position we are at within the event

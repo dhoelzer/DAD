@@ -21,7 +21,7 @@
 </p>
 
 <p>
-<% @event.positions.each do |position| %>
+<% @event.positions.order(:position).each do |position| %>
 	<%= position.word.text %> 
 <% end %>
 </p>
