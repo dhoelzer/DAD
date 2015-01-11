@@ -13,7 +13,7 @@ begin
     file.each_line do |line|
       begin
         Event.storeEvent(line)
-      rescue
+      rescue Exception => e
         puts "Error processing #{log}!"
         puts e
         Event.performPendingInserts
