@@ -1,0 +1,19 @@
+
+
+var results = function(data, code, xhr)
+{
+	alert(code);
+}
+	
+var services_chart = function()
+{
+	$("services_chart").html("Loading...");
+	draw_graph("services_chart","<%= "Breakdown for #{@system.display_name}"%>", <%=raw system_service_stats(@system.id) %>);
+}
+
+$(document).ready(services_chart)
+$(document).on('page:load', services_chart)
+
+
+
+
