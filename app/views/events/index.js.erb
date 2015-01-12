@@ -1,73 +1,7 @@
-function draw_graph(chart_div, title, graph_data)
-{
-   return new Highcharts.Chart({
-      chart: {
-        renderTo: chart_div
-      },
-	 credits: {
-	    enabled: false
-	  },
-      title: {
-        text: title
-      },
-      series: [
-        {
-          type: "pie",
-          name: "Events Online:",
-          data: graph_data
-        }
-      ]
-    });
-}
-	
-function draw_gauge(chart_div, title, graph_data, timeframe)
-{
-   return new Highcharts.Chart({
-      chart: {
-        renderTo: chart_div
-      },
-	 credits: {
-	    enabled: false
-	  },
-      title: {
-        text: title
-      },
-	  pane: {
-		startAngle: -150,
-		endAngle: 150
-	  },
-	  yAxis: {
-		min: 0,
-		max: (average_events * timeframe + (average_events * .1)),
-		minorTickInterval: 'auto',
-		minorTickWidth:1,
-		minorTickLength: 10,
-		minorTickPosition: 'inside',
-		tickPixelInterval: ((average_events * .1) / 20),
-		tickWidth: 2,
-		tickPosition: 'inside',
-		tickLength: 10,
-		tickColor: '#555',
-		labels: {
-			step: (average_events * .1)/10,
-			rotation: 'auto'
-		}
-	},
-      series: [
-        {
-          type: "gauge",
-          name: "Logging Rate",
-          data: [graph_data]
-        }
-      ]
-    });
-}
 
-var average_events = <%= daily_average %>
-draw_graph("systems_chart","Aggregate Events by System",<%=raw system_stats %>);
-draw_graph("services_chart","Aggregate Events by Service",<%=raw service_stats %>);
-draw_gauge("30_days_chart", "30 Days", <%=raw total_events_since(30.days.ago) %>, 30);
-draw_gauge("7_days_chart", "7 Days", <%=raw total_events_since(7.days.ago) %>, 7);
-draw_gauge("1_day_chart", "24 Hours", <%=raw total_events_since(24.hours.ago) %>, 1);
-
-	
+	var average_events = <%= daily_average %>;
+	draw_graph("systems_chart","Aggregate Events by System",<%=raw system_stats %>);
+	draw_graph("services_chart","Aggregate Events by Service",<%=raw service_stats %>);
+	draw_gauge("30_days_chart", "30 Days", <%=raw total_events_since(30.days.ago) %>, 30);
+	draw_gauge("7_days_chart", "7 Days", <%=raw total_events_since(7.days.ago) %>, 7);
+	draw_gauge("1_day_chart", "24 Hours", <%=raw total_events_since(24.hours.ago) %>, 1);

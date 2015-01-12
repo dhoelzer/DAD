@@ -6,15 +6,16 @@
 results = (data, code, xhr)->
 	#alert(code)
 	{}
-	
+
 big_picture = ->
-	$("#big_picture_chart").html("Loading...")
-	jQuery.ajax({
-		type:'GET',
-		url:'/events.js',
-		dataType: 'script',
-		complete: results
-	})
+		if ($('#big_picture').length)
+			$("big_picture").html("Loading...")
+			jQuery.ajax({
+				type:'GET',
+				url:'/events.js',
+				dataType: 'script',
+				complete: results
+				})
 
 $(document).ready(big_picture)
 $(document).on('page:load', big_picture)

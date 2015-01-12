@@ -1,3 +1,6 @@
+
+<div id="services_chart"></div>
+
 <p id="notice"><%= notice %></p>
 
 <p>
@@ -24,6 +27,7 @@
   <strong>Contact email:</strong>
   <%= @system.contact_email %>
 </p>
+<%= javascript_include_tag "/systems/#{@system.id}.js" %>
 
 <%= link_to 'Edit', edit_system_path(@system) %> |
 <%= link_to 'Back', systems_path %>
