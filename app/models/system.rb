@@ -11,7 +11,7 @@ class System < ActiveRecord::Base
   end
   
   def self.find_or_add(new_item)
-    return @@cached_stuff[new_item] if @@cached_stuff.keys.include?(new_item)
+    return @@cached_stuff[new_item] if @@cached_stuff.has_key?(new_item)
     item=System.find_by name: new_item
     if item.nil? then
       item = System.create(:name => new_item)
@@ -22,7 +22,7 @@ class System < ActiveRecord::Base
   end
   
   def self.number_of_cached_items
-    return @@cached_stuff.keys.size
+    return @@cached_stuff.size
   end
   
   def self.added
