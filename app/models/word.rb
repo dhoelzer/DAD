@@ -1,7 +1,7 @@
 class Word < ActiveRecord::Base
   has_many :positions
   has_many :events, :through => :positions
-  @@cached_words = GoogleSparseRubyToRuby.new
+  @@cached_words = GoogleHashSparseRubyToRuby.new
   @added = 0
   @cache_hits = 0
   CACHESIZE=10000
