@@ -2,7 +2,7 @@
 <%@events.each do |event| %>
 <p>
 <%= event.system.display_name %>: <%= event.generated %> : 
-<% event.positions.each do |position| %>
+<% event.positions.order(:position).each do |position| %>
 	<%= position.word.text %> 
 <% end %>
 </p>
