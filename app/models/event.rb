@@ -36,7 +36,7 @@ class Event < ActiveRecord::Base
     
     eventString.downcase!
     eventString.tr!("\r\n", "")
-    eventString.gsub!(/([^a-zA-Z0-9-=:])/," \\1 " )
+    eventString.gsub!(/([^a-zA-Z0-9\-=:])/," \\1 " )
     words = eventString.split(/\s+/)
     current_position = 0                  # Track which position we are at within the event
     words.each do |word|
