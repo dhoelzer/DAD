@@ -4,11 +4,12 @@ class Event < ActiveRecord::Base
   belongs_to :system
   belongs_to :service
   
-  BULK_INSERT_SIZE=(Rails.env.development? ? 1 : 5000)
+  BULK_INSERT_SIZE=(Rails.env.development? ? 1 : 2000)
   @@nextEventID = -1
   @@nextPositionID = -1
   @@pendingEventValues = Array.new
   @@pendingPositionValues = Array.new
+  @@events_words = Array.new
   @@start_time = Time.now
   
   def self.storeEvent(eventString)
@@ -43,6 +44,7 @@ class Event < ActiveRecord::Base
       dbWord = Word.find_or_add(word)
 
       @@pendingPositionValues.push "(#{@@nextPositionID}, #{dbWord}, #{current_position}, #{@@nextEventID})"
+      @@events_words.push "(#{@@nextEventID}, #{dbWord})"
 #      position = Position.create(:word_id => dbWord.id, :position => current_position, :event_id => event.id)
       @@nextPositionID += 1
       current_position += 1
@@ -61,11 +63,15 @@ class Event < ActiveRecord::Base
     positions_sql = "INSERT INTO positions (id, word_id, position, event_id) VALUES #{@@pendingPositionValues.join(", ")}"
     connection.execute positions_sql
   
+    events_words_sql = "INSERT INTO events_words (event_id, word_id) VALUES #{@@events_words.join(", ")}"
+    connection.execute events_words_sql
+    
     puts "\t\t-->> Flushed #{@@pendingEventValues.count} events with #{@@pendingPositionValues.count} positions. <<--"
     elapsed_time = (Time.now - @@start_time)
     puts "\t\t-->> Started run: #{@@start_time}\t#{elapsed_time} seconds elapsed\t#{@@pendingEventValues.count/elapsed_time} events processed per second."
     @@start_time = Time.now
     @@pendingEventValues = []
     @@pendingPositionValues = []
+    @@events_words = []
   end
 end
