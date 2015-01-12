@@ -1,28 +1,8 @@
 == README
+DAD now requires only a Rail 4 stack and Postgresql!  Obviously, massive changes are underway.
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+To install, simply check out the current version of the DAD codebase from the github repository, ensure that Ruby, Rails and RubyGems in addition to Postgresql and deploy as a typical Rails application.  Bear in mind that this branch is undergoing heavy development at the moment.  Our event insert rate is currently hovering at around 150 events per second and, clearly, we're looking to improve that.  However, there are two other issues that must be addressed first:
 
-Things you may want to cover:
-
-* Ruby version
-
-* System dependencies
-
-* Configuration
-
-* Database creation
-
-* Database initialization
-
-* How to run the test suite
-
-* Services (job queues, cache servers, search engines, etc.)
-
-* Deployment instructions
-
-* ...
-
-
-Please feel free to use a different markup language if you do not plan to run
-<tt>rake doc:app</tt>.
+* The event search rate is extremely low.  I need to spend some time refining the SQL that's being generated rather than rely on ActiveRecord for this part I think.
+* With the event searches optimized, the next task will be to get a monitoring and alerting framework in place.  Expect this sometime in January of 2015.
+* I need to put together or adopt another project that handles the WMI piece so that Windows events can be handled.  Most likely the first pass at this will simply be a WMI client that converts the retrieved data into a syslog style format and dumps it into the LogsToProcess directory.
