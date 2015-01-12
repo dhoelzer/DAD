@@ -7,8 +7,10 @@ var results = function(data, code, xhr)
 	
 var services_chart = function()
 {
-	$("services_chart").html("Loading...");
-	draw_graph("services_chart","<%= "Breakdown for #{@system.display_name}"%>", <%=raw system_service_stats(@system.id) %>);
+	if($('#services_chart').length) {
+		$("services_chart").html("Loading...");
+		draw_graph("services_chart","<%= "Breakdown for #{@system.display_name}"%>", <%=raw system_service_stats(@system.id) %>);
+	}
 }
 
 $(document).ready(services_chart)
