@@ -4,7 +4,7 @@ class Word < ActiveRecord::Base
   @@cached_words = Hash.new
   @added = 0
   @cache_hits = 0
-  CACHESIZE=5000
+  CACHESIZE=500
   
   def self.find_or_add(new_word)
     if @@cached_words.keys.include?(new_word) then
