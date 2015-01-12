@@ -22,7 +22,7 @@ module EventsHelper
   end
   
   def daily_average
-    return 650000
+    return 1000000
     first = Event.order(:generated).first.generated
     last = Event.order(:generated).last.generated
     total = Event.count
