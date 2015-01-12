@@ -7,7 +7,7 @@ class Word < ActiveRecord::Base
   CACHESIZE=1000
   
   def self.find_or_add(new_word)
-    if @@cached_words.keys.include?(new_word) then
+    if @@cached_words.has_key?(new_word) then
       @@cached_words[new_word][:last] = Time.now
       @cache_hits += 1
       return @@cached_words[new_word][:id] 
