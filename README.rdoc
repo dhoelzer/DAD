@@ -7,3 +7,7 @@ To install, simply check out the current version of the DAD codebase from the gi
 * The event search rate is extremely low.  I need to spend some time refining the SQL that's being generated rather than rely on ActiveRecord for this part I think.
 * With the event searches optimized, the next task will be to get a monitoring and alerting framework in place.  Expect this sometime in January of 2015.
 * I need to put together or adopt another project that handles the WMI piece so that Windows events can be handled.  Most likely the first pass at this will simply be a WMI client that converts the retrieved data into a syslog style format and dumps it into the LogsToProcess directory.
+
+
+*UPDATE*
+The event insert rate is now exceeding 300 events per second after some judicious optimization.
