@@ -13,9 +13,6 @@ group :development, :test do
   gem 'sqlite3'
 end
 
-# Try google_hashes to speed things up:
-gem 'google_hash'
-
 # Use SCSS for stylesheets
 gem 'sass-rails', '~> 4.0.0'
 

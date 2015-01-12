@@ -2,7 +2,7 @@ class System < ActiveRecord::Base
   has_many :events
   has_many :services, :through => :events
   
-  @@cached_stuff = GoogleHashSparseRubyToRuby.new
+  @@cached_stuff = Hash.new
   @added = 0
   
   def display_name
