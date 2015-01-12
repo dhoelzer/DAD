@@ -1,10 +1,10 @@
 class Word < ActiveRecord::Base
   has_many :positions
   has_many :events, :through => :positions
-  @@cached_words = Hash.new
+  @@cached_words = GoogleSparseRubyToRuby.new
   @added = 0
   @cache_hits = 0
-  CACHESIZE=1000
+  CACHESIZE=10000
   
   def self.find_or_add(new_word)
     if @@cached_words.keys.include?(new_word) then

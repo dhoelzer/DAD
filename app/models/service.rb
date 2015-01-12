@@ -2,7 +2,7 @@ class Service < ActiveRecord::Base
   has_many :events
   has_many :servers, :through => :events
   
-  @@cached_stuff = Hash.new
+  @@cached_stuff = GoogleSparseRubyToRuby.new
   @added = 0
   
   def self.find_or_add(new_item)
