@@ -24,7 +24,7 @@ class EventsController < ApplicationController
       joins << "#{ (join==0 ? ' ' : ' and ') }exists(select event_id from events_words where event_id=e.id and word_id=#{word})"
       join += 1
     end
-    event_sql = joins
+    event_sql = "#{joins} limit 100"
     puts joins
     events_that_match = connection.execute event_sql
     event_ids = Array.new
