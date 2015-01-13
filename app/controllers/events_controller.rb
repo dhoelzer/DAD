@@ -29,7 +29,7 @@ class EventsController < ApplicationController
     events_that_match = connection.execute event_sql
     puts events_that_match.count
     event_ids = Array.new
-    events_that_match.map { |e| event_ids << e["event_id"] }
+    events_that_match.map { |e| event_ids << e["id"] }
     @events = Event.order(generated: :asc).includes(:positions, :words).where("id in (?)", event_ids).offset(0).limit(40)
   end
   
