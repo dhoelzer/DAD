@@ -14,7 +14,7 @@ class EventsController < ApplicationController
     @term_strings = params[:search_terms].downcase
     @terms = @term_strings.split(/\s+/)
     events = Array.new
-    words = Word.where("'text' in ?", @terms).pluck(:id)
+    words = Word.where("'text' in (?)", @terms).pluck(:id)
     connection = ActiveRecord::Base.connection
     joins = "select distinct a.event_id from events_words as a"
     ref="b"
