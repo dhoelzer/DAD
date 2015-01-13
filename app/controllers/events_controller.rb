@@ -27,6 +27,7 @@ class EventsController < ApplicationController
     event_sql = "#{joins} limit 100"
     puts event_sql
     events_that_match = connection.execute event_sql
+    puts events_that_match
     event_ids = Array.new
     events_that_match.map { |e| event_ids << e["event_id"] }
     @events = Event.order(generated: :asc).includes(:positions, :words).where("id in (?)", event_ids).offset(0).limit(40)
