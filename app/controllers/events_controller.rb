@@ -10,19 +10,22 @@ class EventsController < ApplicationController
     end
   end
 
+
+
   def search
     @term_strings = params[:search_terms].downcase
     @terms = @term_strings.split(/\s+/)
     events = Array.new
     words = Word.where("text in (?)", @terms).pluck(:id)
     connection = ActiveRecord::Base.connection
-    joins = "select distinct a.event_id from events_words as a"
-    ref="b"
+    joins = "select distinct e.id from events as e where"
+    join=0
     words.each do |word|
-      joins << " inner join events_words as #{ref} on a.event_id=#{ref}.event_id and #{ref}.word_id=#{word}"
-      ref = (ref.ord+1).chr
+      joins << "#{ (join==0 ? ' ' : ' and ') }exists(select event_id from events_words where event_id=e.id and word_id=#{word})"
+      join += 1
     end
     event_sql = joins
+    puts joins
     events_that_match = connection.execute event_sql
     event_ids = Array.new
     events_that_match.map { |e| event_ids << e["event_id"] }
