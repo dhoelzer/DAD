@@ -25,7 +25,7 @@ class EventsController < ApplicationController
       join += 1
     end
     event_sql = "#{joins} limit 100"
-    puts joins
+    puts event_sql
     events_that_match = connection.execute event_sql
     event_ids = Array.new
     events_that_match.map { |e| event_ids << e["event_id"] }
