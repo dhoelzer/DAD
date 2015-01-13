@@ -14,14 +14,19 @@ class EventsController < ApplicationController
     @term_strings = params[:search_terms].downcase
     @terms = @term_strings.split(/\s+/)
     events = Array.new
-    @terms.each do |term|
-      word = Word.find_by_text(term)
-      events_that_match = (word.nil? ? [] : word.events.pluck(:id))
-      events << events_that_match
+    words = Word.where("'text' in ?", @terms).pluck(:id)
+    connection = ActiveRecord::Base.connection
+    joins = "select distinct a.event_id from events_words as a"
+    ref="b"
+    words.each do |word|
+      joins << " inner join events_words as #{ref} on a.event_id=#{ref}.event_id and #{ref}.word_id=#{word}"
+      ref = (ref.ord+1).chr
     end
-    @events = events[0] unless events.empty?
-    events.each { |e| @events = @events & e }
-    @events = Event.includes(:positions, :words).order(generated: :asc).where("id in (?)", @events).offset(0).limit(40)
+    event_sql = joins
+    events_that_match = connection.execute event_sql
+    event_ids = Array.new
+    events_that_match.map { |e| event_ids << e["event_id"] }
+    @events = Event.includes(:positions, :words).order(generated: :asc).where("id in (?)", event_ids).offset(0).limit(40)
   end
   
   # GET /events/1
