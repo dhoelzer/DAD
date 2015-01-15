@@ -12,6 +12,28 @@ class Event < ActiveRecord::Base
   @@events_words = Array.new
   @@start_time = Time.now
   
+  
+  def self.search(search_string)
+    search_string.downcase!
+    terms = search_string.split(/\s+/)
+    events = Array.new
+    words = Word.where("text in (?)", @terms).pluck(:id)
+    connection = ActiveRecord::Base.connection
+    joins = "select distinct e.id from events as e where"
+    join=0
+    words.each do |word|
+      joins << "#{ (join==0 ? ' ' : ' and ') }exists(select event_id from events_words where event_id=e.id and word_id=#{word})"
+      join += 1
+    end
+    event_sql = "#{joins} limit 100"
+    puts event_sql
+    events_that_match = connection.execute event_sql
+    puts events_that_match.count
+    event_ids = Array.new
+    events_that_match.map { |e| event_ids << e["id"] }
+    @events = Event.order(generated: :asc).includes(:positions, :words).where("id in (?)", event_ids).offset(0).limit(40)
+  end    
+  
   def self.storeEvent(eventString)
     split_text = eventString.split(/\s+/)
     txtsystem = split_text[0]

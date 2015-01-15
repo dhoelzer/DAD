@@ -13,24 +13,7 @@ class EventsController < ApplicationController
 
 
   def search
-    @term_strings = params[:search_terms].downcase
-    @terms = @term_strings.split(/\s+/)
-    events = Array.new
-    words = Word.where("text in (?)", @terms).pluck(:id)
-    connection = ActiveRecord::Base.connection
-    joins = "select distinct e.id from events as e where"
-    join=0
-    words.each do |word|
-      joins << "#{ (join==0 ? ' ' : ' and ') }exists(select event_id from events_words where event_id=e.id and word_id=#{word})"
-      join += 1
-    end
-    event_sql = "#{joins} limit 100"
-    puts event_sql
-    events_that_match = connection.execute event_sql
-    puts events_that_match.count
-    event_ids = Array.new
-    events_that_match.map { |e| event_ids << e["id"] }
-    @events = Event.order(generated: :asc).includes(:positions, :words).where("id in (?)", event_ids).offset(0).limit(40)
+    @events = Event.search(params[:search_terms])
   end
   
   # GET /events/1
