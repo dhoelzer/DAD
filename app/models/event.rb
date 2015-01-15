@@ -19,7 +19,7 @@ class Event < ActiveRecord::Base
     events = Array.new
     words = Word.where("text in (?)", terms).pluck(:id)
     connection = ActiveRecord::Base.connection
-    sql = "select e.event_id from (select distinct a.event_id,word_id,count(a.event_id) from events_words as a where a.word_id in (#{words.join(',')}) as e group by event_id,word_id having count(event_id)=#{words.count})"
+    sql = "select e.event_id from (select distinct a.event_id,word_id,count(a.event_id) from events_words as a where a.word_id in (#{words.join(',')}) group by event_id,word_id having count(event_id)=#{words.count}) as e"
     puts sql
     events_that_match = connection.execute sql
     puts events_that_match
