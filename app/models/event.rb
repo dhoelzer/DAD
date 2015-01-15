@@ -15,9 +15,7 @@ class Event < ActiveRecord::Base
   def self.storeEvent(eventString)
     split_text = eventString.split(/\s+/)
     txtsystem = split_text[0]
-    puts split_text.size
-    puts split_text
-    return if split_text.size > 1 # If there's no date and only an IP then it's not a valid message.
+    return unless split_text.size > 1 # If there's no date and only an IP then it's not a valid message.
     system = System.find_or_add(txtsystem)
     txttimestamp = split_text[1..3].join(' ')
     timestamp = (split_text[1] != "Jan" ? DateTime.parse("#{txttimestamp} 2014 GMT") : DateTime.parse("#{txttimestamp} 2015 GMT"))
