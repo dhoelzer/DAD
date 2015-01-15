@@ -17,7 +17,7 @@ class Event < ActiveRecord::Base
     search_string.downcase!
     terms = search_string.split(/\s+/)
     events = Array.new
-    words = Word.where("text in (?)", @terms).pluck(:id)
+    words = Word.where("text in (?)", terms).pluck(:id)
     connection = ActiveRecord::Base.connection
     joins = "select distinct e.id from events as e where"
     join=0
@@ -25,7 +25,7 @@ class Event < ActiveRecord::Base
       joins << "#{ (join==0 ? ' ' : ' and ') }exists(select event_id from events_words where event_id=e.id and word_id=#{word})"
       join += 1
     end
-    event_sql = "#{joins} limit 100"
+    event_sql = "#{joins}"
     puts event_sql
     events_that_match = connection.execute event_sql
     puts events_that_match.count
