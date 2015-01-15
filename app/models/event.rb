@@ -19,18 +19,12 @@ class Event < ActiveRecord::Base
     events = Array.new
     words = Word.where("text in (?)", terms).pluck(:id)
     connection = ActiveRecord::Base.connection
-    joins = "select distinct e.id from events as e where"
-    join=0
-    words.each do |word|
-      joins << "#{ (join==0 ? ' ' : ' and ') }exists(select event_id from events_words where event_id=e.id and word_id=#{word})"
-      join += 1
-    end
-    event_sql = "#{joins}"
-    puts event_sql
-    events_that_match = connection.execute event_sql
-    puts events_that_match.count
+    sql = "select event_id from (select distinct a.event_id,word_id,count(a.event_id) from events_words as a where a.word_id in (#{words.join(',')}) group by event_id,word_id having count(event_id)=#{words.count})"
+    puts sql
+    events_that_match = connection.execute sql
+    puts events_that_match
     event_ids = Array.new
-    events_that_match.map { |e| event_ids << e["id"] }
+    events_that_match.map { |e| event_ids << e["event_id"] }
     @events = Event.order(generated: :asc).includes(:positions, :words).where("id in (?)", event_ids).offset(0).limit(40)
   end    
   
