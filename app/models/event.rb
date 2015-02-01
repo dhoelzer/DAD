@@ -25,7 +25,8 @@ class Event < ActiveRecord::Base
     puts events_that_match
     event_ids = Array.new
     events_that_match.map { |e| event_ids << e["event_id"] }
-    @events = Event.order(generated: :asc).includes(:positions, :words).where("id in (?)", event_ids).offset(0).limit(40)
+    events_that_match = events_that_match[-100..100]
+    @events = Event.order(generated: :asc).includes(:positions, :words).where("id in (?)", event_ids)
   end    
   
   def self.storeEvent(eventString)
