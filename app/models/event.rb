@@ -30,7 +30,7 @@ class Event < ActiveRecord::Base
         events_that_match.map { |e| event_ids << e["event_id"]}
       else
         events_that_match.map do |e|
-          event_ids - [e["event_id"] unless event_ids.include?(e["event_id"])
+          event_ids - [e["event_id"]] unless event_ids.include?(e["event_id"])
         end
       end
     end
