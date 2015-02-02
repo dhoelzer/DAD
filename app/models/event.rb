@@ -33,7 +33,6 @@ class Event < ActiveRecord::Base
         end
       end
     end
-    puts events_that_match
     event_ids = event_ids[-100,100]
     @events = Event.order(generated: :asc).includes(:positions, :words).where("id in (?)", event_ids)
   end    
