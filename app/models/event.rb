@@ -15,17 +15,26 @@ class Event < ActiveRecord::Base
   
   def self.search(search_string)
     search_string.downcase!
+    event_ids = nil
     terms = search_string.split(/\s+/)
     events = Array.new
     words = Word.where("text in (?)", terms).pluck(:id)
     connection = ActiveRecord::Base.connection
     # select e.event_id,count(*) from (select distinct a.event_id,a.word_id from events_words as a where a.word_id in (1,2,3,4) group by a.event_id,a.word_id ) as e group by e.event_id,e.word_id having count(*)=4 order by e.event_id;
-    sql = "select e.event_id from (select distinct a.event_id,a.word_id from events_words as a where a.word_id in (#{words.join(',')}) group by event_id,word_id having count(a.event_id)=#{words.count}) as e"
-    puts sql
-    events_that_match = connection.execute sql
+    words.each do |word|
+      sql = "select e.event_id from (select distinct a.event_id,a.word_id from events_words as a where a.word_id in (#{word}) group by event_id,word_id) as e"
+      puts sql
+      events_that_match = connection.execute sql
+      if events_id.nil? then
+        events_id = Array.new
+        events_that_match.map { |e| event_ids << e["event_id"]}
+      else
+        events_that_match.map do |e|
+          event_ids - [e["event_id"] unless event_ids.include?(e["event_id"])
+        end
+      end
+    end
     puts events_that_match
-    event_ids = Array.new
-    events_that_match.map { |e| event_ids << e["event_id"] }
     event_ids = event_ids[-100,100]
     @events = Event.order(generated: :asc).includes(:positions, :words).where("id in (?)", event_ids)
   end    
