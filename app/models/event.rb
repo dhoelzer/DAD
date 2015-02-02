@@ -21,7 +21,13 @@ class Event < ActiveRecord::Base
     words = Word.where("text in (?)", terms).pluck(:id)
     connection = ActiveRecord::Base.connection
     # select e.event_id,count(*) from (select distinct a.event_id,a.word_id from events_words as a where a.word_id in (1,2,3,4) group by a.event_id,a.word_id ) as e group by e.event_id,e.word_id having count(*)=4 order by e.event_id;
-    words.each do |word|
+    ordered_words = Hash.new
+    words.each do |word_id|
+      count = Position.where(:word_id => word_id)
+      ordered_words[word_id] = count
+    end
+    ordered_words.sory_by{|k,v| v}.each do |word, word_count|
+      puts "Searching for #{word} with count #{word_count}"
       sql = "select e.event_id from (select distinct a.event_id,a.word_id from events_words as a where a.word_id in (#{word}) #{event_ids.empty? ? "" : "and a.event_id in (#{event_ids.join(',')})"} group by event_id,word_id) as e"
       puts sql
       events_that_match = connection.execute sql
