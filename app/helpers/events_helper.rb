@@ -1,6 +1,6 @@
 module EventsHelper
-  def system_stats
-    counts = Event.where("generated > NOW()-'7 day'::interval").group(:system_id).count
+  def system_stats(days)
+    counts = Event.where("generated > NOW()-'? day'::interval", days).group(:system_id).count
     results = Hash.new
     counts.each do |system_id, count|
       results[System.find(system_id).display_name] = count
@@ -8,8 +8,8 @@ module EventsHelper
     results.map { |k,v| [k,v] }
   end
   
-  def service_stats
-    counts = Event.where("generated > NOW()-'7 day'::interval").group(:service_id).count
+  def service_stats(days)
+    counts = Event.where("generated > NOW()-'? day'::interval", days).group(:service_id).count
     results = Hash.new
     counts.each do |service_id, count|
       results[Service.find(service_id).name] = count
