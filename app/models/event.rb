@@ -26,6 +26,10 @@ class Event < ActiveRecord::Base
       count = Position.where(:word_id => word_id).count
       puts "#{word_id} was found #{count} times"
       ordered_words[word_id] = count
+      if(count = 0) then
+        @events = nil
+        return
+      end
     end
     ordered_words.sort_by{|k,v| v}.each do |word, word_count|
       puts "Searching for #{word} with count #{word_count}"
@@ -36,7 +40,7 @@ class Event < ActiveRecord::Base
         events_that_match.map { |e| event_ids << e["event_id"]}
       else
         events_that_match.map do |e|
-          event_ids - [e["event_id"]] unless event_ids.include?(e["event_id"])
+          event_ids.delete(e["event_id"]) unless event_ids.include?(e["event_id"])
         end
       end
       if event_ids.empty? then
