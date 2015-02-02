@@ -3,7 +3,7 @@ class Event < ActiveRecord::Base
   has_many :words, :through => :positions
   belongs_to :system
   belongs_to :service
-  
+
   BULK_INSERT_SIZE=(Rails.env.development? ? 1 : 2000)
   @@nextEventID = -1
   @@nextPositionID = -1
@@ -11,18 +11,18 @@ class Event < ActiveRecord::Base
   @@pendingPositionValues = Array.new
   @@events_words = Array.new
   @@start_time = Time.now
-  
-  
+
+
   def self.search(search_string)
     @events = Array.new
-    search_string.downcase!
     event_ids = Array.new
-    terms = search_string.split(/\s+/)
-    events = Array.new
-    words = Word.where("text in (?)", terms).pluck(:id)
     connection = ActiveRecord::Base.connection
-    # select e.event_id,count(*) from (select distinct a.event_id,a.word_id from events_words as a where a.word_id in (1,2,3,4) group by a.event_id,a.word_id ) as e group by e.event_id,e.word_id having count(*)=4 order by e.event_id;
+    events = Array.new
     ordered_words = Hash.new
+
+    search_string.downcase!
+    terms = search_string.split(/\s+/)
+    words = Word.where("text in (?)", terms).pluck(:id)
     words.each do |word_id|
       count = Position.where(:word_id => word_id).count
       puts "#{word_id} was found #{count} times"
@@ -37,16 +37,14 @@ class Event < ActiveRecord::Base
       if event_ids.empty? then
         events_that_match.map { |e| event_ids << e["event_id"]}
       else
-        events_that_match.map do |e|
-          event_ids.delete(e["event_id"]) unless event_ids.include?(e["event_id"])
-        end
+        events_that_match.map { |e| event_ids.delete(e["event_id"]) unless event_ids.include?(e["event_id"]) }
       end
-      return if if event_ids.empty?
+      return if event_ids.empty?
     end
     event_ids = event_ids[-100,100]
     @events = Event.order(generated: :asc).includes(:positions, :words).where("id in (?)", event_ids)
   end    
-  
+
   def self.storeEvent(eventString)
     split_text = eventString.split(/\s+/)
     txtsystem = split_text[0]
@@ -68,9 +66,9 @@ class Event < ActiveRecord::Base
       end
     end
     @@pendingEventValues.push "(#{@@nextEventID}, #{system.id}, #{service.id}, '#{timestamp}', '#{Time.now}')"
-#    event = Event.create(:system_id => system.id, :service_id => service.id, :generated => timestamp, :stored => Time.now)
-#    return nil if event.nil?
-    
+    #    event = Event.create(:system_id => system.id, :service_id => service.id, :generated => timestamp, :stored => Time.now)
+    #    return nil if event.nil?
+
     eventString.downcase!
     eventString.tr!("\r\n", "")
     eventString.gsub!(/([^a-zA-Z0-9\-.:])/," \\1 " )
@@ -81,7 +79,7 @@ class Event < ActiveRecord::Base
 
       @@pendingPositionValues.push "(#{@@nextPositionID}, #{dbWord}, #{current_position}, #{@@nextEventID})"
       @@events_words.push "(#{@@nextEventID}, #{dbWord})"
-#      position = Position.create(:word_id => dbWord.id, :position => current_position, :event_id => event.id)
+      #      position = Position.create(:word_id => dbWord.id, :position => current_position, :event_id => event.id)
       @@nextPositionID += 1
       current_position += 1
     end
@@ -92,16 +90,16 @@ class Event < ActiveRecord::Base
   def self.performPendingInserts
     return if @@pendingEventValues.count < 1
     connection = ActiveRecord::Base.connection
-  
+
     event_sql = "INSERT INTO events (id, system_id, service_id, generated, stored) VALUES #{@@pendingEventValues.join(", ")}"
     connection.execute event_sql
-  
+
     positions_sql = "INSERT INTO positions (id, word_id, position, event_id) VALUES #{@@pendingPositionValues.join(", ")}"
     connection.execute positions_sql
-  
+
     events_words_sql = "INSERT INTO events_words (event_id, word_id) VALUES #{@@events_words.join(", ")}"
     connection.execute events_words_sql
-    
+
     puts "\t\t-->> Flushed #{@@pendingEventValues.count} events with #{@@pendingPositionValues.count} positions. <<--"
     elapsed_time = (Time.now - @@start_time)
     puts "\t\t-->> Started run: #{@@start_time}\t#{elapsed_time} seconds elapsed\t#{@@pendingEventValues.count/elapsed_time} events processed per second."
