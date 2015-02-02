@@ -23,7 +23,7 @@ class Event < ActiveRecord::Base
     # select e.event_id,count(*) from (select distinct a.event_id,a.word_id from events_words as a where a.word_id in (1,2,3,4) group by a.event_id,a.word_id ) as e group by e.event_id,e.word_id having count(*)=4 order by e.event_id;
     ordered_words = Hash.new
     words.each do |word_id|
-      count = Position.where(:word_id => word_id)
+      count = Position.where(:word_id => word_id).count
       ordered_words[word_id] = count
     end
     ordered_words.sory_by{|k,v| v}.each do |word, word_count|
