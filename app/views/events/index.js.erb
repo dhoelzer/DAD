@@ -2,6 +2,5 @@
 	var average_events = <%= daily_average %>;
 	draw_graph("systems_chart","Aggregate Events by System",<%=raw system_stats %>);
 	draw_graph("services_chart","Aggregate Events by Service",<%=raw service_stats %>);
-	draw_gauge("30_days_chart", "30 Days", <%=raw total_events_since(30.days.ago) %>, 30);
 	draw_gauge("7_days_chart", "7 Days", <%=raw total_events_since(7.days.ago) %>, 7);
 	draw_gauge("1_day_chart", "24 Hours", <%=raw total_events_since(24.hours.ago) %>, 1);
