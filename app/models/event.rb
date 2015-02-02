@@ -14,7 +14,7 @@ class Event < ActiveRecord::Base
   
   
   def self.search(search_string)
-    @events = []
+    @events = Array.new
     search_string.downcase!
     event_ids = Array.new
     terms = search_string.split(/\s+/)
