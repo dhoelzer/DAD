@@ -19,7 +19,8 @@ class Event < ActiveRecord::Base
     events = Array.new
     words = Word.where("text in (?)", terms).pluck(:id)
     connection = ActiveRecord::Base.connection
-    sql = "select e.event_id from (select distinct a.event_id,word_id,count(a.event_id) from events_words as a where a.word_id in (#{words.join(',')}) group by event_id,word_id having count(event_id)=#{words.count}) as e"
+    # select e.event_id,count(*) from (select distinct a.event_id,a.word_id from events_words as a where a.word_id in (1,2,3,4) group by a.event_id,a.word_id ) as e group by e.event_id,e.word_id having count(*)=4 order by e.event_id;
+    sql = "select e.event_id from (select distinct a.event_id,a.word_id from events_words as a where a.word_id in (#{words.join(',')}) group by event_id,word_id having count(a.event_id)=#{words.count}) as e"
     puts sql
     events_that_match = connection.execute sql
     puts events_that_match
@@ -35,7 +36,7 @@ class Event < ActiveRecord::Base
     return unless split_text.size > 1 # If there's no date and only an IP then it's not a valid message.
     system = System.find_or_add(txtsystem)
     txttimestamp = split_text[1..3].join(' ')
-    timestamp = (split_text[1] != "Jan" ? DateTime.parse("#{txttimestamp} 2014 GMT") : DateTime.parse("#{txttimestamp} 2015 GMT"))
+    timestamp = (split_text[1] == "Dec" ? DateTime.parse("#{txttimestamp} 2014 GMT") : DateTime.parse("#{txttimestamp} 2015 GMT"))
     txtservice = split_text[5]
     txtservice.tr!("^a-zA-Z/\-", "")
     service = Service.find_or_add(txtservice)
