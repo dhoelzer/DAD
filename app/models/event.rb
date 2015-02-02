@@ -15,7 +15,7 @@ class Event < ActiveRecord::Base
   
   def self.search(search_string)
     search_string.downcase!
-    event_ids = nil
+    event_ids = Array.new
     terms = search_string.split(/\s+/)
     events = Array.new
     words = Word.where("text in (?)", terms).pluck(:id)
@@ -25,8 +25,7 @@ class Event < ActiveRecord::Base
       sql = "select e.event_id from (select distinct a.event_id,a.word_id from events_words as a where a.word_id in (#{word}) group by event_id,word_id) as e"
       puts sql
       events_that_match = connection.execute sql
-      if events_id.nil? then
-        events_id = Array.new
+      if events_id.empty? then
         events_that_match.map { |e| event_ids << e["event_id"]}
       else
         events_that_match.map do |e|
