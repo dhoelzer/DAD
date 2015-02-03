@@ -77,7 +77,7 @@ class Event < ActiveRecord::Base
       dbWord = Word.find_or_add(word)
 
       @@pendingPositionValues.push "(#{@@nextPositionID}, #{dbWord}, #{current_position}, #{@@nextEventID})"
-      @@events_words.push "(#{@@nextEventID}, #{dbWord})"
+      @@events_words.push "(#{@@nextEventID}, #{dbWord}, '#{timestamp}')"
       #      position = Position.create(:word_id => dbWord.id, :position => current_position, :event_id => event.id)
       @@nextPositionID += 1
       current_position += 1
