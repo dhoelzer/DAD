@@ -7,6 +7,7 @@
 			<th>Events in Last 24 Hours</th>
 		</tr>
 	</thead>
+	<% puts @reportingInLast24 %>
 	<%= render partial: "sys_report", collection: @reportingInLast24, as: :system %>
 </table>
 <table>
