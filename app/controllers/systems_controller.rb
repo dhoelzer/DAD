@@ -5,6 +5,7 @@ class SystemsController < ApplicationController
   # GET /systems.json
   def index
     @systems = System.order(name: :asc).all
+    @reportingInLast24 = System.reportingInLastDays(1)
   end
 
   # GET /systems/1

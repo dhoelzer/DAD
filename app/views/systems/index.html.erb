@@ -1,6 +1,15 @@
 <h1>Listing systems</h1>
 
 <table>
+	<thead>
+		<tr>
+			<th>System</th>
+			<th>Events in Last 24 Hours</th>
+		</tr>
+	</thead>
+	<%= render partial: "sys_report", collection: @reportingInLast24, as :system %>
+</table>
+<table>
   <thead>
     <tr>
       <th>Address</th>

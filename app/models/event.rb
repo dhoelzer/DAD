@@ -17,7 +17,6 @@ class Event < ActiveRecord::Base
     @events = Array.new
     event_ids = Array.new
     connection = ActiveRecord::Base.connection
-    events = Array.new
     ordered_words = Hash.new
 
     search_string.downcase!
@@ -33,7 +32,7 @@ class Event < ActiveRecord::Base
       puts "Searching for #{word} with count #{word_count}"
       sql = "select e.event_id from (select distinct a.event_id,a.word_id from events_words as a where a.word_id in (#{word}) #{event_ids.empty? ? "" : "and a.event_id in (#{event_ids.join(',')})"} group by event_id,word_id) as e"
       puts sql
-      events_that_match = connection.execute sql
+      events_that_match = connection.execute(sql)
       if event_ids.empty? then
         events_that_match.map { |e| event_ids << e["event_id"]}
       else

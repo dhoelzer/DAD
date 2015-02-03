@@ -5,6 +5,12 @@ class System < ActiveRecord::Base
   @@cached_stuff = Hash.new
   @added = 0
   
+  def self.reportingInLastDays(days)
+    connection = ActiveRecord::Base.connection
+    sql = "select system_id,b.name,count(*) from events as a join systems as b on  a.system_id=b.id where generated>NOW()-'#{days} day'::interval group by system_id,b.name order by b.name asc"
+    connection.execute(sql)    
+  end
+  
   def display_name
     return self.name if self.description.nil?
     "#{self.name}(#{self.description})"
