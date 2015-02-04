@@ -22,24 +22,10 @@ class Event < ActiveRecord::Base
     search_string.downcase!
     terms = search_string.split(/\s+/)
     words = Word.where("text in (?)", terms).pluck(:id)
-    words.each do |word_id|
-      count = Position.where(:word_id => word_id).count
-      puts "#{word_id} was found #{count} times"
-      ordered_words[word_id] = count
-      return [] if(count == 0)
-    end
-    ordered_words.sort_by{|k,v| v}.each do |word, word_count|
-      puts "Searching for #{word} with count #{word_count}"
-      sql = "select e.event_id from (select distinct a.event_id,a.word_id from events_words as a where a.generated>NOW()-'1 day'::interval and a.word_id in (#{word}) #{event_ids.empty? ? "" : "and a.event_id in (#{event_ids.join(',')})"} group by event_id,word_id) as e"
-      puts sql
-      events_that_match = connection.execute(sql)
-      if event_ids.empty? then
-        events_that_match.map { |e| event_ids << e["event_id"]}
-      else
-        events_that_match.map { |e| event_ids.delete(e["event_id"]) unless event_ids.include?(e["event_id"]) }
-      end
-      return [] if event_ids.empty?
-    end
+    sql = "select e.event_id from (select distinct a.event_id,a.word_id from events_words as a where a.generated>NOW()-'1 day'::interval and a.word_id in (#{words.join(",")}) group by event_id,word_id) as e"
+    puts sql
+    events_that_match = connection.execute(sql)
+    events_that_match.map { |e| event_ids << e["event_id"]}
     event_ids = event_ids[-100,100]
     @events = Event.order(generated: :asc).includes(:positions, :words).where("id in (?)", event_ids)
     return (@events.nil? ? [] : @events)
