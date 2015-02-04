@@ -61,11 +61,14 @@ class Event < ActiveRecord::Base
     eventString.gsub!(/([^a-zA-Z0-9\-.:])/," \\1 " )
     words = eventString.split(/\s+/)
     current_position = 0                  # Track which position we are at within the event
+    word_ids = Array.new()
     words.each do |word|
       dbWord = Word.find_or_add(word)
 
       @@pendingPositionValues.push "(#{@@nextPositionID}, #{dbWord}, #{current_position}, #{@@nextEventID})"
-      @@events_words.push "(#{@@nextEventID}, #{dbWord}, '#{timestamp}')"
+      # Only add a mapping for this event/word if there isn't already one - deduplicate events_words.
+      @@events_words.push "(#{@@nextEventID}, #{dbWord}, '#{timestamp}')" unless word_ids.include?(dbWord)
+      word_ids.push(dbWord)
       #      position = Position.create(:word_id => dbWord.id, :position => current_position, :event_id => event.id)
       @@nextPositionID += 1
       current_position += 1
