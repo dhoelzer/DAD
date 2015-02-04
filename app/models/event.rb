@@ -30,7 +30,7 @@ class Event < ActiveRecord::Base
     end
     ordered_words.sort_by{|k,v| v}.each do |word, word_count|
       puts "Searching for #{word} with count #{word_count}"
-      sql = "select e.event_id from (select distinct a.event_id,a.word_id from events_words as a where a.generated>'1 day'::interval and a.word_id in (#{word}) #{event_ids.empty? ? "" : "and a.event_id in (#{event_ids.join(',')})"} group by event_id,word_id) as e"
+      sql = "select e.event_id from (select distinct a.event_id,a.word_id from events_words as a where a.generated AT TIME ZONE '+0'>'1 day'::interval and a.word_id in (#{word}) #{event_ids.empty? ? "" : "and a.event_id in (#{event_ids.join(',')})"} group by event_id,word_id) as e"
       puts sql
       events_that_match = connection.execute(sql)
       if event_ids.empty? then
