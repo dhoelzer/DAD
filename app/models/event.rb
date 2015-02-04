@@ -23,7 +23,7 @@ class Event < ActiveRecord::Base
     terms = search_string.split(/\s+/)
     words = Word.where("text in (?)", terms).pluck(:id)
     return [] if words.empty?
-    sql = "select e.event_id from (select distinct a.event_id,a.word_id from events_words as a where a.generated>NOW()-'1 day'::interval and a.word_id in (#{words.join(",")}) group by event_id,word_id) as e"
+    sql = "select e.event_id from (select distinct a.event_id,a.word_id from events_words as a where a.generated>NOW()-'1 day'::interval and a.word_id in (#{words.join(",")}) group by event_id,word_id having count(*)=#{words.count}) as e"
     puts sql
     events_that_match = connection.execute(sql)
     events_that_match.map { |e| event_ids << e["event_id"]}

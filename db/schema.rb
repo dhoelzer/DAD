@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20150203152352) do
+ActiveRecord::Schema.define(version: 20150204125423) do
 
   create_table "events", force: true do |t|
     t.integer  "system_id"
@@ -31,6 +31,7 @@ ActiveRecord::Schema.define(version: 20150203152352) do
   end
 
   add_index "events_words", ["event_id"], name: "index_events_words_on_event_id"
+  add_index "events_words", ["generated"], name: "index_events_words_on_generated"
   add_index "events_words", ["word_id"], name: "index_events_words_on_word_id"
 
   create_table "positions", force: true do |t|
