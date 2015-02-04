@@ -1,4 +1,4 @@
-<div><%= @events.count %> events match that search:</div>
+<div><%= @events.count unless @events.nil? %> events match that search:</div>
 <%@events.each do |event| %>
 <p>
 <%= event.system.display_name %>: <%= event.generated %> : 
