@@ -1,5 +1,5 @@
-<div><%= @events.count unless @events.nil? %> events match that search:</div>
-<%unless @events.nil? @events.each do |event| %>
+<div><%= @events.count %> events match that search:</div>
+<% @events.each do |event| %>
 <p>
 <%= event.system.display_name %>: <%= event.generated %> : 
 <% event.positions.order(:position).each do |position| %>

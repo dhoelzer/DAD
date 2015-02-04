@@ -42,6 +42,7 @@ class Event < ActiveRecord::Base
     end
     event_ids = event_ids[-100,100]
     @events = Event.order(generated: :asc).includes(:positions, :words).where("id in (?)", event_ids)
+    return (@events.nil? ? [] : @events)
   end    
 
   def self.storeEvent(eventString)
