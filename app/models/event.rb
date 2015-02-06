@@ -87,7 +87,7 @@ class Event < ActiveRecord::Base
     positions_sql = "INSERT INTO positions (id, word_id, position, event_id) VALUES #{@@pendingPositionValues.join(", ")}"
     connection.execute positions_sql
 
-    events_words_sql = "INSERT INTO events_words (event_id, word_id) VALUES #{@@events_words.join(", ")}"
+    events_words_sql = "INSERT INTO events_words (event_id, word_id, generated) VALUES #{@@events_words.join(", ")}"
     connection.execute events_words_sql
 
     puts "\t\t-->> Flushed #{@@pendingEventValues.count} events with #{@@pendingPositionValues.count} positions. <<--"
