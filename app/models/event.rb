@@ -17,7 +17,9 @@ class Event < ActiveRecord::Base
     sql = ""
     sql = "select distinct e.event_id from (" if depth == 0
     word_id = sortedWordIDs.pop
-    sql = sql + "select distinct a#{depth}.event_id from events_words as a#{depth} where a#{depth}.generated>NOW()-'1 day'::interval and a#{depth}.word_id=#{word_id}"+(sortedWordIDs.count > 0 ? " and a#{depth}.event_id in (#{iterativeSQLBuilder(sortedWordIDs, depth+1)})" : "")
+    # Should I just revert to the positions table?  For some reason events_words has grown to over 43 gigs while positions is only 24.
+    # Only do the generated test on the innermost subselect.  Not needed on outer selects since they are selecting from the set returned from this query.
+    sql = sql + "select distinct a#{depth}.event_id from events_words as a#{depth} where a#{depth}.word_id=#{word_id}"(sortedWordIDs.count > 0 ? " and a#{depth}.event_id in (#{iterativeSQLBuilder(sortedWordIDs, depth+1)})" : " and a#{depth}.generated>NOW()-'1 day'::interval")
     sql = sql + ") as e" if depth == 0
     return sql
   end
