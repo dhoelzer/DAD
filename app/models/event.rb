@@ -41,8 +41,6 @@ class Event < ActiveRecord::Base
       return [] if(count == 0)
     end
 
-
-    puts "Searching for #{word} with count #{word_count}"
     sql = iterativeSQLBuilder(ordered_words.sort_by{|k,v| v}, 0)
     #sql = "select e.event_id from (select distinct a.event_id,a.word_id from events_words as a where a.generated>NOW()-'1 day'::interval and a.word_id in (#{word}) #{event_ids.empty? ? "" : "and a.event_id in (#{event_ids.join(',')})"} group by event_id,word_id) as e"
     puts sql
