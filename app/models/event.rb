@@ -17,7 +17,7 @@ class Event < ActiveRecord::Base
     sql = ""
     sql = "select distinct e.event_id from (" if depth == 0
     word_id = sortedWordIDs.pop
-    sql = sql + "\n\t#{"\t"*depth+1}select distinct a#{depth}.event_id \n\t#{"\t"*depth+1}from events_words as a#{depth} \n\t#{"\t"*depth+1}where a#{depth}.generated>NOW()-'1 day'::interval and a#{depth}.word_id=#{word_id[0]}"+(sortedWordIDs.count > 0 ? " and a#{depth}.event_id in (#{iterativeSQLBuilder(sortedWordIDs, depth+1)})" : "")
+    sql = sql + "\n\t#{'\t'*depth+1}select distinct a#{depth}.event_id \n\t#{'\t'*depth+1}from events_words as a#{depth} \n\t#{'\t'*depth+1}where a#{depth}.generated>NOW()-'1 day'::interval and a#{depth}.word_id=#{word_id[0]}"+(sortedWordIDs.count > 0 ? " and a#{depth}.event_id in (#{iterativeSQLBuilder(sortedWordIDs, depth+1)})" : "")
     sql = sql + ") as e" if depth == 0
     return sql
   end
