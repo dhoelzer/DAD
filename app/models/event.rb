@@ -12,6 +12,16 @@ class Event < ActiveRecord::Base
   @@events_words = Array.new
   @@start_time = Time.now
 
+  def iterativeSQLBuilder(sortedWordIDs, depth)
+    # this is massively bad in so many ways.
+    sql = ""
+    sql = "select distinct e.event_id from (" if depth == 0
+    depth = depth + 1
+    word_id = sortedWordIDs.pop
+    sql = sql + "select distinct a#{depth}.event_id from events_words as a#{depth} where a#{depth}.generated>NOW()-'1 day'::interval and a#{depth}.word_id=#{word_id}"+(sortedWordIDs.count > 0 ? " and a#{depth}.event_id in (#{iterativeSQLBuilder(sortedWordIDs, depth+1)})" : "")
+    sql = sql + ") as e" if depth == 0
+    return sql
+  end
 
   def self.search(search_string)
     @events = Array.new
@@ -23,10 +33,35 @@ class Event < ActiveRecord::Base
     terms = search_string.split(/\s+/)
     words = Word.where("text in (?)", terms).pluck(:id)
     return [] if words.empty?
-    sql = "select e.event_id from (select distinct a.event_id,a.word_id from events_words as a where a.word_id in (#{words.join(",")}) group by event_id,word_id having count(distinct(a.event_id,a.word_id))=#{words.count}) as e"
-    
+
+    words.each do |word_id|
+      count = Position.where(:word_id => word_id).count
+      puts "#{word_id} was found #{count} times"
+      ordered_words[word_id] = count
+      return [] if(count == 0)
+    end
+
+    tag = 1
+    ordered_words.sort_by{|k,v| v}.each do |word, word_count|
+      puts "Searching for #{word} with count #{word_count}"
+      #sql = "select e.event_id from (select distinct a.event_id,a.word_id from events_words as a where a.generated>NOW()-'1 day'::interval and a.word_id in (#{word}) #{event_ids.empty? ? "" : "and a.event_id in (#{event_ids.join(',')})"} group by event_id,word_id) as e"
+      puts sql
+      events_that_match = connection.execute(sql)
+      if event_ids.empty? then
+        events_that_match.map { |e| event_ids << e["event_id"]}
+      else
+        events_that_match.map { |e| event_ids.delete(e["event_id"]) unless event_ids.include?(e["event_id"]) }
+      end
+      return [] if event_ids.empty?
+    end
+
+
+    #sql = "select e.event_id from (select distinct a.event_id,a.word_id from events_words as a where a.word_id in (#{words.join(",")}) group by event_id,word_id having count(distinct(a.event_id,a.word_id))=#{words.count}) as e"
+
     # Removed time contraint: a.generated>NOW()-'1 day'::interval and
-    
+    # Still can't get the count to work properly even with distinct in the count.  Absolutely crazy.
+    # Will add back in word stat logic and rebuild the massive sub selects even though it feels really wrong.
+    #  select distinct e.event_id from (select distinct a.event_id from events_words as a where a.event_id in (select distinct b.event_id from events_words as b where b.word_id=8352832 and b.generated>NOW()-'1 day'::interval) and a.word_id=8338947) as e;
     puts sql
     events_that_match = connection.execute(sql)
     events_that_match.map { |e| event_ids << e["event_id"]}
