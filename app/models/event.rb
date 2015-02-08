@@ -16,10 +16,9 @@ class Event < ActiveRecord::Base
     # this is massively bad in so many ways.
     sql = ""
     sql = "select distinct e.event_id from (" if depth == 0
-    depth = depth + 1
     word_id = sortedWordIDs.pop
-    sql = sql + "select distinct a#{depth}.event_id from events_words as a#{depth} where a#{depth}.generated>NOW()-'1 day'::interval and a#{depth}.word_id=#{word_id[0]}"+(sortedWordIDs.count > 0 ? " and a#{depth}.event_id in (#{iterativeSQLBuilder(sortedWordIDs, depth+1)})" : "")
-    sql = sql + ") as e" if depth == 1
+    sql = sql + "\n\t#{"\t"*depth+1}select distinct a#{depth}.event_id \n\t#{"\t"*depth+1}from events_words as a#{depth} \n\t#{"\t"*depth+1}where a#{depth}.generated>NOW()-'1 day'::interval and a#{depth}.word_id=#{word_id[0]}"+(sortedWordIDs.count > 0 ? " and a#{depth}.event_id in (#{iterativeSQLBuilder(sortedWordIDs, depth+1)})" : "")
+    sql = sql + ") as e" if depth == 0
     return sql
   end
 
@@ -53,7 +52,6 @@ class Event < ActiveRecord::Base
     # Still can't get the count to work properly even with distinct in the count.  Absolutely crazy.
     # Will add back in word stat logic and rebuild the massive sub selects even though it feels really wrong.
     #  select distinct e.event_id from (select distinct a.event_id from events_words as a where a.event_id in (select distinct b.event_id from events_words as b where b.word_id=8352832 and b.generated>NOW()-'1 day'::interval) and a.word_id=8338947) as e;
-    puts sql
     events_that_match = connection.execute(sql)
     events_that_match.map { |e| event_ids << e["event_id"]}
     event_ids = event_ids[-100,100]
