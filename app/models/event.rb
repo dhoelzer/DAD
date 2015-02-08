@@ -40,20 +40,17 @@ class Event < ActiveRecord::Base
       ordered_words[word_id] = count
       return [] if(count == 0)
     end
-
-    tag = 1
-    ordered_words.sort_by{|k,v| v}.each do |word, word_count|
-      puts "Searching for #{word} with count #{word_count}"
-      #sql = "select e.event_id from (select distinct a.event_id,a.word_id from events_words as a where a.generated>NOW()-'1 day'::interval and a.word_id in (#{word}) #{event_ids.empty? ? "" : "and a.event_id in (#{event_ids.join(',')})"} group by event_id,word_id) as e"
-      puts sql
-      events_that_match = connection.execute(sql)
-      if event_ids.empty? then
-        events_that_match.map { |e| event_ids << e["event_id"]}
-      else
-        events_that_match.map { |e| event_ids.delete(e["event_id"]) unless event_ids.include?(e["event_id"]) }
-      end
-      return [] if event_ids.empty?
+    
+    sql = iterativeSQLBuilder(ordered_words.sort)by{|k,v| v}, 0)
+    #sql = "select e.event_id from (select distinct a.event_id,a.word_id from events_words as a where a.generated>NOW()-'1 day'::interval and a.word_id in (#{word}) #{event_ids.empty? ? "" : "and a.event_id in (#{event_ids.join(',')})"} group by event_id,word_id) as e"
+    puts sql
+    events_that_match = connection.execute(sql)
+    if event_ids.empty? then
+      events_that_match.map { |e| event_ids << e["event_id"]}
+    else
+      events_that_match.map { |e| event_ids.delete(e["event_id"]) unless event_ids.include?(e["event_id"]) }
     end
+    return [] if event_ids.empty?
 
 
     #sql = "select e.event_id from (select distinct a.event_id,a.word_id from events_words as a where a.word_id in (#{words.join(",")}) group by event_id,word_id having count(distinct(a.event_id,a.word_id))=#{words.count}) as e"
