@@ -30,19 +30,21 @@ class Event < ActiveRecord::Base
 
     search_string.downcase!
     terms = search_string.split(/\s+/)
-    words = Word.where("text in (?)", terms).pluck(:id)
+    words = Word.where("text in (?)", terms).order("words.id DESC").pluck(:id)
     return [] if words.empty?
 
-    words.each do |word_id|
-      sql = "select count(*) from events_words where word_id=#{word_id} and generated>NOW()-'1 day'::interval"
-      results = connection.execute(sql)
-      count = results[0]["count"]
-      puts "#{word_id} was found #{count} times"
-      ordered_words[word_id] = count
-      return [] if(count == 0)
-    end
+#    words.each do |word_id|
+#      sql = "select count(*) from events_words where word_id=#{word_id} and generated>NOW()-'1 day'::interval"
+#      results = connection.execute(sql)
+#      count = results[0]["count"]
+#      puts "#{word_id} was found #{count} times"
+#      ordered_words[word_id] = count
+#      return [] if(count == 0)
+#    end
 
-    sql = iterativeSQLBuilder(ordered_words.sort_by{|k,v| v}, 0)
+# Let's try assuming that words added later likely appear less often.
+#    sql = iterativeSQLBuilder(ordered_words.sort_by{|k,v| v}, 0)
+    sql = iterativeSQLBuilder(words,0)
     #sql = "select e.event_id from (select distinct a.event_id,a.word_id from events_words as a where a.generated>NOW()-'1 day'::interval and a.word_id in (#{word}) #{event_ids.empty? ? "" : "and a.event_id in (#{event_ids.join(',')})"} group by event_id,word_id) as e"
     puts sql
 
