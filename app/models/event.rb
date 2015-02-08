@@ -17,7 +17,7 @@ class Event < ActiveRecord::Base
     sql = ""
     sql = "select distinct e.event_id from (" if depth == 0
     word_id = sortedWordIDs.pop
-    sql = sql + "\nselect distinct a#{depth}.event_id \nfrom events_words as a#{depth} \nwhere a#{depth}.generated>NOW()-'1 day'::interval and a#{depth}.word_id=#{word_id[0]}"+(sortedWordIDs.count > 0 ? " and a#{depth}.event_id in (#{iterativeSQLBuilder(sortedWordIDs, depth+1)})" : "")
+    sql = sql + "select distinct a#{depth}.event_id from events_words as a#{depth} where a#{depth}.generated>NOW()-'1 day'::interval and a#{depth}.word_id=#{word_id[0]}"+(sortedWordIDs.count > 0 ? " and a#{depth}.event_id in (#{iterativeSQLBuilder(sortedWordIDs, depth+1)})" : "")
     sql = sql + ") as e" if depth == 0
     return sql
   end
@@ -43,7 +43,6 @@ class Event < ActiveRecord::Base
     sql = iterativeSQLBuilder(ordered_words.sort_by{|k,v| v}, 0)
     #sql = "select e.event_id from (select distinct a.event_id,a.word_id from events_words as a where a.generated>NOW()-'1 day'::interval and a.word_id in (#{word}) #{event_ids.empty? ? "" : "and a.event_id in (#{event_ids.join(',')})"} group by event_id,word_id) as e"
     puts sql
-    events_that_match = connection.execute(sql)
 
 
     #sql = "select e.event_id from (select distinct a.event_id,a.word_id from events_words as a where a.word_id in (#{words.join(",")}) group by event_id,word_id having count(distinct(a.event_id,a.word_id))=#{words.count}) as e"
