@@ -56,7 +56,7 @@ class Event < ActiveRecord::Base
     events_that_match.map { |e| event_ids << e["event_id"]}
     event_ids.each{ |e| puts "Event: #{e}\n"}
     event_ids = event_ids[-100,100]
-    @events = Event.order(generated: :asc).includes(:positions, :words).where("id in (?)", event_ids)
+    @events = Event.order(generated: :asc).includes(:positions, :words).where("id in (?)", event_ids.join(","))
     return (@events.nil? ? [] : @events)
   end    
 
