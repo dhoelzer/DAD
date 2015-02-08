@@ -53,7 +53,6 @@ class Event < ActiveRecord::Base
     #  select distinct e.event_id from (select distinct a.event_id from events_words as a where a.event_id in (select distinct b.event_id from events_words as b where b.word_id=8352832 and b.generated>NOW()-'1 day'::interval) and a.word_id=8338947) as e;
     events_that_match = connection.execute(sql)
     events_that_match.map { |e| event_ids << e["event_id"]}
-    event_ids.each{ |e| puts "Event: #{e}\n"}
     @events = Event.order(generated: :asc).includes(:positions, :words).where("id in (?)", event_ids).limit(100)
     return (@events.nil? ? [] : @events)
   end    
