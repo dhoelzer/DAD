@@ -34,6 +34,9 @@ class Event < ActiveRecord::Base
     return [] if words.empty?
 
     words.each do |word_id|
+      sql = "select count(*) from events_words where word_id=#{word_id} and generated>NOW()-'1 day'::interval"
+      results = connection.execute(sql)
+      puts results
       count = Position.where("word_id=? and generated>NOW()-'1 day'::interval",word_id).count
       puts "#{word_id} was found #{count} times"
       ordered_words[word_id] = count
