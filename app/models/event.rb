@@ -24,7 +24,7 @@ class Event < ActiveRecord::Base
     return sql
   end
 
-  def self.search(search_string)
+  def self.search(search_string, offset=0, limit=100)
     @events = Array.new
     event_ids = Array.new
     connection = ActiveRecord::Base.connection
@@ -59,7 +59,7 @@ class Event < ActiveRecord::Base
     #  select distinct e.event_id from (select distinct a.event_id from events_words as a where a.event_id in (select distinct b.event_id from events_words as b where b.word_id=8352832 and b.generated>NOW()-'1 day'::interval) and a.word_id=8338947) as e;
     events_that_match = connection.execute(sql)
     events_that_match.map { |e| event_ids << e["event_id"]}
-    @events = Event.order(generated: :asc).includes(:positions, :words).where("id in (?)", event_ids).limit(100)
+    @events = Event.order(generated: :asc).includes(:positions, :words).where("id in (?)", event_ids).limit(limit).offset(offset)
     return (@events.nil? ? [] : @events)
   end    
 

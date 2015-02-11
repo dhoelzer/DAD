@@ -13,7 +13,9 @@ class EventsController < ApplicationController
 
 
   def search
+    start_time = Time.now
     @events = Event.search(params[:search_terms])
+    @search_time = Time.now - start_time
   end
   
   # GET /events/1

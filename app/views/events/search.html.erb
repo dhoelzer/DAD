@@ -1,4 +1,4 @@
-<div><%= @events.count %> events match that search:</div>
+<div>Elapsed time: <%= @search_time %> - <%= @events.count %> events match that search:</div>
 <% @events.each do |event| %>
 <p>
 <%= event.system.display_name %>: <%= event.generated %> : 
