@@ -19,8 +19,9 @@ big_picture = ->
 
 $(document).ready ->
 	$("#spinner").hide()
-	$("#searchload").onclick ->
-		$("#spinner").show()
+	if($("#searchload"))
+		$("#searchload").onclick ->
+			$("#spinner").show()
 		
 $(document).ready(big_picture)
 $(document).on('page:load', big_picture)
