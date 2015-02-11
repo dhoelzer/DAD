@@ -18,10 +18,12 @@ big_picture = ->
 				})
 
 spinner = ->
-	$("#spinner").hide()
-	if($("#searchload"))
-		$("#searchload").onclick ->
-			$("#spinner").show()
+	if($("#spinner").length)
+		$("#spinner").hide()
+	if($("#searchload").length)
+		$("*[id*=searchload]").each ->
+			$(this).onclick ->
+				$("#spinner").show()
 	
 $(document).ready(spinner)
 $(document).on('page:load', spinner)
