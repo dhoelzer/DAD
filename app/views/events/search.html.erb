@@ -1,6 +1,6 @@
 <div id="turbokiller" data-no-turbolink>
 <%= render partial: "search" %>
-<div>Elapsed time: <%= @search_time %> - <%= @events.count %> events match that search:</div>
+<div id="stats">Elapsed time: <%= @search_time %> - <%= @events.count %> events match that search:</div>
 <% @events.each do |event| %>
 <p>
 <%= event.system.display_name %>: <%= event.generated %> : 

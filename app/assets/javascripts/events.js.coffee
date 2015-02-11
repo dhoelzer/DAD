@@ -23,6 +23,7 @@ spinner = ->
 	if($("#searchload").length)
 		$("*[id*=searchload]").each ->
 			$(this).click ->
+				$('#stats').html("<h2>Retrieving results...<img src='/assets/spinner.gif'></h2>")
 				$("#spinner").show()
 	
 $(document).ready(spinner)
