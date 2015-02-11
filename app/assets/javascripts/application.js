@@ -15,7 +15,13 @@
 //= require turbolinks
 //= require highcharts-custom.js
 //= require_tree .
-
+	
+function loading(){
+	$("a#searchload").click(function() {
+		$("#spinner").show();
+	});
+});
+		 
 function draw_graph(chart_div, title, graph_data)
 {
    return new Highcharts.Chart({

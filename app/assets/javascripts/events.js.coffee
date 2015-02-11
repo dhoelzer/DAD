@@ -18,4 +18,5 @@ big_picture = ->
 				})
 
 $(document).ready(big_picture)
+$(document).ready(loading)
 $(document).on('page:load', big_picture)
