@@ -14,7 +14,7 @@
 
 #spinner {
 	width:95%;
-    position: relative;
+    position: absolute;
 	background:url("/assets/spinner.gif");
 	background-repeat: no-repeat scroll;
 	background-position: center top;
