@@ -16,18 +16,7 @@
 //= require highcharts-custom.js
 //= require_tree .
 	
-function loading()
-{
-	var spinner=document.getElementById("spinner");
-	var links=document.getElementsByName("searchload");
-	if(links !== null && links !== undefined) {
-		for(var i=0;i<links.length;i++){
-			links[i].onclick = function() {document.getElementById("spinner").style.display="inline";}
-		};
-	};
-	if(spinner!==null && spinner!==undefined) { spinner.style.display="none";};
-};
-		 
+ 
 function draw_graph(chart_div, title, graph_data)
 {
    return new Highcharts.Chart({
