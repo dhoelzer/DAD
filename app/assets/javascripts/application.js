@@ -18,7 +18,10 @@
 	
 function loading()
 {
-	document.getElementById("searchload").onclick = function() {document.getElementById("#spinner").show();}
+	var links = document.getElementById("searchload")
+	for(var i=0;i<links.length;i++){
+		links[i].onclick = function() {document.getElementById("spinner").show();}
+	};
 };
 		 
 function draw_graph(chart_div, title, graph_data)
