@@ -13,17 +13,14 @@
  */
 
 .spinner {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    margin-left: -50px; /* half width of the spinner gif */
-    margin-top: -50px; /* half height of the spinner gif */
-    text-align:center;
+    position: absolute;
+	display: none;
+    top: 0;
+    left: 0;
+	background:url("/assets/spinner.gif");
     z-index:1234;
-    overflow: auto;
-    width: 80%; /* width of the spinner gif */
-    height: 80%; /*hight of the spinner gif +2px to fix IE8 issue */
-	float: left;
+    width: 100%; /* width of the spinner gif */
+    height: 100%; /*hight of the spinner gif +2px to fix IE8 issue */
 }
 
 #services_chart {
