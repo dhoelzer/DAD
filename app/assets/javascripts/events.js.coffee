@@ -17,11 +17,14 @@ big_picture = ->
 				complete: results
 				})
 
-$(document).ready ->
+spinner = ->
 	$("#spinner").hide()
 	if($("#searchload"))
 		$("#searchload").onclick ->
 			$("#spinner").show()
+	
+$(document).ready(spinner)
+$(document).on('page:load', ready)
 		
 $(document).ready(big_picture)
 $(document).on('page:load', big_picture)
