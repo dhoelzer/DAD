@@ -14,7 +14,7 @@ big_picture = ->
 				type:'GET',
 				url:'/events.js',
 				dataType: 'script',
-				complete: results
+				complete: $.ajax()
 				})
 
 spinner = ->
