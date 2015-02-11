@@ -18,9 +18,9 @@
 	
 function loading()
 {
-	var spinner = document.getElementByID("spinner");
-	if(spinner !== null && spinner !== undefined) { spinner.style.display="none";};
-	var links = document.getElementById("searchload");
+	var spinner=document.getElementById("spinner");
+	if(spinner!==null && spinner!==undefined) { spinner.style.display="none";};
+	var links=document.getElementById("searchload");
 	if(links !== null && links !== undefined) {
 		for(var i=0;i<links.length;i++){
 			links[i].onclick = function() {document.getElementById("spinner").style.display="inline";}
