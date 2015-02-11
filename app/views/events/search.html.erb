@@ -1,3 +1,4 @@
+<div id="turbokiller" data-no-turbolink>
 <%= render partial: "search" %>
 <div>Elapsed time: <%= @search_time %> - <%= @events.count %> events match that search:</div>
 <% @events.each do |event| %>
@@ -8,3 +9,4 @@
 <% end %>
 </p>
 <% end %>
+</div>

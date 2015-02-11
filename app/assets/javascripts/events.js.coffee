@@ -7,17 +7,6 @@ results = (data, code, xhr)->
 	#alert(code)
 	{}
 
-loading = ->
-	spinner=document.getElementById("spinner")
-	links=document.getElementsByName("searchload")
-	if(links !== null && links !== undefined) {
-		for(i=0;i<links.length;i++){
-			links[i].onclick = -> {document.getElementById("spinner").style.display="inline";}
-		}
-	}
-	if(spinner!==null && spinner!==undefined) { spinner.style.display="none";}
-
-		
 big_picture = ->
 		if ($('#big_picture').length)
 			$("big_picture").html("Loading...")
@@ -28,6 +17,10 @@ big_picture = ->
 				complete: results
 				})
 
+$(document).ready ->
+	$("#spinner").style.display = "none"
+	$("#searchload").onclick ->
+		this.style.display="inline"
+		
 $(document).ready(big_picture)
-$(document).ready(loading)
 $(document).on('page:load', big_picture)
