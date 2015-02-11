@@ -9,7 +9,7 @@ results = (data, code, xhr)->
 
 big_picture = ->
 		if ($('#big_picture').length)
-			$("big_picture").html("Loading...")
+			$('#big_picture').html("<h2>Loading...</h2>")
 			jQuery.ajax({
 				type:'GET',
 				url:'/events.js',
@@ -18,9 +18,9 @@ big_picture = ->
 				})
 
 $(document).ready ->
-	$("#spinner").style.display = "none"
+	$("#spinner").hide()
 	$("#searchload").onclick ->
-		this.style.display="inline"
+		$("#spinner").show()
 		
 $(document).ready(big_picture)
 $(document).on('page:load', big_picture)
