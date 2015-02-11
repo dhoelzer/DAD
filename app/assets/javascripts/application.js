@@ -16,11 +16,10 @@
 //= require highcharts-custom.js
 //= require_tree .
 	
-function loading(){
-	$("a#searchload").click(function() {
-		$("#spinner").show();
-	});
-});
+function loading()
+{
+	document.getElementById("searchload").onclick = function() {document.getElementById("#spinner").show();}
+};
 		 
 function draw_graph(chart_div, title, graph_data)
 {
