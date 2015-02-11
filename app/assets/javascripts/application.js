@@ -18,9 +18,13 @@
 	
 function loading()
 {
+	var spinner = document.getElementByID("spinner")
+	if spinner !== null { spinner.hide();};
 	var links = document.getElementById("searchload")
-	for(var i=0;i<links.length;i++){
-		links[i].onclick = function() {document.getElementById("spinner").show();}
+	if links !== null {
+		for(var i=0;i<links.length;i++){
+			links[i].onclick = function() {document.getElementById("spinner").show();}
+		};
 	};
 };
 		 
