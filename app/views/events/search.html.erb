@@ -4,7 +4,7 @@
 <p>
 <%= event.system.display_name %>: <%= event.generated %> : 
 <% event.positions.order(:position).each do |position| %>
-	<%= link_to position.word.text, "/events/search?search_terms=#{(@previous_search.nil? ? "#{position.word.text}" : "#{@previous_search.gsub(" ", "+") + "&#{position.word.text}"}")}" %> 
+	<%= link_to position.word.text, "/events/search?search_terms=#{(@previous_search.nil? ? "#{position.word.text}" : "#{@previous_search.gsub(" ", "+") + "+#{position.word.text}"}")}" %> 
 <% end %>
 </p>
 <% end %>
