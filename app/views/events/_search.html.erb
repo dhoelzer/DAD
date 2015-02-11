@@ -1,4 +1,4 @@
-<%= form_tag :search_events do %>
+<%= form_tag :search_events, :html => { method: 'get'} do %>
 <%= text_field_tag 'search_terms', "Search"%>
 <%= submit_tag "Search" %>
 <% end %>
