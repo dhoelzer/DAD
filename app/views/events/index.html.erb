@@ -1,8 +1,5 @@
 <h1>DAD Event Dashboard</h1>
-<%= form_tag :search_events do %>
-<%= text_field_tag 'search_terms', "Search"%>
-<%= submit_tag "Search" %>
-<% end %>
+<% render "search" %>
 
 <div id="big_picture"><div id="systems_chart"></div><div id="services_chart"></div></div>
 <div id="clear"></div>
