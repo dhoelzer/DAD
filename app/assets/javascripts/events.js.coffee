@@ -12,7 +12,7 @@ loading = ->
 	links=document.getElementsByName("searchload")
 	if(links !== null && links !== undefined) {
 		for(i=0;i<links.length;i++){
-			links[i].onclick = function() {document.getElementById("spinner").style.display="inline";}
+			links[i].onclick = -> {document.getElementById("spinner").style.display="inline";}
 		}
 	}
 	if(spinner!==null && spinner!==undefined) { spinner.style.display="none";}
