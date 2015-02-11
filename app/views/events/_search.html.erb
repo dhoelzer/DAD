@@ -1,4 +1,4 @@
 <%= form_tag :search_events, { method: 'get'} do %>
-<%= text_field_tag 'search_terms', value: (@previous_search.nil? ? "" : "#{@previous_search}"), placeholder: "Search"%>
+<%= text_field_tag 'search_terms', (@previous_search.nil? ? "" : "#{@previous_search}"), placeholder: "Search"%>
 <%= submit_tag "Search" %>
 <% end %>
