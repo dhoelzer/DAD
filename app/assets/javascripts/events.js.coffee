@@ -21,7 +21,9 @@ spinner = ->
 	if($("#spinner").length)
 		$("#spinner").hide()
 	if($("#searchload").length)
-		$("*[id*=searchload]").each(function (){$(this).click(function (){$("#spinner").show()})})
+		$("*[id*=searchload]").each ->
+			$(this).click ->
+				$("#spinner").show()
 	
 $(document).ready(spinner)
 $(document).on('page:load', spinner)
