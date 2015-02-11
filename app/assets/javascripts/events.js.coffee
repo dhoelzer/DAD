@@ -24,7 +24,7 @@ spinner = ->
 			$("#spinner").show()
 	
 $(document).ready(spinner)
-$(document).on('page:load', ready)
+$(document).on('page:load', spinner)
 		
 $(document).ready(big_picture)
 $(document).on('page:load', big_picture)
