@@ -25,6 +25,7 @@ spinner = ->
 				$("#spinner").show()
 	
 setup = ->
+	$("#spinner").show()
 	spinner()
 	big_picture()
 	
