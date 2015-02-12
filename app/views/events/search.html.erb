@@ -1,13 +1,7 @@
 <div id="turbokiller" data-no-turbolink>
 <%= render partial: "search" %>
 <div id="stats">Elapsed time: <%= @search_time %> - <%= @events.count %> events match that search:</div>
-<% @events.each do |event| %>
-<p>
-<%= event.system.display_name %>: <%= event.generated %> : 
-<% event.positions.order(:position).each do |position| %>
-	<%= link_to position.word.text, "/events/search?search_terms=#{(@previous_search.nil? ? "#{position.word.text}" : "#{@previous_search.gsub(" ", "+") + "+#{position.word.text}"}")}", id: "searchload", remote: true %> 
-<% end %>
-</p>
-<% end %>
+<div id="events">
+<%= render partial: 'search_results' %></div>
 <div id="spinner"></div>
 </div>
