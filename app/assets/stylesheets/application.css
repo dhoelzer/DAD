@@ -15,8 +15,11 @@
 #spinner {
 	width:25%;
 	height:25%;
-    position: absolute;
+    position: relative;
+	top:2%;
+	left:5%;
 	display: none;
+	opacity: 0.5;
 	background:url("/assets/spinner.gif");
 	background-repeat: no-repeat scroll;
 	background-position: center top;
