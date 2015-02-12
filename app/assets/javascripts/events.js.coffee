@@ -8,14 +8,13 @@ results = (data, code, xhr)->
 	{}
 
 big_picture = ->
-		if ($('#spinner').length)
-			$('#spinner').show()
-			jQuery.ajax({
-				type:'GET',
-				url:'/events.js',
-				dataType: 'script',
-				complete: $.ajax()
-				})
+		$('#spinner').show()
+		jQuery.ajax({
+			type:'GET',
+			url:'/events.js',
+			dataType: 'script',
+			complete: $.ajax()
+			})
 
 spinner = ->
 	if($("#spinner").length)
@@ -26,8 +25,8 @@ spinner = ->
 				$('#stats').html("<h2>Retrieving results...<img src='/assets/spinner.gif'></h2>")
 				$("#spinner").show()
 	
-$(document).ready(spinner)
-$(document).on('page:load', spinner)
-		
-$(document).ready(big_picture)
-$(document).on('page:load', big_picture)
+setup = ->
+	spinner()
+	big_picture()
+$(document).ready(setup)
+$(document).on('page:load', setup)
