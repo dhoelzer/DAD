@@ -14,19 +14,14 @@
 
 #spinner {
 	width:100%;
-	height:90%;
+	height:100%;
     position: absolute;
 	top:0;
 	left:0;
 	display: none;
 	opacity: 0.5;
-	background:url("/assets/spinner.gif");
-	background-repeat: no-repeat scroll;
-	background-position: center top;
-	-webkit-background-size: cover;
-	-moz-background-size: cover;
-	-o-background-size: cover;
-	background-size: cover;
+	background-image:url("/assets/spinner.gif");
+	background: no-repeat center center cover;
     z-index:1234;
 }
 
