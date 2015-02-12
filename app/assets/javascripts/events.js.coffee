@@ -8,25 +8,25 @@ results = (data, code, xhr)->
 	{}
 
 big_picture = ->
-		$('#spinner').show()
-		jQuery.ajax({
-			type:'GET',
-			url:'/events.js',
-			dataType: 'script',
-			complete: $.ajax()
-			})
+	$("#spinner").show()
+	jQuery.ajax({
+		type:'GET',
+		url:'/events.js',
+		dataType: 'script',
+		complete: $.ajax()
+		})
 
 spinner = ->
 	if($("#spinner").length)
-		$("#spinner").hide()
+#		$("#spinner").hide()
 	if($("#searchload").length)
 		$("*[id*=searchload]").each ->
 			$(this).click ->
-				$('#stats').html("<h2>Retrieving results...<img src='/assets/spinner.gif'></h2>")
 				$("#spinner").show()
 	
 setup = ->
 	spinner()
 	big_picture()
+	
 $(document).ready(setup)
 $(document).on('page:load', setup)
