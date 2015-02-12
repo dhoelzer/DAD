@@ -8,8 +8,8 @@ results = (data, code, xhr)->
 	{}
 
 big_picture = ->
-		if ($('#big_picture').length)
-			$('#big_picture').html("<h2>Loading...</h2>")
+		if ($('#spinner').length)
+			$('#spinner').show()
 			jQuery.ajax({
 				type:'GET',
 				url:'/events.js',
