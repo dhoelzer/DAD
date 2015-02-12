@@ -17,7 +17,7 @@ big_picture = ->
 		})
 
 spinner = ->
-	if($("#spinner").length)
+#	if($("#spinner").length)
 #		$("#spinner").hide()
 	if($("#searchload").length)
 		$("*[id*=searchload]").each ->
