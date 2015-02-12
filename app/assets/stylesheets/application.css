@@ -20,7 +20,7 @@
 	left:0;
 	display: none;
 	opacity: 0.5;
-	background: url("/assets/spinner.gif") no-repeat center center cover; 
+	background: url("/assets/spinner.gif") no-repeat center center fixed; 
 	  -webkit-background-size: cover;
 	  -moz-background-size: cover;
 	  -o-background-size: cover;
