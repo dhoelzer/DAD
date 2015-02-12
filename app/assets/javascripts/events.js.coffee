@@ -26,7 +26,8 @@ spinner = ->
 	
 setup = ->
 	spinner()
-	big_picture()
+	if($("#big_picture").length)
+		big_picture()
 	
 $(document).ready(setup)
 $(document).on('page:load', setup)
