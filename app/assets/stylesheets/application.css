@@ -15,7 +15,7 @@
 #spinner {
 	width:25%;
 	height:25%;
-    position: relative;
+    position: absolute;
 	top:2%;
 	left:5%;
 	display: none;
