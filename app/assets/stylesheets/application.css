@@ -13,7 +13,8 @@
  */
 
 #spinner {
-	width:95%;
+	width:75%;
+	height:75%;
     position: absolute;
 	display: block;
 	background:url("/assets/spinner.gif");

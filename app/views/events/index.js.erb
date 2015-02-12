@@ -3,4 +3,4 @@ draw_graph("systems_chart","Aggregate Events by System",<%=raw system_stats(1) %
 draw_graph("services_chart","Aggregate Events by Service",<%=raw service_stats(1) %>);
 draw_gauge("7_days_chart", "7 Days", <%=raw total_events_since(7.days.ago) %>, 7);
 draw_gauge("1_day_chart", "24 Hours", <%=raw total_events_since(24.hours.ago) %>, 1);
-//$("#spinner").hide()
+$("#spinner").hide()
