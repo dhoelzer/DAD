@@ -13,8 +13,8 @@ attach_spinner = function() {
   }
 };
 
-$("#spinner").hide()
-$("#stats").text("Elapsed time: <%= @search_time %> - <%= @events.count%> events match that search:")
-$("#events").html("<%=raw escape_javascript render partial: 'search_results' %>")
-attach_spinner()
-$("#search_terms").value("<%= @previous_search %>")
+$("#spinner").hide();
+$("#stats").text("Elapsed time: <%= @search_time %> - <%= @events.count%> events match that search:");
+$("#events").html("<%=raw escape_javascript render partial: 'search_results' %>");
+attach_spinner();
+document.getElementById('search_terms').value="<%= @previous_search %>";
