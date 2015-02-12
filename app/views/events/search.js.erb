@@ -1,3 +1,18 @@
+var attach_spinner;
+
+attach_spinner = function() {
+  if (($("#spinner").length)) {
+    $("#spinner").hide();
+  }
+  if (($("#searchload").length)) {
+    return $("*[id*=searchload]").each(function() {
+      return $(this).click(function() {
+        return $("#spinner").show();
+      });
+    });
+  }
+};
+
 $("#spinner").hide()
 $("#stats").text("Elapsed time: <%= @search_time %> - <%= @events.count%> events match that search:")
 $("#events").html("<%=raw escape_javascript render partial: 'search_results' %>")
