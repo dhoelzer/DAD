@@ -13,8 +13,8 @@
  */
 
 #spinner {
-	width:25%;
-	height:25%;
+	width:100%;
+	height:100%;
     position: absolute;
 	top:2%;
 	left:5%;
