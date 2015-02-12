@@ -1,4 +1,4 @@
 $("#spinner").hide()
 $("#stats").text("Elapsed time: <%= @search_time %> - <%= @events.count%> events match that search:")
 $("#events").html("<%=raw escape_javascript render partial: 'search_results' %>")
-spinner() <% # reattach the onclick actions %>
+attach_spinner()

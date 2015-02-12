@@ -16,7 +16,7 @@ big_picture = ->
 		complete: $.ajax()
 		})
 
-spinner = ->
+attach_spinner = ->
 	if($("#spinner").length)
 		$("#spinner").hide()
 	if($("#searchload").length)
@@ -25,7 +25,7 @@ spinner = ->
 				$("#spinner").show()
 	
 setup = ->
-	spinner()
+	attach_spinner()
 	if($("#big_picture").length)
 		big_picture()
 	
