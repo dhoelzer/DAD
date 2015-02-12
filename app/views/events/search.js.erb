@@ -1,3 +1,3 @@
 $("#spinner").hide()
 $("#stats").html="Elapsed time: #{@search_time} - #{@events.count} events match that search:"
-$("#events").html=<%= render partial: 'search_results' %>
+$("#events").html="<%=raw escape_javascript render partial: 'search_results' %>"
