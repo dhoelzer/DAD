@@ -12,6 +12,10 @@ class Event < ActiveRecord::Base
   @@events_words = Array.new
   @@start_time = Time.now
 
+  def self.diskUtilization
+    `df -m | egrep "\s+/$"`.split(/\s+/)[4].to_i
+  end
+  
   def self.resetStats
     @@start_time = Time.now
   end

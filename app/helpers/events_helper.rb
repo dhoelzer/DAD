@@ -21,6 +21,12 @@ module EventsHelper
     Event.where("generated > ?",time_frame).count
   end
   
+  def disk_utilization()
+    used = Event.diskUtilization
+    free = 100 - used
+    "[[\"Used\", #{used}],[\"Free\", #{free}]]"
+  end
+  
   def daily_average
     return 1000000
     first = Event.order(:generated).first.generated
