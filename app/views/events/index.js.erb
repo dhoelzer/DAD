@@ -8,7 +8,6 @@ draw_diskspace_graph("diskutilization", "Disk Utilization", <%=raw disk_utilizat
 
 $("#spinner").hide();
 setTimeout(function() {
-	$("#spinner").show();
 	jQuery.ajax({
 		type:'GET',
 		url:'/events.js',
