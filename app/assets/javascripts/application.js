@@ -21,7 +21,9 @@ function draw_graph(chart_div, title, graph_data)
 {
    return new Highcharts.Chart({
       chart: {
-        renderTo: chart_div
+        renderTo: chart_div,
+		plotShadow: true,
+		animaction: false,
       },
 	 credits: {
 	    enabled: false
