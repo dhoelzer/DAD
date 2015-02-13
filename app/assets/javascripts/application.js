@@ -22,7 +22,6 @@ function draw_graph(chart_div, title, graph_data)
    return new Highcharts.Chart({
       chart: {
         renderTo: chart_div,
-		plotShadow: true,
 		animation: false,
       },
 	 credits: {
@@ -31,6 +30,11 @@ function draw_graph(chart_div, title, graph_data)
       title: {
         text: title
       },
+	  plotOptions: {
+		series: {
+			animation: false,
+		}
+	},
       series: [
         {
           type: "pie",
@@ -47,7 +51,6 @@ function draw_gauge(chart_div, title, graph_data, timeframe)
       chart: {
         renderTo: chart_div,
 		animation: false,
-		plotShadow: true,
       },
 	 credits: {
 	    enabled: false,
@@ -59,6 +62,11 @@ function draw_gauge(chart_div, title, graph_data, timeframe)
 		startAngle: -150,
 		endAngle: 150
 	  },
+	  plotOptions: {
+		series: {
+			animation: false,
+		}
+	},
 	  yAxis: {
 		min: 0,
 		max: (average_events * timeframe + (average_events * .1)),
