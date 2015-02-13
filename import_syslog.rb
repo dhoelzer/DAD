@@ -2,6 +2,7 @@
 require './config/environment.rb'
 
 def process_logs
+  Event.resetStats # reset event timing counters
   pending_logs = Dir['*'].sort
   processed = 0
   begin

@@ -12,6 +12,10 @@ class Event < ActiveRecord::Base
   @@events_words = Array.new
   @@start_time = Time.now
 
+  def self.resetStats
+    @@start_time = Time.now
+  end
+  
   def self.iterativeSQLBuilder(sortedWordIDs, depth)
     # this is massively bad in so many ways.
     sql = ""
