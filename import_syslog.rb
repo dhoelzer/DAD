@@ -28,7 +28,6 @@ def process_logs
     Event.performPendingInserts
   end
   Event.performPendingInserts
-  puts "Finished loop"
 end
 
 def purge_logs
@@ -37,7 +36,7 @@ def purge_logs
 end
 
 Dir.chdir("Logs/LogsToProcess")
-referenceTime = Time.now
+referenceTime = Time.now - 13.hours #force a purge when importer first runs
 
 while true do
   process_logs
