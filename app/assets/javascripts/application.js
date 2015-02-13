@@ -45,12 +45,12 @@ function draw_gauge(chart_div, title, graph_data, timeframe)
 {
    return new Highcharts.Chart({
       chart: {
-        renderTo: chart_div
+        renderTo: chart_div,
+		animation: false,
+		plotShadow: true,
       },
 	 credits: {
 	    enabled: false,
-		animation: false,
-		plotShadow: true,
 	  },
       title: {
         text: title
