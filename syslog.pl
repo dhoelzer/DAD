@@ -40,6 +40,6 @@ sub RotateLog
 		$RotateTime = mktime(localtime());
 		$Filename = "syslog.$RotateTime";
 		open(LOG, ">$LOGSTAGING/$Filename");
-		$RotateTime += 600;
+		$RotateTime += 60;
 	}
 }
