@@ -23,9 +23,7 @@ function draw_diskspace_graph(chart_div, title, graph_data)
         renderTo: chart_div,
 		animation: false,
       },
-	 colors: {
-		['#ff1010', '#10ff10']
-	 },
+	 colors: ['#ff1010', '#10ff10'],
 	 credits: {
 	    enabled: false
 	  },
