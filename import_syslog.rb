@@ -28,6 +28,7 @@ def process_logs
     Event.performPendingInserts
   end
   Event.performPendingInserts
+  puts "Finished loop"
 end
 
 def purge_logs
@@ -37,10 +38,11 @@ end
 
 Dir.chdir("Logs/LogsToProcess")
 referenceTime = Time.now
-while 1 do
+
+while true do
   process_logs
   if Time.now-12.hours > referenceTime then
-    puts "Purged logs #{Time.now}"
+    puts "Purged logs older than: #{Time.now}"
     referenceTime = Time.now
     purge_logs
   end
