@@ -23,7 +23,7 @@ function draw_graph(chart_div, title, graph_data)
       chart: {
         renderTo: chart_div,
 		plotShadow: true,
-		animaction: false,
+		animation: false,
       },
 	 credits: {
 	    enabled: false
@@ -48,7 +48,9 @@ function draw_gauge(chart_div, title, graph_data, timeframe)
         renderTo: chart_div
       },
 	 credits: {
-	    enabled: false
+	    enabled: false,
+		animation: false,
+		plotShadow: true,
 	  },
       title: {
         text: title
