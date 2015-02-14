@@ -1,0 +1,29 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>Type:</strong>
+  <%= @statistic.type_id %>
+</p>
+
+<p>
+  <strong>Timestamp:</strong>
+  <%= @statistic.timestamp %>
+</p>
+
+<p>
+  <strong>System:</strong>
+  <%= @statistic.system_id %>
+</p>
+
+<p>
+  <strong>Service:</strong>
+  <%= @statistic.service_id %>
+</p>
+
+<p>
+  <strong>Stat:</strong>
+  <%= @statistic.stat %>
+</p>
+
+<%= link_to 'Edit', edit_statistic_path(@statistic) %> |
+<%= link_to 'Back', statistics_path %>

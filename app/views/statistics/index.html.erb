@@ -1,0 +1,35 @@
+<h1>Listing statistics</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Timestamp</th>
+      <th>System</th>
+      <th>Service</th>
+      <th>Stat</th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @statistics.each do |statistic| %>
+      <tr>
+        <td><%= statistic.type_id %></td>
+        <td><%= statistic.timestamp %></td>
+        <td><%= statistic.system_id %></td>
+        <td><%= statistic.service_id %></td>
+        <td><%= statistic.stat %></td>
+        <td><%= link_to 'Show', statistic %></td>
+        <td><%= link_to 'Edit', edit_statistic_path(statistic) %></td>
+        <td><%= link_to 'Destroy', statistic, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<br>
+
+<%= link_to 'New Statistic', new_statistic_path %>

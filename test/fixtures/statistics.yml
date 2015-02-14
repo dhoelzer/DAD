@@ -1,0 +1,15 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  type_id: 1
+  timestamp: 2015-02-14 17:27:32
+  system_id: 1
+  service_id: 1
+  stat: 1.5
+
+two:
+  type_id: 1
+  timestamp: 2015-02-14 17:27:32
+  system_id: 1
+  service_id: 1
+  stat: 1.5
