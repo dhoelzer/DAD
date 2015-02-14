@@ -1,0 +1,44 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>System:</strong>
+  <%= @alert.system_id %>
+</p>
+
+<p>
+  <strong>Service:</strong>
+  <%= @alert.service_id %>
+</p>
+
+<p>
+  <strong>Criticality:</strong>
+  <%= @alert.criticality %>
+</p>
+
+<p>
+  <strong>Generated:</strong>
+  <%= @alert.generated %>
+</p>
+
+<p>
+  <strong>Event:</strong>
+  <%= @alert.event_id %>
+</p>
+
+<p>
+  <strong>Closed:</strong>
+  <%= @alert.closed %>
+</p>
+
+<p>
+  <strong>Description:</strong>
+  <%= @alert.description %>
+</p>
+
+<p>
+  <strong>Short description:</strong>
+  <%= @alert.short_description %>
+</p>
+
+<%= link_to 'Edit', edit_alert_path(@alert) %> |
+<%= link_to 'Back', alerts_path %>

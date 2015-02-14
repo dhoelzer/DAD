@@ -1,4 +1,6 @@
 Events::Application.routes.draw do
+  resources :alerts
+
   resources :statistics
 
   resources :searches
