@@ -1,4 +1,6 @@
 Events::Application.routes.draw do
+  resources :comments
+
   resources :alerts
 
   resources :statistics
