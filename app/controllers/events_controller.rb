@@ -10,7 +10,11 @@ class EventsController < ApplicationController
     end
   end
 
-
+  def recent
+    respond_to do |format|
+      format.js { render layout: false }
+    end
+  end
 
   def search
     start_time = Time.now

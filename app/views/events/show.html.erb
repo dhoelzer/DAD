@@ -20,11 +20,7 @@
   <%= @event.stored %>
 </p>
 
-<p>
-<% @event.positions.order(:position).each do |position| %>
-	<%= position.word.text %> 
-<% end %>
-</p>
+<%= render partial: "event_detail" %>
 
 <%= link_to 'Edit', edit_event_path(@event) %> |
 <%= link_to 'Back', events_path %>

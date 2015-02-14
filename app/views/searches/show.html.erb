@@ -1,0 +1,24 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>String:</strong>
+  <%= @search.string %>
+</p>
+
+<p>
+  <strong>User:</strong>
+  <%= @search.user_id %>
+</p>
+
+<p>
+  <strong>Description:</strong>
+  <%= @search.description %>
+</p>
+
+<p>
+  <strong>Short description:</strong>
+  <%= @search.short_description %>
+</p>
+
+<%= link_to 'Edit', edit_search_path(@search) %> |
+<%= link_to 'Back', searches_path %>
