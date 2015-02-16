@@ -15,7 +15,6 @@
 .timestamp {
 	display: inline;
     position: relative;
-	width: 200px;
 }
 
 .timestamp:hover {
@@ -32,7 +31,7 @@
     padding: 5px 15px;
     position: absolute;
     z-index: 98;
-    width: 220px;
+    width: 320px;
 }
 .timestamp:hover:before{
     border: solid;
