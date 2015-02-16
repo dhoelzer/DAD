@@ -17,13 +17,16 @@
     position: relative;
 }
 
+.timestamp:hover {
+	background: #aaa;
+}
 .timestamp:hover:after{
     background: #333;
     background: rgba(0,0,0,.8);
     border-radius: 5px;
     bottom: 26px;
     color: #fff;
-    content: attr(title);
+    content: attr(time);
     left: 20%;
     padding: 5px 15px;
     position: absolute;
