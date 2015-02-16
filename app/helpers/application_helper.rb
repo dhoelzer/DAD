@@ -11,7 +11,7 @@ module ApplicationHelper
       "Asia/Shanghai"]
     tooltip = ""
     timezones.each do |zone|
-      tooltip = tooltip + "#{zone}: #{timestamp.in_time_zone(zone)}&#013;"
+      tooltip = tooltip + "#{zone}: #{timestamp.in_time_zone(zone)}\n"
     end
     span = "<span class='timestamp' time=\"#{tooltip}\">#{timestamp}</span>"
     return span
