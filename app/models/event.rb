@@ -1,6 +1,7 @@
 class Event < ActiveRecord::Base
   has_many :positions
   has_many :words, :through => :positions
+  has_and_belongs_to_many :alerts
   belongs_to :system
   belongs_to :service
 
@@ -11,6 +12,11 @@ class Event < ActiveRecord::Base
   @@pendingPositionValues = Array.new
   @@events_words = Array.new
   @@start_time = Time.now
+  
+  def self.hidden?
+    return false
+  end
+  
 
   def self.diskUtilization
     `df -m | egrep "\s+/$"`.split(/\s+/)[4].to_i

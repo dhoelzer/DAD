@@ -5,6 +5,11 @@ class Service < ActiveRecord::Base
   @@cached_stuff = Hash.new
   @added = 0
   
+  def self.hidden?
+    return false
+  end
+  
+  
   def self.find_or_add(new_item)
     return @@cached_stuff[new_item] if @@cached_stuff.has_key?(new_item)
     item=Service.find_by name: new_item

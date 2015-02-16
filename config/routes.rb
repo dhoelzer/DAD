@@ -1,7 +1,8 @@
 Events::Application.routes.draw do
-  resources :comments
 
-  resources :alerts
+  resources :alerts do
+    resources :comments
+  end
 
   resources :statistics
 
@@ -16,6 +17,8 @@ Events::Application.routes.draw do
       get :search
     end
   end
+  
+  resources :comments, :only => [:index]
 
   resources :positions
 

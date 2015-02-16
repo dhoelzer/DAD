@@ -11,19 +11,23 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20150216112803) do
+ActiveRecord::Schema.define(version: 20150216151201) do
 
   create_table "alerts", force: true do |t|
     t.integer  "system_id"
     t.integer  "service_id"
     t.integer  "criticality"
     t.datetime "generated"
-    t.integer  "event_id"
     t.boolean  "closed"
     t.text     "description"
     t.string   "short_description"
     t.datetime "created_at"
     t.datetime "updated_at"
+  end
+
+  create_table "alerts_events", id: false, force: true do |t|
+    t.integer "alert_id"
+    t.integer "event_id"
   end
 
   create_table "comments", force: true do |t|

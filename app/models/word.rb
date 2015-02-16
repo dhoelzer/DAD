@@ -6,6 +6,10 @@ class Word < ActiveRecord::Base
   @cache_hits = 0
   CACHESIZE=3000
   
+  def self.hidden?
+    return true
+  end
+  
   def self.find_or_add(new_word)
     if @@cached_words.has_key?(new_word) then
       @@cached_words[new_word][:last] = Time.now

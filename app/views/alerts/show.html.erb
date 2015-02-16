@@ -2,12 +2,12 @@
 
 <p>
   <strong>System:</strong>
-  <%= @alert.system_id %>
+  <%= @alert.system.display_name %>
 </p>
 
 <p>
   <strong>Service:</strong>
-  <%= @alert.service_id %>
+  <%= @alert.service.name %>
 </p>
 
 <p>
@@ -18,11 +18,6 @@
 <p>
   <strong>Generated:</strong>
   <%= @alert.generated %>
-</p>
-
-<p>
-  <strong>Event:</strong>
-  <%= @alert.event_id %>
 </p>
 
 <p>
@@ -40,5 +35,8 @@
   <%= @alert.short_description %>
 </p>
 
+<% @alert.events.each do |event| @event = event %>
+	<%= render partial: "/events/event_detail" %>
+<% end %>
 <%= link_to 'Edit', edit_alert_path(@alert) %> |
 <%= link_to 'Back', alerts_path %>
