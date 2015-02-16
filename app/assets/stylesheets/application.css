@@ -12,12 +12,12 @@
  *= require_tree .
  */
 
-#timestamp {
+.timestamp {
 	display: inline;
     position: relative;
 }
 
-#tooltip:hover:after{
+.timestamp:hover:after{
     background: #333;
     background: rgba(0,0,0,.8);
     border-radius: 5px;
@@ -30,7 +30,7 @@
     z-index: 98;
     width: 220px;
 }
-#tooltip:hover:before{
+.timestamp:hover:before{
     border: solid;
     border-color: #333 transparent;
     border-width: 6px 6px 0 6px;
