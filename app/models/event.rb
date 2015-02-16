@@ -20,6 +20,20 @@ class Event < ActiveRecord::Base
     @@start_time = Time.now
   end
   
+  def self.search_group(search_string, offset=0, limit=100)
+    @events = Array.new
+    event_ids = Array.new
+    connection = ActiveRecord::Base.connection
+    
+    terms = search_string.downcase.split(/\s+/)
+    return [] if terms.empty
+    sql = "select event_id from events_words where generated>(CURRENT_TIMESTAMP-Interval '1 day') and word_id in (select id from words where words.text in (#{terms})) group by event_id having count(distinct(event_id,word_id))=#{terms.count}"
+    events_that_match = connection.execute(sql)
+    events_that_match.map { |e| event_ids << e["event_id"]}
+    @events = Event.order(generated: :asc).includes(:positions, :words).where("id in (?)", event_ids).limit(limit).offset(offset)
+    return (@events.nil? ? [] : @events)    
+  end 
+  
   def self.iterativeSQLBuilder(sortedWordIDs, depth)
     # this is massively bad in so many ways.
     sql = ""
@@ -32,6 +46,8 @@ class Event < ActiveRecord::Base
     return sql
   end
 
+
+  
   def self.search(search_string, offset=0, limit=100)
     @events = Array.new
     event_ids = Array.new

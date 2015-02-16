@@ -11,7 +11,28 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20150214221805) do
+ActiveRecord::Schema.define(version: 20150216112803) do
+
+  create_table "alerts", force: true do |t|
+    t.integer  "system_id"
+    t.integer  "service_id"
+    t.integer  "criticality"
+    t.datetime "generated"
+    t.integer  "event_id"
+    t.boolean  "closed"
+    t.text     "description"
+    t.string   "short_description"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
+  create_table "comments", force: true do |t|
+    t.text     "message"
+    t.integer  "user_id"
+    t.integer  "alert_id"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
 
   create_table "events", force: true do |t|
     t.integer  "system_id"
@@ -61,6 +82,16 @@ ActiveRecord::Schema.define(version: 20150214221805) do
     t.datetime "updated_at"
   end
 
+  create_table "statistics", force: true do |t|
+    t.integer  "type_id"
+    t.datetime "timestamp"
+    t.integer  "system_id"
+    t.integer  "service_id"
+    t.float    "stat"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
   create_table "systems", force: true do |t|
     t.string   "address"
     t.string   "name"
@@ -72,7 +103,7 @@ ActiveRecord::Schema.define(version: 20150214221805) do
   end
 
   create_table "words", force: true do |t|
-    t.string   "text"
+    t.text     "text",       limit: 255
     t.datetime "created_at"
     t.datetime "updated_at"
   end
