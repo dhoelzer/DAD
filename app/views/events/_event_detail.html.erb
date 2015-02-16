@@ -1,7 +1,7 @@
 <% if !@event.nil? then %>
 	<div id="event_detail">
 		<%= @event.system.display_name %>: 
-		<span class='timestamp' time="<%=raw tooltip_timestamps(@event.generated) %>"><%= @event.generated %> :</span> 
+		<%=raw timestamp_helper(@event.generated)%>
 		<% @event.positions.order(:position).each do |position| %>
 			<%= link_to position.word.text, "/events/search?search_terms=#{(@previous_search.nil? ? "#{position.word.text}" : "#{@previous_search.gsub(" ", "+") + "+#{position.word.text}"}")}", id: "searchload", remote: true %> 
 		<% end %>

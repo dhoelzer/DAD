@@ -31,7 +31,7 @@
     padding: 5px 15px;
     position: absolute;
     z-index: 98;
-    width: 320px;
+    width: 520px;
 }
 .timestamp:hover:before{
     border: solid;

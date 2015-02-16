@@ -13,6 +13,7 @@ module ApplicationHelper
     timezones.each do |zone|
       tooltip = tooltip + "#{zone}: #{timestamp.in_time_zone(zone)}\n"
     end
+    span = "<span class='timestamp'> time='#{tooltip}'>#{timestamp}</span>"
     return tooltip
   end
 end
