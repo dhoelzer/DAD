@@ -14,6 +14,6 @@ module ApplicationHelper
       tooltip = tooltip + "#{zone}: #{timestamp.in_time_zone(zone)}\n"
     end
     span = "<span class='timestamp'> time='#{tooltip}'>#{timestamp}</span>"
-    return tooltip
+    return span
   end
 end
