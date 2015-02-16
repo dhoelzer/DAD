@@ -3,7 +3,7 @@ module ApplicationHelper
     params[:controller] == controller ? "active" : "inactive"     
   end
   
-  def tooltip_timestamp(timestamp=Time.now)
+  def tooltip_timestamps(timestamp=Time.now)
     timezones = [
       "Pacific Time (US & Canada)",
       "Asia/Seoul",
