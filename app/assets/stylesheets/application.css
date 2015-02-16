@@ -15,6 +15,7 @@
 .timestamp {
 	display: inline;
     position: relative;
+	width: 200px;
 }
 
 .timestamp:hover {
