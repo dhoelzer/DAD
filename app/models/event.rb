@@ -26,7 +26,7 @@ class Event < ActiveRecord::Base
     connection = ActiveRecord::Base.connection
     
     terms = search_string.downcase.split(/\s+/)
-    return [] if terms.empty
+    return [] if terms.empty?
     sql = "select event_id from events_words where generated>(CURRENT_TIMESTAMP-Interval '1 day') and word_id in (select id from words where words.text in (#{terms})) group by event_id having count(distinct(event_id,word_id))=#{terms.count}"
     events_that_match = connection.execute(sql)
     events_that_match.map { |e| event_ids << e["event_id"]}
