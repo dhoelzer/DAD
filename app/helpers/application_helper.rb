@@ -5,6 +5,7 @@ module ApplicationHelper
   
   def timestamp_helper(timestamp=Time.now)
     timezones = [
+      "Eastern Time (US & Canada)",
       "Pacific Time (US & Canada)",
       "Asia/Seoul",
       "Europe/London",
