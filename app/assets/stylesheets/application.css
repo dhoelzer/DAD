@@ -70,7 +70,7 @@ html, body{
 }
 
 #services_chart {
-	width:20%;
+	width:49%;
 	float: left;
 }
 
@@ -78,12 +78,12 @@ html, body{
 	clear: both;
 }
 #systems_chart {
-	width:20%;
+	width:49%;
 	float: left;
 }
 
 #event_rates div {
-	width: 10%;
+	width: 24%;
 	float: left;
 }
 
