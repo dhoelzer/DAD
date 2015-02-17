@@ -60,8 +60,12 @@
     z-index:1234;
 }
 
+#graphs {
+	width: 100%;
+	float: left;
+}
 #services_chart {
-	width:50%;
+	width:35%;
 	float: left;
 }
 
@@ -69,22 +73,24 @@
 	clear: both;
 }
 #systems_chart {
-	width:50%;
+	width:35%;
 	float: left;
 }
 
 #event_rates div {
-	width: 25%;
+	width: 15%;
 	float: left;
 }
 
 #logging_rate div {
-	width: 50%;
+	width: 40%;
+	display:inline;
 	float: left;
 }
 
 #insert_rate div {
-	width: 50%;
+	width: 40%;
+	display:inline;
 	float: left;
 }
 
