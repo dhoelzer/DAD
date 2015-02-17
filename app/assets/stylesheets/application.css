@@ -60,6 +60,10 @@
     z-index:1234;
 }
 
+#big_picture {
+	height: 80%;
+}
+
 #services_chart {
 	width:35%;
 	float: left;
@@ -79,6 +83,7 @@
 }
 
 #graphs {
+	height: 15%;
 	width: 100%;
 	float: left;
 }
