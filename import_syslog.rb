@@ -5,6 +5,7 @@ def process_logs
   Event.resetStats # reset event timing counters
   pending_logs = Dir['*'].sort
   processed = 0
+  lines = 0
   begin
     pending_logs.each do |log|
       processed += 1
@@ -13,6 +14,7 @@ def process_logs
 
       file.each_line do |line|
         begin
+          lines += 1
           Event.storeEvent(line)
         rescue Exception => e
           puts "Error processing #{log}!"
@@ -29,11 +31,12 @@ def process_logs
     Event.performPendingInserts
   end
   Event.performPendingInserts
+  Statistic.logLinesProcessed(lines)
 end
 
 def purge_logs
   # Purge logs older than 1 day ago from now.
-  system("cd ../ProcessedLogs;find . -mtime +1 | xargs rm -Rf")
+  system("cd ../ProcessedLogs;find . -mtime 1 | xargs rm -Rf")
 end
 
 Dir.chdir("Logs/LogsToProcess")

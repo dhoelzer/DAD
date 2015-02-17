@@ -153,7 +153,9 @@ class Event < ActiveRecord::Base
 
     puts "\t\t-->> Flushed #{@@pendingEventValues.count} events with #{@@pendingPositionValues.count} positions. <<--"
     elapsed_time = (Time.now - @@start_time)
-    puts "\t\t-->> Started run: #{@@start_time}\t#{elapsed_time} seconds elapsed\t#{@@pendingEventValues.count/elapsed_time} events processed per second."
+    eventsPerSecond = @@pendingEventValues.count/elapsed_time
+    puts "\t\t-->> Started run: #{@@start_time}\t#{elapsed_time} seconds elapsed\t#{eventsPerSecond} events processed per second."
+    Statistic.logEventsPerSecond(eventsPerSecond)
     @@start_time = Time.now
     @@pendingEventValues = []
     @@pendingPositionValues = []
