@@ -65,7 +65,7 @@ html, body{
 }
 
 #big_picture {
-
+	float:left;
 }
 
 #services_chart {
