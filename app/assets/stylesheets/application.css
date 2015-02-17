@@ -77,6 +77,17 @@
 	width: 25%;
 	float: left;
 }
+
+#logging_rate div {
+	width: 50%;
+	float: left;
+}
+
+#insert_rate div {
+	width: 50%;
+	float: left;
+}
+
 #navbar	ul {
 		list-style-type: none;
 		margin: 0;
