@@ -10,7 +10,6 @@ update_div.fadeOut();
 update_div.html("Last Updated: <%= Time.now %>");
 update_div.fadeIn();
 
-$("#spinner").hide();
 setTimeout(function() {
 	jQuery.ajax({
 		type:'GET',

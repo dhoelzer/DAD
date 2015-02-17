@@ -8,7 +8,6 @@ results = (data, code, xhr)->
 	{}
 
 big_picture = ->
-	$("#spinner").show()
 	jQuery.ajax({
 		type:'GET',
 		url:'/events.js',
