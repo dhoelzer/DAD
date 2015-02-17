@@ -60,10 +60,6 @@
     z-index:1234;
 }
 
-#graphs {
-	width: 100%;
-	float: left;
-}
 #services_chart {
 	width:35%;
 	float: left;
@@ -82,13 +78,18 @@
 	float: left;
 }
 
-#logging_rate div {
+#graphs {
+	width: 100%;
+	float: left;
+}
+
+#logging_rate {
 	width: 40%;
 	display:inline;
 	float: left;
 }
 
-#insert_rate div {
+#insert_rate {
 	width: 40%;
 	display:inline;
 	float: left;
