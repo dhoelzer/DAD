@@ -12,6 +12,10 @@
  *= require_tree .
  */
 
+html, body{
+	height: 100%;
+}
+
 .timestamp {
 	display: inline;
     position: relative;
