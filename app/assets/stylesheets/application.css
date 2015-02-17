@@ -93,13 +93,13 @@ html, body{
 }
 
 #logging_rate {
-	width: 40;
+	width: 99%;
 	display:inline;
 	float: left;
 }
 
 #insert_rate {
-	width: 40%;
+	width: 99%;
 	display:inline;
 	float: left;
 }
