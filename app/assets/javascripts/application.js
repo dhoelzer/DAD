@@ -16,6 +16,36 @@
 //= require highcharts-custom.js
 //= require_tree .
 
+function draw_longitudinal(chart_div, title, data_title, graph_data)
+{
+	return new Highcharts.Chart({
+      chart: {
+        renderTo: chart_div,
+		animation: false,
+      },
+	 colors: ['#ff1010', '#10ff10'],
+	 credits: {
+	    enabled: false
+	  },
+      title: {
+        text: title
+      },
+	  plotOptions: {
+		series: {
+			animation: false,
+		}
+	},
+      series: [
+        {
+          type: "line",
+          name: data_title+":",
+          data: graph_data
+        }
+      ]
+    });
+   
+}
+
 function draw_diskspace_graph(chart_div, title, graph_data)
 {
    return new Highcharts.Chart({

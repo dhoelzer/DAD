@@ -1,4 +1,19 @@
 module EventsHelper
+  
+  def events_per_minute(since=7.days.ago)
+    stats=Statistic.where("type_id=0 and timestamp>#{since}").order(:timestamp)
+    data.Hash.new
+    stats.each{|s| data[s.timestamp] = s.stat}
+    data.map { |k,v| [k,v] }
+  end
+  
+  def inserts_per_second(since=1.day.ago)
+    stats=Statistic.where("type_id=1 and timestamp>#{since}").order(:timestamp)
+    data.Hash.new
+    stats.each{|s| data[s.timestamp] = s.stat}
+    data.map { |k,v| [k,v] }    
+  end
+  
   def system_stats(days)
     counts = Event.where("generated > ?", Time.now()-(days * 86400)).group(:system_id).count
     results = Hash.new
