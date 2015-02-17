@@ -65,6 +65,7 @@
 }
 
 #services_chart {
+	margin 0 auto;
 	width:35%;
 	float: left;
 }
@@ -73,11 +74,13 @@
 	clear: both;
 }
 #systems_chart {
+	margin 0 auto;
 	width:35%;
 	float: left;
 }
 
 #event_rates div {
+	margin 0 auto;
 	width: 15%;
 	float: left;
 }
@@ -89,13 +92,15 @@
 }
 
 #logging_rate {
-	width: 40%;
+	margin 0 auto;
+	width: 50%;
 	display:inline;
 	float: left;
 }
 
 #insert_rate {
-	width: 40%;
+	margin 0 auto;
+	width: 50%;
 	display:inline;
 	float: left;
 }
