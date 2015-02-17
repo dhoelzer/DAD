@@ -82,24 +82,23 @@ html, body{
 }
 
 #event_rates div {
-	width: 15%;
+	width: 10%;
 	float: left;
 }
 
 #graphs {
-	height: 15%;
 	width: 100%;
 	float: left;
 }
 
 #logging_rate {
-	width: 50%;
+	width: 40;
 	display:inline;
 	float: left;
 }
 
 #insert_rate {
-	width: 50%;
+	width: 40%;
 	display:inline;
 	float: left;
 }
