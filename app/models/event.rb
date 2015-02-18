@@ -98,8 +98,13 @@ class Event < ActiveRecord::Base
     txtsystem = split_text[0]
     return unless split_text.size > 1 # If there's no date and only an IP then it's not a valid message.
     system = System.find_or_add(txtsystem)
-    txttimestamp = split_text[1..3].join(' ')
-    timestamp = (split_text[1] == "Dec" ? DateTime.parse("#{txttimestamp} 2014 GMT") : DateTime.parse("#{txttimestamp} 2015 GMT"))
+    if split_text[3].to_i > 2014 && split_text[3].to_i < 2020 then
+      txttimestamp = split_text[1..4].join(' ')
+      timestamp = DateTime.parse("#{txttimestamp} GMT")
+    else
+      txttimestamp = split_text[1..3].join(' ')
+      timestamp = (split_text[1] == "Dec" ? DateTime.parse("#{txttimestamp} 2014 GMT") : DateTime.parse("#{txttimestamp} 2015 GMT"))
+    end
     txtservice = split_text[5]
     txtservice.tr!("^a-zA-Z/\-", "")
     service = Service.find_or_add(txtservice)
