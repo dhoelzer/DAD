@@ -33,6 +33,7 @@ function draw_longitudinal(chart_div, title, data_title, graph_data)
 	  plotOptions: {
 		series: {
 			animation: false,
+			turboThreshold: 0,
 		}
 	},
       series: [
@@ -43,7 +44,10 @@ function draw_longitudinal(chart_div, title, data_title, graph_data)
 		  lineWidth: 1
         }
       ]
-    });
+    },
+	yAxis: {
+		floor: 0,
+	});
    
 }
 
