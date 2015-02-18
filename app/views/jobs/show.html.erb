@@ -1,0 +1,44 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>Name:</strong>
+  <%= @job.name %>
+</p>
+
+<p>
+  <strong>Description:</strong>
+  <%= @job.description %>
+</p>
+
+<p>
+  <strong>User:</strong>
+  <%= @job.user_id %>
+</p>
+
+<p>
+  <strong>Script:</strong>
+  <%= @job.script %>
+</p>
+
+<p>
+  <strong>Last event:</strong>
+  <%= @job.last_event_id %>
+</p>
+
+<p>
+  <strong>Last run:</strong>
+  <%= @job.last_run %>
+</p>
+
+<p>
+  <strong>Next run:</strong>
+  <%= @job.next_run %>
+</p>
+
+<p>
+  <strong>Frequency:</strong>
+  <%= @job.frequency %>
+</p>
+
+<%= link_to 'Edit', edit_job_path(@job) %> |
+<%= link_to 'Back', jobs_path %>

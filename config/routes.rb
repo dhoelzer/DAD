@@ -1,5 +1,7 @@
 Events::Application.routes.draw do
 
+  resources :jobs
+
   resources :alerts do
     resources :comments
   end

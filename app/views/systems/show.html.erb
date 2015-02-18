@@ -27,6 +27,12 @@
   <strong>Contact email:</strong>
   <%= @system.contact_email %>
 </p>
+
+<p>
+	<strong>Monitor:</strong>
+	<%= @system.monitor %>
+</p>
+
 <%= javascript_include_tag "/systems/#{@system.id}.js" %>
 
 <%= link_to 'Edit', edit_system_path(@system) %> |

@@ -1,0 +1,21 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  name: MyString
+  description: MyText
+  user_id: 1
+  script: MyText
+  last_event_id: 1
+  last_run: 2015-02-18 09:51:50
+  next_run: 2015-02-18 09:51:50
+  frequency: 1
+
+two:
+  name: MyString
+  description: MyText
+  user_id: 1
+  script: MyText
+  last_event_id: 1
+  last_run: 2015-02-18 09:51:50
+  next_run: 2015-02-18 09:51:50
+  frequency: 1

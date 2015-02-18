@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20150216151201) do
+ActiveRecord::Schema.define(version: 20150218155314) do
 
   create_table "alerts", force: true do |t|
     t.integer  "system_id"
@@ -59,6 +59,19 @@ ActiveRecord::Schema.define(version: 20150216151201) do
   add_index "events_words", ["generated"], name: "index_events_words_on_generated"
   add_index "events_words", ["word_id"], name: "index_events_words_on_word_id"
 
+  create_table "jobs", force: true do |t|
+    t.string   "name"
+    t.text     "description"
+    t.integer  "user_id"
+    t.text     "script"
+    t.integer  "last_event_id"
+    t.datetime "last_run"
+    t.datetime "next_run"
+    t.integer  "frequency"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
   create_table "positions", force: true do |t|
     t.integer  "word_id"
     t.integer  "position"
@@ -104,6 +117,7 @@ ActiveRecord::Schema.define(version: 20150216151201) do
     t.string   "contact_email"
     t.datetime "created_at"
     t.datetime "updated_at"
+    t.boolean  "monitor"
   end
 
   create_table "words", force: true do |t|

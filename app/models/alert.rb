@@ -8,4 +8,15 @@ class Alert < ActiveRecord::Base
     return false
   end
   
+  def self.hostUnreachable(system)
+    alert=Alert.new
+    alert.system_id = system.id
+    alert.service_id = nil
+    alert.criticality = 5
+    alert.generated = Time.now
+    alert.closed = false
+    alert.description = "Discovered that #{system.display_name} was unreachable as of #{alert.generated}."
+    alert.short_description = "#{system.display_name} unreachable"
+    alert.save
+  end
 end
