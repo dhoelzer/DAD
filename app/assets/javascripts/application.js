@@ -74,7 +74,8 @@ function draw_diskspace_graph(chart_div, title, graph_data)
         {
           type: "pie",
           name: "Disk Percentage:",
-          data: graph_data
+          data: graph_data,
+		  dataLabels: false,
         }
       ]
     });
@@ -102,7 +103,8 @@ function draw_graph(chart_div, title, graph_data)
         {
           type: "pie",
           name: "Events Online:",
-          data: graph_data
+          data: graph_data,
+		  dataLabels: false
         }
       ]
     });
