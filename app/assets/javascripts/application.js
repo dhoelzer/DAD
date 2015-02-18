@@ -19,36 +19,36 @@
 function draw_longitudinal(chart_div, title, data_title, graph_data)
 {
 	return new Highcharts.Chart({
-      chart: {
-        renderTo: chart_div,
-		animation: false,
-      },
-	 colors: ['#ff1010', '#10ff10'],
-	 credits: {
-	    enabled: false
-	  },
-      title: {
-        text: title
-      },
-	  plotOptions: {
-		series: {
+		chart: {
+			renderTo: chart_div,
 			animation: false,
-			turboThreshold: 0,
+		},
+		colors: ['#ff1010', '#10ff10'],
+		credits: {
+			enabled: false
+		},
+		title: {
+			text: title
+		},
+		plotOptions: {
+			series: {
+				animation: false,
+				turboThreshold: 0,
+			},
+		},
+		series: [
+		{
+			type: "line",
+			name: data_title+":",
+			data: graph_data,
+			lineWidth: 1,
 		}
-	},
-      series: [
-        {
-          type: "line",
-          name: data_title+":",
-          data: graph_data,
-		  lineWidth: 1,
-        }
-      ]
-    },
-	yAxis: {
-		floor: 0,
+		],
+		yAxis: {
+			floor: 0,
+		}
 	});
-   
+
 }
 
 function draw_diskspace_graph(chart_div, title, graph_data)
