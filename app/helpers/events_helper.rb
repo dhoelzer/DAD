@@ -1,18 +1,21 @@
 module EventsHelper
   
-  def events_per_minute(since=7.days.ago)
-    #select sum(stat),extract(year from timestamp) as year, extract(month from timestamp) as month,extract(day from timestamp) as day, extract(hour from timestamp) as hour from statistics where type_id=0 group by year,month,day,hour order by year,month,day,hour asc;
-    stats=Statistic.where("type_id=0 and timestamp>?", since).order(:timestamp)
+  def events_per_hour(since=7.days.ago)
+    connection = ActiveRecord::Base.connection    
+    sql = "select sum(stat),extract(year from timestamp) as year, extract(month from timestamp) as month,extract(day from timestamp) as day, extract(hour from timestamp) as hour from statistics where type_id=0 group by year,month,day,hour order by year,month,day,hour asc"
+    results = connection.execute sql
     data=Hash.new
-    stats.each{|s| data[s.timestamp] = s.stat}
+    results.each{|s| data["#{s['month']}/#{s['day']}/#{s['year']} #{s['hour']}:00:00"] = s['sum']}
     data.map { |k,v| ["#{k}",v] }
   end
   
   def inserts_per_second(since=1.day.ago)
-    stats=Statistic.where("type_id=1 and timestamp>?", since).order(:timestamp)
+    connection = ActiveRecord::Base.connection    
+    sql = "select avg(stat),extract(year from timestamp) as year, extract(month from timestamp) as month,extract(day from timestamp) as day, extract(hour from timestamp) as hour from statistics where type_id=1 group by year,month,day,hour order by year,month,day,hour asc"
+    results = connection.execute sql
     data=Hash.new
-    stats.each{|s| data[s.timestamp] = s.stat}
-    data.map { |k,v| ["#{k}",v] }    
+    results.each{|s| data["#{s['month']}/#{s['day']}/#{s['year']} #{s['hour']}:00:00"] = s['avg']}
+    data.map { |k,v| ["#{k}",v] }
   end
   
   def system_stats(days)
