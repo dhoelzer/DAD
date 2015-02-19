@@ -1,6 +1,7 @@
 module EventsHelper
   
   def events_per_minute(since=7.days.ago)
+    #select sum(stat),extract(year from timestamp) as year, extract(month from timestamp) as month,extract(day from timestamp) as day, extract(hour from timestamp) as hour from statistics where type_id=0 group by year,month,day,hour order by year,month,day,hour asc;
     stats=Statistic.where("type_id=0 and timestamp>?", since).order(:timestamp)
     data=Hash.new
     stats.each{|s| data[s.timestamp] = s.stat}

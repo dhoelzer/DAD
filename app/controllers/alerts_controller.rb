@@ -4,7 +4,7 @@ class AlertsController < ApplicationController
   # GET /alerts
   # GET /alerts.json
   def index
-    @alerts = Alert.all
+    @alerts = Alert.where(:closed => false).order(:criticality).order(:generated)
   end
 
   # GET /alerts/1
@@ -51,6 +51,15 @@ class AlertsController < ApplicationController
     end
   end
 
+  def acknowledge
+    @alert.closed = true
+    @alert.save
+    @alerts = Alert.where(:closed => false).order(:criticality).order(:generated)    
+    respond_to do |format|
+      format.js {render layout: false }
+    end
+  end
+  
   # DELETE /alerts/1
   # DELETE /alerts/1.json
   def destroy

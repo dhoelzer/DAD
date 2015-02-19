@@ -1,0 +1,34 @@
+<table>
+  <thead>
+    <tr>
+      <th>System</th>
+      <th>Service</th>
+      <th>Criticality</th>
+      <th>Generated</th>
+      <th>Event</th>
+      <th>Closed</th>
+      <th>Description</th>
+      <th>Short description</th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @alerts.each do |alert| %>
+      <tr>
+        <td><%= alert.system_id %></td>
+        <td><%= alert.service_id %></td>
+        <td><%= alert.criticality %></td>
+        <td><%= alert.generated %></td>
+        <td><%= alert.closed %></td>
+        <td><%= alert.description %></td>
+        <td><%= alert.short_description %></td>
+        <td><%= link_to 'Show', alert %></td>
+        <td><%= link_to 'Edit', edit_alert_path(alert) %></td>
+        <td><%= link_to 'Acknowledge', acknowledge_alert_path(alert), data: remote %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

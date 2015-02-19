@@ -39,7 +39,7 @@ function draw_longitudinal(chart_div, title, data_title, graph_data)
 		series: [
 		{
 			type: "line",
-			name: data_title+":",
+			name: data_title,
 			data: graph_data,
 			lineWidth: 1,
 		}
