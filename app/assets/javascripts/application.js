@@ -22,6 +22,7 @@ function draw_longitudinal(chart_div, title, data_title, graph_data)
 		chart: {
 			renderTo: chart_div,
 			animation: false,
+			zoomType: 'x',
 		},
 		colors: ['#ff1010', '#10ff10'],
 		credits: {
@@ -42,10 +43,10 @@ function draw_longitudinal(chart_div, title, data_title, graph_data)
 			name: data_title,
 			data: graph_data,
 			lineWidth: 1,
-			pointInterval: 24*60*60,
 		}
 		],
 		xAxis: {
+			labels: { step: 10, },
 			type: "category",
 		},
 		yAxis: {
