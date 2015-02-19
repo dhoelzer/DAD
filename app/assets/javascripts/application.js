@@ -46,7 +46,7 @@ function draw_longitudinal(chart_div, title, data_title, graph_data)
 		}
 		],
 		xAxis: {
-			labels: { step: 10, },
+			labels: { step: 10, staggerLines: 1},
 			type: "category",
 		},
 		yAxis: {
