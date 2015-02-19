@@ -27,7 +27,7 @@
         <td><%= alert.short_description %></td>
         <td><%= link_to 'Show', alert %></td>
         <td><%= link_to 'Edit', edit_alert_path(alert) %></td>
-        <td><%= link_to 'Acknowledge', acknowledge_alert_path(alert), data: remote %></td>
+        <td><%= link_to 'Acknowledge', acknowledge_alert_path(alert), remote: true %></td>
       </tr>
     <% end %>
   </tbody>
