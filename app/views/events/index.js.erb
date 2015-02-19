@@ -10,7 +10,7 @@ draw_longitudinal("insert_rate", "Insert Rate", "Events Per Second", <%=raw inse
 
 var update_div = $("#updated")
 update_div.fadeOut();
-update_div.html("Last Updated: <%= Time.now %>");
+update_div.html("Last Updated: <%= Time.now %> | Pending Alerts: <%= Alert.where(:closed => false).count %>");
 update_div.fadeIn();
 
 setTimeout(function() {
