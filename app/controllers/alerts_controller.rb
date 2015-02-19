@@ -1,5 +1,5 @@
 class AlertsController < ApplicationController
-  before_action :set_alert, only: [:show, :edit, :update, :destroy]
+  before_action :set_alert, only: [:show, :edit, :update, :destroy, :acknowledge]
 
   # GET /alerts
   # GET /alerts.json
