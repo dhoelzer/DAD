@@ -5,7 +5,7 @@ module EventsHelper
     sql = "select sum(stat),extract(year from timestamp) as year, extract(month from timestamp) as month,extract(day from timestamp) as day, extract(hour from timestamp) as hour from statistics where type_id=0 group by year,month,day,hour order by year,month,day,hour asc"
     results = connection.execute sql
     data=Hash.new
-    results.each{|s| data["#{s['month']}/#{s['day']}/#{s['year']} #{s['hour']}:00:00"] = s['sum']}
+    results.each{|s| data["#{s['month']}/#{s['day']}/#{s['year']} #{s['hour']}:00:00"] = s['sum'].to_i}
     data.map { |k,v| ["#{k}",v] }
   end
   
@@ -14,7 +14,7 @@ module EventsHelper
     sql = "select avg(stat),extract(year from timestamp) as year, extract(month from timestamp) as month,extract(day from timestamp) as day, extract(hour from timestamp) as hour from statistics where type_id=1 group by year,month,day,hour order by year,month,day,hour asc"
     results = connection.execute sql
     data=Hash.new
-    results.each{|s| data["#{s['month']}/#{s['day']}/#{s['year']} #{s['hour']}:00:00"] = s['avg']}
+    results.each{|s| data["#{s['month']}/#{s['day']}/#{s['year']} #{s['hour']}:00:00"] = s['avg'].to_f}
     data.map { |k,v| ["#{k}",v] }
   end
   
