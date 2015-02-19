@@ -42,6 +42,7 @@ function draw_longitudinal(chart_div, title, data_title, graph_data)
 			name: data_title,
 			data: graph_data,
 			lineWidth: 1,
+			pointInterval: 24*60*60,
 		}
 		],
 		xAxis: {
