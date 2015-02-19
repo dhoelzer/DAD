@@ -45,7 +45,7 @@ function draw_longitudinal(chart_div, title, data_title, graph_data)
 		}
 		],
 		xAxis: {
-			type: "datetime",
+			type: "category",
 		},
 		yAxis: {
 			floor: 0,
