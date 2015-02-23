@@ -131,6 +131,8 @@ function draw_graph(chart_div, title, graph_data)
 	
 function draw_gauge(chart_div, title, graph_data, timeframe, average)
 {
+	var max = Math.floor((average * timeframe + (average * .5)) / 1000)*1000;
+	alert(max);
    return new Highcharts.Chart({
       chart: {
         renderTo: chart_div,
@@ -153,18 +155,18 @@ function draw_gauge(chart_div, title, graph_data, timeframe, average)
 	},
 	  yAxis: {
 		min: 0,
-		max: Math.floor((average * timeframe + (average * .5)) / 1000)*1000,
+		max: max,
 		minorTickInterval: 'auto',
 		minorTickWidth:1,
 		minorTickLength: 10,
 		minorTickPosition: 'inside',
-		tickPixelInterval: ((average * .5) / 20),
+		tickPixelInterval: (max) / 10),
 		tickWidth: 2,
 		tickPosition: 'inside',
 		tickLength: 10,
 		tickColor: '#555',
 		labels: {
-			step: (average * .5)/10,
+			step: max/5,
 			rotation: 'auto'
 		}
 	},
