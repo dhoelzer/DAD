@@ -160,7 +160,7 @@ function draw_gauge(chart_div, title, graph_data, timeframe, average)
 		minorTickWidth:1,
 		minorTickLength: 10,
 		minorTickPosition: 'inside',
-		tickPixelInterval: (max) / 10),
+		tickPixelInterval: (max / 10),
 		tickWidth: 2,
 		tickPosition: 'inside',
 		tickLength: 10,
