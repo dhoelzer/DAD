@@ -16,7 +16,7 @@
 //= require highcharts-custom.js
 //= require_tree .
 
-function draw_longitudinal(chart_div, title, data_title, graph_data)
+function draw_longitudinal(chart_div, title, data_title, graph_data, average)
 {
 	return new Highcharts.Chart({
 		chart: {
@@ -46,10 +46,16 @@ function draw_longitudinal(chart_div, title, data_title, graph_data)
 		}
 		],
 		xAxis: {
-			labels: { step: 24, staggerLines: 1},
+			labels: { step: 72, staggerLines: 1},
 			type: "category",
 		},
 		yAxis: {
+			plotLines: [{
+				color: 'blue',
+				value: average,
+				width: 2,
+				zIndex: 0,
+			}],
 			floor: 0,
 		}
 	});
