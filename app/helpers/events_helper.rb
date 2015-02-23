@@ -53,16 +53,16 @@ module EventsHelper
       data=Hash.new
       sum = 0
       results.each{|s| sum = sum + s['sum'].to_i}
-      sum.to_f / results.count
+      sum.to_f / (results.count * 24)
   end
 
   def daily_insert_average
       connection = ActiveRecord::Base.connection    
-      sql = "select sum(stat),extract(year from timestamp) as year, extract(month from timestamp) as month,extract(day from timestamp) as day from statistics where type_id=0 group by year,month,day order by year,month,day asc"
+      sql = "select avg(stat),extract(year from timestamp) as year, extract(month from timestamp) as month,extract(day from timestamp) as day from statistics where type_id=0 group by year,month,day order by year,month,day asc"
       results = connection.execute sql
       data=Hash.new
       sum = 0
-      results.each{|s| sum = sum + s['sum'].to_i}
+      results.each{|s| sum = sum + s['avg'].to_i}
       sum.to_f / results.count
   end
 
