@@ -1,14 +1,14 @@
-var average_events = <%= daily_average %>;
+var average_events = <%= hourly_average %>;
 average_events = average_events * 24 + (average_events * 0.5)
 average_events = Math.floor(average_events / 10000) * 10000
 
 draw_graph("systems_chart","24 Hour Events by System",<%=raw system_stats(1) %>);
 draw_graph("services_chart","24 Hour Events by Service",<%=raw service_stats(1) %>);
-draw_gauge("7_days_chart", "7 Days", <%=raw total_events_since(7.days.ago) %>, 7);
-draw_gauge("1_day_chart", "24 Hours", <%=raw total_events_since(24.hours.ago) %>, 1);
-draw_gauge("1_hour_chart", "1 Hour", <%=raw total_events_since(1.hours.ago) %>, 1.0/24.0);
+draw_gauge("7_days_chart", "7 Days", <%=raw total_events_since(7.days.ago) %>, 7, (average_events * 24 * 7));
+draw_gauge("1_day_chart", "24 Hours", <%=raw total_events_since(24.hours.ago) %>, 1, (average_events * 24));
+draw_gauge("1_hour_chart", "1 Hour", <%=raw total_events_since(1.hours.ago) %>, 1.0/24.0, average_events);
 draw_diskspace_graph("diskutilization", "Disk Utilization", <%=raw disk_utilization() %>);
-draw_longitudinal("logging_rate", "Event Logging Rate", "Events Per Hour", <%=raw events_per_hour(7.days.ago) %>, <%=raw daily_average %>);
+draw_longitudinal("logging_rate", "Event Logging Rate", "Events Per Hour", <%=raw events_per_hour(7.days.ago) %>, <%=raw hourly_average %>);
 draw_longitudinal("insert_rate", "Insert Rate", "Inserts Per Second", <%=raw inserts_per_second(24.hours.ago) %>, <%=raw daily_insert_average %>);
 
 var update_div = $("#updated")

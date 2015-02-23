@@ -46,7 +46,7 @@ module EventsHelper
     "[[\"Used\", #{used}],[\"Free\", #{free}]]"
   end
   
-  def daily_average
+  def hourly_average
       connection = ActiveRecord::Base.connection    
       sql = "select sum(stat),extract(year from timestamp) as year, extract(month from timestamp) as month,extract(day from timestamp) as day, extract(hour from timestamp) as hour from statistics where type_id=0 group by year,month,day,hour order by year,month,day,hour asc"
       results = connection.execute sql
