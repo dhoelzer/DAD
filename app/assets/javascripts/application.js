@@ -132,7 +132,6 @@ function draw_graph(chart_div, title, graph_data)
 function draw_gauge(chart_div, title, graph_data, timeframe, average)
 {
 	var max = Math.floor((average * timeframe + (average * .5)));
-	alert(max);
    return new Highcharts.Chart({
       chart: {
         renderTo: chart_div,
