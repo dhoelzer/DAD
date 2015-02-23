@@ -54,7 +54,7 @@ function draw_longitudinal(chart_div, title, data_title, graph_data, average)
 			{
 				color: 'yellow',
 				value: average,
-				width: 25,
+				width: 50,
 				zIndex: 0,
 			},
 			{
