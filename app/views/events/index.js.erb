@@ -1,4 +1,7 @@
-var average_events = <%= daily_average * 24 %>;
+var average_events = <%= daily_average %>;
+average_events = average_events * 24 + (average_events * 0.5)
+average_events = Math.floor(average_events / 10000) * 10000
+
 draw_graph("systems_chart","24 Hour Events by System",<%=raw system_stats(1) %>);
 draw_graph("services_chart","24 Hour Events by Service",<%=raw service_stats(1) %>);
 draw_gauge("7_days_chart", "7 Days", <%=raw total_events_since(7.days.ago) %>, 7);
