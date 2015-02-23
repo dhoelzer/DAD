@@ -47,10 +47,12 @@ module EventsHelper
   end
   
   def daily_average
-    return 1000000
-    first = Event.order(:generated).first.generated
-    last = Event.order(:generated).last.generated
-    total = Event.count
-    total / ((last - first) / (60*60*24))
+      connection = ActiveRecord::Base.connection    
+      sql = "select sum(stat),extract(year from timestamp) as year, extract(month from timestamp) as month,extract(day from timestamp) as day from statistics where type_id=1 group by year,month,day order by year,month,day asc"
+      results = connection.execute sql
+      data=Hash.new
+      sum = 0
+      results.each{|s| sum = sum + s['sum'].to_i}
+      sum.to_f / results.count
   end
 end
