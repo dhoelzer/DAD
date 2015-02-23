@@ -50,12 +50,20 @@ function draw_longitudinal(chart_div, title, data_title, graph_data, average)
 			type: "category",
 		},
 		yAxis: {
-			plotLines: [{
-				color: 'blue',
+			plotLines: [
+			{
+				color: 'yellow',
 				value: average,
-				width: 2,
+				width: 25,
 				zIndex: 0,
-			}],
+			},
+			{
+				color: 'green',
+				value: average,
+				width: 5,
+				zIndex: 0,
+			},
+		],
 			floor: 0,
 		}
 	});
