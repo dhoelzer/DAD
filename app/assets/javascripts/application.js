@@ -153,7 +153,7 @@
 					animation: false,
 				}
 			},
-			yAxis: {
+			yAxis: [{
 				min: 0,
 				max: max,
 				lineColor: '#339',
@@ -169,6 +169,14 @@
 				minorTickLength: 5,
 				endOnTick: false
 			},
+		    plotBands: [{
+		                   from: (average - (average * 0.2)),
+		                   to: (average + (average * 0.2)),
+		                   color: '#104310',
+		                   innerRadius: '100%',
+		                   outerRadius: '105%'
+		               }],
+				   ],
 			series: [
 				{
 					type: "gauge",
