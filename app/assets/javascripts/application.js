@@ -129,9 +129,10 @@ function draw_graph(chart_div, title, graph_data)
     });
 }
 	
-function draw_gauge(chart_div, title, graph_data, timeframe, average)
+function draw_gauge(chart_div, title, graph_data, average)
 {
-	var max = Math.floor((average * timeframe + (average * .5)));
+	var period_average = average;
+	var max = Math.floor(period_average + (period_average * 0.5));
    return new Highcharts.Chart({
       chart: {
         renderTo: chart_div,
