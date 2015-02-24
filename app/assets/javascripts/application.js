@@ -165,13 +165,7 @@
 					distance: -20,
 					rotation: 'auto'
 				},
-				plotBands: [{
-					from: (average - (average * 0.2)),
-					to: (average + (average * 0.2)),
-					color: '#104310',
-					innerRadius: '100%',
-					outerRadius: '105%'
-				}],
+
 				tickLength: 5,
 				minorTickLength: 5,
 				endOnTick: false
