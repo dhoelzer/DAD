@@ -159,7 +159,7 @@
 				lineColor: '#339',
 				tickColor: '#339',
 				minorTickColor: '#339',
-				offset: -25,
+				offset: -5,
 				lineWidth: 2,
 				labels: {
 					distance: -20,
