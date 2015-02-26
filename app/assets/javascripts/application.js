@@ -49,8 +49,6 @@
 				}
 			],
 			xAxis: {
-				labels: { step: 72, staggerLines: 1},
-				type: "category",
 			},
 			yAxis: {
 				plotLines: [
