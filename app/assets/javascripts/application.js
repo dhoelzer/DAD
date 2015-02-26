@@ -50,7 +50,7 @@
 			],
 			xAxis: {
 				labels: { step: 72, staggerLines: 1},
-				tickInterval: 1,
+				tickInterval: 24,
 				type: "category",
 			},
 			yAxis: {
