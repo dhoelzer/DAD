@@ -49,7 +49,7 @@
 				}
 			],
 			xAxis: {
-				labels: { step: 72, staggerLines: 1},
+				labels: { step: 2, staggerLines: 2},
 				tickInterval: 24,
 				type: "category",
 			},
