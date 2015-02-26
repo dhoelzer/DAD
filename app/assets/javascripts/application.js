@@ -66,7 +66,8 @@
 						from: (average - standard_deviation),
 						to: (average + standard_deviation),
 						zIndex: 0,
-					},
+					}],
+				plotLines: [
 					{
 						color: 'green',
 						value: average,
