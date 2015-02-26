@@ -16,8 +16,11 @@
 	//= require highcharts-custom.js
 	//= require_tree .
 
-	function draw_longitudinal(chart_div, title, data_title, graph_data, average)
+	function draw_longitudinal(chart_div, title, data_title, graph_data, average, standard_deviation)
 	{
+		if(standard_deviation==0) {
+			standard_deviation = average * 0.20;
+		};
 		return new Highcharts.Chart({
 			chart: {
 				renderTo: chart_div,
@@ -52,15 +55,23 @@
 			yAxis: {
 				plotLines: [
 					{
-						color: 'yellow',
-						value: average,
-						width: 50,
+						color: 'blue',
+						value: (average - standard_deviation),
+						dashStyle: 'shortdash',
+						width: 1,
 						zIndex: 0,
 					},
 					{
 						color: 'green',
 						value: average,
-						width: 5,
+						width: 1,
+						zIndex: 0,
+					},
+					{
+						color: 'blue',
+						value: (average + standard_deviation),
+						dashStyle: 'shortdash',
+						width: 1,
 						zIndex: 0,
 					},
 				],
