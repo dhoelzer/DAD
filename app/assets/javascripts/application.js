@@ -56,13 +56,13 @@
 			yAxis: {
 				plotBands: [
 					{
-						color: '#fffff0',
+						color: '#ffffa0',
 						from: (average + (2 * standard_deviation)),
 						to: (average - (2 * standard_deviation)),						
 						zIndex: 0,
 					},
 					{
-						color: '#f0fff0',
+						color: '#a0ffa0',
 						from: (average - standard_deviation),
 						to: (average + standard_deviation),
 						zIndex: 0,
@@ -72,7 +72,7 @@
 						color: 'green',
 						value: average,
 						width: 2,
-						zIndex: 0,
+						zIndex: 1,
 					},
 				],
 				floor: 0,
