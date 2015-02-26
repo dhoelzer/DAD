@@ -54,39 +54,23 @@
 				type: "category",
 			},
 			yAxis: {
-				plotLines: [
+				plotBands: [
 					{
-						color: 'green',
-						value: (average - standard_deviation),
-						dashStyle: 'longdash',
-						width: 1,
+						color: '#fffff0',
+						from: (average + (2 * standard_deviation)),
+						to: (average - (2 * standard_deviation)),						
+						zIndex: 0,
+					},
+					{
+						color: '#f0fff0',
+						from: (average - standard_deviation),
+						to: (average + standard_deviation),
 						zIndex: 0,
 					},
 					{
 						color: 'green',
 						value: average,
 						width: 2,
-						zIndex: 0,
-					},
-					{
-						color: 'green',
-						value: (average + standard_deviation),
-						dashStyle: 'longdash',
-						width: 1,
-						zIndex: 0,
-					},
-					{
-						color: 'red',
-						value: (average + (2 * standard_deviation)),
-						dashStyle: 'longdash',
-						width: 1,
-						zIndex: 0,
-					},
-					{
-						color: 'red',
-						value: (average - (2 * standard_deviation)),
-						dashStyle: 'longdash',
-						width: 1,
 						zIndex: 0,
 					},
 				],
