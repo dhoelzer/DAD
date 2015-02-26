@@ -49,7 +49,7 @@
 				}
 			],
 			xAxis: {
-
+				labels: { step: auto, staggerLines: 1},
 				type: "category",
 			},
 			yAxis: {
