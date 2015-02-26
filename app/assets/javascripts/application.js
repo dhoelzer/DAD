@@ -49,7 +49,8 @@
 				}
 			],
 			xAxis: {
-				labels: { step: 200, staggerLines: 1},
+				labels: { step: 72, staggerLines: 1},
+				tickInterval: 1,
 				type: "category",
 			},
 			yAxis: {
@@ -194,7 +195,7 @@
 					from: (average - (average * 0.2)),
 					to: (average + (average * 0.2)),
 					color: '#104310',
-					innerRadius: '100%',
+					innerRadius: '98%',
 					outerRadius: '105%'
 				}],
 				tickLength: 5,
