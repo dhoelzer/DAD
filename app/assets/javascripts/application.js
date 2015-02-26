@@ -55,7 +55,7 @@
 			yAxis: {
 				plotLines: [
 					{
-						color: 'blue',
+						color: 'green',
 						value: (average - standard_deviation),
 						dashStyle: 'shortdash',
 						width: 1,
@@ -68,8 +68,22 @@
 						zIndex: 0,
 					},
 					{
-						color: 'blue',
+						color: 'green',
 						value: (average + standard_deviation),
+						dashStyle: 'shortdash',
+						width: 1,
+						zIndex: 0,
+					},
+					{
+						color: 'red',
+						value: (2 * (average + standard_deviation)),
+						dashStyle: 'shortdash',
+						width: 1,
+						zIndex: 0,
+					},
+					{
+						color: 'red',
+						value: (2 * (average - standard_deviation)),
 						dashStyle: 'shortdash',
 						width: 1,
 						zIndex: 0,
