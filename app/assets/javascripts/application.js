@@ -49,6 +49,8 @@
 				}
 			],
 			xAxis: {
+
+				type: "category",
 			},
 			yAxis: {
 				plotLines: [
