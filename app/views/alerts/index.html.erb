@@ -1,9 +1,9 @@
 <h1>Listing alerts</h1>
-<%= link_to 'Acknowledge all pending alerts', ackall_alerts_path %>
+<%= link_to 'Acknowledge all pending alerts', ackall_alerts_path, remote: true  %>
 <div id="alerts_table">
 	
 <%= render partial: "alerts" %>
 </div>
 <br>
 
-<%= link_to 'New Alert', new_alert_path, remote: true %>
+<%= link_to 'New Alert', new_alert_path%>
