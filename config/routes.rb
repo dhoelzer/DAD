@@ -3,7 +3,9 @@ Events::Application.routes.draw do
   resources :jobs
 
   resources :alerts do
-    get 'ackall'
+    collection do
+      get 'ackall'
+    end
     member do
       get 'acknowledge'
     end
