@@ -5,6 +5,7 @@ Events::Application.routes.draw do
   resources :alerts do
     member do
       get 'acknowledge'
+      get 'ackall'
     end
     resources :comments
   end

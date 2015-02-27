@@ -50,7 +50,19 @@ class AlertsController < ApplicationController
       end
     end
   end
-
+  
+  def ackall
+    alerts=Alert.where(:closed => false)
+    alerts.each do |alert|
+      alert.closed = true
+      alert.save
+    end
+    @alerts = Alert.where(:closed => false).order(:criticality).order(:generated)    
+    respond_to do |format|
+      format.js {render layout: false }
+    end
+  end
+  
   def acknowledge
     @alert.closed = true
     @alert.save

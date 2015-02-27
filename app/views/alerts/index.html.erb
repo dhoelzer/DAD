@@ -1,5 +1,7 @@
 <h1>Listing alerts</h1>
+<%= link_to 'Acknowledge all pending alerts', ackall_alert_path %>
 <div id="alerts_table">
+	
 <%= render partial: "alerts" %>
 </div>
 <br>
