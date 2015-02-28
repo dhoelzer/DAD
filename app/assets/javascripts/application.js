@@ -140,10 +140,10 @@
 		});
 	}
 	
-	function draw_gauge(chart_div, title, graph_data, average)
+	function draw_gauge(chart_div, title, graph_data, average, standard_deviation)
 	{
 		var period_average = average;
-		var max = Math.floor(period_average + (period_average * 0.5));
+		var max = Math.floor( 2 * period_average );
 		return new Highcharts.Chart({
 			chart: {
 				renderTo: chart_div,
@@ -177,10 +177,17 @@
 					rotation: 'auto'
 				},
 				plotBands: [{
-					from: (average - (average * 0.2)),
-					to: (average + (average * 0.2)),
-					color: '#104310',
-					innerRadius: '98%',
+					from: (average - (2*standard_deviation)),
+					to: (average + (2*standard_deviation)),
+					color: '#a0a010',
+					innerRadius: '25%',
+					outerRadius: '105%'
+				}],
+				plotBands: [{
+					from: (average - standard_deviation),
+					to: (average + standard_deviation),
+					color: '#10a010',
+					innerRadius: '25%',
 					outerRadius: '105%'
 				}],
 				tickLength: 5,
