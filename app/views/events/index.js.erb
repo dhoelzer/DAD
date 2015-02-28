@@ -1,4 +1,4 @@
-var average_events = <%= hourly_average(1.day.ago) %>;
+var average_events = <%= hourly_average(7.days.ago) %>;
 
 draw_graph("systems_chart","24 Hour Events by System",<%=raw system_stats(1) %>);
 draw_graph("services_chart","24 Hour Events by Service",<%=raw service_stats(1) %>);
