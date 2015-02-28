@@ -50,24 +50,20 @@ module EventsHelper
       connection = ActiveRecord::Base.connection    
       sql = "select sum(stat),extract(year from timestamp) as year, extract(month from timestamp) as month,extract(day from timestamp) as day, extract(hour from timestamp) as hour from statistics where type_id=0 group by year,month,day,hour order by year,month,day,hour asc"
       results = connection.execute sql
-      data=Hash.new
-      sum = 0
-      results.each{|s| sum = sum + s['sum'].to_i}
-      sum.to_f / (results.count)
+      values = Array.new
+      results.each{|s| values << [s['sum'].to_i] }
+      Math.mean(values)
   end
 
   def hourly_stats
       connection = ActiveRecord::Base.connection    
       sql = "select sum(stat),extract(year from timestamp) as year, extract(month from timestamp) as month,extract(day from timestamp) as day, extract(hour from timestamp) as hour from statistics where type_id=0 group by year,month,day,hour order by year,month,day,hour asc"
       results = connection.execute sql
-      data=Hash.new
-      sum = 0
-      results.each{|s| sum = sum + s['sum'].to_i}
-      mean = sum.to_f / (results.count)
-      sum = 0
-      results.each{|s| sum = sum + ((s['sum'].to_i - mean)**2)}
-      variance = sum.to_f / (results.count)
-      standard_deviation = Math.sqrt(variance)
+      values = Array.new
+      results.each{|s| values << [s['sum'].to_i] }
+      mean = Math.mean(values)
+      variance = Math.variance(values)
+      standard_deviation = Math.standard_deviation(values)
       [mean, variance, standard_deviation]
   end
   
@@ -76,10 +72,10 @@ module EventsHelper
       connection = ActiveRecord::Base.connection    
       sql = "select sum(stat),extract(year from timestamp) as year, extract(month from timestamp) as month,extract(day from timestamp) as day, extract(hour from timestamp) as hour from statistics where type_id=1 group by year,month,day,hour order by year,month,day,hour asc"
       results = connection.execute sql
-      data=Hash.new
-      sum = 0
-      results.each{|s| sum = sum + s['sum'].to_i}
-      sum.to_f / results.count / 60
+      values = Array.new
+      results.each{|s| values << [s['sum'].to_i] }
+      
+      Math.mean(values) / 60.0
   end
 
 end

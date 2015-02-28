@@ -2,6 +2,30 @@ require File.expand_path('../boot', __FILE__)
 
 require 'rails/all'
 
+
+module Math
+  def self.standard_deviation(values=[])
+    Math.sqrt(Math.variance(values))
+  end
+  
+  def self.variance(values)
+    sum = 0
+    mean = Math.mean(values)
+    values.each{|s| sum = sum + ((s - mean)**2)}
+    sum.to_f / (values.count)
+  end
+  
+  def self.mean(values)
+    Math.sum_values(values).to_f / (values.count)
+  end
+  
+  def self.sum_values(values)
+    sum = 0
+    values.each{|s| sum = sum + s}
+    sum
+  end
+end
+
 # Require the gems listed in Gemfile, including any gems
 # you've limited to :test, :development, or :production.
 Bundler.require(:default, Rails.env)
