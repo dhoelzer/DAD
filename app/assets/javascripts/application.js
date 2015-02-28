@@ -181,14 +181,16 @@
 					to: (average + (2*standard_deviation)),
 					color: '#a0a010',
 					innerRadius: '25%',
-					outerRadius: '105%'
+					outerRadius: '105%',
+					zIndex: 0
 				}],
 				plotBands: [{
 					from: (average - standard_deviation),
 					to: (average + standard_deviation),
 					color: '#10a010',
 					innerRadius: '25%',
-					outerRadius: '105%'
+					outerRadius: '105%',
+					zIndex: 1
 				}],
 				tickLength: 5,
 				minorTickLength: 5,
