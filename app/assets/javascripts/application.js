@@ -54,6 +54,7 @@
 				type: "category",
 			},
 			yAxis: {
+				type: 'logarithmic',
 				plotBands: [
 					{
 						color: '#ffffa0',
