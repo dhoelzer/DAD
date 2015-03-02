@@ -75,8 +75,7 @@
 						width: 2,
 						zIndex: 1,
 					},
-				],
-				floor: 0,
+				]
 			}
 		});
 
