@@ -76,7 +76,7 @@
 						zIndex: 1,
 					},
 				],
-				floor: (average-(3*standard_deviation))
+				floor: -1000
 			}
 		});
 
