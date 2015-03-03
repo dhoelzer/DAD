@@ -26,7 +26,7 @@ class Event < ActiveRecord::Base
     @@start_time = Time.now
   end
   
-  def self.search_group(search_string, offset=0, limit=100)
+  def self.search_group(search_string, starting_time=(Time.now - 1.hour), offset=0, limit=100)
     @events = Array.new
     event_ids = Array.new
     connection = ActiveRecord::Base.connection
@@ -40,21 +40,21 @@ class Event < ActiveRecord::Base
     return (@events.nil? ? [] : @events)    
   end 
   
-  def self.iterativeSQLBuilder(sortedWordIDs, depth)
+  def self.iterativeSQLBuilder(sortedWordIDs, depth, starting_time)
     # this is massively bad in so many ways.
     sql = ""
     sql = "select distinct e.event_id from (" if depth == 0
     word_id = sortedWordIDs.pop
     # Should I just revert to the positions table?  For some reason events_words has grown to over 43 gigs while positions is only 24.
     # Only do the generated test on the innermost subselect.  Not needed on outer selects since they are selecting from the set returned from this query.
-    sql = sql + "select distinct a#{depth}.event_id from events_words as a#{depth} where a#{depth}.word_id=#{word_id}"+(sortedWordIDs.count > 0 ? " and a#{depth}.event_id in (#{iterativeSQLBuilder(sortedWordIDs, depth+1)})" : " and a#{depth}.generated>NOW()-'1 hour'::interval")
+    sql = sql + "select distinct a#{depth}.event_id from events_words as a#{depth} where a#{depth}.word_id=#{word_id}"+(sortedWordIDs.count > 0 ? " and a#{depth}.event_id in (#{iterativeSQLBuilder(sortedWordIDs, depth+1)})" : " and a#{depth}.generated>'#{starting_time}'")
     sql = sql + ") as e" if depth == 0
     return sql
   end
 
 
   
-  def self.search(search_string, offset=0, limit=100)
+  def self.search(search_string, starting_time=(Time.now - 1.hour), offset=0, limit=100)
     @events = Array.new
     event_ids = Array.new
     connection = ActiveRecord::Base.connection
@@ -76,7 +76,7 @@ class Event < ActiveRecord::Base
 
 # Let's try assuming that words added later likely appear less often.
 #    sql = iterativeSQLBuilder(ordered_words.sort_by{|k,v| v}, 0)
-    sql = iterativeSQLBuilder(words,0)
+    sql = iterativeSQLBuilder(words,0, starting_time)
     #sql = "select e.event_id from (select distinct a.event_id,a.word_id from events_words as a where a.generated>NOW()-'1 day'::interval and a.word_id in (#{word}) #{event_ids.empty? ? "" : "and a.event_id in (#{event_ids.join(',')})"} group by event_id,word_id) as e"
     puts sql
 
