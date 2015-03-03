@@ -20,6 +20,7 @@ class EventsController < ApplicationController
     start_time = Time.now
     @events = Event.search(params[:search_terms], Time.now - params[:timeframe].to_i)
     @previous_search = params[:search_terms]
+    @timeframe = params[:timeframe]
     @search_time = Time.now - start_time
     respond_to do |format|
       format.html

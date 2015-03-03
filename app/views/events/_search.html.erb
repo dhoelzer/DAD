@@ -10,6 +10,6 @@
 	["1 week", 604800],
 	["All records", 50000000]
 	] %>
-<%= select_tag 'timeframe', options_for_select(timeframes)%>
+<%= select_tag 'timeframe', options_for_select(timeframes, (@timeframes.nil? ? "600" : @timeframes))%>
 <%= submit_tag "Search", id: "searchload" %>
 <% end %>
