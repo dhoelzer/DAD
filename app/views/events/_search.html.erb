@@ -1,6 +1,15 @@
 <%= form_tag :search_events, { method: 'get', remote: true} do %>
 <%= text_field_tag 'search_terms', (@previous_search.nil? ? "" : "#{@previous_search}"), placeholder: "Search", id: "search_terms"%>
-<% timeframes = [{seconds: 600, description: "10 minutes"},{seconds: 1800, description: "30 minutes"},{seconds: 3600, description: "1 hour"},{seconds: 21600, description: "6 hours"},{seconds: 43200, description: "12 hours"},{seconds: 86400, description: "1 day"},{seconds: 604800, description: "1 week"},{seconds: 50000000, description: "All records"}] %>
-<%= select_tag 'timeframe', options_from_collection_for_select(timeframes, :seconds, :description)%>
+<% timeframes = [
+	[600, "10 minutes"],
+	[1800, "30 minutes"],
+	[3600, "1 hour"],
+	[21600, "6 hours"],
+	[43200, "12 hours"],
+	[86400, "1 day"],
+	[604800, "1 week"],
+	[50000000, "All records"]
+	] %>
+<%= select_tag 'timeframe', options_for_select(timeframes)%>
 <%= submit_tag "Search", id: "searchload" %>
 <% end %>
