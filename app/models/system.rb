@@ -39,4 +39,17 @@ class System < ActiveRecord::Base
   def self.added
     return @added
   end
+  
+  def hourly_stats(since=1.day.ago)
+      connection = ActiveRecord::Base.connection    
+      sql = "select sum(stat),extract(year from timestamp) as year, extract(month from timestamp) as month,extract(day from timestamp) as day, extract(hour from timestamp) as hour from statistics where type_id=0 and system_id=#{self.id} and timestamp>'#{since}' group by year,month,day,hour order by year,month,day,hour asc"
+      results = connection.execute sql
+      values = Array.new
+      results.each{|s| values << s['sum'].to_i }
+      mean = Math.mean(values)
+      variance = Math.variance(values)
+      standard_deviation = Math.standard_deviation(values)
+      [mean, variance, standard_deviation]
+  end
+  
 end
