@@ -11,7 +11,8 @@ class System < ActiveRecord::Base
   
   def self.reportingInLastDays(days)
     connection = ActiveRecord::Base.connection
-    sql = "select system_id,b.name,count(*) from events as a join systems as b on  a.system_id=b.id where generated>NOW()-'#{days} day'::interval group by system_id,b.name order by b.name asc"
+    time_interval = Time.now - (days * 86400)
+    sql = "select system_id,b.name,count(*) from events as a join systems as b on  a.system_id=b.id where generated>'#{time_interval}' group by system_id,b.name order by b.name asc"
     connection.execute(sql)    
   end
   
