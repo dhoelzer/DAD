@@ -7,6 +7,7 @@ while(true) do
     puts "Executing #{job.description}"
     eval(job.script)
     job.next_run = Time.now + (job.frequency).seconds
+    job.last_run = Time.now
     job.save
     puts "Job rescheduled for #{job.next_run}"
   end
