@@ -144,7 +144,7 @@
 	function draw_gauge(chart_div, title, graph_data, average, standard_deviation)
 	{
 		var period_average = average;
-		var max = Math.floor( period_average + (3*standard_deviation));
+		var max = Math.floor( period_average + (4*standard_deviation));
 		return new Highcharts.Chart({
 			chart: {
 				renderTo: chart_div,
