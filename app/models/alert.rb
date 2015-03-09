@@ -20,7 +20,7 @@ class Alert < ActiveRecord::Base
     alert.save
   end
   
-  def self.genericAlert(*params)
+  def self.genericAlert(params={})
     alert=Alert.new
     alert.system_id = params[:system_id] unless params[:system_id].nil?
     alert.service_id = params[:service_id] unless params[:service_id].nil?
