@@ -46,7 +46,7 @@ class System < ActiveRecord::Base
     results = connection.execute sql
     values = Array.new
     results.each{|s| values << s['count'].to_i }
-    return values
+    return values[0]
   end
   
   def hourly_stats(since=1.day.ago)
