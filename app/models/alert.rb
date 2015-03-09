@@ -22,8 +22,8 @@ class Alert < ActiveRecord::Base
   
   def self.genericAlert(*params)
     alert=Alert.new
-    alert.system_id = params[:system_id]
-    alert.service_id = params[:service_id]
+    alert.system_id = params[:system_id] unless params[:system_id].nil?
+    alert.service_id = params[:service_id] unless params[:service_id].nil?
     alert.criticality = params[:criticality]
     alert.generated = Time.now
     alert.closed = false
