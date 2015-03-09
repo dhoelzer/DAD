@@ -29,7 +29,7 @@ class Alert < ActiveRecord::Base
     alert.closed = false
     alert.description = params[:description]
     alert.short_description = params[:short_description]
-    alert.events = params[:events]
+    alert.events = params[:events] unless params[:events].nil?
     alert.save
   end
 end
