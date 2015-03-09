@@ -45,7 +45,7 @@ class System < ActiveRecord::Base
       sql = "select count(*),extract(year from generated) as year, extract(month from generated) as month,extract(day from generated) as day, extract(hour from generated) as hour from events where system_id=#{self.id} and generated>'#{since}' group by year,month,day,hour order by year,month,day,hour asc"
       results = connection.execute sql
       values = Array.new
-      results.each{|s| values << s['sum'].to_i }
+      results.each{|s| values << s['count'].to_i }
       mean = Math.mean(values)
       variance = Math.variance(values)
       standard_deviation = Math.standard_deviation(values)
