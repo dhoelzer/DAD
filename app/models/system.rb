@@ -40,6 +40,15 @@ class System < ActiveRecord::Base
     return @added
   end
   
+  def events_since(since=1.hour.ago)
+    connection = ActiveRecord::Base.connection    
+    sql = "select count(*) from events where system_id=#{self.id} and generated>'#{since}'"
+    results = connection.execute sql
+    values = Array.new
+    results.each{|s| values << s['count'].to_i }
+    return values
+  end
+  
   def hourly_stats(since=1.day.ago)
       connection = ActiveRecord::Base.connection    
       sql = "select count(*),extract(year from generated) as year, extract(month from generated) as month,extract(day from generated) as day, extract(hour from generated) as hour from events where system_id=#{self.id} and generated>'#{since}' group by year,month,day,hour order by year,month,day,hour asc"
