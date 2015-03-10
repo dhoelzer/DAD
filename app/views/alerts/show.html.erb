@@ -2,12 +2,12 @@
 
 <p>
   <strong>System:</strong>
-  <%= @alert.system.display_name %>
+  <%= @alert.system.display_name unless @alert.system.nil? %>
 </p>
 
 <p>
   <strong>Service:</strong>
-  <%= @alert.service.name %>
+  <%= @alert.service.name unless @alert.service.nil? %>
 </p>
 
 <p>
