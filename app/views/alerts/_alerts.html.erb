@@ -10,7 +10,7 @@
 
   <tbody>
     <% @alerts.each do |alert| %>
-      <tr name='criticality-<%=alert.criticality%>'>
+      <tr id='criticality-<%=alert.criticality%>'>
 		<td><%= alert.generated %></td>
         <td><%= alert.system.display_name unless alert.system.nil? %></td>
         <td><%= alert.service.name unless alert.service.nil? %></td>
