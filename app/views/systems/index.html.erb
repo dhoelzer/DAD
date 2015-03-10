@@ -9,7 +9,7 @@
 	</thead>
 	<% reporting = Hash.new %>
 	<% @reportingInLast24.each do |system| %>
-	  <% reporting[system["name"]]=system["count"] %>
+	  <% reporting[system["id"]]=system["count"] %>
 	<% end %>
 <table>
   <thead>
@@ -25,7 +25,7 @@
       <tr>
         <td><%= link_to system.display_name, system %></td>
 		<td><%= system.monitor %></td>
-		<td><%= reporting.keys.include? system.name ? reporting[system.name] : "" %></td>
+		<td><%= !reporting[system.id].nil? ? reporting[system.id] : "" %></td>
       </tr>
     <% end %>
   </tbody>
