@@ -1,5 +1,9 @@
 Events::Application.routes.draw do
 
+  resources :display_fields
+
+  resources :displays
+
   resources :jobs
 
   resources :alerts do

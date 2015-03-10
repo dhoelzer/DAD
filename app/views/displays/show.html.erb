@@ -1,0 +1,24 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>Key:</strong>
+  <%= @display.key %>
+</p>
+
+<p>
+  <strong>Key field:</strong>
+  <%= @display.key_field %>
+</p>
+
+<p>
+  <strong>Name:</strong>
+  <%= @display.name %>
+</p>
+
+<p>
+  <strong>Description:</strong>
+  <%= @display.description %>
+</p>
+
+<%= link_to 'Edit', edit_display_path(@display) %> |
+<%= link_to 'Back', displays_path %>

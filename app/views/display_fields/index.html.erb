@@ -1,0 +1,33 @@
+<h1>Listing display_fields</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Display</th>
+      <th>Field position</th>
+      <th>Title</th>
+      <th>Order</th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @display_fields.each do |display_field| %>
+      <tr>
+        <td><%= display_field.display_id %></td>
+        <td><%= display_field.field_position %></td>
+        <td><%= display_field.title %></td>
+        <td><%= display_field.order %></td>
+        <td><%= link_to 'Show', display_field %></td>
+        <td><%= link_to 'Edit', edit_display_field_path(display_field) %></td>
+        <td><%= link_to 'Destroy', display_field, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<br>
+
+<%= link_to 'New Display field', new_display_field_path %>
