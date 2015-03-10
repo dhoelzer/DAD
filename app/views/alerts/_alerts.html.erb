@@ -11,7 +11,7 @@
   <tbody>
     <% @alerts.each do |alert| %>
       <tr id='criticality-<%=alert.criticality%>'>
-		<td><%= alert.generated %></td>
+		<td><%=raw timestamp_helper(alert.generated) %></td>
         <td><%= alert.system.display_name unless alert.system.nil? %></td>
         <td><%= alert.service.name unless alert.service.nil? %></td>
         <td><%= link_to alert.short_description, alert %></td>
