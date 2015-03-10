@@ -48,6 +48,28 @@ html, body{
     position: absolute;
     z-index: 99;
 }
+
+tr#criticality-1 {
+	bgcolor: #90ff90;
+}
+
+tr#criticality-2 {
+	bgcolor: #90b090;
+}
+
+tr#criticality-3 {
+	bgcolor: #ffff90;
+}
+
+tr#criticality-4 {
+	bgcolor: #ffb090;
+}
+
+tr#criticality-5 {
+	bgcolor: #ff9090;
+}
+
+
 #spinner {
 	width:100%;
 	height:100%;
