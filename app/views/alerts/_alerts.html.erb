@@ -4,8 +4,7 @@
       <th>Generated</th>		
       <th>System</th>
       <th>Service</th>
-      <th>Event</th>
-      <th>Short description</th>
+      <th></th>
       <th></th>
       <th></th>
     </tr>
@@ -17,7 +16,6 @@
 		<td><%= alert.generated %></td>
         <td><%= alert.system.display_name unless alert.system.nil? %></td>
         <td><%= alert.service.name unless alert.service.nil? %></td>
-        <td><%= alert.criticality %></td>
         <td><%= alert.short_description %></td>
         <td><%= link_to 'Show', alert %></td>
         <td><%= link_to 'Acknowledge', acknowledge_alert_path(alert), remote: true %></td>
