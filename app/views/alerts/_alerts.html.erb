@@ -5,8 +5,6 @@
       <th>System</th>
       <th>Service</th>
       <th></th>
-      <th></th>
-      <th></th>
     </tr>
   </thead>
 
@@ -16,9 +14,8 @@
 		<td><%= alert.generated %></td>
         <td><%= alert.system.display_name unless alert.system.nil? %></td>
         <td><%= alert.service.name unless alert.service.nil? %></td>
-        <td><%= alert.short_description %></td>
-        <td><%= link_to 'Show', alert %></td>
-        <td><%= link_to 'Acknowledge', acknowledge_alert_path(alert), remote: true %></td>
+        <td><%= link_to alert.short_description, alert %></td>
+        <td><%= link_to 'Ack', acknowledge_alert_path(alert), remote: true %></td>
       </tr>
     <% end %>
   </tbody>
