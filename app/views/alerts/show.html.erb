@@ -35,7 +35,7 @@
   <%= @alert.short_description %>
 </p>
 
-<% if !@alert.events.nil? do %>
+<% if !@alert.events.nil? %>
   <% @alert.events.each do |event| @event = event %>
 	<%= render partial: "/events/event_detail" %>
 <% end  %>
