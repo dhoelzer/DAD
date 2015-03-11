@@ -204,3 +204,64 @@
 			]
 		});
 	}
+	
+	function draw_gauge_no_title(chart_div, graph_data, average, standard_deviation)
+	{
+		var period_average = average;
+		var max = Math.floor( period_average + (3*standard_deviation));
+		return new Highcharts.Chart({
+			chart: {
+				renderTo: chart_div,
+				animation: false,
+			},
+			credits: {
+				enabled: false,
+			},
+			pane: {
+				startAngle: -150,
+				endAngle: 150
+			},
+			plotOptions: {
+				series: {
+					animation: false,
+				}
+			},
+			yAxis: [{
+				min: 0,
+				max: max,
+				lineColor: '#339',
+				tickColor: '#339',
+				minorTickColor: '#339',
+				offset: -5,
+				lineWidth: 2,
+				labels: {
+					distance: -20,
+					rotation: 'auto'
+				},
+				plotBands: [{
+					from: (average - (2*standard_deviation)),
+					to: (average + (2*standard_deviation)),
+					color: '#a0a010',
+					innerRadius: '25%',
+					outerRadius: '105%'
+				},
+				{
+					from: (average - standard_deviation),
+					to: (average + standard_deviation),
+					color: '#10a010',
+					innerRadius: '25%',
+					outerRadius: '105%'
+				}],
+				tickLength: 5,
+				minorTickLength: 5,
+				endOnTick: false
+			}],
+			series: [
+				{
+					type: "gauge",
+					name: "Logging Rate",
+					data: [graph_data]
+				}
+			]
+		});
+	}
