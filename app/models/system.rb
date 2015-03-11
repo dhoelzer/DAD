@@ -63,7 +63,7 @@ class System < ActiveRecord::Base
   
   def events_per_hour(since=7.days.ago)
     connection = ActiveRecord::Base.connection    
-    sql = "select count(*),extract(year from generated) as year, extract(month from generated) as month,extract(day from generated) as day, extract(hour from generated) as hour from events where system_id=#{self.id} generated>'#{since}' group by year,month,day,hour order by year,month,day,hour asc"
+    sql = "select count(*),extract(year from generated) as year, extract(month from generated) as month,extract(day from generated) as day, extract(hour from generated) as hour from events where system_id=#{self.id} and generated>'#{since}' group by year,month,day,hour order by year,month,day,hour asc"
     results = connection.execute sql
     data=Hash.new
     results.each{|s| data["#{s['month']}/#{s['day']}/#{s['year']} #{s['hour']}:00:00"] = s['count'].to_i}
