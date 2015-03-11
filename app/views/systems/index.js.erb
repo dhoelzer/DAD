@@ -5,4 +5,6 @@
 	var total_events = <%= system.events_since(1.day.ago) %>;
 	
 	draw_gauge_no_title("<%= system.name %>_gauge", total_events, average_events, standard_deviation);
+	draw_longitudinal("<%= system.name %>_graph", "", "Events Per Hour", <%=raw system.events_per_hour(7.days.ago) %>, stats[0], stats[2]);
+
 <% end %>
