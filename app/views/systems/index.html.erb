@@ -26,7 +26,7 @@
         <td><%= link_to system.display_name, system %></td>
 		<td><%= system.monitor %></td>
 		<td><%= !reporting[system.id].nil? ? reporting[system.id] : "" %></td>
-		<td><div id="<%=system.name%>_gauge" width="25%">No Data Available</div>
+		<td><div height=40px id="<%=system.name%>_gauge" width="25%">No Data Available</div>
       </tr>
     <% end %>
   </tbody>
