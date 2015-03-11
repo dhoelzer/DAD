@@ -213,9 +213,14 @@
 			chart: {
 				renderTo: chart_div,
 				animation: false,
+				marginTop: 0,
+				marginBottom: 0
 			},
 			credits: {
 				enabled: false,
+			},
+			title: {
+				text: ""
 			},
 			pane: {
 				startAngle: -150,
