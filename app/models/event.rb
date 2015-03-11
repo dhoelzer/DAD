@@ -20,7 +20,7 @@ class Event < ActiveRecord::Base
   def inspect
     string = "#{self.system.display_name}|#{self.generated}|"
 		self.positions.order(:position).each do |position|
-      string = "#{position.word.text} #{string}"
+      string = "#{string} #{position.word.text}"
     end
     return string
   end
