@@ -3,7 +3,7 @@
 	var average_events = stats[0];
 	var standard_deviation = stats[2];
 	var total_events = <%= system.events_since(1.day.ago) %>;
-	var events_last_hour = <%= system.events_since(1.hour_ago) %>;
+	var events_last_hour = <%= system.events_since(1.hour.ago) %>;
 	
 	draw_gauge_no_title("<%= system.name %>_gauge", events_last_hour, average_events, standard_deviation);
 	draw_longitudinal("<%= system.name %>_graph", "", "Events Per Hour", <%=raw system.events_per_hour(7.days.ago) %>, stats[0], stats[2]);
