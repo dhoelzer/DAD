@@ -11,10 +11,9 @@ draw_gauges = ->
 		complete: $.ajax()
 		})
 	
-setup = ->
-	attach_spinner()
+setupSystems = ->
 	if($("#system-gauges").length)
 		draw_gauges()
 	
-$(document).ready(setup)
-$(document).on('page:load', setup)
+$(document).ready(setupSystems)
+$(document).on('page:load', setupSystems)
