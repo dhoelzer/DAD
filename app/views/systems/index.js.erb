@@ -1,7 +1,8 @@
-<% system = @systems[0] %>
-	var stats = <%=raw system.hourly_stats(1.day.ago) %>;
+<% @systems.each do |system| %>
+	var stats = <%= system.hourly_stats(1.day.ago) %>;
 	var average_events = stats[0];
 	var standard_deviation = stats[2];
-	var total_events = <%=raw system.events_since(1.day.ago) %>;
+	var total_events = <%= system.events_since(1.day.ago) %>;
 	
-	draw_gauge("<%= system.name %>_gauge", "24 Hours", total_events, average_events, standard_deviation;
+	draw_gauge("<%= system.name %>-gauge", "24 Hours", total_events, average_events, standard_deviation);
+<% end %>
