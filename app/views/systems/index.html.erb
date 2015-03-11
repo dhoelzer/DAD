@@ -1,22 +1,36 @@
 <h1>Listing systems</h1>
 <div id="turbokiller" data-no-turbolink>
-System
-Events in Last 24 Hours
+<table>
+	<thead>
+		<tr>
+			<th>System</th>
+			<th>Events in Last 24 Hours</th>
+		</tr>
+	</thead>
 	<% reporting = Hash.new %>
 	<% @reportingInLast24.each do |system| %>
 	  <% reporting[system["system_id"].to_i]=system["count"] %>
 	<% end %>
-Name
-Monitor
-Events over last 24 hours
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+	  <th>Monitor</th>
+      <th>Events over last 24 hours</th>
+    </tr>
+  </thead>
 
+  <tbody>
     <% @systems.each do |system| %>
-	<div id="System">
-<%= link_to system.display_name, system %>
-<%= system.monitor %>
-<%= !reporting[system.id].nil? ? reporting[system.id] : "" %>
-<div id="<%=system.name%>_gauge"></div>
+      <tr>
+        <td><%= link_to system.display_name, system %></td>
+		<td><%= system.monitor %></td>
+		<td><%= !reporting[system.id].nil? ? reporting[system.id] : "" %></td>
+		<td><div id="<%=system.name%>_gauge" width="15%">No Data Available</div>
+      </tr>
     <% end %>
+  </tbody>
+</table>
 <div id="system-gauges"><!-- Draw gauges --></div>
 <br>
 </div>
