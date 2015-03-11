@@ -6,6 +6,10 @@ class SystemsController < ApplicationController
   def index
     @systems = System.order(name: :asc).all
     @reportingInLast24 = System.reportingInLastDays(1)
+    respond_to do |format|
+      format.html
+      format.js {render layout: false}
+    end
   end
 
   # GET /systems/1
