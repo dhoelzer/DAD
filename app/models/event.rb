@@ -17,6 +17,13 @@ class Event < ActiveRecord::Base
     return false
   end
   
+  def inspect
+    string = "#{self.system.display_name}|#{self.generated}|"
+		self.positions.order(:position).each do |position|
+      string = "#{position.word.text} #{string}"
+    end
+    return string
+  end
 
   def self.diskUtilization
     `df -m | egrep "\s+/$"`.split(/\s+/)[4].to_i
