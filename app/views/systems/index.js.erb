@@ -4,5 +4,5 @@
 	var standard_deviation = stats[2];
 	var total_events = <%= system.events_since(1.day.ago) %>;
 	
-	draw_gauge_no_title("<%= system.name %>_gauge", total_events, average_events, standard_deviation);
+	draw_gauge("<%= system.name %>_gauge", "", total_events, average_events, standard_deviation);
 <% end %>
