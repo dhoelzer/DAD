@@ -1,4 +1,4 @@
-<% system = @system[0] %>
+<% system = @systems[0] %>
 	var stats = <%=raw system.hourly_stats(1.day.ago) %>;
 	var average_events = stats[0];
 	var standard_deviation = stats[2];
