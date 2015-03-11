@@ -26,8 +26,8 @@
         <td><%= link_to system.display_name, system %></td>
 		<td><%= system.monitor %></td>
 		<td><%= !reporting[system.id].nil? ? reporting[system.id] : "" %></td>
-		<td><div style="height: 180px" id="<%=system.name%>_gauge" width="25%"><br>Data<br>is<br>loading...</div>
-		<td><div style="height: 180px" id="<%=system.name%>_chart" width="50%"><br>Data<br>is<br>loading...</div>
+		<td><div style="height: 180px" id="<%=system.name%>_gauge" width="25%"><center><br>Data<br>is<br>loading...</center></div>
+		<td><div style="height: 180px" id="<%=system.name%>_graph" width="50%"><center><br>Data<br>is<br>loading...</center></div>
       </tr>
     <% end %>
   </tbody>
