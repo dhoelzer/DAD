@@ -15,7 +15,7 @@ Events over last 24 hours
 <%= link_to system.display_name, system %>
 <%= system.monitor %>
 <%= !reporting[system.id].nil? ? reporting[system.id] : "" %>
-<div id="<%=system.name%>_gauge">No Data Available</div>
+<div id="<%=system.name%>_gauge"></div>
     <% end %>
 <div id="system-gauges"><!-- Draw gauges --></div>
 <br>
