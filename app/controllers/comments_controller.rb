@@ -15,6 +15,7 @@ class CommentsController < ApplicationController
   # GET /comments/new
   def new
     @comment = Comment.new
+    @comment.alert_id = params[:alert_id] if !params[:alert_id].nil? && Alert.find(params[:alert_id])
   end
 
   # GET /comments/1/edit

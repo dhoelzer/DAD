@@ -1,19 +1,21 @@
 <p id="notice"><%= notice %></p>
+<div id='comments'>
+	<h3>Analyst Comments</h3>
+	<%= link_to "Add Comment", new_alert_comment_path(@alert) %>
+	<% @alert.comments.each do |comment| %>
+		<%= render comment %>
+	<% end %>
+</div>
+
+<div id='criticality-<%=@alert.criticality%>'>
+  <%= @alert.criticality_name %>
+</div>
 
 <p>
-  <strong>System:</strong>
-  <%= @alert.system.display_name unless @alert.system.nil? %>
+  <strong>System/Service:</strong>
+  <%= @alert.system.display_name unless @alert.system.nil? %> /   <%= @alert.service.name unless @alert.service.nil? %>
 </p>
 
-<p>
-  <strong>Service:</strong>
-  <%= @alert.service.name unless @alert.service.nil? %>
-</p>
-
-<p>
-  <strong>Criticality:</strong>
-  <%= @alert.criticality %>
-</p>
 
 <p>
   <strong>Generated:</strong>

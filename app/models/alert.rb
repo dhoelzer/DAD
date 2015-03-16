@@ -8,6 +8,10 @@ class Alert < ActiveRecord::Base
     return false
   end
   
+  def criticality_name
+    self.criticality == 0 ? "Debug" : self.criticality == 1 ? "Informational" : self.criticality == 2 ? "Warning" : self.criticality == 3 ? "Important" : self.criticality == "4" ? "Serious" : "Critical"
+  end
+  
   def self.hostUnreachable(system)
     alert=Alert.new
     alert.system_id = system.id

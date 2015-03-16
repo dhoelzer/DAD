@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20150310002140) do
+ActiveRecord::Schema.define(version: 20150310143830) do
 
   create_table "alerts", force: true do |t|
     t.integer  "system_id"
@@ -54,6 +54,8 @@ ActiveRecord::Schema.define(version: 20150310002140) do
     t.text     "description"
     t.datetime "created_at"
     t.datetime "updated_at"
+    t.string   "key2"
+    t.integer  "key2_field"
   end
 
   create_table "events", force: true do |t|

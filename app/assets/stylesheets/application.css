@@ -49,26 +49,32 @@ html, body{
     z-index: 99;
 }
 
-tr#criticality-1 {
+#criticality-1 {
 	background-color: #90ff90;
 }
 
-tr#criticality-2 {
+#criticality-2 {
 	background-color: #50b050;
 }
 
-tr#criticality-3 {
+#criticality-3 {
 	background-color: #ffff90;
 }
 
-tr#criticality-4 {
+#criticality-4 {
 	background-color: #ff9020;
 }
 
-tr#criticality-5 {
+#criticality-5 {
 	background-color: #ff5050;
 }
 
+#comments {
+	float:right;
+	width:30%;
+	background-color: #c0c0c0;
+	padding: 1em;
+}
 
 #spinner {
 	width:100%;

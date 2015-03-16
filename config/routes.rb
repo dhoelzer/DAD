@@ -13,7 +13,7 @@ Events::Application.routes.draw do
     member do
       get 'acknowledge'
     end
-    resources :comments
+    resources :comments, shallow: true
   end
 
   resources :statistics

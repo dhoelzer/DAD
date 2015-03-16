@@ -12,10 +12,43 @@ class Event < ActiveRecord::Base
   @@pendingPositionValues = Array.new
   @@events_words = Array.new
   @@start_time = Time.now
+  @display_helper = nil       # Using lazy initialization but still using instance vars so that we
+  @event_fields = nil         # instantiate lazily but still only do one SQL query per event
+  
+  def display_helper
+    @display_helper = @display_helper.nil? ? Display.helper_for_event(self.event_fields) : @display_helper
+    puts "Helper: #{@display_helper}"
+    @display_helper
+  end
+  
+  def use_display_helper?
+    return (self.display_helper.nil? ? false : true)
+  end
+  
+  def parsed
+    @display_helper = self.display_helper
+    return "BAD DISPLAY FILTER" if @display_helper.nil?
+    @event_fields = self.event_fields
+    string = ""
+    @display_helper.display_fields.order(:order).each do | field |
+      string = "#{string} #{field.title}: #{@event_fields[field.field_position]}"
+    end
+    return string
+  end
   
   def self.hidden?
     return false
   end
+  
+  def event_fields
+    return @event_fields unless @event_fields.nil?
+    @event_fields = Array.new
+    self.positions.order(:position).each do |position|
+      @event_fields << position.word.text
+    end
+    @event_fields
+  end
+  
   
   def inspect
     string = "#{self.system.display_name}|#{self.generated}|"
@@ -102,15 +135,29 @@ class Event < ActiveRecord::Base
 
   def self.storeEvent(eventString)
     split_text = eventString.split(/\s+/)
+    if split_text.count < 6 then
+      puts "Invalid for syslog format: Too few fields -> #{eventString}"
+      return
+    end
     txtsystem = split_text[0]
     return unless split_text.size > 1 # If there's no date and only an IP then it's not a valid message.
     system = System.find_or_add(txtsystem)
     if split_text[3].to_i > 2014 && split_text[3].to_i < 2020 then
       txttimestamp = split_text[1..4].join(' ')
-      timestamp = DateTime.parse("#{txttimestamp} GMT")
+      begin
+        timestamp = DateTime.parse("#{txttimestamp} GMT")
+      rescue Exception => e
+        puts "#{e}: #{eventString}"
+        return
+      end
     else
       txttimestamp = split_text[1..3].join(' ')
-      timestamp = (split_text[1] == "Dec" ? DateTime.parse("#{txttimestamp} 2014 GMT") : DateTime.parse("#{txttimestamp} 2015 GMT"))
+      begin
+        timestamp = (split_text[1] == "Dec" ? DateTime.parse("#{txttimestamp} 2014 GMT") : DateTime.parse("#{txttimestamp} 2015 GMT"))
+      rescue Exception => e
+        puts "#{e}: #{eventString}"
+        return
+      end
     end
     txtservice = split_text[5]
     txtservice.tr!("^a-zA-Z/\-", "")

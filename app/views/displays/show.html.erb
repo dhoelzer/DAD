@@ -19,6 +19,8 @@
   <strong>Description:</strong>
   <%= @display.description %>
 </p>
+<%  @display_fields = @display.display_fields %>
+<%= render partial: "/display_fields/index" %>
 
 <%= link_to 'Edit', edit_display_path(@display) %> |
 <%= link_to 'Back', displays_path %>

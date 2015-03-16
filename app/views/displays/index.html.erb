@@ -3,12 +3,8 @@
 <table>
   <thead>
     <tr>
-      <th>Key</th>
-      <th>Key field</th>
       <th>Name</th>
       <th>Description</th>
-      <th></th>
-      <th></th>
       <th></th>
     </tr>
   </thead>
@@ -16,12 +12,8 @@
   <tbody>
     <% @displays.each do |display| %>
       <tr>
-        <td><%= display.key %></td>
-        <td><%= display.key_field %></td>
-        <td><%= display.name %></td>
-        <td><%= display.description %></td>
-        <td><%= link_to 'Show', display %></td>
-        <td><%= link_to 'Edit', edit_display_path(display) %></td>
+        <td><%= link_to display.name, display %></td>
+        <td><%= link_to display.description, display %></td>
         <td><%= link_to 'Destroy', display, method: :delete, data: { confirm: 'Are you sure?' } %></td>
       </tr>
     <% end %>
