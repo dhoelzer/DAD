@@ -1,0 +1,29 @@
+<p id="notice"><%= notice %></p>
+
+<h1>Listing Rights</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Description</th>
+      <th colspan="3"></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @rights.each do |right| %>
+      <tr>
+        <td><%= right.name %></td>
+        <td><%= right.description %></td>
+        <td><%= link_to 'Show', right %></td>
+        <td><%= link_to 'Edit', edit_right_path(right) %></td>
+        <td><%= link_to 'Destroy', right, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<br>
+
+<%= link_to 'New Right', new_right_path %>

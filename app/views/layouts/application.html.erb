@@ -10,10 +10,15 @@
 	<div id="navbar">
 		<ul>
 			<% $_models.each do |model| %>
-			<% if !model.constantize.hidden? %><li id="<%= is_active(model) %>"><%= link_to model, model.constantize %></li><% end %>
+			<% if !model.constantize.hidden?(@current_user) %><li id="<%= is_active(model.pluralize.downcase) %>"><%= link_to model, model.constantize %></li><% end %>
+			<% end %>
+			<li id="active_user"><%= link_to @current_user.nil? ? "No User" : @current_user.username, "#" %></li>
+			<% if @current_user %>
+				<li id="logoff"><%= link_to "Logoff", logoff_users_path %>
 			<% end %>
 		</ul>
 	</div>
+<p id="notice"><%= notice %></p>	
 <%= yield %>
 </body>
 </html>

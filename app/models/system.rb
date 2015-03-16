@@ -5,7 +5,9 @@ class System < ActiveRecord::Base
   @@cached_stuff = Hash.new
   @added = 0
   
-  def self.hidden?
+  def self.hidden?(current_user = nil)
+    return true if current_user.nil?
+    return true unless current_user.has_right?("Viewer")
     return false
   end
   

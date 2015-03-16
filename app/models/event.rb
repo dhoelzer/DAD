@@ -15,6 +15,12 @@ class Event < ActiveRecord::Base
   @display_helper = nil       # Using lazy initialization but still using instance vars so that we
   @event_fields = nil         # instantiate lazily but still only do one SQL query per event
   
+  def self.hidden?(current_user = nil)
+    return true if current_user.nil?
+    return true unless current_user.has_right?("Viewer")
+    return false
+  end
+  
   def display_helper
     @display_helper = @display_helper.nil? ? Display.helper_for_event(self.event_fields) : @display_helper
     puts "Helper: #{@display_helper}"
@@ -34,10 +40,6 @@ class Event < ActiveRecord::Base
       string = "#{string} #{field.title}: #{@event_fields[field.field_position]}"
     end
     return string
-  end
-  
-  def self.hidden?
-    return false
   end
   
   def event_fields

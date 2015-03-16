@@ -1,0 +1,21 @@
+<h2><%= t :rolesForUser %> <%= @user.username %></h2>
+<fieldset>
+<legend>Add &amp; Remove Roles</legend>
+<%= form_tag(role_add_user_path(@user)) do %>
+	<label for="role">Add Role to User</label>
+	<div id="divAddRole">
+	<%= select_tag(:role,
+		options_from_collection_for_select(@user.ungranted_roles, :id, :name))%>
+	<%= submit_tag "Add Role" %>
+	</div>
+<% end %>
+
+<%= form_tag(role_remove_user_path(@user)) do %>
+	<label for="role">Remove Role from User</label>
+	<div id="divRemoveRole">
+	<%= select_tag(:role,
+		options_from_collection_for_select(@user.roles, :id, :name))%>
+	<%= submit_tag "Remove Role" %>
+	</div>
+<% end %>
+</fieldset>

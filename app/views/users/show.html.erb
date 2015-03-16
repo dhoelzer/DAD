@@ -1,0 +1,37 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>Username:</strong>
+  <%= @user.username %>
+</p>
+
+<p>
+  <strong>Password:</strong>
+  <%= @user.password %>
+</p>
+
+<p>
+  <strong>Name:</strong>
+  <%= @user.first %>  <%= @user.last %>
+</p>
+
+<p>
+  <strong>Lastlogon:</strong>
+  <%= @user.lastlogon %>
+</p>
+
+<p><strong>Rights &amp; Roles:</strong>
+	<ul id="roles">
+	<% @user.roles.each do |role| %>
+	  <li><%= role.name %></li>
+		  <ul id="rights">
+		  <% role.rights.each do |right| %>
+		  	<li><%= right.name %></li>
+		  <% end %>
+	  	  </ul>
+	<% end %>
+	</ul>
+</p>
+<%= link_to "Edit Roles", roles_user_path(@user)%> |
+<%= link_to 'Edit', edit_user_path(@user) %> |
+<%= link_to 'Back', users_path %>

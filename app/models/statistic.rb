@@ -20,7 +20,7 @@ class Statistic < ActiveRecord::Base
     statistic.save
   end
 
-  def self.hidden?
+  def self.hidden?(current_user = nil)
     return true
   end
   

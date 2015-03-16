@@ -1,0 +1,21 @@
+<h2><%= t :rightsForRole %> <%= @role.name %></h2>
+<fieldset>
+<legend>Add &amp; Remove Rights</legend>
+<%= form_tag(right_add_role_path(@role)) do %>
+	<label for="right">Add Right to Role</label>
+	<div id="divAddRight">
+	<%= select_tag(:right,
+		options_from_collection_for_select(@role.ungranted_rights, :id, :name))%>
+	<%= submit_tag "Add Right" %>
+	</div>
+<% end %>
+
+<%= form_tag(right_remove_role_path(@role)) do %>
+	<label for="right">Remove Right from Role</label>
+	<div id="divRemoveRight">
+	<%= select_tag(:right,
+		options_from_collection_for_select(@role.rights, :id, :name))%>
+	<%= submit_tag "Remove Right" %>
+	</div>
+<% end %>
+</fieldset>

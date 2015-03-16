@@ -1,0 +1,19 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>Hash:</strong>
+  <%= @session.hash %>
+</p>
+
+<p>
+  <strong>User:</strong>
+  <%= @session.user_id %>
+</p>
+
+<p>
+  <strong>Expiry:</strong>
+  <%= @session.expiry %>
+</p>
+
+<%= link_to 'Edit', edit_session_path(@session) %> |
+<%= link_to 'Back', sessions_path %>
