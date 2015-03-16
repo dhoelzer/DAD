@@ -1,5 +1,32 @@
 Events::Application.routes.draw do
 
+  # Imported from previous project vvv
+  resources :roles do
+    member do
+      get :rights
+      post :right_add
+      post :right_remove
+    end
+  end
+
+  resources :rights
+
+  resources :users do
+    member do
+      get :roles
+      post :role_add
+      post :role_remove
+    end
+    collection do
+      get :logon
+      get :logoff
+      post :do_logon
+    end
+  end
+  
+  resources :sessions
+  # Imported from previous project ^^^
+  
   resources :display_fields
 
   resources :displays
