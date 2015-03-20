@@ -7,7 +7,7 @@ class SearchesController < ApplicationController
       redirect_to logon_users_path
       return false
     end
-    return true if(@current_user.has_right?(Right.find_by_name("Admin")))
+    return true if(@current_user.has_right?(Right.find_by_name("Viewer")))
     flash[:notice] = "You lack the appropriate rights"
     redirect_to logon_users_path
     return false
@@ -22,20 +22,40 @@ class SearchesController < ApplicationController
   # GET /searches/1
   # GET /searches/1.json
   def show
+    unless @current_user.has_right?("Detective") do
+      flash[:notice] = "You lack the appropriate rights"
+      redirect_to events_path    
+      return
+    end
   end
 
   # GET /searches/new
   def new
+    unless @current_user.has_right?("Detective") do
+      flash[:notice] = "You lack the appropriate rights"
+      redirect_to events_path    
+      return
+    end
     @search = Search.new
   end
 
   # GET /searches/1/edit
   def edit
+    unless @current_user.has_right?("Detective") do
+      flash[:notice] = "You lack the appropriate rights"
+      redirect_to events_path    
+      return
+    end
   end
 
   # POST /searches
   # POST /searches.json
   def create
+    unless @current_user.has_right?("Detective") do
+      flash[:notice] = "You lack the appropriate rights"
+      redirect_to events_path    
+      return
+    end
     @search = Search.new(search_params)
 
     respond_to do |format|
@@ -52,6 +72,11 @@ class SearchesController < ApplicationController
   # PATCH/PUT /searches/1
   # PATCH/PUT /searches/1.json
   def update
+    unless @current_user.has_right?("Detective") do
+      flash[:notice] = "You lack the appropriate rights"
+      redirect_to events_path    
+      return
+    end
     respond_to do |format|
       if @search.update(search_params)
         format.html { redirect_to @search, notice: 'Search was successfully updated.' }
@@ -66,6 +91,11 @@ class SearchesController < ApplicationController
   # DELETE /searches/1
   # DELETE /searches/1.json
   def destroy
+    unless @current_user.has_right?("Detective") do
+      flash[:notice] = "You lack the appropriate rights"
+      redirect_to events_path    
+      return
+    end
     @search.destroy
     respond_to do |format|
       format.html { redirect_to searches_url }

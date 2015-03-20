@@ -7,7 +7,7 @@ class JobsController < ApplicationController
       redirect_to logon_users_path
       return false
     end
-    return true if(@current_user.has_right?(Right.find_by_name("Admin")))
+    return true if(@current_user.has_right?(Right.find_by_name("Taskmaster")))
     flash[:notice] = "You lack the appropriate rights"
     redirect_to logon_users_path
     return false
