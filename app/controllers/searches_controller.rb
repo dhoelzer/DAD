@@ -113,4 +113,4 @@ class SearchesController < ApplicationController
   def search_params
     params.require(:search).permit(:string, :user_id, :description, :short_description)
   end
-
+end

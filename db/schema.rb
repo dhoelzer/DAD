@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20150310143830) do
+ActiveRecord::Schema.define(version: 20150316000000) do
 
   create_table "alerts", force: true do |t|
     t.integer  "system_id"
@@ -103,6 +103,26 @@ ActiveRecord::Schema.define(version: 20150310143830) do
   add_index "positions", ["event_id"], name: "index_positions_on_event_id"
   add_index "positions", ["word_id"], name: "index_positions_on_word_id"
 
+  create_table "rights", force: true do |t|
+    t.string "name"
+    t.string "description"
+  end
+
+  create_table "rights_roles", force: true do |t|
+    t.integer "right_id"
+    t.integer "role_id"
+  end
+
+  create_table "roles", force: true do |t|
+    t.string "name"
+    t.string "description"
+  end
+
+  create_table "roles_users", force: true do |t|
+    t.integer "role_id"
+    t.integer "user_id"
+  end
+
   create_table "searches", force: true do |t|
     t.text     "string"
     t.integer  "user_id"
@@ -117,6 +137,14 @@ ActiveRecord::Schema.define(version: 20150310143830) do
     t.text     "description"
     t.datetime "created_at"
     t.datetime "updated_at"
+  end
+
+  create_table "sessions", force: true do |t|
+    t.string   "session_hash"
+    t.integer  "user_id"
+    t.datetime "expiry"
+    t.datetime "created_at",   null: false
+    t.datetime "updated_at",   null: false
   end
 
   create_table "statistics", force: true do |t|
@@ -138,6 +166,18 @@ ActiveRecord::Schema.define(version: 20150310143830) do
     t.datetime "created_at"
     t.datetime "updated_at"
     t.boolean  "monitor"
+  end
+
+  create_table "users", force: true do |t|
+    t.string   "username"
+    t.string   "password"
+    t.string   "first"
+    t.string   "last"
+    t.integer  "attempts"
+    t.datetime "last_attempt"
+    t.datetime "lastlogon"
+    t.datetime "created_at",   null: false
+    t.datetime "updated_at",   null: false
   end
 
   create_table "words", force: true do |t|
