@@ -22,3 +22,27 @@ role.rights << right
 role.save
 user.roles << role
 user.save
+right = Right.new
+right.name = "Viewer"
+right.description = "Gives the possessor the ability to view events and alerts"
+right.save
+right = Right.new
+right.name = "Commentator"
+right.description = "Gives the possessor the ability to comment on alerts"
+right.save
+right = Right.new
+right.name = "Taskmaster"
+right.description = "Gives the possessor the ability to view, create, manipulate and schedule jobs.  Extremely powerful.  Can be used to compromise the system."
+right.save
+right = Right.new
+right.name = "Detective"
+right.description = "Gives the posessor the ability to create and manipulate stored searches and display filters."
+right.save
+role = Role.new
+role.name = "Analyst"
+role.description = "This is a very powerful role.  The possessor may see all events, searches, display filters, etc.  Users with this right may also create and schedule jobs (which can compromise the entire application).  Users with this right may create and save searches and display filters."
+role.rights << Right.find_by_name("Viewer")
+role.rights << Right.find_by_name("Commentator")
+role.rights << Right.find_by_name("Taskmaster")
+role.rights << Right.find_by_name("Detective")
+role.save
