@@ -22,7 +22,7 @@ class SearchesController < ApplicationController
   # GET /searches/1
   # GET /searches/1.json
   def show
-    unless @current_user.has_right?("Detective") do
+    unless @current_user.has_right?(Right.find_by_name("Viewer")) 
       flash[:notice] = "You lack the appropriate rights"
       redirect_to events_path    
       return
@@ -31,7 +31,7 @@ class SearchesController < ApplicationController
 
   # GET /searches/new
   def new
-    unless @current_user.has_right?("Detective") do
+    unless @current_user.has_right?(Right.find_by_name("Detective")) 
       flash[:notice] = "You lack the appropriate rights"
       redirect_to events_path    
       return
@@ -41,7 +41,7 @@ class SearchesController < ApplicationController
 
   # GET /searches/1/edit
   def edit
-    unless @current_user.has_right?("Detective") do
+    unless @current_user.has_right?(Right.find_by_name("Detective")) 
       flash[:notice] = "You lack the appropriate rights"
       redirect_to events_path    
       return
@@ -51,7 +51,7 @@ class SearchesController < ApplicationController
   # POST /searches
   # POST /searches.json
   def create
-    unless @current_user.has_right?("Detective") do
+    unless @current_user.has_right?(Right.find_by_name("Detective")) 
       flash[:notice] = "You lack the appropriate rights"
       redirect_to events_path    
       return
@@ -72,7 +72,7 @@ class SearchesController < ApplicationController
   # PATCH/PUT /searches/1
   # PATCH/PUT /searches/1.json
   def update
-    unless @current_user.has_right?("Detective") do
+    unless @current_user.has_right?(Right.find_by_name("Detective")) 
       flash[:notice] = "You lack the appropriate rights"
       redirect_to events_path    
       return
@@ -91,7 +91,7 @@ class SearchesController < ApplicationController
   # DELETE /searches/1
   # DELETE /searches/1.json
   def destroy
-    unless @current_user.has_right?("Detective") do
+    unless @current_user.has_right?(Right.find_by_name("Detective")) 
       flash[:notice] = "You lack the appropriate rights"
       redirect_to events_path    
       return
@@ -113,5 +113,4 @@ class SearchesController < ApplicationController
   def search_params
     params.require(:search).permit(:string, :user_id, :description, :short_description)
   end
-end
 end
