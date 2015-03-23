@@ -15,7 +15,7 @@
         <td><%= alert.system.display_name unless alert.system.nil? %></td>
         <td><%= alert.service.name unless alert.service.nil? %></td>
         <td><%= link_to alert.short_description, alert %></td>
-        <td><%= link_to 'Ack', acknowledge_alert_path(alert), remote: true %></td>
+        <td><%= link_to 'Ack', acknowledge_alert_path(alert), remote: true %></td><td><%= alert.comments.nil? ? "" | "*"%>
       </tr>
     <% end %>
   </tbody>
