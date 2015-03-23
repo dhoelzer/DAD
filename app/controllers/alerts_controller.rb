@@ -7,7 +7,7 @@ class AlertsController < ApplicationController
       redirect_to logon_users_path
       return false
     end
-    return true if(@current_user.has_right?(Right.find_by_name("Viewer")) || @current_user.has_right?(Right.find_by_name("Commentator")))
+    return true if(@current_user.has_right?("Viewer") || @current_user.has_right?("Commentator"))
     flash[:notice] = "You lack the appropriate rights"
     redirect_to logon_users_path
     return false

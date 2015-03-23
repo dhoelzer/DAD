@@ -7,7 +7,7 @@ class SystemsController < ApplicationController
       redirect_to logon_users_path
       return false
     end
-    return true if(@current_user.has_right?(Right.find_by_name("Viewer")))
+    return true if(@current_user.has_right?("Viewer"))
     flash[:notice] = "You lack the appropriate rights"
     redirect_to logon_users_path
     return false
