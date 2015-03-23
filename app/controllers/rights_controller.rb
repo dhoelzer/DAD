@@ -8,24 +8,12 @@ class RightsController < ApplicationController
       redirect_to logon_users_path
       return false
     end
-    return true if(@current_user.has_right?(Right.find_by_name("Admin")))
+    return true if(@current_user.has_right?("Admin"))
     flash[:notice] = "You lack the appropriate rights"
     redirect_to logon_users_path
     return false
   end
   
-  # Override default authorized? from app controller
-  def authorized?  
-    if @current_user.nil? then
-      flash[:notice] = "Not authorized"
-      redirect_to "/homes"
-      return false
-    end
-    return true if(@current_user.has_right?(Right.find_by_name("Admin")))
-    flash[:notice] = "You lack the appropriate rights"
-    redirect_to "/homes"
-    return false
-  end
 
   # GET /rights
   # GET /rights.json
