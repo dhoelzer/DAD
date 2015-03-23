@@ -7,7 +7,7 @@ class DisplayFieldsController < ApplicationController
       redirect_to logon_users_path
       return false
     end
-    return true if(@current_user.has_right?(Right.find_by_name("Detective")))
+    return true if(@current_user.has_right?("Detective"))
     flash[:notice] = "You lack the appropriate rights"
     redirect_to logon_users_path
     return false

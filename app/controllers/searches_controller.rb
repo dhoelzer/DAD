@@ -57,7 +57,7 @@ class SearchesController < ApplicationController
       return
     end
     @search = Search.new(search_params)
-
+    @search.user_id = @current_user.id
     respond_to do |format|
       if @search.save
         format.html { redirect_to @search, notice: 'Search was successfully created.' }
