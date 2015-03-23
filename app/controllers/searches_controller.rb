@@ -7,7 +7,7 @@ class SearchesController < ApplicationController
       redirect_to logon_users_path
       return false
     end
-    return true if(@current_user.has_right?(Right.find_by_name("Viewer")))
+    return true if(@current_user.has_right?("Viewer"))
     flash[:notice] = "You lack the appropriate rights"
     redirect_to logon_users_path
     return false
@@ -22,7 +22,7 @@ class SearchesController < ApplicationController
   # GET /searches/1
   # GET /searches/1.json
   def show
-    unless @current_user.has_right?(Right.find_by_name("Viewer")) 
+    unless @current_user.has_right?("Viewer") 
       flash[:notice] = "You lack the appropriate rights"
       redirect_to events_path    
       return
@@ -31,7 +31,7 @@ class SearchesController < ApplicationController
 
   # GET /searches/new
   def new
-    unless @current_user.has_right?(Right.find_by_name("Detective")) 
+    unless @current_user.has_right?("Detective") 
       flash[:notice] = "You lack the appropriate rights"
       redirect_to events_path    
       return
@@ -41,7 +41,7 @@ class SearchesController < ApplicationController
 
   # GET /searches/1/edit
   def edit
-    unless @current_user.has_right?(Right.find_by_name("Detective")) 
+    unless @current_user.has_right?("Detective") 
       flash[:notice] = "You lack the appropriate rights"
       redirect_to events_path    
       return
@@ -51,7 +51,7 @@ class SearchesController < ApplicationController
   # POST /searches
   # POST /searches.json
   def create
-    unless @current_user.has_right?(Right.find_by_name("Detective")) 
+    unless @current_user.has_right?("Detective") 
       flash[:notice] = "You lack the appropriate rights"
       redirect_to events_path    
       return
@@ -72,7 +72,7 @@ class SearchesController < ApplicationController
   # PATCH/PUT /searches/1
   # PATCH/PUT /searches/1.json
   def update
-    unless @current_user.has_right?(Right.find_by_name("Detective")) 
+    unless @current_user.has_right?("Detective") 
       flash[:notice] = "You lack the appropriate rights"
       redirect_to events_path    
       return
@@ -91,7 +91,7 @@ class SearchesController < ApplicationController
   # DELETE /searches/1
   # DELETE /searches/1.json
   def destroy
-    unless @current_user.has_right?(Right.find_by_name("Detective")) 
+    unless @current_user.has_right?("Detective") 
       flash[:notice] = "You lack the appropriate rights"
       redirect_to events_path    
       return
