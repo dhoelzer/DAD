@@ -29,6 +29,7 @@ class EventsController < ApplicationController
   end
 
   def search
+    @remote = true
     start_time = Time.now
     @events = Event.search(params[:search_terms], Time.now - params[:timeframe].to_i)
     @previous_search = params[:search_terms]
