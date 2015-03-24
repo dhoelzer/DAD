@@ -1,3 +1,4 @@
+<div id="turbokiller" data-no-turbolink>
 <%= form_for(@job) do |f| %>
   <% if @job.errors.any? %>
     <div id="error_explanation">
@@ -25,8 +26,14 @@
   </div>
   <div class="field">
     <%= f.label :script %><br>
-    <%= f.text_area :script, :cols => "80", :rows => "30" %>
+    <%= f.text_area :script, :class => "script" %>
   </div>
+<script>	$(".script").each(function() {
+    CodeMirror.fromTextArea($(this).get(0), {
+      lineNumbers: true
+    });
+  });
+</script
   <div class="field">
     <%= f.label :last_event_id %><br>
     <%= f.number_field :last_event_id %>
@@ -47,3 +54,4 @@
     <%= f.submit %>
   </div>
 <% end %>
+</div>

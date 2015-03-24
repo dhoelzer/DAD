@@ -14,8 +14,11 @@
 	//= require jquery_ujs
 	//= require turbolinks
 	//= require highcharts-custom.js
+	//= require codemirror
+	//= require codemirror/modes/ruby
 	//= require_tree .
 
+	
 	function draw_longitudinal(chart_div, title, data_title, graph_data, average, standard_deviation)
 	{
 		if(standard_deviation==0) {
