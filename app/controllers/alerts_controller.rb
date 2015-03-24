@@ -24,29 +24,8 @@ class AlertsController < ApplicationController
   def show
   end
 
-  # GET /alerts/new
-  def new
-    @alert = Alert.new
-  end
-
   # GET /alerts/1/edit
   def edit
-  end
-
-  # POST /alerts
-  # POST /alerts.json
-  def create
-    @alert = Alert.new(alert_params)
-
-    respond_to do |format|
-      if @alert.save
-        format.html { redirect_to @alert, notice: 'Alert was successfully created.' }
-        format.json { render action: 'show', status: :created, location: @alert }
-      else
-        format.html { render action: 'new' }
-        format.json { render json: @alert.errors, status: :unprocessable_entity }
-      end
-    end
   end
 
   # PATCH/PUT /alerts/1
