@@ -30,10 +30,11 @@
   </div>
 <script>	$(".script").each(function() {
     CodeMirror.fromTextArea($(this).get(0), {
-      lineNumbers: true
+      lineNumbers: true,
+	  mode: "ruby"
     });
   });
-</script
+</script>
   <div class="field">
     <%= f.label :last_event_id %><br>
     <%= f.number_field :last_event_id %>
