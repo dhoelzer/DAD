@@ -14,7 +14,7 @@
   </thead>
 
   <tbody>
-    <% @jobs.sort(:next_run).each do |job| %>
+    <% @jobs.each do |job| %>
       <tr>
         <td><%= link_to job.name, job %></td>
         <td><%= link_to job.description, job %></td>
