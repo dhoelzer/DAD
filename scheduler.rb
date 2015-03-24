@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 require './config/environment.rb'
-
+puts $SAFE
 while(true) do
   jobs = Job.where("next_run < ?", Time.now)
   jobs.each do |job|
