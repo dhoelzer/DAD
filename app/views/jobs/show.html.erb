@@ -15,13 +15,17 @@
   <%= @job.user_id %>
 </p>
 
-<p>
-  <strong>Script:</strong>
-  <pre>
-  <%= @job.script %>
- </pre>
-</p>
-
+  <div class="field">
+    <%= text_area_tag "None", content = @job.script, options = {:class => "script"} %>
+  </div>
+<script>	$(".script").each(function() {
+    CodeMirror.fromTextArea($(this).get(0), {
+      lineNumbers: true,
+	  mode: "ruby",
+	  readOnly: "nocursor"
+    });
+  });
+</script>
 <p>
   <strong>Last event:</strong>
   <%= @job.last_event_id %>

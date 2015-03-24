@@ -17,6 +17,8 @@ html, body{
 	height: 100%;
 }
 
+.CodeMirror { border: 1px solid black; }
+
 .timestamp {
 	display: inline;
     position: relative;
