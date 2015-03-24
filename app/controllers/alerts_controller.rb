@@ -22,7 +22,7 @@ class AlertsController < ApplicationController
   # GET /alerts/1
   # GET /alerts/1.json
   def show
-      @remote = true
+      @remote = false
   end
 
   # GET /alerts/1/edit
