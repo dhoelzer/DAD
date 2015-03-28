@@ -10,7 +10,7 @@
 <div id='criticality-<%=@alert.criticality%>'>
   <%= @alert.criticality_name %>
 </div>
-
+<%= link_to 'Acknowledge', acknowledge_alert_path(@alert) %>
 <p>
   <strong>System/Service:</strong>
   <%= @alert.system.display_name unless @alert.system.nil? %> /   <%= @alert.service.name unless @alert.service.nil? %>
@@ -43,4 +43,4 @@
 <% end  %>
 <% end %>
 <%= link_to 'Edit', edit_alert_path(@alert) %> |
-<%= link_to 'Back', alerts_path %>
+<%= link_to 'Back', alerts_path %> | <%= link_to 'Acknowledge', acknowledge_alert_path(@alert) %>

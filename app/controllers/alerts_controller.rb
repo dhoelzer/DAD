@@ -16,7 +16,7 @@ class AlertsController < ApplicationController
   # GET /alerts
   # GET /alerts.json
   def index
-    @alerts = Alert.where(:closed => false).order(:criticality).order(:generated)
+    @alerts = Alert.where(:closed => false).order("criticality DESC").order(:generated)
   end
 
   # GET /alerts/1
@@ -61,6 +61,7 @@ class AlertsController < ApplicationController
     @alerts = Alert.where(:closed => false).order(:criticality).order(:generated)    
     respond_to do |format|
       format.js {render layout: false }
+      format.html {redirect_to alerts_url; return}
     end
   end
   
