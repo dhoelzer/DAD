@@ -39,6 +39,7 @@ class CommentsController < ApplicationController
   def create
     @comment = Comment.new(comment_params)
     @comment.user_id = @current_user.id
+    @comment.alert_id = params[:alert_id] if !params[:alert_id].nil? && Alert.find(params[:alert_id])    
     respond_to do |format|
       if @comment.save
         format.html { redirect_to @comment, notice: 'Comment was successfully created.' }
