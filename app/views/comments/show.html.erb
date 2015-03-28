@@ -10,10 +10,6 @@
   <%= @comment.user_id %>
 </p>
 
-<p>
-  <strong>Alert:</strong>
-  <%= @comment.alert_id %>
-</p>
-
 <%= link_to 'Edit', edit_comment_path(@comment) %> |
-<%= link_to 'Back to Alert', alert_path(@comment.alert) %>
+<%= link_to 'Back to Alert', alert_path(@comment.alert) %> |
+<%= link_to 'Back to All Alerts', alerts_path %>
