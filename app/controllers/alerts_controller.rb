@@ -49,7 +49,7 @@ class AlertsController < ApplicationController
       alert.closed = true
       alert.save
     end
-    @alerts = Alert.where(:closed => false).order(:criticality).order(:generated)    
+    @alerts = Alert.where(:closed => false).order("criticality DESC").order(:generated)    
     respond_to do |format|
       format.js {render layout: false }
     end
