@@ -40,7 +40,7 @@ right.description = "Gives the posessor the ability to create and manipulate sto
 right.save
 role = Role.new
 role.name = "Analyst"
-role.description = "This is a very powerful role.  The possessor may see all events, searches, display filters, etc.  Users with this right may also create and schedule jobs (which can compromise the entire application).  Users with this right may create and save searches and display filters."
+role.description = "This is a very powerful role.  The possessor may see all events.  These users may also see and create searches, display filters, etc.  Users with this right may also create and schedule jobs."
 role.rights << Right.find_by_name("Viewer")
 role.rights << Right.find_by_name("Commentator")
 role.rights << Right.find_by_name("Taskmaster")
