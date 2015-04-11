@@ -26,12 +26,10 @@
         <td><%= link_to system.display_name, system %></td>
 		<td><%= system.monitor %></td>
 		<td><%= !reporting[system.id].nil? ? reporting[system.id] : "" %></td>
-		<td style="height: 180px; width: 30%"><div id="<%=system.name%>_gauge"><img src="/assets/spinner.gif"></div>
-		<td style="height: 180px; width: 50%"><div id="<%=system.name%>_graph"><img src="/assets/spinner.gif"></div>
       </tr>
     <% end %>
   </tbody>
 </table>
-<div id="system-gauges"><!-- Draw gauges --></div>
+
 <br>
 </div>
