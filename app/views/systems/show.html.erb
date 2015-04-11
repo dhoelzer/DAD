@@ -32,8 +32,10 @@
 	<strong>Monitor:</strong>
 	<%= @system.monitor %>
 </p>
-
+<div id="system-gauges"><!-- Draw gauges --></div>
 <%= javascript_include_tag "/systems/#{@system.id}.js" %>
+<div id="<%=@system.name%>_gauge"><img src="/assets/spinner.gif"></div>
+<div id="<%=@system.name%>_graph"><img src="/assets/spinner.gif"></div>
 
 <%= link_to 'Edit', edit_system_path(@system) %> |
 <%= link_to 'Back', systems_path %>
