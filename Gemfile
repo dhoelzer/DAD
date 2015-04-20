@@ -4,8 +4,8 @@ source 'https://rubygems.org'
 gem 'rails', '4.0.2'
 
 group :production do
-  # Use Postgres
-  gem 'pg'
+  # Use MariaDB
+  gem 'mysql2'
 end
 
 group :development, :test do
