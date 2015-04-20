@@ -2,7 +2,7 @@ class CreateSearches < ActiveRecord::Migration
   def change
     create_table :searches do |t|
       t.text :string
-      t.index :user_id
+      t.integer :user_id, :limit => 8
       t.text :description
       t.string :short_description
 

@@ -3,9 +3,9 @@ class CreateJobs < ActiveRecord::Migration
     create_table :jobs do |t|
       t.string :name
       t.text :description
-      t.index :user_id
+      t.integer :user_id, :limit => 8
       t.text :script
-      t.index :last_event_id
+      t.integer :last_event_id, :limit => 8
       t.timestamp :last_run
       t.timestamp :next_run
       t.integer :frequency

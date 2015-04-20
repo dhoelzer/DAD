@@ -1,9 +1,9 @@
 class CreatePositions < ActiveRecord::Migration
   def change
     create_table :positions do |t|
-      t.index :word_id
+      t.integer :word_id, :limit => 8
       t.integer :position
-      t.index :event_id
+      t.integer :event_id, :limit => 8
     end
   end
 end

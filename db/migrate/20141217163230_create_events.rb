@@ -1,8 +1,8 @@
 class CreateEvents < ActiveRecord::Migration
   def change
     create_table :events do |t|
-      t.index :system_id
-      t.index :service_id
+      t.integer :system_id, :limit => 8
+      t.integer :service_id, :limit => 8
       t.datetime :generated
       t.datetime :stored
 
