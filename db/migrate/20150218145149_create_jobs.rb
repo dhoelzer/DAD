@@ -5,7 +5,7 @@ class CreateJobs < ActiveRecord::Migration
       t.text :description
       t.integer :user_id
       t.text :script
-      t.integer :last_event_id
+      t.bigint :last_event_id
       t.timestamp :last_run
       t.timestamp :next_run
       t.integer :frequency

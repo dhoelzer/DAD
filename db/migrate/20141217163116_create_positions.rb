@@ -1,11 +1,9 @@
 class CreatePositions < ActiveRecord::Migration
   def change
     create_table :positions do |t|
-      t.integer :word_id
-      t.integer :position
-      t.integer :event_id
-
-      t.timestamps
+      t.bigint :word_id
+      t.smallint :position
+      t.bigint :event_id
     end
   end
 end

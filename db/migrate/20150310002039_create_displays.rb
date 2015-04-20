@@ -2,7 +2,7 @@ class CreateDisplays < ActiveRecord::Migration
   def change
     create_table :displays do |t|
       t.string :key
-      t.integer :key_field
+      t.smallint :key_field
       t.string :name
       t.text :description
 
