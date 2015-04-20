@@ -1,8 +1,8 @@
 class CreateAlerts < ActiveRecord::Migration
   def change
     create_table :alerts do |t|
-      t.bigint :system_id
-      t.bigint :service_id
+      t.index :system_id
+      t.index :service_id
       t.integer :criticality
       t.datetime :generated
       t.boolean :closed
