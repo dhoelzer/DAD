@@ -19,8 +19,8 @@ class System < ActiveRecord::Base
   end
   
   def display_name
-    return self.name if self.description.nil?
-    "#{self.name}(#{self.description})"
+    return "(#{self.address})" if self.name.nil?
+    "#{self.name}(#{self.address})"
   end
   
   def self.find_or_add(new_item)
