@@ -2,9 +2,9 @@ class ApplicationController < ActionController::Base
   # Prevent CSRF attacks by raising an exception.
   # For APIs, you may want to use :null_session instead.
   protect_from_forgery with: :exception
-  
+
   before_filter :ssl, :gatekeeper, :authorized?
-    
+
   def ssl
     return true if Rails.env == "development" # Do not redirect to SSL in development.
     if request.protocol == "http://" then
@@ -14,12 +14,14 @@ class ApplicationController < ActionController::Base
     end
     return true
   end
-  
+
   def gatekeeper
     @current_user = nil
     if cookies[:sessionID] then
       @session = Session.find_by_session_hash(cookies[:sessionID])
-      @session = nil if !@session.nil? && @session.expiry < Time.now
+      if !@session.nil? then
+        @session = nil if @session.expiry < Time.now
+      end
       @current_user = User.find(@session.user_id) unless @session.nil?
       if(@session) then
         if Rails.env == "development" then
@@ -32,7 +34,7 @@ class ApplicationController < ActionController::Base
       end
     end
   end
-  
+
   # Unless there is a local Authorized? function in the controller, this will be called.
   def authorized?  
     if @current_user.nil? then
@@ -42,5 +44,5 @@ class ApplicationController < ActionController::Base
     end
     return true
   end
-  
+
 end
