@@ -9,7 +9,7 @@
 	</thead>
 	<% reporting = Hash.new %>
 	<% @reportingInLast24.each do |system| %>
-	  <% reporting[system["system_id"].to_i]=system["count"] %>
+	  <% reporting[system[0].to_i]=system[1] %>
 	<% end %>
 <table>
   <thead>
