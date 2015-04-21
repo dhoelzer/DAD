@@ -31,7 +31,11 @@ Events::Application.routes.draw do
 
   resources :displays
 
-  resources :jobs
+  resources :jobs do
+    member do
+      get 'test'
+    end
+  end
 
   resources :alerts do
     collection do

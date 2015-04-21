@@ -1,6 +1,9 @@
 class JobsController < ApplicationController
   before_action :set_job, only: [:show, :edit, :update, :destroy]
 
+  def test
+    @output = @job.script
+  end
   def authorized?  
     if @current_user.nil? then
       flash[:notice] = "Not authorized"

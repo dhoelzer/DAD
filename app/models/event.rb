@@ -174,7 +174,7 @@ class Event < ActiveRecord::Base
         @@nextPositionID = Position.last.id + 1 if @@nextPositionID == -1
       end
     end
-    @@pendingEventValues.push "(#{@@nextEventID}, #{system.id}, #{service.id}, '#{timestamp}', '#{Time.now}')"
+    @@pendingEventValues.push "(#{@@nextEventID}, #{system.id}, #{service.id}, '#{timestamp.to_s(:db)}', '#{Time.now.to_s(:db)}')"
     #    event = Event.create(:system_id => system.id, :service_id => service.id, :generated => timestamp, :stored => Time.now)
     #    return nil if event.nil?
 
@@ -189,7 +189,7 @@ class Event < ActiveRecord::Base
 
       @@pendingPositionValues.push "(#{@@nextPositionID}, #{dbWord}, #{current_position}, #{@@nextEventID})"
       # Only add a mapping for this event/word if there isn't already one - deduplicate events_words.
-      @@events_words.push "(#{@@nextEventID}, #{dbWord}, '#{timestamp}')" unless word_ids.include?(dbWord)
+      @@events_words.push "(#{@@nextEventID}, #{dbWord}, '#{timestamp.to_s(:db)}')" unless word_ids.include?(dbWord)
       word_ids.push(dbWord)
       #      position = Position.create(:word_id => dbWord.id, :position => current_position, :event_id => event.id)
       @@nextPositionID += 1
