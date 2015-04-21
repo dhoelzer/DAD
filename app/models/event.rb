@@ -5,7 +5,7 @@ class Event < ActiveRecord::Base
   belongs_to :system
   belongs_to :service
 
-  BULK_INSERT_SIZE=(Rails.env.development? ? 1 : 2000)
+  BULK_INSERT_SIZE=(Rails.env.development? ? 1 : 100)
   @@nextEventID = -1
   @@nextPositionID = -1
   @@pendingEventValues = Array.new
@@ -162,7 +162,7 @@ class Event < ActiveRecord::Base
       end
     end
     txtservice = split_text[5]
-    txtservice.tr!("^a-zA-Z/\-\_", "")
+    txtservice.tr!("^a-zA-Z/\-_", "")
     service = Service.find_or_add(txtservice)
 
     if @@nextEventID == -1 then

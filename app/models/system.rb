@@ -25,9 +25,9 @@ class System < ActiveRecord::Base
   
   def self.find_or_add(new_item)
     return @@cached_stuff[new_item] if @@cached_stuff.has_key?(new_item)
-    item=System.find_by name: new_item
+    item=System.find_by address: new_item
     if item.nil? then
-      item = System.create(:name => new_item)
+      item = System.create(:address => new_item)
       @added += 1
     end
     @@cached_stuff[new_item] = item
