@@ -19,7 +19,7 @@ class ApplicationController < ActionController::Base
     @current_user = nil
     if cookies[:sessionID] then
       @session = Session.find_by_session_hash(cookies[:sessionID])
-      @session = nil if @session.expiry < Time.now
+      @session = nil if @session && @session.expiry < Time.now
       @current_user = User.find(@session.user_id) unless @session.nil?
       if(@session) then
         if Rails.env == "development" then
