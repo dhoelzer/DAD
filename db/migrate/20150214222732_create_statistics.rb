@@ -1,7 +1,6 @@
 class CreateStatistics < ActiveRecord::Migration
   def change
-    create_table :statistics, :id => false do |t|
-      t.integer :id, :limit => 8
+    create_table :statistics do |t|
       t.integer :type_id
       t.datetime :timestamp
       t.integer :system_id, :limit => 8

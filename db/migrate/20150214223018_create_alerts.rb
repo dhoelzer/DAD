@@ -1,7 +1,6 @@
 class CreateAlerts < ActiveRecord::Migration
   def change
-    create_table :alerts, :id => false do |t|
-      t.integer :id, :limit => 8
+    create_table :alerts do |t|
       t.integer :system_id, :limit => 8
       t.integer :service_id, :limit => 8
       t.integer :criticality
