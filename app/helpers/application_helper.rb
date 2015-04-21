@@ -24,7 +24,7 @@ module ApplicationHelper
     sql = "select sum(stat),extract(year from timestamp) as year, extract(month from timestamp) as month,extract(day from timestamp) as day, extract(hour from timestamp) as hour from statistics where type_id=0 and timestamp>'#{since}' group by year,month,day,hour order by year,month,day,hour asc"
     results = connection.execute sql
     data=Hash.new
-    results.each{|s| data["#{s['month']}/#{s['day']}/#{s['year']} #{s['hour']}:00:00"] = s['sum'].to_i}
+    results.each{|s| data["#{s[2]}/#{s[3]}/#{s[1]} #{s[4]}:00:00"] = s[0].to_i}
     data.map { |k,v| ["#{k}",v] }
   end
   
@@ -33,12 +33,12 @@ module ApplicationHelper
     sql = "select avg(stat),extract(year from timestamp) as year, extract(month from timestamp) as month,extract(day from timestamp) as day, extract(hour from timestamp) as hour from statistics where type_id=1 and timestamp>'#{since}' group by year,month,day,hour order by year,month,day,hour asc"
     results = connection.execute sql
     data=Hash.new
-    results.each{|s| data["#{s['month']}/#{s['day']}/#{s['year']} #{s['hour']}:00:00"] = s['avg'].to_f}
+    results.each{|s| data["#{s[2]}/#{s[3]}/#{s[1]} #{s[4]}:00:00"] = s[0].to_f}
     data.map { |k,v| ["#{k}",v] }
   end
   
   def system_stats(days)
-    counts = Event.where("generated > ?", Time.now()-(days * 86400)).group(:system_id).count
+    counts = Event.where("generated > ?", (Time.now()-(days * 86400)).to_s(:db)).group(:system_id).count
     results = Hash.new
     counts.each do |system_id, count|
       results[System.find(system_id).display_name] = count
@@ -47,7 +47,7 @@ module ApplicationHelper
   end
   
   def service_stats(days)
-    counts = Event.where("generated > ?", Time.now()-(days*86400)).group(:service_id).count
+    counts = Event.where("generated > ?", (Time.now()-(days*86400)).to_s(:db)).group(:service_id).count
     results = Hash.new
     counts.each do |service_id, count|
       results[Service.find(service_id).name] = count
@@ -70,7 +70,7 @@ module ApplicationHelper
       sql = "select sum(stat),extract(year from timestamp) as year, extract(month from timestamp) as month,extract(day from timestamp) as day, extract(hour from timestamp) as hour from statistics where type_id=0 and timestamp>'#{since}' group by year,month,day,hour order by year,month,day,hour asc"
       results = connection.execute sql
       values = Array.new
-      results.each{|s| values << s['sum'].to_i }
+      results.each{|s| values << s[0].to_i }
       Math.mean(values)
   end
 
@@ -79,7 +79,7 @@ module ApplicationHelper
       sql = "select sum(stat),extract(year from timestamp) as year, extract(month from timestamp) as month,extract(day from timestamp) as day, extract(hour from timestamp) as hour from statistics where type_id=0 and timestamp>'#{since}' group by year,month,day,hour order by year,month,day,hour asc"
       results = connection.execute sql
       values = Array.new
-      results.each{|s| values << s['sum'].to_i }
+      results.each{|s| values << s[0].to_i }
       mean = Math.mean(values)
       variance = Math.variance(values)
       standard_deviation = Math.standard_deviation(values)
@@ -92,7 +92,7 @@ module ApplicationHelper
       sql = "select sum(stat),extract(year from timestamp) as year, extract(month from timestamp) as month,extract(day from timestamp) as day, extract(hour from timestamp) as hour from statistics where type_id=1 and timestamp>'#{since}' group by year,month,day,hour order by year,month,day,hour asc"
       results = connection.execute sql
       values = Array.new
-      results.each{|s| values << s['sum'].to_i }
+      results.each{|s| values << s[0].to_i }
       
       Math.mean(values) / 60.0
   end
