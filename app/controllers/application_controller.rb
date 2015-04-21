@@ -20,7 +20,11 @@ class ApplicationController < ActionController::Base
     if cookies[:sessionID] then
       @session = Session.find_by_session_hash(cookies[:sessionID])
       if !@session.nil? then
-        @session = nil if @session.expiry < Time.now
+        if @session.expiry < Time.now then
+          @session.destroy
+          @session.save
+          @session = nil
+        end
       end
       @current_user = User.find(@session.user_id) unless @session.nil?
       if(@session) then
