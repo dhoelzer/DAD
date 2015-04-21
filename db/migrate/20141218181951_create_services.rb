@@ -1,6 +1,7 @@
 class CreateServices < ActiveRecord::Migration
   def change
-    create_table :services do |t|
+    create_table :services, :id => false do |t|
+      t.integer :id, :limit => 8
       t.string :name
       t.text :description
 

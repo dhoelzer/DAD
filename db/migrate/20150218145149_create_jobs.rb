@@ -1,6 +1,7 @@
 class CreateJobs < ActiveRecord::Migration
   def change
-    create_table :jobs do |t|
+    create_table :jobs, :id => false do |t|
+      t.integer :id, :limit => 8
       t.string :name
       t.text :description
       t.integer :user_id, :limit => 8
