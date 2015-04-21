@@ -19,7 +19,17 @@ class ApplicationController < ActionController::Base
     @current_user = nil
     if cookies[:sessionID] then
       @session = Session.find_by_session_hash(cookies[:sessionID])
+      @session = nil if @session.expiry < Time.now
       @current_user = User.find(@session.user_id) unless @session.nil?
+      if(@session) then
+        if Rails.env == "development" then
+          cookies[:sessionID] = { value: @session.session_hash, httponly: true, secure: false, expires: Time.now+1.hour }
+        else
+          cookies[:sessionID] = { value: @session.session_hash, httponly: true, secure: true, expires: Time.now+1.hour }
+        end
+        @session.expiry = Time.now + 1.hour
+        @session.save
+      end
     end
   end
   

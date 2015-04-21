@@ -80,6 +80,7 @@ class UsersController < ApplicationController
       @user.save
       @session = Session.new()
       @session.user_id = @user.id
+      @session.expiry = Time.now + 1.hour
       @session.session_hash = generate_session_id
       while Session.find_by_session_hash(@session.session_hash) do
         @session.session_hash = generate_session_id
