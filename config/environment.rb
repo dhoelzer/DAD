@@ -13,5 +13,7 @@ module ActiveRecord
   end
 end
 
+ActiveRecord::ConnectionAdapters::Mysql2Adapter::NATIVE_DATABASE_TYPES[:primary_key] = "BIGINT UNSIGNED DEFAULT NULL auto_increment PRIMARY KEY"
+
 # Initialize the Rails application.
 Events::Application.initialize!
