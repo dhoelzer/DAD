@@ -162,7 +162,7 @@ class Event < ActiveRecord::Base
       end
     end
     txtservice = split_text[5]
-    txtservice.tr!("^a-zA-Z/\-", "")
+    txtservice.tr!("^a-zA-Z/\-\_", "")
     service = Service.find_or_add(txtservice)
 
     if @@nextEventID == -1 then
@@ -180,7 +180,7 @@ class Event < ActiveRecord::Base
 
     eventString.downcase!
     eventString.tr!("\r\n", "")
-    eventString.gsub!(/([^a-zA-Z0-9\-.:])/," \\1 " )
+    eventString.gsub!(/([^a-zA-Z0-9:])/," \\1 " )
     words = eventString.split(/\s+/)
     current_position = 0                  # Track which position we are at within the event
     word_ids = Array.new()
