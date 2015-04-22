@@ -77,7 +77,7 @@ class Event < ActiveRecord::Base
     return [] if terms.empty?
     sql = "select event_id from events_words where generated>'#{starting_time.to_s(:db)}' and word_id in (select id from words where words.text in ('#{terms.join("', '")}')) group by event_id having count(distinct(word_id))=#{terms.count}"
     events_that_match = connection.execute(sql)
-    events_that_match.map { |e| event_ids << e["event_id"]}
+    events_that_match.map { |e| event_ids << e[0]}
     @events = Event.order(generated: :asc).includes(:positions, :words).where("id in (?)", event_ids).limit(limit).offset(offset)
     return (@events.nil? ? [] : @events)    
   end 
