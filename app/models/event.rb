@@ -68,14 +68,14 @@ class Event < ActiveRecord::Base
     @@start_time = Time.now
   end
   
-  def self.search_group(search_string, starting_time=(Time.now - 1.hour), offset=0, limit=100)
+  def self.search(search_string, starting_time=(Time.now - 1.hour), offset=0, limit=100)
     @events = Array.new
     event_ids = Array.new
     connection = ActiveRecord::Base.connection
     
     terms = search_string.downcase.split(/\s+/)
     return [] if terms.empty?
-    sql = "select event_id from events_words where generated>(CURRENT_TIMESTAMP-Interval '1 day') and word_id in (select id from words where words.text in ('#{terms.join("', '")}')) group by event_id having count(distinct(event_id,word_id))=#{terms.count}"
+    sql = "select event_id from events_words where generated>(#{starting_time}) and word_id in (select id from words where words.text in ('#{terms.join("', '")}')) group by event_id having count(distinct(word_id))=#{terms.count}"
     events_that_match = connection.execute(sql)
     events_that_match.map { |e| event_ids << e["event_id"]}
     @events = Event.order(generated: :asc).includes(:positions, :words).where("id in (?)", event_ids).limit(limit).offset(offset)
@@ -96,7 +96,7 @@ class Event < ActiveRecord::Base
 
 
   
-  def self.search(search_string, starting_time=(Time.now - 1.hour), offset=0, limit=100)
+  def self.search_iterative(search_string, starting_time=(Time.now - 1.hour), offset=0, limit=100)
     @events = Array.new
     event_ids = Array.new
     connection = ActiveRecord::Base.connection
