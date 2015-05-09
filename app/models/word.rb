@@ -4,7 +4,7 @@ class Word < ActiveRecord::Base
   @@cached_words = Hash.new
   @added = 0
   @cache_hits = 0
-  CACHESIZE=3000
+  CACHESIZE=4000
   
   def self.hidden?(current_user = nil)
     return true
