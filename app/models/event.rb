@@ -170,8 +170,8 @@ class Event < ActiveRecord::Base
         @@nextEventID = 1
         @@nextPositionID = 1
       else
-        @@nextEventID = Event.last.id + 1 if @@nextEventID == -1
-        @@nextPositionID = Position.last.id + 1 if @@nextPositionID == -1
+        @@nextEventID = Event.order(id: :desc).limit(1)[0].id + 1 if @@nextEventID == -1
+        @@nextPositionID = Position.order(id: :desc).limit(1)[0].id + 1 if @@nextPositionID == -1
       end
     end
     @@pendingEventValues.push "(#{@@nextEventID}, #{system.id}, #{service.id}, '#{timestamp.to_s(:db)}', '#{Time.now.to_s(:db)}')"
