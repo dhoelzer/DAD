@@ -68,7 +68,7 @@ class Event < ActiveRecord::Base
     @@start_time = Time.now
   end
   
-  def self.search2(search_string, starting_time=(Time.now - 1.hour), offset=0, limit=100)
+  def self.search(search_string, starting_time=(Time.now - 1.hour), offset=0, limit=100)
     @events = Array.new
     event_ids = Array.new
     connection = ActiveRecord::Base.connection
@@ -96,7 +96,7 @@ class Event < ActiveRecord::Base
 
 
   
-  def self.search(search_string, starting_time=(Time.now - 1.hour), offset=0, limit=100)
+  def self.search2(search_string, starting_time=(Time.now - 1.hour), offset=0, limit=100)
     @events = Array.new
     event_ids = Array.new
     connection = ActiveRecord::Base.connection
