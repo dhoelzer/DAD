@@ -59,7 +59,7 @@ class AlertsController < ApplicationController
   def acknowledge
     @alert.closed = true
     @alert.save
-    @alerts = Alert.where(:closed => false).order(:criticality).order(:generated)    
+    @alerts = Alert.where(:closed => false).order("criticality DESC").order(:generated)    
     respond_to do |format|
       format.js {render layout: false }
       format.html {redirect_to alerts_url; return}
