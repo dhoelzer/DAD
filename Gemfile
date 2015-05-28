@@ -13,6 +13,8 @@ group :development, :test do
   gem 'sqlite3'
 end
 
+gem 'httparty'   # For JSON requests for the IP Address blocking service.
+
 gem 'codemirror-rails'
 
 # Use SCSS for stylesheets
