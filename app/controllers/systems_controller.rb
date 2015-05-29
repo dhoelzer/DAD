@@ -27,6 +27,7 @@ class SystemsController < ApplicationController
   # GET /systems/1
   # GET /systems/1.json
   def show
+    @events = Event.where(:system => @system).limit(25).order(generated: :desc).reverse
   end
 
   # GET /systems/new
