@@ -32,14 +32,14 @@
 	<strong>Monitor:</strong>
 	<%= @system.monitor %>
 </p>
-<div id="system-gauges"><!-- Draw gauges --></div>
+<!-- Commenting out for now..<div id="system-gauges"></div>
 <div id="<%=@system.name%>_gauge"><img src="/assets/spinner.gif"></div>
 <div id="<%=@system.name%>_graph"><img src="/assets/spinner.gif"></div>
-<!-- Commenting out for now..<%=  javascript_include_tag "/systems/#{@system.id}.js" %>-->
+<%=  javascript_include_tag "/systems/#{@system.id}.js" %>-->
 <div id="events">
 	<table>
 		<% @events.each do |event| %>
-		<tr><td><%= event %></td></tr>
+		<tr><td><%= event.inspect %></td></tr>
 		<% end %>
 	</table>
 </div>
