@@ -1,7 +1,7 @@
 source 'https://rubygems.org'
 
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
-gem 'rails', '4.0.2'
+gem 'rails', '> 4'
 
 group :production do
   # Use MariaDB
@@ -11,6 +11,11 @@ end
 group :development, :test do
   # Use SQLite
   gem 'sqlite3'
+  # And prepare for cucumber
+  gem "rspec-rails"
+  gem 'cucumber-rails', require: false
+  gem 'database_cleaner'
+
 end
 
 gem 'httparty'   # For JSON requests for the IP Address blocking service.

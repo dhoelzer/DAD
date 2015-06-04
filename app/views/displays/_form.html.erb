@@ -12,22 +12,6 @@
   <% end %>
 
   <div class="field">
-    <%= f.label :key %><br>
-    <%= f.text_field :key %>
-  </div>
-  <div class="field">
-    <%= f.label :key_field %><br>
-    <%= f.number_field :key_field %>
-  </div>
-  <div class="field">
-    <%= f.label "Secondary Key" %><br>
-    <%= f.text_field :key2 %>
-  </div>
-  <div class="field">
-    <%= f.label "Secondary Key Field" %><br>
-    <%= f.number_field :key2_field %>
-  </div>
-  <div class="field">
     <%= f.label :name %><br>
     <%= f.text_field :name %>
   </div>
@@ -35,6 +19,22 @@
     <%= f.label :description %><br>
     <%= f.text_area :description %>
   </div>
+  <div class="field">
+    <%= f.label :key %><br>
+    <%= f.text_field :key %>
+  </div>
+  <div class="field">
+    <%= f.label :script %><br>
+    <%= f.text_area :display_script, :class => "script" %>
+  </div>
+<script>	$(".script").each(function() {
+    CodeMirror.fromTextArea($(this).get(0), {
+      lineNumbers: true,
+	  mode: "ruby"
+    });
+  });
+</script>
+
   <div class="actions">
     <%= f.submit %>
   </div>

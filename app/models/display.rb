@@ -7,13 +7,13 @@ class Display < ActiveRecord::Base
     return false
   end
   
-  def self.helper_for_event(event_fields)
+  def self.helper_for_event(event_string)
     Display.all.each do |filter|
       begin
-        puts "filter: >#{filter.key}< #{filter.key_field} -> #{event_fields} -> >#{event_fields[filter.key_field]}<"
-        return filter if event_fields[filter.key_field] == filter.key
+        reg = Regexp.new(filter.key)
+        return filter unless reg.match(event_string).nil?
       rescue
-        puts "Had to rescue: #{filter.key} #{filter.key_field} -> #{event_fields}"
+        puts "Had to rescue: #{filter.key}"
         # Likely don't have enough fields.  Don't care to figure it out for now.
       end
     end

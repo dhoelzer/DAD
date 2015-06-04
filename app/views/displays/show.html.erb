@@ -1,16 +1,6 @@
 <p id="notice"><%= notice %></p>
 
 <p>
-  <strong>Key:</strong>
-  <%= @display.key %>
-</p>
-
-<p>
-  <strong>Key field:</strong>
-  <%= @display.key_field %>
-</p>
-
-<p>
   <strong>Name:</strong>
   <%= @display.name %>
 </p>
@@ -19,8 +9,22 @@
   <strong>Description:</strong>
   <%= @display.description %>
 </p>
-<%  @display_fields = @display.display_fields %>
-<%= render partial: "/display_fields/index" %>
+
+<p>
+  <strong>Key:</strong>
+  <%= @display.key %>
+</p>
+  <div class="field">
+    <%= text_area_tag "None", content = @display.display_script, options = {:class => "script"} %>
+  </div>
+<script>	$(".script").each(function() {
+    CodeMirror.fromTextArea($(this).get(0), {
+      lineNumbers: true,
+	  mode: "ruby",
+	  readOnly: "nocursor"
+    });
+  });
+</script>
 
 <%= link_to 'Edit', edit_display_path(@display) %> |
 <%= link_to 'Back', displays_path %>

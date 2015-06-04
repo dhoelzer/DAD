@@ -9,7 +9,7 @@
 <body>
 	<div id="navbar">
 		<ul>
-			<% $_models.each do |model| %>
+			<% $_models.select {|a| !a.include?("HABTM")}.each do |model| %>
 			<% if !model.constantize.hidden?(@current_user) %><li id="<%= is_active(model.pluralize.downcase) %>"><%= link_to model, model.constantize %></li><% end %>
 			<% end %>
 			<li id="active_user"><%= link_to @current_user.nil? ? "No User" : @current_user.username, "#" %></li>

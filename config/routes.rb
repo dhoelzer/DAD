@@ -26,8 +26,6 @@ Events::Application.routes.draw do
   
   resources :sessions
   # Imported from previous project ^^^
-  
-  resources :display_fields
 
   resources :displays
 

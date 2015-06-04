@@ -36,7 +36,8 @@ end
 
 def purge_logs
   # Purge logs older than 1 day ago from now.
-  system("cd ../ProcessedLogs;find . -mtime 1 | xargs rm -Rf")
+  system("cd ../ProcessedLogs;find . -mtime +1 | xargs rm -Rf")
+  # -mtime +1 means modified more than 1 day ago.
 end
 
 Dir.chdir("Logs/LogsToProcess")

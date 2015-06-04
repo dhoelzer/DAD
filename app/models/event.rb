@@ -5,7 +5,7 @@ class Event < ActiveRecord::Base
   belongs_to :system
   belongs_to :service
 
-  BULK_INSERT_SIZE=(Rails.env.development? ? 1 : 2000)
+  BULK_INSERT_SIZE=((Rails.env.development? || Rails.env.test?) ? 1 : 2000)
   @@nextEventID = -1
   @@nextPositionID = -1
   @@pendingEventValues = Array.new
@@ -22,7 +22,7 @@ class Event < ActiveRecord::Base
   end
   
   def display_helper
-    @display_helper = @display_helper.nil? ? Display.helper_for_event(self.event_fields) : @display_helper
+    @display_helper = @display_helper.nil? ? Display.helper_for_event(self.inspect) : @display_helper
     puts "Helper: #{@display_helper}"
     @display_helper
   end
@@ -34,12 +34,8 @@ class Event < ActiveRecord::Base
   def parsed
     @display_helper = self.display_helper
     return "BAD DISPLAY FILTER" if @display_helper.nil?
-    @event_fields = self.event_fields
-    string = ""
-    @display_helper.display_fields.order(:order).each do | field |
-      string = "#{string} #{field.title}: #{@event_fields[field.field_position]}"
-    end
-    return string
+    eval @display_helper.display_script
+    parse_event(self.inspect)
   end
   
   def event_fields
@@ -164,7 +160,6 @@ class Event < ActiveRecord::Base
     txtservice = split_text[5]
     txtservice = txtservice.tr("^a-zA-Z\-_/","")
     service = Service.find_or_add(txtservice)
-
     if @@nextEventID == -1 then
       if Event.all.count == 0 then
         @@nextEventID = 1
