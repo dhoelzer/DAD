@@ -18,6 +18,8 @@ group :development, :test do
 
 end
 
+gem 'mail'
+
 gem 'httparty'   # For JSON requests for the IP Address blocking service.
 
 gem 'codemirror-rails'
