@@ -30,7 +30,7 @@ if ! [ -L /home/vagrant/DAD ]; then
   ln -fs /vagrant /home/vagrant/DAD
 fi
 
-cd /var/DAD && bundle install
+export RAILS_ENV=production && cd /var/DAD && bundle install
 sudo apt-get install -y libapache2-mod-passenger
 sudo a2enmod passenger
 sudo apache2ctl stop
