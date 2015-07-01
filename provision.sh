@@ -87,6 +87,9 @@ sudo apache2ctl start
 export RAILS_ENV=production && cd /var/DAD && rake db:migrate
 export RAILS_ENV=production && cd /var/DAD && rake db:seed
 export RAILS_ENV=production && cd /var/DAD && perl syslog.pl &
+echo Redirecting local logs and restarting rsyslog.
+echo "*.*	127.0.0.1" >> /etc/rsyslog.conf
+/etc/init.d/rsyslog restart
 export RAILS_ENV=production && cd /var/DAD && ruby import_syslog.rb > /tmp/import.log &
 export RAILS_ENV=production && cd /var/DAD && ruby scheduler.rb > /tmp/schedule.log &
 cat << EOF3
