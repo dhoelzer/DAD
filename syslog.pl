@@ -5,6 +5,7 @@ use POSIX;
 
 my $buf;
 my $Filename, $RotateTime = 0;
+my $DEBUG = 0;
 
 $LOGSTAGING="/var/DAD/Logs/LogStaging";
 $LOGPROCESSING="/var/DAD/Logs/LogsToProcess";
@@ -26,6 +27,7 @@ sub logit{
 	&RotateLog;
 	chomp($message);
 	print LOG "$host $message\n";
+	if($DEBUG) { print "$host $message\n" }
 }
 
 sub RotateLog
