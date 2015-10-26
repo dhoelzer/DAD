@@ -20,7 +20,7 @@ def process_logs
           puts "Error processing #{log}!"
           puts e
           Event.performPendingInserts
-          exit
+          #exit
         end
       end
       file.close
