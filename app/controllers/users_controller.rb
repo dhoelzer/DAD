@@ -14,7 +14,7 @@ class UsersController < ApplicationController
     redirect_to logon_users_path
     return false
   end
-  
+
   # GET /users
   # GET /users.json
   def index
@@ -35,7 +35,7 @@ class UsersController < ApplicationController
   def role_add
     @user = User.find(params[:id])
     @role = Role.find(params[:role])
-    
+
     if not @user.has_role?(@role)
       @user.roles << @role
       flash[:notice] = "Role successfully added to user."
@@ -49,7 +49,7 @@ class UsersController < ApplicationController
   def role_remove
     @user = User.find(params[:id])
     @role = Role.find(params[:role])
-    
+
     if @user.has_role?(@role)
       @user.roles = @user.roles - [@role]
       flash[:notice] = "Role successfully removed from user."
@@ -86,7 +86,7 @@ class UsersController < ApplicationController
         @session.session_hash = generate_session_id
       end
       @session.user = @user
-      @session.save
+      puts @session.save
       if Rails.env == "development" then
         cookies[:sessionID] = { value: @session.session_hash, httponly: true, secure: false, expires: Time.now+3600 }
       else
@@ -100,11 +100,13 @@ class UsersController < ApplicationController
         @user.last_attempt = Time.now
         @user.save
         flash[:notice] = "Account Locked!" if(@user.attempts > 3)
+        redirect_to "/"
+        return false
       end 
     end
     redirect_to "/"
   end
-  
+
   def logoff
     if !@current_user.nil? && !@current_user.session.nil?
       session = @current_user.session
@@ -114,12 +116,12 @@ class UsersController < ApplicationController
     @current_user = nil
     redirect_to "/"
   end
-  
+
   # GET /users/logon
   def logon
     @logon = User.new
   end
-  
+
   # GET /users/new
   def new
     @user = User.new
@@ -170,25 +172,25 @@ class UsersController < ApplicationController
   end
 
   private
-  
-    def generate_session_id
-      length = 64
-      field = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-      field = field + field.downcase
-      field = field + "0123456789"
-      field = field.split(//)
-      i=length
-      random_id = ""
-      i.downto(1) { random_id = random_id + field[rand(10000)%field.count] }
-      return random_id
-    end
-    # Use callbacks to share common setup or constraints between actions.
-    def set_user
-      @user = User.find(params[:id])
-    end
 
-    # Never trust parameters from the scary internet, only allow the white list through.
-    def user_params
-      params.require(:user).permit(:username, :password, :first, :last, :lastlogon)
-    end
+  def generate_session_id
+    length = 64
+    field = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    field = field + field.downcase
+    field = field + "0123456789"
+    field = field.split(//)
+    i=length
+    random_id = ""
+    i.downto(1) { random_id = random_id + field[rand(10000)%field.count] }
+    return random_id
+  end
+  # Use callbacks to share common setup or constraints between actions.
+  def set_user
+    @user = User.find(params[:id])
+  end
+
+  # Never trust parameters from the scary internet, only allow the white list through.
+  def user_params
+    params.require(:user).permit(:username, :password, :first, :last, :lastlogon)
+  end
 end
