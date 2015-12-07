@@ -71,11 +71,13 @@ class UsersController < ApplicationController
       @user.save
     end
     if(@user && @user.attempts > 3) then
+      puts ">>> User locked out"
       flash[:notice] = "Account Locked!"
       redirect_to "/"
       return false
     end
     if (@user && @user.password == @password) then
+      puts ">>> User logged on"
       @user.attempts = 0
       @user.save
       Session.where(:user_id => @user.id).each { |session| session.destroy }
@@ -93,6 +95,7 @@ class UsersController < ApplicationController
         cookies[:sessionID] = { value: @session.session_hash, httponly: true, secure: true, expires: Time.now+3600 }
       end
     else
+      puts ">>> Logon failed for #{@username}"
       flash[:notice] = "Logon Failed!"
       if (@user) then
         @user.attempts = 0 unless @user.attempts
