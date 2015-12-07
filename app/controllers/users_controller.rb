@@ -78,7 +78,7 @@ class UsersController < ApplicationController
     if (@user && @user.password == @password) then
       @user.attempts = 0
       @user.save
-      Sesssion.find_by_user_id(@user.id).each { |session| session.destroy }
+      Sesssion.where(:user_id => @user.id).each { |session| session.destroy }
       @session = Session.new()
       @session.user_id = @user.id
       @session.expiry = Time.now + 1.hour
