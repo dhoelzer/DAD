@@ -78,6 +78,7 @@ class UsersController < ApplicationController
     if (@user && @user.password == @password) then
       @user.attempts = 0
       @user.save
+      Sesssion.find_by_user_id(@user.id).each { |session| session.destroy }
       @session = Session.new()
       @session.user_id = @user.id
       @session.expiry = Time.now + 1.hour
@@ -86,7 +87,6 @@ class UsersController < ApplicationController
         @session.session_hash = generate_session_id
       end
       @session.user = @user
-      puts @session.save
       if Rails.env == "development" then
         cookies[:sessionID] = { value: @session.session_hash, httponly: true, secure: false, expires: Time.now+3600 }
       else
