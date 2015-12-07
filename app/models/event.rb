@@ -160,7 +160,7 @@ class Event < ActiveRecord::Base
     txtservice = split_text[5]
     txtservice = txtservice.tr("^a-zA-Z\-_/","")
     service = Service.find_or_add(txtservice)
-    puts("#{@@nextEventID}: #{txttimestamp} #{txtsystem}(#{system.id}) #{txtservice}(#{service.id})")
+    #puts("#{@@nextEventID}: #{txttimestamp} #{txtsystem}(#{system.id}) #{txtservice}(#{service.id})")
     if @@nextEventID == -1 then
       if Event.all.count == 0 then
         @@nextEventID = 1
