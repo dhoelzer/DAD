@@ -89,6 +89,7 @@ class UsersController < ApplicationController
         @session.session_hash = generate_session_id
       end
       @session.user = @user
+      @session.save
       if Rails.env == "development" then
         cookies[:sessionID] = { value: @session.session_hash, httponly: true, secure: false, expires: Time.now+3600 }
       else
