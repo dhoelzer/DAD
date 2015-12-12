@@ -14,6 +14,7 @@ class Event < ActiveRecord::Base
   @@start_time = Time.now
   @display_helper = nil       # Using lazy initialization but still using instance vars so that we
   @event_fields = nil         # instantiate lazily but still only do one SQL query per event
+  @@current_year = Time.new.year
   
   def self.hidden?(current_user = nil)
     return true if current_user.nil?
@@ -154,7 +155,7 @@ class Event < ActiveRecord::Base
     else
       txttimestamp = split_text[1..3].join(' ')
       begin
-        timestamp = (split_text[1] == "Dec" ? DateTime.parse("#{txttimestamp} 2015 GMT") : DateTime.parse("#{txttimestamp} 2016 GMT"))
+        timestamp = DateTime.parse("#{txttimestamp} #{@@current_year} GMT")
       rescue Exception => e
         puts "#{e}: #{eventString}"
         return
@@ -223,5 +224,6 @@ class Event < ActiveRecord::Base
     @@pendingEventValues = []
     @@pendingPositionValues = []
     @@events_words = []
+    @@current_year = Time.new.year
   end
 end
