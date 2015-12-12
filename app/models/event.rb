@@ -132,6 +132,9 @@ class Event < ActiveRecord::Base
   end    
 
   def self.storeEvent(eventString)
+    # This next line is to seek and destroy invalid UTF-8 byte sequences.  They seem to show up in some
+    # logs sometimes in URLs.
+    eventString = eventString.encode('UTF-8', :invalid => :replace)
     split_text = eventString.split(/\s+/)
     if split_text.count < 6 then
       puts "Invalid for syslog format: Too few fields -> #{eventString}"
@@ -151,7 +154,7 @@ class Event < ActiveRecord::Base
     else
       txttimestamp = split_text[1..3].join(' ')
       begin
-        timestamp = (split_text[1] == "Dec" ? DateTime.parse("#{txttimestamp} 2014 GMT") : DateTime.parse("#{txttimestamp} 2015 GMT"))
+        timestamp = (split_text[1] == "Dec" ? DateTime.parse("#{txttimestamp} 2015 GMT") : DateTime.parse("#{txttimestamp} 2016 GMT"))
       rescue Exception => e
         puts "#{e}: #{eventString}"
         return
