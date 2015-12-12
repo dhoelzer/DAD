@@ -15,7 +15,7 @@ class System < ActiveRecord::Base
     counts = Event.where("generated > ?", (Time.now()-(hours * 3600)).to_s(:db)).group(:system_id).count
     results = Array.new
     counts.each do |system_id, count|
-      results = results + System.find(system_id) unless count <= 0
+      results << System.find(system_id) unless count <= 0
     end
     return results
   end
