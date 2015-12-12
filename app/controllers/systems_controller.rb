@@ -17,8 +17,7 @@ class SystemsController < ApplicationController
   # GET /systems.json
   def index
     #@systems = System.order(name: :asc).all
-    @reportingInLast24 = System.reportingInLastDays(1)
-    @systems = @reportingInLast24
+    @systems = System.with_events_within_hours(24)
     respond_to do |format|
       format.html
       format.js {render layout: false}

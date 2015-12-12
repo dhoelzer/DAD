@@ -11,6 +11,15 @@ class System < ActiveRecord::Base
     return false
   end
   
+  def self.with_events_within_hours(hours=1)
+    counts = Event.where("generated > ?", (Time.now()-(hours * 3600)).to_s(:db)).group(:system_id).count
+    results = Hash.new
+    counts.each do |system_id, count|
+      results = results + System.find(system_id) unless count <= 0
+    end
+    return results
+  end
+  
   def self.reportingInLastDays(days)
     connection = ActiveRecord::Base.connection
     events_since = (Time.now - (days * 86400))

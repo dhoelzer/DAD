@@ -8,8 +8,8 @@
 		</tr>
 	</thead>
 	<% reporting = Hash.new %>
-	<% @reportingInLast24.each do |system| %>
-	  <% reporting[system[0].to_i]=system[2] %>
+	<% @systems.each do |system| %>
+	  <% reporting[system.id]=system.events.where("generated > NOW()-86400").count %>
 	<% end %>
 <table>
   <thead>
