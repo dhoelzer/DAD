@@ -1,25 +1,21 @@
-<table>
-  <thead>
-    <tr>
-      <th>Generated</th>		
-      <th>System</th>
-      <th>Service</th>
-	  <th></th>
-	  <th></th>
-	  <th>Comments?</th>
-      <th></th>
-    </tr>
-  </thead>
+<div id="alerts">
+	<div id="alerts-header">
+      <div>Generated</div>		
+      <div>System</div>
+      <div>Service</div>
+	  <div></div>
+	  <div></div>
+	  <div>Comments?</div>
+      <div></div>
+	</div>
 
-  <tbody>
     <% @alerts.each do |alert| %>
-      <tr id='criticality-<%=alert.criticality%>'>
-		<td><%=raw timestamp_helper(alert.generated) %></td>
-        <td><%= alert.system.display_name unless alert.system.nil? %></td>
-        <td><%= alert.service.name unless alert.service.nil? %></td>
-        <td><%= link_to alert.short_description, alert %></td>
-        <td><%= link_to 'Ack', acknowledge_alert_path(alert), remote: true %></td><td><center><%= alert.comments.count < 1 ? "" : "*"%></center></td>
-      </tr>
+      <div id='criticality-<%=alert.criticality%>'>
+		<div><%=raw timestamp_helper(alert.generated) %></div>
+        <div><%= alert.system.display_name unless alert.system.nil? %></div>
+        <div><%= alert.service.name unless alert.service.nil? %></div>
+        <div><%= link_to alert.short_description, alert %></div>
+        <div><%= link_to 'Ack', acknowledge_alert_path(alert), remote: true %></div><div><%= alert.comments.count < 1 ? "" : "*"%></div>
+      </div>
     <% end %>
-  </tbody>
-</table>
+</div>
