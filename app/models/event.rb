@@ -24,7 +24,6 @@ class Event < ActiveRecord::Base
   
   def display_helper
     @display_helper = @display_helper.nil? ? Display.helper_for_event(self.inspect) : @display_helper
-    puts "Helper: #{@display_helper}"
     @display_helper
   end
   

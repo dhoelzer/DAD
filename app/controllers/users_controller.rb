@@ -65,19 +65,21 @@ class UsersController < ApplicationController
     @username = params[:user][:username]
     @password = params[:user][:password]
     @user = User.find_by_username(@username)
+    if(@user.nil?) then
+      redirect_to "/"
+      return false
+    end
     if(@user && @user.last_attempt && @user.last_attempt < Time.now - 300) then
       #Reset attempts after 5 minutes
       @user.attempts = 0
       @user.save
     end
     if(@user && @user.attempts > 3) then
-      puts ">>> User locked out"
       flash[:notice] = "Account Locked!"
       redirect_to "/"
       return false
     end
-    if (@user && @user.password == @password) then
-      puts ">>> User logged on"
+    if (@user.check_password(@password)) then
       @user.attempts = 0
       @user.save
       Session.where(:user_id => @user.id).each { |session| session.destroy }
@@ -96,7 +98,6 @@ class UsersController < ApplicationController
         cookies[:sessionID] = { value: @session.session_hash, httponly: true, secure: true, expires: Time.now+3600 }
       end
     else
-      puts ">>> Logon failed for #{@username}"
       flash[:notice] = "Logon Failed!"
       if (@user) then
         @user.attempts = 0 unless @user.attempts
@@ -109,6 +110,7 @@ class UsersController < ApplicationController
       end 
     end
     redirect_to "/"
+    return true
   end
 
   def logoff
@@ -140,6 +142,7 @@ class UsersController < ApplicationController
   def create
     @user = User.new(user_params)
     @user.attempts = 0
+    @user.store_password(@user.password)
     respond_to do |format|
       if @user.save
         format.html { redirect_to @user, notice: 'User was successfully created.' }
