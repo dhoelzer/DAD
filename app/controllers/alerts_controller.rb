@@ -44,10 +44,9 @@ class AlertsController < ApplicationController
   end
   
   def ackall
-    comments = params[:comments].nil? ? false : true
-    alerts=Alert.where(:closed => false).include(:comments)
+    alerts=Alert.where(:closed => false)
     alerts.each do |alert|
-      alert.closed = true unless (comments && alert.comments.count == 0)  # Began adding ack all without comments.
+      alert.closed = true unless
       alert.save
     end
     @alerts = Alert.where(:closed => false).order("criticality DESC").order(:generated)    
