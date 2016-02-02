@@ -46,7 +46,7 @@ class AlertsController < ApplicationController
   def ackall
     alerts=Alert.where(:closed => false)
     alerts.each do |alert|
-      alert.closed = true unless
+      alert.closed = true
       alert.save
     end
     @alerts = Alert.where(:closed => false).order("criticality DESC").order(:generated)    
