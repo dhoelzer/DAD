@@ -10,12 +10,12 @@
 
     <% @alerts.each do |alert| %>
       <div id='criticality-<%=alert.criticality%>'>
-		<div id='alert-time'><%=raw timestamp_helper(alert.generated) %></div>
-        <div id='alert-system'><%= alert.system.display_name unless alert.system.nil? %></div>
-        <div id='alert-system'><%= alert.service.name unless alert.service.nil? %></div>
-        <div id='alert-desc'><%= link_to alert.short_description, alert %></div>
-        <div id='alert-ack'><%= link_to 'Ack', acknowledge_alert_path(alert), remote: true %></div>
-		<div id='alert-ack'><%= alert.comments.count < 1 ? "" : "*"%></div>
+		<div id='alert-time'><%=raw timestamp_helper(alert.generated) %> </div>
+        <div id='alert-system'><%= alert.system.display_name unless alert.system.nil? %> </div>
+        <div id='alert-system'><%= alert.service.name unless alert.service.nil? %> </div>
+        <div id='alert-desc'><%= link_to alert.short_description, alert %> </div>
+        <div id='alert-ack'><%= link_to 'Ack', acknowledge_alert_path(alert), remote: true %> </div>
+		<div id='alert-ack'><%= alert.comments.count < 1 ? "" : "*"%> </div>
       </div>
     <% end %>
 </div>
