@@ -7,7 +7,7 @@
 #   Mayor.create(name: 'Emanuel', city: cities.first)
 user=User.new
 user.username="admin"
-user.password="Password1"
+user.password="3960$21b2c59f31f72fe2a8d69c6f799597b1e9b1801d0d51facecb86373e7310988b" # Password1
 user.attempts = 0
 user.save
 right=Right.new
