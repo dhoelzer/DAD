@@ -72,6 +72,10 @@ html, body{
 	background-color: #ff5050;
 }
 
+#alerts {
+	padding: 1em;
+	float:right;
+}
 #comments {
 	float:right;
 	width:30%;

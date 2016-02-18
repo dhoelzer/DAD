@@ -11,6 +11,9 @@ class Word < ActiveRecord::Base
   end
   
   def self.find_or_add(new_word)
+    # Since we're using STRING fields, we must limit them to 255 characters each.  We lose some
+    # fidelity here.
+    new_word = new_word[0...(255-3)] + "..." if new_word.length > 255
     if @@cached_words.has_key?(new_word) then
       @@cached_words[new_word][:last] = Time.now
       @cache_hits += 1
