@@ -1,21 +1,21 @@
 <div id="alerts">
 	<div id="alerts-header">
-      <div>Generated</div>		
-      <div>System</div>
-      <div>Service</div>
-	  <div></div>
-	  <div></div>
-	  <div>Comments?</div>
-      <div></div>
+      <div id='alert-time'>Generated</div>		
+      <div id='alert-system'>System</div>
+      <div id='alert-system'>Service</div>
+	  <div id='alert-desc'>Description</div>
+	  <div id='alert-ack'></div>
+	  <div id='alert-ack'>Comments?</div>
 	</div>
 
     <% @alerts.each do |alert| %>
       <div id='criticality-<%=alert.criticality%>'>
-		<div><%=raw timestamp_helper(alert.generated) %></div>
-        <div><%= alert.system.display_name unless alert.system.nil? %></div>
-        <div><%= alert.service.name unless alert.service.nil? %></div>
-        <div><%= link_to alert.short_description, alert %></div>
-        <div><%= link_to 'Ack', acknowledge_alert_path(alert), remote: true %></div><div><%= alert.comments.count < 1 ? "" : "*"%></div>
+		<div id='alert-time'><%=raw timestamp_helper(alert.generated) %>&nbsp;</div>
+        <div id='alert-system'><%= alert.system.display_name unless alert.system.nil? %>&nbsp;</div>
+        <div id='alert-system'><%= alert.service.name unless alert.service.nil? %>&nbsp;</div>
+        <div id='alert-desc'><%= link_to alert.short_description, alert %>&nbsp;</div>
+        <div id='alert-ack'><%= link_to 'Ack', acknowledge_alert_path(alert), remote: true %>&nbsp;</div>
+		<div id='alert-ack'><%= alert.comments.count < 1 ? "" : "*"%>&nbsp;</div>
       </div>
     <% end %>
 </div>

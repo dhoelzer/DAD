@@ -54,22 +54,63 @@ html, body{
 
 #criticality-1 {
 	background-color: #90ff90;
+	display: table-row;
 }
 
 #criticality-2 {
 	background-color: #50b050;
+	display: table-row;
 }
 
 #criticality-3 {
 	background-color: #ffff90;
+	display: table-row;
 }
 
 #criticality-4 {
 	background-color: #ff9020;
+	display: table-row;
 }
 
 #criticality-5 {
 	background-color: #ff5050;
+	display: table-row;
+}
+
+#alerts {
+	padding: 1em;
+	display: table;
+	width: auto;
+}
+
+#alerts-header {
+	display: table-row;
+	width: auto;
+}
+#alert-detail {
+	display:table-column;
+	float:left;
+	width:auto;
+}
+#alert-time {
+	display:table-column;
+	float:left;
+	width:200px;
+}
+#alert-system {
+	display:table-column;
+	float:left;
+	width:200px;
+}
+#alert-desc {
+	display:table-column;
+	float:left;
+	width:700px;
+}
+#alert-ack {
+	display:table-column;
+	float:left;
+	width:40px;
 }
 
 #alerts {
