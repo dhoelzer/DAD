@@ -47,6 +47,12 @@ class Event < ActiveRecord::Base
     @event_fields
   end
   
+  def reconstitute
+		self.positions.order(:position).each do |position|
+      string = "#{position.word.text}"
+    end
+    return string
+  end
   
   def inspect
     string = "#{self.system.display_name}|#{self.generated}|"
