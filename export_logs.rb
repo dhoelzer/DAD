@@ -5,5 +5,5 @@ count = 0
 Event.find_each do |event| 
   count = count + 1
   puts event.reconstitute
-  puts "#{ActiveSupport::NumberHelper.number_to_delimited(count)} exported..." if count % 100000 == 0
+  STDERR.puts "#{ActiveSupport::NumberHelper.number_to_delimited(count)} exported..." if count % 100000 == 0
 end
