@@ -48,8 +48,9 @@ class Event < ActiveRecord::Base
   end
   
   def reconstitute
+    string = ""
 		self.positions.order(:position).each do |position|
-      string = "#{position.word.text}"
+      string = string + "#{position.word.text} "
     end
     return string
   end
