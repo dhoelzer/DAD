@@ -19,7 +19,7 @@ test: &test
     timeout: 5000
 
 production:
-  adapter: mysql2
+  adapter: postgresql
   encoding: utf8
   database: events_prod
   username: rails

@@ -3,8 +3,10 @@ source 'https://rubygems.org'
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
 gem 'rails', '> 4'
 
-# MariaDB is now required in production.
-gem 'mysql2'
+# Moving back to postgresql
+group :production do
+  gem 'pg'
+end
 
 group :development, :test do
   gem 'sqlite3'
