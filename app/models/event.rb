@@ -150,12 +150,14 @@ class Event < ActiveRecord::Base
 #    eventString.gsub!(/([^a-zA-Z0-9 \-:_@\*\/.])/," \\1 " ) # Stripping out characters to reduce positions
     eventString.gsub!(/([^a-zA-Z0-9 \-:_@\*\/.])/," " )
     split_text = eventString.split(/\s+/)
-    if split_text.count < 6 then
+    if split_text.count < 5 then
       puts "Invalid for syslog format: Too few fields -> #{eventString}"
       return
     end
     return unless split_text.size > 1 # If there's no date and only an IP then it's not a valid message.
-    if split_text[3].to_i > 2014 && split_text[3].to_i < 2020 then
+    if split_text[1] =~ /20[0-9][0-9]-[0-1][0-9]-[0-3][0-9]t[0-9][0-9]:[0-9][0-9]:[0-9][0-9]\.[0-9][0-9][0-9]z/ then
+      timestamp = DateTime.parse("#{split_text[1]}")
+    elsif split_text[3].to_i > 2014 && split_text[3].to_i < 2020 then
       txttimestamp = split_text[1..4].join(' ')
       begin
         timestamp = DateTime.parse("#{txttimestamp} GMT")
