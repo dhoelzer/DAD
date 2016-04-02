@@ -226,9 +226,9 @@ class Event < ActiveRecord::Base
     puts "\t\t-->> Started run: #{@@start_time}\t#{elapsed_time} seconds elapsed\t#{eventsPerSecond} events processed per second."
     Statistic.logEventsPerSecond(eventsPerSecond)
     @@start_time = Time.now
-    @@pendingEventValues = []
-    @@pendingPositionValues = []
-    @@events_words = []
+    @@pendingEventValues = Set.new
+    @@pendingPositionValues = Set.new
+    @@events_words = Set.new
     @@current_year = Time.new.year
   end
 end
