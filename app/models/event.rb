@@ -180,7 +180,7 @@ class Event < ActiveRecord::Base
         @@nextPositionID = Position.order(id: :desc).limit(1)[0].id + 1 if @@nextPositionID == -1
       end
     end
-    @@pendingEventValues.push "(#{@@nextEventID}, #{system.id}, #{service.id}, '#{timestamp.to_s(:db)}', '#{Time.now.to_s(:db)}')"
+    @@pendingEventValues.add "(#{@@nextEventID}, #{system.id}, #{service.id}, '#{timestamp.to_s(:db)}', '#{Time.now.to_s(:db)}')"
     #    event = Event.create(:system_id => system.id, :service_id => service.id, :generated => timestamp, :stored => Time.now)
     #    return nil if event.nil?
 
