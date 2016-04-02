@@ -187,12 +187,11 @@ class Event < ActiveRecord::Base
     eventString.downcase!
     eventString.tr!("\r\n", "")
     eventString.gsub!(/([^a-zA-Z0-9 \-:_@\*\/.])/," \\1 " )
-    words = eventString.split(/\s+/)
+#    words = eventString.split(/\s+/) # This seems like a redundant split..
     current_position = 0                  # Track which position we are at within the event
     word_ids = Array.new()
-    words.each do |word|
+    split_text.each do |word| # changed from words.. I think we already have this.
       dbWord = Word.find_or_add(word)
-
       @@pendingPositionValues.push "(#{@@nextPositionID}, #{dbWord}, #{current_position}, #{@@nextEventID})"
       # Only add a mapping for this event/word if there isn't already one - deduplicate events_words.
       @@events_words.push "(#{@@nextEventID}, #{dbWord}, '#{timestamp.to_s(:db)}')" unless word_ids.include?(dbWord)

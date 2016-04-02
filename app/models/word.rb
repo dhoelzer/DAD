@@ -5,7 +5,7 @@ class Word < ActiveRecord::Base
   @added = 0
   @cache_hits = 0
   @@num_cached = 0
-  CACHESIZE=10000
+  CACHESIZE=8000
   
   def self.hidden?(current_user = nil)
     return true
