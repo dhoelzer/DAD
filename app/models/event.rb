@@ -5,12 +5,12 @@ class Event < ActiveRecord::Base
   belongs_to :system
   belongs_to :service
 
-  BULK_INSERT_SIZE=((Rails.env.development? || Rails.env.test?) ? 1 : 2000)
+  BULK_INSERT_SIZE=((Rails.env.development? || Rails.env.test?) ? 1 : 4000)
   @@nextEventID = -1
   @@nextPositionID = -1
-  @@pendingEventValues = Array.new
-  @@pendingPositionValues = Array.new
-  @@events_words = Array.new
+  @@pendingEventValues = Set.new
+  @@pendingPositionValues = Set.new
+  @@events_words = Set.new
   @@start_time = Time.now
   @display_helper = nil       # Using lazy initialization but still using instance vars so that we
   @event_fields = nil         # instantiate lazily but still only do one SQL query per event
@@ -189,7 +189,7 @@ class Event < ActiveRecord::Base
     eventString.gsub!(/([^a-zA-Z0-9 \-:_@\*\/.])/," \\1 " )
 #    words = eventString.split(/\s+/) # This seems like a redundant split..
     current_position = 0                  # Track which position we are at within the event
-    word_ids = Array.new()
+    word_ids = Set.new()
     split_text.each do |word| # changed from words.. I think we already have this.
       dbWord = Word.find_or_add(word)
       @@pendingPositionValues.push "(#{@@nextPositionID}, #{dbWord}, #{current_position}, #{@@nextEventID})"
