@@ -156,7 +156,7 @@ class Event < ActiveRecord::Base
     eventString.downcase!
     eventString.tr!("\r\n", "")
 #    eventString.gsub!(/([^a-zA-Z0-9 \-:_@\*\/.])/," \\1 " ) # Stripping out characters to reduce positions
-    eventString.gsub!(/([^a-zA-Z0-9 \-:_@\*\/.])/," " )
+    eventString.gsub!(/([^a-zA-Z0-9 \-_@\*\/.])/," " )
     split_text = eventString.split(/\s+/)
     if split_text.count < 5 then
       puts "Invalid for syslog format: Too few fields -> #{eventString}"
