@@ -226,9 +226,9 @@ class Event < ActiveRecord::Base
     eventsPerSecond = @@pendingEventValues.count/elapsed_time
     puts "\t\t-->> Started run: #{@@start_time}\t#{elapsed_time} seconds elapsed\t#{eventsPerSecond} events processed per second."
     if @inserted_last_run > eventsPerSecond then
-      @bulk_insert_size += 20
-    else
       @bulk_insert_size = (@bulk_insert_size > 20 ? @bulk_insert_size - 20 : 20)
+    else
+      @bulk_insert_size += 20
     end
     @inserted_last_run = eventsPerSecond
     Statistic.logEventsPerSecond(eventsPerSecond)
