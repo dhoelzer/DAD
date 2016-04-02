@@ -5,7 +5,8 @@ class Event < ActiveRecord::Base
   belongs_to :system
   belongs_to :service
 
-  BULK_INSERT_SIZE=((Rails.env.development? || Rails.env.test?) ? 1 : 2000)
+  @bulk_insert_size=((Rails.env.development? || Rails.env.test?) ? 1 : 2000)
+  @inserted_last_run = 100
   @@nextEventID = -1
   @@nextPositionID = -1
   @@pendingEventValues = Set.new
@@ -201,7 +202,7 @@ class Event < ActiveRecord::Base
       current_position += 1
     end
     @@nextEventID += 1
-    self.performPendingInserts if @@pendingEventValues.count >= BULK_INSERT_SIZE
+    self.performPendingInserts if @@pendingEventValues.count >= @bulk_insert_size
   end
 
   def self.performPendingInserts
@@ -224,6 +225,12 @@ class Event < ActiveRecord::Base
     elapsed_time = (Time.now - @@start_time)
     eventsPerSecond = @@pendingEventValues.count/elapsed_time
     puts "\t\t-->> Started run: #{@@start_time}\t#{elapsed_time} seconds elapsed\t#{eventsPerSecond} events processed per second."
+    if @inserted_last_run > eventsPerSecond then
+      @bulk_insert_size += 20
+    else
+      @bulk_insert_size = (@bulk_insert_size > 20 ? @bulk_insert_size - 20 : 20)
+    end
+    @inserted_last_run = eventsPerSecond
     Statistic.logEventsPerSecond(eventsPerSecond)
     @@start_time = Time.now
     @@pendingEventValues = Set.new
