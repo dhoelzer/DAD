@@ -46,7 +46,7 @@ class Word < ActiveRecord::Base
     @@cached_words = @@cached_words.select{|k,v| v[:last] > prune_time }
     pruned_count = CACHESIZE - @@cached_words.keys.count
     puts "\t+++ Pruned approximately #{pruned_count}."
-    if pruned_count > (CACHESIZE / 2) then
+    if pruned_count > (CACHESIZE / 3) then
       @@cachelifetime += 1
       puts "\t+++ Cache lifetime increased to #{@@cachelifetime}."
     else 

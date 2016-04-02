@@ -5,7 +5,7 @@ class Event < ActiveRecord::Base
   belongs_to :system
   belongs_to :service
 
-  BULK_INSERT_SIZE=((Rails.env.development? || Rails.env.test?) ? 1 : 3000)
+  BULK_INSERT_SIZE=((Rails.env.development? || Rails.env.test?) ? 1 : 2000)
   @@nextEventID = -1
   @@nextPositionID = -1
   @@pendingEventValues = Array.new
