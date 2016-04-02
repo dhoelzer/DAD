@@ -145,6 +145,9 @@ class Event < ActiveRecord::Base
     # This next line is to seek and destroy invalid UTF-8 byte sequences.  They seem to show up in some
     # logs sometimes in URLs.
     eventString = eventString.encode('UTF-8', :invalid => :replace)
+    eventString.downcase!
+    eventString.tr!("\r\n", "")
+    eventString.gsub!(/([^a-zA-Z0-9 \-:_@\*\/.])/," \\1 " )
     split_text = eventString.split(/\s+/)
     if split_text.count < 6 then
       puts "Invalid for syslog format: Too few fields -> #{eventString}"
@@ -197,9 +200,6 @@ class Event < ActiveRecord::Base
     #    event = Event.create(:system_id => system.id, :service_id => service.id, :generated => timestamp, :stored => Time.now)
     #    return nil if event.nil?
 
-    eventString.downcase!
-    eventString.tr!("\r\n", "")
-    eventString.gsub!(/([^a-zA-Z0-9 \-:_@\*\/.])/," \\1 " )
 #    words = eventString.split(/\s+/) # This seems like a redundant split..
     current_position = 0                  # Track which position we are at within the event
     word_ids = Set.new()
