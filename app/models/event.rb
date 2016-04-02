@@ -150,14 +150,7 @@ class Event < ActiveRecord::Base
       puts "Invalid for syslog format: Too few fields -> #{eventString}"
       return
     end
-    txtsystem = split_text[0]
     return unless split_text.size > 1 # If there's no date and only an IP then it's not a valid message.
-    if @@system_cache.has_key?(txtsystem) then
-      system = @@system_cache[txtsystem]
-    else
-      system = System.find_or_add(txtsystem)
-      @@system_cache[txtsystem] = system
-    end
     if split_text[3].to_i > 2014 && split_text[3].to_i < 2020 then
       txttimestamp = split_text[1..4].join(' ')
       begin
@@ -174,6 +167,13 @@ class Event < ActiveRecord::Base
         puts "#{e}: #{eventString}"
         return
       end
+    end
+    txtsystem = split_text[0]
+    if @@system_cache.has_key?(txtsystem) then
+      system = @@system_cache[txtsystem]
+    else
+      system = System.find_or_add(txtsystem)
+      @@system_cache[txtsystem] = system
     end
     txtservice = split_text[5]
     txtservice = txtservice.tr("^a-zA-Z\-_/","")
