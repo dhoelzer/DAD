@@ -191,6 +191,10 @@ class Event < ActiveRecord::Base
       @@system_cache[txtsystem] = system
     end
     txtservice = split_text[service_offset]
+    if txtservice.nil? then
+      puts "Service empty: #{eventString}"
+      return
+    end
     txtservice = txtservice.tr("^a-zA-Z\-_/","")
     if @@service_cache.has_key?(txtservice) then
       service = @@service_cache[txtservice]
