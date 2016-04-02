@@ -10,6 +10,8 @@ class Event < ActiveRecord::Base
   @@nextEventID = -1
   @@nextPositionID = -1
   @@pendingEventValues = Set.new
+  @@system_cache = Hash.new
+  @@service_cache = Hash.new
   @@pendingPositionValues = Set.new
   @@events_words = Set.new
   @@start_time = Time.now
@@ -150,7 +152,12 @@ class Event < ActiveRecord::Base
     end
     txtsystem = split_text[0]
     return unless split_text.size > 1 # If there's no date and only an IP then it's not a valid message.
-    system = System.find_or_add(txtsystem)
+    if @@system_cache.has_key?(txtsystem) then
+      system = @@system_cache[txtsystem]
+    else
+      system = System.find_or_add(txtsystem)
+      @@system_cache[txtsystem] = system
+    end
     if split_text[3].to_i > 2014 && split_text[3].to_i < 2020 then
       txttimestamp = split_text[1..4].join(' ')
       begin
@@ -170,7 +177,12 @@ class Event < ActiveRecord::Base
     end
     txtservice = split_text[5]
     txtservice = txtservice.tr("^a-zA-Z\-_/","")
-    service = Service.find_or_add(txtservice)
+    if @@service_cache.has_key?(txtservice) then
+      service = @@service_cache[txtservice]
+    else
+      service = Service.find_or_add(txtservice)
+      @@service_cache[txtservice] = service
+    end
     #puts("#{@@nextEventID}: #{txttimestamp} #{txtsystem}(#{system.id}) #{txtservice}(#{service.id})")
     if @@nextEventID == -1 then
       if Event.all.count == 0 then
