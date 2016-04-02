@@ -6,6 +6,13 @@ class Event < ActiveRecord::Base
   belongs_to :service
 
   @bulk_insert_size=((Rails.env.development? || Rails.env.test?) ? 1 : 2000)
+  @@cached_words = Hash.new
+  @added = 0
+  @cache_hits = 0
+  @@num_cached = 0
+  CACHESIZE=8000
+  @@cachelifetime=15
+  
   @inserted_last_run = 100
   @@nextEventID = -1
   @@nextPositionID = -1
@@ -209,7 +216,16 @@ class Event < ActiveRecord::Base
     current_position = 0                  # Track which position we are at within the event
     word_ids = Set.new()
     split_text.drop(service_offset+1).each do |word| # changed from words.. I think we already have this.
-      dbWord = Word.find_or_add(word)
+      if @@cached_words.has_key?(word) then
+        @@cached_words[word][:last] = Time.now
+        @cache_hits += 1
+        dbWord = @@cached_words[word][:id]
+      else
+        dbWord = Word.find_or_add(word)
+        @@num_cached += 1
+        @@cached_words[word] = {:id => dbWord, :last => Time.now}
+        self.prune_words if @@num_cached > CACHESIZE
+      end
       @@pendingPositionValues.add "(#{@@nextPositionID}, #{dbWord}, #{current_position}, #{@@nextEventID})"
       # Only add a mapping for this event/word if there isn't already one - deduplicate events_words.
       @@events_words.add "(#{@@nextEventID}, #{dbWord}, '#{timestamp.to_s(:db)}')" unless word_ids.include?(dbWord)
@@ -255,4 +271,22 @@ class Event < ActiveRecord::Base
     @@events_words = Set.new
     @@current_year = Time.new.year
   end
+  
+  def self.prune_words
+    current_time = Time.now
+    prune_time = current_time - @@cachelifetime
+    @@cached_words = @@cached_words.select{|k,v| v[:last] > prune_time }
+    pruned_count = CACHESIZE - @@cached_words.keys.count
+    puts "\t+++ Pruned approximately #{pruned_count}."
+    if pruned_count > (CACHESIZE / 3) then
+      @@cachelifetime += 1
+      puts "\t+++ Cache lifetime increased to #{@@cachelifetime}."
+    else 
+      @@cachelifetime -= 1
+      puts "\t+++ Cache lifetime decreased to #{@@cachelifetime}."
+    end
+    puts "\t+++ There have been #{@cache_hits} hits in the word cache."
+    @@num_cached = @@cached_words.keys.count
+  end
+  
 end
