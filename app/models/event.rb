@@ -192,10 +192,10 @@ class Event < ActiveRecord::Base
     word_ids = Set.new()
     split_text.each do |word| # changed from words.. I think we already have this.
       dbWord = Word.find_or_add(word)
-      @@pendingPositionValues.push "(#{@@nextPositionID}, #{dbWord}, #{current_position}, #{@@nextEventID})"
+      @@pendingPositionValues.add "(#{@@nextPositionID}, #{dbWord}, #{current_position}, #{@@nextEventID})"
       # Only add a mapping for this event/word if there isn't already one - deduplicate events_words.
-      @@events_words.push "(#{@@nextEventID}, #{dbWord}, '#{timestamp.to_s(:db)}')" unless word_ids.include?(dbWord)
-      word_ids.push(dbWord)
+      @@events_words.add "(#{@@nextEventID}, #{dbWord}, '#{timestamp.to_s(:db)}')" unless word_ids.include?(dbWord)
+      word_ids.add(dbWord)
       #      position = Position.create(:word_id => dbWord.id, :position => current_position, :event_id => event.id)
       @@nextPositionID += 1
       current_position += 1
