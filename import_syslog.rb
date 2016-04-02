@@ -16,11 +16,11 @@ def process_logs
         begin
           lines += 1
           Event.storeEvent(line)
-#        rescue Exception => e
- #         puts "Error processing #{log}!"
-  #        puts e
-   #       Event.performPendingInserts
-          #exit
+        rescue Exception => e
+          puts "Error processing #{log}!"
+          puts e
+          Event.performPendingInserts
+          exit
         end
       end
       file.close
