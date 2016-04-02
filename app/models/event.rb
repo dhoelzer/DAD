@@ -183,7 +183,7 @@ class Event < ActiveRecord::Base
       system = System.find_or_add(txtsystem)
       @@system_cache[txtsystem] = system
     end
-    txtservice = split_text[system_offset]
+    txtservice = split_text[service_offset]
     txtservice = txtservice.tr("^a-zA-Z\-_/","")
     if @@service_cache.has_key?(txtservice) then
       service = @@service_cache[txtservice]
