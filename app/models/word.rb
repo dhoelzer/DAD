@@ -5,7 +5,7 @@ class Word < ActiveRecord::Base
   @added = 0
   @cache_hits = 0
   @@num_cached = 0
-  CACHESIZE=5000
+  CACHESIZE=10000
   
   def self.hidden?(current_user = nil)
     return true
@@ -41,7 +41,7 @@ class Word < ActiveRecord::Base
   
   def self.prune_words
     current_time = Time.now
-    @@cached_words = @@cached_words.select{|k,v| v[:last] > current_time - 5 }
+    @@cached_words = @@cached_words.select{|k,v| v[:last] > current_time - 10 }
     puts "\t+++ Pruned approximately #{CACHESIZE - @@cached_words.keys.count}."
     puts "\t+++ There have been #{@cache_hits} hits in the word cache."
     @@num_cached = @@cached_words.keys.count
