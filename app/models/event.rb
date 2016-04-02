@@ -208,7 +208,7 @@ class Event < ActiveRecord::Base
 #    words = eventString.split(/\s+/) # This seems like a redundant split..
     current_position = 0                  # Track which position we are at within the event
     word_ids = Set.new()
-    split_text.each do |word| # changed from words.. I think we already have this.
+    split_text.drop(service_offset+1).each do |word| # changed from words.. I think we already have this.
       dbWord = Word.find_or_add(word)
       @@pendingPositionValues.add "(#{@@nextPositionID}, #{dbWord}, #{current_position}, #{@@nextEventID})"
       # Only add a mapping for this event/word if there isn't already one - deduplicate events_words.
