@@ -144,6 +144,7 @@ class Event < ActiveRecord::Base
   def self.storeEvent(eventString)
     # This next line is to seek and destroy invalid UTF-8 byte sequences.  They seem to show up in some
     # logs sometimes in URLs.
+    service_offset = 5
     eventString = eventString.encode('UTF-8', :invalid => :replace)
     eventString.downcase!
     eventString.tr!("\r\n", "")
@@ -157,6 +158,7 @@ class Event < ActiveRecord::Base
     return unless split_text.size > 1 # If there's no date and only an IP then it's not a valid message.
     if split_text[1] =~ /20[0-9][0-9]-[0-1][0-9]-[0-3][0-9]t[0-9][0-9]:[0-9][0-9]:[0-9][0-9]\.[0-9][0-9][0-9]z/ then
       timestamp = DateTime.parse("#{split_text[1]}")
+      service_offset = 3
     elsif split_text[3].to_i > 2014 && split_text[3].to_i < 2020 then
       txttimestamp = split_text[1..4].join(' ')
       begin
@@ -181,7 +183,7 @@ class Event < ActiveRecord::Base
       system = System.find_or_add(txtsystem)
       @@system_cache[txtsystem] = system
     end
-    txtservice = split_text[5]
+    txtservice = split_text[system_offset]
     txtservice = txtservice.tr("^a-zA-Z\-_/","")
     if @@service_cache.has_key?(txtservice) then
       service = @@service_cache[txtservice]
