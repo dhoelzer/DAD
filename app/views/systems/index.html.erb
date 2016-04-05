@@ -8,8 +8,9 @@
 		</tr>
 	</thead>
 	<% reporting = Hash.new %>
+	<% timestamp = Time.now - 86400.seconds %>
 	<% @systems.each do |system| %>
-	  <% reporting[system.id]=system.events.where("generated > NOW()-86400").count %>
+	  <% reporting[system.id]=system.events.where("generated > #{timestamp}").count %>
 	<% end %>
 <table>
   <thead>
