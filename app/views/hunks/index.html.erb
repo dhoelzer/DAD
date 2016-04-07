@@ -1,0 +1,27 @@
+<p id="notice"><%= notice %></p>
+
+<h1>Listing Hunks</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Text</th>
+      <th colspan="3"></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @hunks.each do |hunk| %>
+      <tr>
+        <td><%= hunk.text %></td>
+        <td><%= link_to 'Show', hunk %></td>
+        <td><%= link_to 'Edit', edit_hunk_path(hunk) %></td>
+        <td><%= link_to 'Destroy', hunk, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<br>
+
+<%= link_to 'New Hunk', new_hunk_path %>
