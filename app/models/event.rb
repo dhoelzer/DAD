@@ -18,6 +18,7 @@ class Event < ActiveRecord::Base
   @@pendingEventValues = Set.new
   @@system_cache = Hash.new
   @@service_cache = Hash.new
+  @@hunk_cache = Hash.new
   @@pendingPositionValues = Set.new
   @@events_words = Set.new
   @@start_time = Time.now
@@ -236,21 +237,33 @@ class Event < ActiveRecord::Base
       #current_position += 1
     end
     firststring = hunks.shift
-    hunk = Hunk.where(:text => firststring).first
-    if hunk.nil? then
-      hunk = Hunk.new()
-      hunk.text = firststring
-      hunk.save
-    end
-    hunkString = "#{hunk.id}"
-    hunks.each do |hunk|
-      existing = Hunk.where(:text => hunk).first
-      if existing.nil? then
-        existing = Hunk.new()
-        existing.text = hunk
-        existing.save
+    if @@hunk_cache.has_key?(firststring) then
+      hunk = @@hunk_cache[firststring][:id]
+    else
+      newhunk = Hunk.where(:text => firststring).first
+      if newhunk.nil? then
+        newhunk = Hunk.new()
+        newhunk.text = firststring
+        newhunk.save
       end
-      hunkString = "#{hunkString},#{existing.id}"
+      @@hunk_cache[firststring]= {:id => newhunk.id, :last => Time.now}
+      hunk = @@hunk_cache[firststring][:id]
+    end
+    hunkString = "#{hunk}"
+    hunks.each do |hunkstring|
+      if @@hunk_cache.has_key?(hunkstring) then
+        hunk = @@hunk_cache[hunkstring][:id]
+      else
+        newhunk = Hunk.where(:text => hunkstring).first
+        if newhunk.nil? then
+          newhunk = Hunk.new()
+          newhunk.text = hunkstring
+          newhunk.save
+        end
+        @@hunk_cache[hunkstring]= {:id => newhunk.id, :last => Time.now}
+        hunk = @@hunk_cache[firststring][:id]
+      end
+      hunkString = "#{hunkString},#{hunk}"
     end
     @@pendingEventValues.add "(#{@@nextEventID}, #{system.id}, #{service.id}, '#{timestamp.to_s(:db)}', '#{Time.now.to_s(:db)}', '#{hunkString}')"
     #    event = Event.create(:system_id => system.id, :service_id => service.id, :generated => timestamp, :stored => Time.now)
@@ -291,6 +304,14 @@ class Event < ActiveRecord::Base
     #@@pendingPositionValues = Set.new
     @@events_words = Set.new
     @@current_year = Time.new.year
+    self.prune_hunk_cache if @@hunk_cache.keys.count > CACHESIZE
+  end
+  
+  def self.prune_hunk_cache
+    current_time = Time.now
+    prune_time = current_time - @@cachelifetime
+    @@hunk_cache = @@hunk_cache.select{|k,v| v[:last] > prune_time }
+    puts "\t>>> Pruned hunk cache: #{CACHESIZE - @@hunk_cache.keys.count}"
   end
   
   def self.prune_words

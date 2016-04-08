@@ -10,17 +10,16 @@ apt-get install -y apt-transport-https ca-certificates
 add-apt-repository 'deb https://oss-binaries.phusionpassenger.com/apt/passenger jessie main'
 apt-get update
 apt-get install -y apache2
-debconf-set-selections <<< 'mariadb-server-10.0 mysql-server/root_password password PASS'
-debconf-set-selections <<< 'mariadb-server-10.0 mysql-server/root_password_again password PASS'
-apt-get install -y mariadb-server
-apt-get install -y mariadb-client
-echo Configuring MariaDB
-mysql -uroot -pPASS -e "SET PASSWORD = PASSWORD('');"
-mysql -uroot  -e "CREATE USER 'rails'@'%' IDENTIFIED BY 'example';"
-mysql -uroot -e "UPDATE user SET password=PASSWORD('example') WHERE user='rails';" mysql
-mysql -u root -e "CREATE DATABASE events_prod;"
-mysql -u root -e "GRANT ALL PRIVILEGES ON events_prod.* TO 'rails'@'%';"
-apt-get install -y libmariadbclient-dev
+# debconf-set-selections <<< 'mariadb-server-10.0 mysql-server/root_password password PASS'
+# debconf-set-selections <<< 'mariadb-server-10.0 mysql-server/root_password_again password PASS'
+apt-get install -y postgresql
+apt-get install -y postgresql-server
+apt-get install -y postgresql-client
+apt-get install -y postgresql-server-dev-all
+echo Configuring Postgresql
+sudo -u postgres psql -c "CREATE USER rails WITH PASSWORD 'example';"
+sudo -u postgres psql -c "CREATE DATABASE events_prod;"
+sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE events_prod TO rails;"
 
 if ! [ -L /var/DAD ]; then
   rm -rf /var/DAD
@@ -30,7 +29,9 @@ if ! [ -L /home/vagrant/DAD ]; then
   ln -fs /vagrant /home/vagrant/DAD
 fi
 
-export RAILS_ENV=production && cd /var/DAD && bundle install
+export RAILS_ENV=production 
+cd /var/DAD
+bundle install
 sudo apt-get install -y libapache2-mod-passenger
 sudo a2enmod passenger
 sudo apache2ctl stop

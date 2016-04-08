@@ -1,5 +1,6 @@
 Events::Application.routes.draw do
 
+  resources :hunks
   # Imported from previous project vvv
   resources :roles do
     member do
