@@ -10,7 +10,7 @@ class Event < ActiveRecord::Base
   @cache_hits = 0
   @@num_cached = 0
   CACHESIZE=80000
-  @@cachelifetime=60
+  @@cachelifetime=120
   
   @@insertThreads = Array.new
   @inserted_last_run = 100
@@ -222,7 +222,8 @@ class Event < ActiveRecord::Base
     return if @@pendingEventValues.count < 1
 
     if @@insertThreads.count > 20 then
-      @@insertThreads.each { |thread| puts "Joining last insert."; thread.join }
+      puts "Joining previous inserts."; 
+      @@insertThreads.each { |thread| thread.join }
       @@insertThreads = []
     end
     events_words_sql = "INSERT INTO events_words (event_id, word_id, generated) VALUES #{@@events_words.to_a.join(", ")}"
