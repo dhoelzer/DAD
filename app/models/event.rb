@@ -157,7 +157,7 @@ class Event < ActiveRecord::Base
       begin
         timestamp = DateTime.parse(txttimestamp << " GMT")
       rescue Exception => e
-        puts "#{e}: #{eventString}"
+        #puts "#{e}: #{eventString}"
         return
       end
     else
@@ -165,7 +165,7 @@ class Event < ActiveRecord::Base
       begin
         timestamp = DateTime.parse("#{txttimestamp} #{@@current_year}  GMT")
       rescue Exception => e
-        puts "#{e}: #{eventString}"
+        #puts "#{e}: #{eventString}"
         return
       end
     end
@@ -198,9 +198,12 @@ class Event < ActiveRecord::Base
       end
     end
 
+    # Precalculate some needed values and perform necessary conversions.
     next_event_id_s = @@nextEventID.to_s
     timestamp_s = timestamp.to_s(:db)
     time_now = Time.now
+
+    # Take all of the words, make them unique and make sure that they are in the DB. Look up their IDs.
     split_text.to_set.to_a.each do |word| 
       if @@cached_words.has_key?(word) then
         @@cached_words[word][:last] = time_now
@@ -213,7 +216,7 @@ class Event < ActiveRecord::Base
       end
       @@events_words.add "(#{next_event_id_s}, #{dbWord.to_s}, '#{timestamp_s}')"
     end
-    hunks.gsub!("'",%q("))
+    hunks.gsub!("'",%q(")) # This is non-optimal. Since we're not using a parameterized insert we need to render the data safe somehow. This converts single quotes to double quotes.
     @@pendingEventValues.add "(#{next_event_id_s}, #{system.id}, #{service.id}, '#{timestamp_s}', '#{time_now.to_s(:db)}', '#{hunks}')"
 
     @@nextEventID += 1
@@ -237,11 +240,11 @@ class Event < ActiveRecord::Base
       connection.execute event_sql
     end
 
-    puts "\t\t-->> Flushed #{@@pendingEventValues.count} events. <<--"
+    #puts "\t\t-->> Flushed #{@@pendingEventValues.count} events. <<--"
     elapsed_time = (Time.now - @@start_time)
     eventsPerSecond = @@pendingEventValues.count/elapsed_time
-    puts "\t\t-->> Started run: #{@@start_time}\t#{elapsed_time} seconds elapsed\t#{eventsPerSecond} events processed per second."
-    puts "\t\t-->> First word cache: #{@@cached_words.keys.count}"
+    #puts "\t\t-->> Started run: #{@@start_time}\t#{elapsed_time} seconds elapsed\t#{eventsPerSecond} events processed per second."
+    #puts "\t\t-->> First word cache: #{@@cached_words.keys.count}"
     if @inserted_last_run > eventsPerSecond then
       @bulk_insert_size = (@bulk_insert_size > 20 ? @bulk_insert_size - 20 : 20)
     else
@@ -270,6 +273,7 @@ class Event < ActiveRecord::Base
       puts "\t+++ Cache lifetime decreased to #{@@cachelifetime}."
     end
     puts "\t+++ There have been #{@cache_hits} hits in the word cache."
+    puts "\t>>> Inserted last run EPS: #{@inserted_last_run}"
     @@num_cached = @@cached_words.keys.count
   end
   

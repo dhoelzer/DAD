@@ -9,7 +9,7 @@ def process_logs
   begin
     pending_logs.each do |log|
       processed += 1
-      puts "Processing #{log}:  Log #{processed} out of #{pending_logs.count}"
+      puts "Processing #{log}:  Log #{processed} out of #{pending_logs.count}" if processed % 50 == 0
 
       File.foreach(log) do |line|
         begin
