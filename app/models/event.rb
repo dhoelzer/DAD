@@ -145,17 +145,17 @@ class Event < ActiveRecord::Base
     split_text = eventString.split(/\s+/)
     service_offset = 5 # Assume the service is here. It adjusts based on where the timestamp is found
     if split_text.count < 5 then
-      puts "Invalid for syslog format: Too few fields -> #{eventString}"
+      puts "Invalid for syslog format: Too few fields -> " << eventString
       return
     end
     return unless split_text.size > 1 # If there's no date and only an IP then it's not a valid message.
     if split_text[1] =~ /20[0-9][0-9]-[0-1][0-9]-[0-3][0-9]t[0-9][0-9]:[0-9][0-9]:[0-9][0-9]\.[0-9][0-9][0-9]z/ then
-      timestamp = DateTime.parse("#{split_text[1]}")
+      timestamp = DateTime.parse(split_text[1])
       service_offset = 3
     elsif split_text[3].to_i > 2014 && split_text[3].to_i < 2020 then
       txttimestamp = split_text[1..4].join(' ')
       begin
-        timestamp = DateTime.parse("#{txttimestamp} GMT")
+        timestamp = DateTime.parse(txttimestamp << " GMT")
       rescue Exception => e
         puts "#{e}: #{eventString}"
         return
@@ -163,7 +163,7 @@ class Event < ActiveRecord::Base
     else
       txttimestamp = split_text[1..3].join(' ')
       begin
-        timestamp = DateTime.parse("#{txttimestamp} #{@@current_year} GMT")
+        timestamp = DateTime.parse(txttimestamp << @@current_year << " GMT")
       rescue Exception => e
         puts "#{e}: #{eventString}"
         return
@@ -178,7 +178,7 @@ class Event < ActiveRecord::Base
     end
     txtservice = split_text[service_offset]
     if txtservice.nil? then
-      puts "Service empty: #{eventString}"
+      puts "Service empty: " << eventString
       return
     end
     txtservice = txtservice.tr("^a-zA-Z\-_/","")
@@ -198,6 +198,8 @@ class Event < ActiveRecord::Base
       end
     end
 
+    next_event_id_s = @@nextEventID.to_s
+    timestamp_s = timestamp.to_s(:db)
     split_text.to_set.to_a.each do |word| 
       if @@cached_words.has_key?(word) then
         @@cached_words[word][:last] = Time.now
@@ -208,10 +210,10 @@ class Event < ActiveRecord::Base
         @@num_cached += 1
         @@cached_words[word] = {:id => dbWord, :last => Time.now}
       end
-      @@events_words.add "(#{@@nextEventID}, #{dbWord}, '#{timestamp.to_s(:db)}')"
+      @@events_words.add "(" << next_event_id_s << ", " << dbWord.to_s << ", '" << timestamp_s << "')"
     end
 
-    @@pendingEventValues.add "(#{@@nextEventID}, #{system.id}, #{service.id}, '#{timestamp.to_s(:db)}', '#{Time.now.to_s(:db)}', '#{hunks}')"
+    @@pendingEventValues.add "(#{next_event_id_s}, #{system.id}, #{service.id}, '#{timestamp_s}', '#{Time.now.to_s(:db)}', '#{hunks}')"
 
     @@nextEventID += 1
     self.performPendingInserts if @@pendingEventValues.count >= @bulk_insert_size
