@@ -152,7 +152,7 @@ class Event < ActiveRecord::Base
     service_offset = 5
     eventString = eventString.encode('UTF-8', :invalid => :replace)
     eventString.tr!("\r\n", "")
-    hunks = eventString.scan(/.{1,#{HUNKSIZE}}/)
+    hunks = eventString #.scan(/.{1,#{HUNKSIZE}}/)
     eventString.downcase!
     eventString.gsub!(/([^a-zA-Z0-9 \-_:@\*\/.])/," " )
     split_text = eventString.split(/\s+/)
@@ -222,35 +222,36 @@ class Event < ActiveRecord::Base
       @@events_words.add "(#{@@nextEventID}, #{dbWord}, '#{timestamp.to_s(:db)}')"
     end
 
-    hunk_string = hunks.shift
-    if @@hunk_cache.has_key?(hunk_string) then
-      hunk = @@hunk_cache[hunk_string][:id]
-    else
-      newhunk = Hunk.where(:text => hunk_string).first
-      if newhunk.nil? then
-        newhunk = Hunk.new()
-        newhunk.text = hunk_string
-        newhunk.save
-      end
-      @@hunk_cache[hunk_string] = {:id => newhunk.id, :last => Time.now}
-      hunk = @@hunk_cache[hunk_string][:id]
-    end
-    hunkString = "#{hunk}"
-    hunks.each do |hunk_string|
-      if @@hunk_cache.has_key?(hunk_string) then
-        hunk = @@hunk_cache[hunk_string][:id]
-      else
-        newhunk = Hunk.where(:text => hunk_string).first
-        if newhunk.nil? then
-          newhunk = Hunk.new()
-          newhunk.text = hunk_string
-          newhunk.save
-        end
-        @@hunk_cache[hunk_string]= {:id => newhunk.id, :last => Time.now}
-        hunk = @@hunk_cache[hunk_string][:id]
-      end
-     hunkString << ",#{hunk}"
-    end
+    # hunk_string = hunks.shift
+    # if @@hunk_cache.has_key?(hunk_string) then
+    #   hunk = @@hunk_cache[hunk_string][:id]
+    # else
+    #   newhunk = Hunk.where(:text => hunk_string).first
+    #   if newhunk.nil? then
+    #     newhunk = Hunk.new()
+    #     newhunk.text = hunk_string
+    #     newhunk.save
+    #   end
+    #   @@hunk_cache[hunk_string] = {:id => newhunk.id, :last => Time.now}
+    #   hunk = @@hunk_cache[hunk_string][:id]
+    # end
+    # hunkString = "#{hunk}"
+    # hunks.each do |hunk_string|
+    #   if @@hunk_cache.has_key?(hunk_string) then
+    #     hunk = @@hunk_cache[hunk_string][:id]
+    #   else
+    #     newhunk = Hunk.where(:text => hunk_string).first
+    #     if newhunk.nil? then
+    #       newhunk = Hunk.new()
+    #       newhunk.text = hunk_string
+    #       newhunk.save
+    #     end
+    #     @@hunk_cache[hunk_string]= {:id => newhunk.id, :last => Time.now}
+    #     hunk = @@hunk_cache[hunk_string][:id]
+    #   end
+    #  hunkString << ",#{hunk}"
+    # end
+    hunkString = hunks
     @@pendingEventValues.add "(#{@@nextEventID}, #{system.id}, #{service.id}, '#{timestamp.to_s(:db)}', '#{Time.now.to_s(:db)}', '#{hunkString}')"
     #    event = Event.create(:system_id => system.id, :service_id => service.id, :generated => timestamp, :stored => Time.now)
     #    return nil if event.nil?
