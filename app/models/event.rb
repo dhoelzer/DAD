@@ -221,7 +221,6 @@ class Event < ActiveRecord::Base
       end
       @@events_words.add "(#{@@nextEventID}, #{dbWord}, '#{timestamp.to_s(:db)}')"
     end
-puts "X"
 
     hunk_string = hunks.shift
     if @@hunk_cache.has_key?(hunk_string) then
@@ -250,7 +249,8 @@ puts "X"
         @@hunk_cache[hunk_string]= {:id => newhunk.id, :last => Time.now}
         hunk = @@hunk_cache[hunk_string][:id]
       end
-      hunkString << "," << hunk
+ puts "X"
+     hunkString << "," << hunk
     end
     @@pendingEventValues.add "(#{@@nextEventID}, #{system.id}, #{service.id}, '#{timestamp.to_s(:db)}', '#{Time.now.to_s(:db)}', '#{hunkString}')"
     #    event = Event.create(:system_id => system.id, :service_id => service.id, :generated => timestamp, :stored => Time.now)
