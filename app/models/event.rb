@@ -49,26 +49,26 @@ class Event < ActiveRecord::Base
   
   def event_fields
     return @event_fields unless @event_fields.nil?
-    @event_fields = Array.new
-    self.hunks.split(/,/).each do |hunk|
-      @event_fields << Hunk.find(hunk).text
-    end
-    @event_fields
+    @event_fields = self.hunks.split(/ +/)
+    # self.hunks.split(/,/).each do |hunk|
+    #   @event_fields << Hunk.find(hunk).text
+    # end
+    # @event_fields
   end
   
   def reconstitute
-    string = ""
-		self.hunks.split(/,/).each do |hunk|
-      string = string + "#{Hunk.find(hunk).text}"
-    end
-    return string
+    # string = ""
+		# self.hunks.split(/,/).each do |hunk|
+  #     string = string + "#{Hunk.find(hunk).text}"
+  #   end
+    return self.hunks
   end
   
   def inspect
-    string = "#{self.system.display_name}|#{self.generated}|"
-    self.hunks.split(/,/).each do |hunk|
-      string = string + "#{Hunk.find(hunk).text}"
-    end
+    string = "#{self.system.display_name}|#{self.generated}|#{self.hunks}"
+    # self.hunks.split(/,/).each do |hunk|
+    #   string = string + "#{Hunk.find(hunk).text}"
+    # end
     return string
   end
 
