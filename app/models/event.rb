@@ -221,8 +221,10 @@ class Event < ActiveRecord::Base
   def self.performPendingInserts
     return if @@pendingEventValues.count < 1
 
-    @@insertThreads.each { |thread| puts "Joining last insert."; thread.join }
-    @@insertThreads = []
+    if @@insertThreads.count > 20 then
+      @@insertThreads.each { |thread| puts "Joining last insert."; thread.join }
+      @@insertThreads = []
+    end
     events_words_sql = "INSERT INTO events_words (event_id, word_id, generated) VALUES #{@@events_words.to_a.join(", ")}"
     event_sql = "INSERT INTO events (id, system_id, service_id, generated, stored, hunks) VALUES #{@@pendingEventValues.to_a.join(", ")}"
 
