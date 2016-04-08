@@ -11,7 +11,7 @@ class Event < ActiveRecord::Base
   @@num_cached = 0
   CACHESIZE=80000
   @@cachelifetime=15
-  HUNKSIZE=8
+  HUNKSIZE=32
   
   @inserted_last_run = 100
   @@nextEventID = -1
