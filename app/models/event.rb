@@ -15,12 +15,10 @@ class Event < ActiveRecord::Base
   
   @inserted_last_run = 100
   @@nextEventID = -1
-  @@nextPositionID = -1
   @@pendingEventValues = Set.new
   @@system_cache = Hash.new
   @@service_cache = Hash.new
   @@hunk_cache = Hash.new
-  @@pendingPositionValues = Set.new
   @@events_words = Set.new
   @@start_time = Time.now
   @display_helper = nil       # Using lazy initialization but still using instance vars so that we
@@ -102,8 +100,6 @@ class Event < ActiveRecord::Base
     sql = ""
     sql = "select distinct e.event_id from (" if depth == 0
     word_id = sortedWordIDs.pop
-    # Should I just revert to the positions table?  For some reason events_words has grown to over 43 gigs while positions is only 24.
-    # Only do the generated test on the innermost subselect.  Not needed on outer selects since they are selecting from the set returned from this query.
     sql = sql + "select distinct a#{depth}.event_id from events_words as a#{depth} where a#{depth}.word_id=#{word_id}"+(sortedWordIDs.count > 0 ? " and a#{depth}.event_id in (#{iterativeSQLBuilder(sortedWordIDs, depth+1, starting_time)})" : " and a#{depth}.generated>'#{starting_time.to_s(:db)}'")
     sql = sql + ") as e" if depth == 0
     return sql
@@ -204,21 +200,16 @@ class Event < ActiveRecord::Base
       service = Service.find_or_add(txtservice)
       @@service_cache[txtservice] = service
     end
-    #puts("#{@@nextEventID}: #{txttimestamp} #{txtsystem}(#{system.id}) #{txtservice}(#{service.id})")
     if @@nextEventID == -1 then
       if Event.all.count == 0 then
         @@nextEventID = 1
-       # @@nextPositionID = 1
       else
         @@nextEventID = Event.order(id: :desc).limit(1)[0].id + 1 if @@nextEventID == -1
-       # @@nextPositionID = Position.order(id: :desc).limit(1)[0].id + 1 if @@nextPositionID == -1
       end
     end
 
-#    words = eventString.split(/\s+/) # This seems like a redundant split..
-    #current_position = 0                  # Track which position we are at within the event
-    word_ids = Set.new()
-    split_text.drop(service_offset+1).each do |word| # changed from words.. I think we already have this.
+    split_text = split_text.to_set.to_a
+    split_text.each do |word| 
       if @@cached_words.has_key?(word) then
         @@cached_words[word][:last] = Time.now
         @cache_hits += 1
@@ -227,16 +218,10 @@ class Event < ActiveRecord::Base
         dbWord = Word.find_or_add(word)
         @@num_cached += 1
         @@cached_words[word] = {:id => dbWord, :last => Time.now}
-        self.prune_words if @@num_cached > CACHESIZE
       end
-      #@@pendingPositionValues.add "(#{@@nextPositionID}, #{dbWord}, #{current_position}, #{@@nextEventID})"
-      # Only add a mapping for this event/word if there isn't already one - deduplicate events_words.
-      @@events_words.add "(#{@@nextEventID}, #{dbWord}, '#{timestamp.to_s(:db)}')" unless word_ids.include?(dbWord)
-      word_ids.add(dbWord)
-      #      position = Position.create(:word_id => dbWord.id, :position => current_position, :event_id => event.id)
-      #@@nextPositionID += 1
-      #current_position += 1
+      @@events_words.add "(#{@@nextEventID}, #{dbWord}, '#{timestamp.to_s(:db)}')"
     end
+
     firststring = hunks.shift
     if @@hunk_cache.has_key?(firststring) then
       hunk = @@hunk_cache[firststring][:id]
@@ -285,14 +270,12 @@ class Event < ActiveRecord::Base
     event_sql = "INSERT INTO events (id, system_id, service_id, generated, stored, hunks) VALUES #{@@pendingEventValues.to_a.join(", ")}"
     connection.execute event_sql
 
-    #positions_sql = "INSERT INTO positions (id, word_id, position, event_id) VALUES #{@@pendingPositionValues.to_a.join(", ")}"
-    #connection.execute positions_sql
-
-
     puts "\t\t-->> Flushed #{@@pendingEventValues.count} events. <<--"
     elapsed_time = (Time.now - @@start_time)
     eventsPerSecond = @@pendingEventValues.count/elapsed_time
     puts "\t\t-->> Started run: #{@@start_time}\t#{elapsed_time} seconds elapsed\t#{eventsPerSecond} events processed per second."
+    puts "\t\t-->> First word cache: #{@@cached_words.keys.count}"
+    puts "\t\t-->> Hunk cache: #{@@hunk_cache.keys.count}"
     if @inserted_last_run > eventsPerSecond then
       @bulk_insert_size = (@bulk_insert_size > 20 ? @bulk_insert_size - 20 : 20)
     else
@@ -302,10 +285,10 @@ class Event < ActiveRecord::Base
     Statistic.logEventsPerSecond(eventsPerSecond)
     @@start_time = Time.now
     @@pendingEventValues = Set.new
-    #@@pendingPositionValues = Set.new
     @@events_words = Set.new
     @@current_year = Time.new.year
     self.prune_hunk_cache if @@hunk_cache.keys.count > CACHESIZE
+    self.prune_words if @@num_cached > CACHESIZE
   end
   
   def self.prune_hunk_cache
