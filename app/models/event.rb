@@ -12,6 +12,7 @@ class Event < ActiveRecord::Base
   CACHESIZE=80000
   @@cachelifetime=60
   
+  @@insertThreads = Array.new
   @inserted_last_run = 100
   @@nextEventID = -1
   @@pendingEventValues = Set.new
@@ -219,15 +220,17 @@ class Event < ActiveRecord::Base
 
   def self.performPendingInserts
     return if @@pendingEventValues.count < 1
-    connection = ActiveRecord::Base.connection
 
-    #puts "Current event_id: #{@@nextEventID} - last: #{@@pendingEventValues[0]}" # Can't do this with a set
+    @@insertThreads.each { |thread| puts "Joining last insert."; thread.join }
+    @@insertThreads = []
     events_words_sql = "INSERT INTO events_words (event_id, word_id, generated) VALUES #{@@events_words.to_a.join(", ")}"
-    connection.execute events_words_sql
-    # Let's insert the words first so that we don't have to do it again.
-    
     event_sql = "INSERT INTO events (id, system_id, service_id, generated, stored, hunks) VALUES #{@@pendingEventValues.to_a.join(", ")}"
-    connection.execute event_sql
+
+    @@insertThreads << Thread.new(events_words_sql, event_sql) do
+      connection = ActiveRecord::Base.connection
+      connection.execute events_words_sql
+      connection.execute event_sql
+    end
 
     puts "\t\t-->> Flushed #{@@pendingEventValues.count} events. <<--"
     elapsed_time = (Time.now - @@start_time)
