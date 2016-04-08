@@ -11,14 +11,12 @@ class Event < ActiveRecord::Base
   @@num_cached = 0
   CACHESIZE=80000
   @@cachelifetime=15
-  HUNKSIZE=32
   
   @inserted_last_run = 100
   @@nextEventID = -1
   @@pendingEventValues = Set.new
   @@system_cache = Hash.new
   @@service_cache = Hash.new
-  @@hunk_cache = Hash.new
   @@events_words = Set.new
   @@start_time = Time.now
   @display_helper = nil       # Using lazy initialization but still using instance vars so that we
@@ -50,25 +48,15 @@ class Event < ActiveRecord::Base
   def event_fields
     return @event_fields unless @event_fields.nil?
     @event_fields = self.hunks.split(/ +/)
-    # self.hunks.split(/,/).each do |hunk|
-    #   @event_fields << Hunk.find(hunk).text
-    # end
-    # @event_fields
+    @event_fields
   end
   
   def reconstitute
-    # string = ""
-		# self.hunks.split(/,/).each do |hunk|
-  #     string = string + "#{Hunk.find(hunk).text}"
-  #   end
     return self.hunks
   end
   
   def inspect
     string = "#{self.system.display_name}|#{self.generated}|#{self.hunks}"
-    # self.hunks.split(/,/).each do |hunk|
-    #   string = string + "#{Hunk.find(hunk).text}"
-    # end
     return string
   end
 
@@ -148,14 +136,14 @@ class Event < ActiveRecord::Base
 
   def self.storeEvent(eventString)
     # This next line is to seek and destroy invalid UTF-8 byte sequences.  They seem to show up in some
-    # logs sometimes in URLs.
-    service_offset = 5
+    # logs, sometimes in URLs.
     eventString = eventString.encode('UTF-8', :invalid => :replace)
     eventString.tr!("\r\n", "")
-    hunks = eventString #.scan(/.{1,#{HUNKSIZE}}/)
+    hunks = eventString
     eventString.downcase!
     eventString.gsub!(/([^a-zA-Z0-9 \-_:@\*\/.])/," " )
     split_text = eventString.split(/\s+/)
+    service_offset = 5 # Assume the service is here. It adjusts based on where the timestamp is found
     if split_text.count < 5 then
       puts "Invalid for syslog format: Too few fields -> #{eventString}"
       return
@@ -200,6 +188,8 @@ class Event < ActiveRecord::Base
       service = Service.find_or_add(txtservice)
       @@service_cache[txtservice] = service
     end
+
+    # Is this the first event inserted? If so, figure out what the maximum ID is right now.
     if @@nextEventID == -1 then
       if Event.all.count == 0 then
         @@nextEventID = 1
@@ -208,8 +198,7 @@ class Event < ActiveRecord::Base
       end
     end
 
-    split_text = split_text.to_set.to_a
-    split_text.each do |word| 
+    split_text.to_set.each do |word| 
       if @@cached_words.has_key?(word) then
         @@cached_words[word][:last] = Time.now
         @cache_hits += 1
@@ -222,39 +211,8 @@ class Event < ActiveRecord::Base
       @@events_words.add "(#{@@nextEventID}, #{dbWord}, '#{timestamp.to_s(:db)}')"
     end
 
-    # hunk_string = hunks.shift
-    # if @@hunk_cache.has_key?(hunk_string) then
-    #   hunk = @@hunk_cache[hunk_string][:id]
-    # else
-    #   newhunk = Hunk.where(:text => hunk_string).first
-    #   if newhunk.nil? then
-    #     newhunk = Hunk.new()
-    #     newhunk.text = hunk_string
-    #     newhunk.save
-    #   end
-    #   @@hunk_cache[hunk_string] = {:id => newhunk.id, :last => Time.now}
-    #   hunk = @@hunk_cache[hunk_string][:id]
-    # end
-    # hunkString = "#{hunk}"
-    # hunks.each do |hunk_string|
-    #   if @@hunk_cache.has_key?(hunk_string) then
-    #     hunk = @@hunk_cache[hunk_string][:id]
-    #   else
-    #     newhunk = Hunk.where(:text => hunk_string).first
-    #     if newhunk.nil? then
-    #       newhunk = Hunk.new()
-    #       newhunk.text = hunk_string
-    #       newhunk.save
-    #     end
-    #     @@hunk_cache[hunk_string]= {:id => newhunk.id, :last => Time.now}
-    #     hunk = @@hunk_cache[hunk_string][:id]
-    #   end
-    #  hunkString << ",#{hunk}"
-    # end
-    hunkString = hunks
-    @@pendingEventValues.add "(#{@@nextEventID}, #{system.id}, #{service.id}, '#{timestamp.to_s(:db)}', '#{Time.now.to_s(:db)}', '#{hunkString}')"
-    #    event = Event.create(:system_id => system.id, :service_id => service.id, :generated => timestamp, :stored => Time.now)
-    #    return nil if event.nil?
+    @@pendingEventValues.add "(#{@@nextEventID}, #{system.id}, #{service.id}, '#{timestamp.to_s(:db)}', '#{Time.now.to_s(:db)}', '#{hunks}')"
+
     @@nextEventID += 1
     self.performPendingInserts if @@pendingEventValues.count >= @bulk_insert_size
   end
@@ -276,7 +234,6 @@ class Event < ActiveRecord::Base
     eventsPerSecond = @@pendingEventValues.count/elapsed_time
     puts "\t\t-->> Started run: #{@@start_time}\t#{elapsed_time} seconds elapsed\t#{eventsPerSecond} events processed per second."
     puts "\t\t-->> First word cache: #{@@cached_words.keys.count}"
-    puts "\t\t-->> Hunk cache: #{@@hunk_cache.keys.count}"
     if @inserted_last_run > eventsPerSecond then
       @bulk_insert_size = (@bulk_insert_size > 20 ? @bulk_insert_size - 20 : 20)
     else
@@ -288,15 +245,7 @@ class Event < ActiveRecord::Base
     @@pendingEventValues = Set.new
     @@events_words = Set.new
     @@current_year = Time.new.year
-    self.prune_hunk_cache if @@hunk_cache.keys.count > CACHESIZE
     self.prune_words if @@num_cached > CACHESIZE
-  end
-  
-  def self.prune_hunk_cache
-    current_time = Time.now
-    prune_time = current_time - @@cachelifetime
-    @@hunk_cache = @@hunk_cache.select{|k,v| v[:last] > prune_time }
-    puts "\t>>> Pruned hunk cache: #{CACHESIZE - @@hunk_cache.keys.count}"
   end
   
   def self.prune_words
