@@ -213,7 +213,7 @@ class Event < ActiveRecord::Base
       end
       @@events_words.add "(#{next_event_id_s}, #{dbWord.to_s}, '#{timestamp_s}')"
     end
-    hunks.gsub!(/'/,/\'/)
+    hunks.gsub!(/'/,"\'")
     @@pendingEventValues.add "(#{next_event_id_s}, #{system.id}, #{service.id}, '#{timestamp_s}', '#{time_now.to_s(:db)}', '#{hunks}')"
 
     @@nextEventID += 1
