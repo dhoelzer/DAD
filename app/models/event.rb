@@ -4,13 +4,13 @@ class Event < ActiveRecord::Base
   belongs_to :system
   belongs_to :service
 
-  @bulk_insert_size=((Rails.env.development? || Rails.env.test?) ? 1 : 20000)
+  @bulk_insert_size=((Rails.env.development? || Rails.env.test?) ? 1 : 1000)
   @@cached_words = Hash.new
   @added = 0
   @cache_hits = 0
   @@num_cached = 0
-  CACHESIZE=80000
-  @@cachelifetime=120
+  CACHESIZE=100000
+  @@cachelifetime=320
   @@insertThreads = Array.new
   @inserted_last_run = 100
   @@nextEventID = -1
@@ -139,7 +139,7 @@ class Event < ActiveRecord::Base
     # logs, sometimes in URLs.
     eventString = eventString.encode('UTF-8', :invalid => :replace)
     eventString.tr!("\r\n", "")
-    hunks = eventString
+    hunks = eventString.dup
     eventString.downcase!
     eventString.gsub!(/([^a-zA-Z0-9 \-_:@\*\/.])/," " )
     split_text = eventString.split(/\s+/)
