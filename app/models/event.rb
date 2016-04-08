@@ -163,7 +163,7 @@ class Event < ActiveRecord::Base
     else
       txttimestamp = split_text[1..3].join(' ')
       begin
-        timestamp = DateTime.parse(txttimestamp << @@current_year << " GMT")
+        timestamp = DateTime.parse("#{txttimestamp} #{@@current_year}  GMT")
       rescue Exception => e
         puts "#{e}: #{eventString}"
         return
@@ -211,7 +211,7 @@ class Event < ActiveRecord::Base
         @@num_cached += 1
         @@cached_words[word] = {:id => dbWord, :last => time_now}
       end
-      @@events_words.add "(" << next_event_id_s << ", " << dbWord.to_s << ", '" << timestamp_s << "')"
+      @@events_words.add "(#{next_event_id_s}, #{dbWord.to_s}, '#{timestamp_s}')"
     end
 
     @@pendingEventValues.add "(#{next_event_id_s}, #{system.id}, #{service.id}, '#{timestamp_s}', '#{time_now.to_s(:db)}', '#{hunks}')"
