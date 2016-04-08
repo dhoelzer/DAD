@@ -4,7 +4,7 @@ class Event < ActiveRecord::Base
   belongs_to :system
   belongs_to :service
 
-  @bulk_insert_size=((Rails.env.development? || Rails.env.test?) ? 1 : 3000)
+  @bulk_insert_size=((Rails.env.development? || Rails.env.test?) ? 1 : 2000)
   @@cached_words = Hash.new
   @added = 0
   @cache_hits = 0
@@ -243,9 +243,9 @@ class Event < ActiveRecord::Base
     puts "\t\t-->> Started run: #{@@start_time}\t#{elapsed_time} seconds elapsed\t#{eventsPerSecond} events processed per second."
     puts "\t\t-->> First word cache: #{@@cached_words.keys.count}"
     if @inserted_last_run > eventsPerSecond then
-      @bulk_insert_size = (@bulk_insert_size > 200 ? @bulk_insert_size - 200 : 200)
+      @bulk_insert_size = (@bulk_insert_size > 20 ? @bulk_insert_size - 20 : 20)
     else
-      @bulk_insert_size += 200
+      @bulk_insert_size += 20
     end
     @inserted_last_run = eventsPerSecond
     Statistic.logEventsPerSecond(eventsPerSecond)
