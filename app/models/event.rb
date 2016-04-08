@@ -222,32 +222,32 @@ class Event < ActiveRecord::Base
       @@events_words.add "(#{@@nextEventID}, #{dbWord}, '#{timestamp.to_s(:db)}')"
     end
 
-    firststring = hunks.shift
-    if @@hunk_cache.has_key?(firststring) then
-      hunk = @@hunk_cache[firststring][:id]
+    hunk_string = hunks.shift
+    if @@hunk_cache.has_key?(hunk_string) then
+      hunk = @@hunk_cache[hunk_string][:id]
     else
-      newhunk = Hunk.where(:text => firststring).first
+      newhunk = Hunk.where(:text => hunk_string).first
       if newhunk.nil? then
         newhunk = Hunk.new()
-        newhunk.text = firststring
+        newhunk.text = hunk_string
         newhunk.save
       end
-      @@hunk_cache[firststring]= {:id => newhunk.id, :last => Time.now}
-      hunk = @@hunk_cache[firststring][:id]
+      @@hunk_cache[hunk_string] = {:id => newhunk.id, :last => Time.now}
+      hunk = @@hunk_cache[hunk_string][:id]
     end
     hunkString = "#{hunk}"
-    hunks.each do |hunkstring|
-      if @@hunk_cache.has_key?(hunkstring) then
-        hunk = @@hunk_cache[hunkstring][:id]
+    hunks.each do |hunk_string|
+      if @@hunk_cache.has_key?(hunk_string) then
+        hunk = @@hunk_cache[hunk_string][:id]
       else
-        newhunk = Hunk.where(:text => hunkstring).first
+        newhunk = Hunk.where(:text => hunk_string).first
         if newhunk.nil? then
           newhunk = Hunk.new()
-          newhunk.text = hunkstring
+          newhunk.text = hunk_string
           newhunk.save
         end
-        @@hunk_cache[hunkstring]= {:id => newhunk.id, :last => Time.now}
-        hunk = @@hunk_cache[firststring][:id]
+        @@hunk_cache[hunk_string]= {:id => newhunk.id, :last => Time.now}
+        hunk = @@hunk_cache[hunk_string][:id]
       end
       hunkString = "#{hunkString},#{hunk}"
     end
