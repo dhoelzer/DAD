@@ -198,7 +198,7 @@ class Event < ActiveRecord::Base
       end
     end
 
-    split_text.to_set.each do |word| 
+    split_text.to_set.to_a.each do |word| 
       if @@cached_words.has_key?(word) then
         @@cached_words[word][:last] = Time.now
         @cache_hits += 1
