@@ -152,7 +152,7 @@ class Event < ActiveRecord::Base
     service_offset = 5
     eventString = eventString.encode('UTF-8', :invalid => :replace)
     eventString.tr!("\r\n", "")
-    hunks = eventString.scan(/.{1,HUNKSIZE}/)
+    hunks = eventString.scan(/.{1,#{HUNKSIZE}}/)
     eventString.downcase!
     eventString.gsub!(/([^a-zA-Z0-9 \-_:@\*\/.])/," " )
     split_text = eventString.split(/\s+/)
