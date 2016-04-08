@@ -11,6 +11,7 @@ class Event < ActiveRecord::Base
   @@num_cached = 0
   CACHESIZE=8000
   @@cachelifetime=15
+  HUNKSIZE=16
   
   @inserted_last_run = 100
   @@nextEventID = -1
@@ -155,7 +156,7 @@ class Event < ActiveRecord::Base
     service_offset = 5
     eventString = eventString.encode('UTF-8', :invalid => :replace)
     eventString.tr!("\r\n", "")
-    hunks = eventString.scan(/.{1,32}/)
+    hunks = eventString.scan(/.{1,HUNKSIZE}/)
     eventString.downcase!
     eventString.gsub!(/([^a-zA-Z0-9 \-_:@\*\/.])/," " )
     split_text = eventString.split(/\s+/)
