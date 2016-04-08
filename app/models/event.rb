@@ -200,20 +200,21 @@ class Event < ActiveRecord::Base
 
     next_event_id_s = @@nextEventID.to_s
     timestamp_s = timestamp.to_s(:db)
+    time_now = Time.now
     split_text.to_set.to_a.each do |word| 
       if @@cached_words.has_key?(word) then
-        @@cached_words[word][:last] = Time.now
+        @@cached_words[word][:last] = time_now
         @cache_hits += 1
         dbWord = @@cached_words[word][:id]
       else
         dbWord = Word.find_or_add(word)
         @@num_cached += 1
-        @@cached_words[word] = {:id => dbWord, :last => Time.now}
+        @@cached_words[word] = {:id => dbWord, :last => time_now}
       end
       @@events_words.add "(" << next_event_id_s << ", " << dbWord.to_s << ", '" << timestamp_s << "')"
     end
 
-    @@pendingEventValues.add "(#{next_event_id_s}, #{system.id}, #{service.id}, '#{timestamp_s}', '#{Time.now.to_s(:db)}', '#{hunks}')"
+    @@pendingEventValues.add "(#{next_event_id_s}, #{system.id}, #{service.id}, '#{timestamp_s}', '#{time_now.to_s(:db)}', '#{hunks}')"
 
     @@nextEventID += 1
     self.performPendingInserts if @@pendingEventValues.count >= @bulk_insert_size
@@ -242,9 +243,9 @@ class Event < ActiveRecord::Base
     puts "\t\t-->> Started run: #{@@start_time}\t#{elapsed_time} seconds elapsed\t#{eventsPerSecond} events processed per second."
     puts "\t\t-->> First word cache: #{@@cached_words.keys.count}"
     if @inserted_last_run > eventsPerSecond then
-      @bulk_insert_size = (@bulk_insert_size > 20 ? @bulk_insert_size - 20 : 20)
+      @bulk_insert_size = (@bulk_insert_size > 200 ? @bulk_insert_size - 200 : 200)
     else
-      @bulk_insert_size += 20
+      @bulk_insert_size += 200
     end
     @inserted_last_run = eventsPerSecond
     Statistic.logEventsPerSecond(eventsPerSecond)
