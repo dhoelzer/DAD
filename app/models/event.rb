@@ -9,9 +9,9 @@ class Event < ActiveRecord::Base
   @added = 0
   @cache_hits = 0
   @@num_cached = 0
-  CACHESIZE=8000
+  CACHESIZE=80000
   @@cachelifetime=15
-  HUNKSIZE=16
+  HUNKSIZE=24
   
   @inserted_last_run = 100
   @@nextEventID = -1
