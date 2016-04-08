@@ -155,6 +155,7 @@ class Event < ActiveRecord::Base
     hunks = eventString.scan(/.{1,#{HUNKSIZE}}/)
     eventString.downcase!
     eventString.gsub!(/([^a-zA-Z0-9 \-_:@\*\/.])/," " )
+puts "X"
     split_text = eventString.split(/\s+/)
     if split_text.count < 5 then
       puts "Invalid for syslog format: Too few fields -> #{eventString}"
