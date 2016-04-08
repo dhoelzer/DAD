@@ -11,7 +11,7 @@ class Event < ActiveRecord::Base
   @@num_cached = 0
   CACHESIZE=80000
   @@cachelifetime=15
-  HUNKSIZE=24
+  HUNKSIZE=8
   
   @inserted_last_run = 100
   @@nextEventID = -1
@@ -249,7 +249,7 @@ class Event < ActiveRecord::Base
         @@hunk_cache[hunk_string]= {:id => newhunk.id, :last => Time.now}
         hunk = @@hunk_cache[hunk_string][:id]
       end
-      hunkString = "#{hunkString},#{hunk}"
+      hunkString << "," << hunk
     end
     @@pendingEventValues.add "(#{@@nextEventID}, #{system.id}, #{service.id}, '#{timestamp.to_s(:db)}', '#{Time.now.to_s(:db)}', '#{hunkString}')"
     #    event = Event.create(:system_id => system.id, :service_id => service.id, :generated => timestamp, :stored => Time.now)
