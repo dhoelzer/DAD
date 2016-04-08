@@ -4,7 +4,7 @@ class Event < ActiveRecord::Base
   belongs_to :system
   belongs_to :service
 
-  @bulk_insert_size=((Rails.env.development? || Rails.env.test?) ? 1 : 1000)
+  @bulk_insert_size=((Rails.env.development? || Rails.env.test?) ? 1 : 2000)
   @@cached_words = Hash.new
   @added = 0
   @cache_hits = 0
