@@ -249,8 +249,8 @@ class Event < ActiveRecord::Base
         @@hunk_cache[hunk_string]= {:id => newhunk.id, :last => Time.now}
         hunk = @@hunk_cache[hunk_string][:id]
       end
- puts "X"
      hunkString << "," << hunk
+ puts "X"
     end
     @@pendingEventValues.add "(#{@@nextEventID}, #{system.id}, #{service.id}, '#{timestamp.to_s(:db)}', '#{Time.now.to_s(:db)}', '#{hunkString}')"
     #    event = Event.create(:system_id => system.id, :service_id => service.id, :generated => timestamp, :stored => Time.now)
