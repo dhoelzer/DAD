@@ -10,9 +10,8 @@ def process_logs
     pending_logs.each do |log|
       processed += 1
       puts "Processing #{log}:  Log #{processed} out of #{pending_logs.count}"
-      file = File.open(log)
 
-      file.each_line do |line|
+      File.foreach(log) do |line|
         begin
           lines += 1
           Event.storeEvent(line)
@@ -24,7 +23,6 @@ def process_logs
           exit
         end
       end
-      file.close
       File.rename(log, "../ProcessedLogs/#{log}")
     end
   rescue Interrupt
