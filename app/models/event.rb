@@ -11,7 +11,7 @@ class Event < ActiveRecord::Base
   @@num_cached = 0
   CACHESIZE=80000
   @@cachelifetime=120
-  
+  @@connection = ActiveRecord::Base.connection
   @@insertThreads = Array.new
   @inserted_last_run = 100
   @@nextEventID = -1
@@ -221,7 +221,7 @@ class Event < ActiveRecord::Base
   def self.performPendingInserts
     return if @@pendingEventValues.count < 1
 
-    if @@insertThreads.count > 20 then
+    if @@insertThreads.count > 5 then
       puts "Joining previous inserts."; 
       @@insertThreads.each { |thread| thread.join }
       @@insertThreads = []
@@ -230,9 +230,8 @@ class Event < ActiveRecord::Base
     event_sql = "INSERT INTO events (id, system_id, service_id, generated, stored, hunks) VALUES #{@@pendingEventValues.to_a.join(", ")}"
 
     @@insertThreads << Thread.new(events_words_sql, event_sql) do
-      connection = ActiveRecord::Base.connection
-      connection.execute events_words_sql
-      connection.execute event_sql
+      @@connection.execute events_words_sql
+      @@connection.execute event_sql
     end
 
     puts "\t\t-->> Flushed #{@@pendingEventValues.count} events. <<--"
@@ -250,7 +249,7 @@ class Event < ActiveRecord::Base
     @@start_time = Time.now
     @@pendingEventValues = Set.new
     @@events_words = Set.new
-    @@current_year = Time.new.year
+    @@current_year = "#{Time.new.year}"
     self.prune_words if @@num_cached > CACHESIZE
   end
   
