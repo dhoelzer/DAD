@@ -19,6 +19,7 @@ def process_logs
         rescue Exception => e
           puts "Error processing #{log}!"
           puts e
+          puts "Offending line: #{line}"
           Event.performPendingInserts
           exit
         end
