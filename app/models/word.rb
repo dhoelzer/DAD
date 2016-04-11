@@ -1,6 +1,5 @@
 class Word < ActiveRecord::Base
-  has_many :positions
-  has_many :events, :through => :positions
+  has_and_belongs_to_many :events
   
   def self.hidden?(current_user = nil)
     return true
