@@ -79,7 +79,7 @@ class Event < ActiveRecord::Base
     puts sql
     events_that_match = connection.execute(sql)
     events_that_match.map { |e| event_ids << e["event_id"]}
-    @events = Event.order(generated: :asc).includes(:words).where("id in (?)", event_ids).limit(limit).offset(offset)
+    @events = Event.order(generated: :asc).where("id in (?)", event_ids).limit(limit).offset(offset)
     return (@events.nil? ? [] : @events)    
   end 
   
