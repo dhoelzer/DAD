@@ -25,6 +25,13 @@ html, body{
 	white-space: pre-wrap;
 }
 
+.event_detail {
+	font-family: monospace;
+}
+
+.system {
+	width: 30em;
+}
 .timestamp:hover {
 	background: #aaa;
 }
