@@ -30,9 +30,9 @@ html, body{
 }
 
 .system {
-	display: inline;
-	width: 250px;
-	max-width: 250px;
+	display: inline-block;
+	width: 200px;
+	max-width: 200px;
     position: relative;
 	white-space: pre-wrap;	
 }
