@@ -8,13 +8,13 @@ class User < ActiveRecord::Base
   def store_password(password)
     salt = Random.srand % 9999
     hash = Digest::SHA256.hexdigest "#{salt}#{password}"
+    puts "Password change"
     self.password = "#{salt}$#{hash}"
   end
   
   def check_password(password)
     salt,hash = self.password.split('$')
     calculated_hash = Digest::SHA256.hexdigest "#{salt}#{password}"
-    puts "Password change"
     return true if calculated_hash == hash
     return false
   end
