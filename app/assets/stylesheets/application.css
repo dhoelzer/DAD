@@ -31,7 +31,8 @@ html, body{
 
 .system {
 	display: inline;
-	width: 30em;
+	width: 80px;
+	max-width: 80px;
     position: relative;
 	white-space: pre-wrap;	
 }
