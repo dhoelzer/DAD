@@ -8,7 +8,7 @@ class User < ActiveRecord::Base
   def store_password(password)
     salt = Random.srand % 9999
     hash = Digest::SHA256.hexdigest "#{salt}#{password}"
-    puts "Password change"
+    puts "Password change -#{password}-"
     self.password = "#{salt}$#{hash}"
   end
   

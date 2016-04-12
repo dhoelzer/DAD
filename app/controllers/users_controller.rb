@@ -160,7 +160,7 @@ class UsersController < ApplicationController
     respond_to do |format|
       if @user.update(user_params)
         @user.attempts = 0
-        puts "storing password"
+        puts "storing password -#{params[:password]}-"
         @user.store_password(params[:password])
         @user.save
         format.html { redirect_to @user, notice: 'User was successfully updated.' }
