@@ -1,6 +1,6 @@
 <% if !@event.nil? then %>
-	<div id="event_detail">
-		<div id="system"><%= link_to @event.system.display_name, @event.system %>: </div>
+	<div class="event_detail">
+		<div class="system"><%= link_to @event.system.display_name, @event.system %>: </div>
 		<%=raw timestamp_helper(@event.generated)%>
 		<% if @event.use_display_helper? then %>
 		 	<%= @event.parsed %>
