@@ -9,6 +9,7 @@ class User < ActiveRecord::Base
     salt = Random.srand % 9999
     hash = Digest::SHA256.hexdigest "#{salt}#{password}"
     self.password = "#{salt}$#{hash}"
+    self.save
   end
   
   def check_password(password)
