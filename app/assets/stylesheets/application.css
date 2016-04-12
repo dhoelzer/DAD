@@ -32,6 +32,8 @@ html, body{
 .system {
 	display: inline;
 	width: 30em;
+    position: relative;
+	white-space: pre-wrap;	
 }
 .timestamp:hover {
 	background: #aaa;
