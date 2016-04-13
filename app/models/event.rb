@@ -30,7 +30,7 @@ class Event < ActiveRecord::Base
   end
   
   def display_helper
-    @display_helper = @display_helper.nil? ? Display.helper_for_event(self.inspect) : @display_helper
+    @display_helper = @display_helper.nil? ? Display.helper_for_event(self.hunks) : @display_helper
     @display_helper
   end
   
@@ -42,7 +42,7 @@ class Event < ActiveRecord::Base
     @display_helper = self.display_helper
     return "BAD DISPLAY FILTER" if @display_helper.nil?
     eval @display_helper.display_script
-    parse_event(self.inspect)
+    parse_event(self.hunks)
   end
   
   def event_fields
