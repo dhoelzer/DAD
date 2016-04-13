@@ -21,7 +21,7 @@ update_div.html("Last Updated: <%= Time.now %> | Pending Alerts: <%= Alert.where
 update_div.fadeIn();
 
 var update_div = $("#recent_events")
-update_div.html(<%= Event.last(50).pluck(:hunks) %>)
+update_div.html(<%= escape_javascript(render partial: 'search_results', locals: { Event.last(50): @events}) %>)
 
 setTimeout(function() {
 	jQuery.ajax({
