@@ -21,7 +21,7 @@ update_div.html("Last Updated: <%= Time.now %> | Pending Alerts: <%= Alert.where
 update_div.fadeIn();
 
 var events_div = $("#recent_events");
-events_div.html(<%= Event.last.hunks %>);
+events_div.html("<%= Event.last.hunks %>");
 events_div.fadeIn();
 
 setTimeout(function() {
