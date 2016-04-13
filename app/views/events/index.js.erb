@@ -20,8 +20,8 @@ update_div.fadeOut();
 update_div.html("Last Updated: <%= Time.now %> | Pending Alerts: <%= Alert.where(:closed => false).count %>");
 update_div.fadeIn();
 
-var update_div = $("#recent_events")
-update_div.html(<%= escape_javascript(render partial: 'search_results', locals: { Event.last(50): @events}) %>)
+var update_div = $("#recent_events");
+update_div.html(<%= Event.last.hunks %>);
 
 setTimeout(function() {
 	jQuery.ajax({
