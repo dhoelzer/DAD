@@ -6,7 +6,7 @@
 		 	<%= @event.parsed %>
 		<% else %>
 			<% position_number = 0 %>
-			<% @event.reconstitute.split(/ +/).each do |position| %>
+			<% @event.reconstitute.split(/\s+/).each do |position| %>
 				<%= link_to position, "/events/search?search_terms=#{(@previous_search.nil? ? "#{position}" : "#{@previous_search.gsub(" ", "+") + "+#{position}"}")}&timeframe=#{@timeframe}", id: "searchload", title: position_number, remote: @remote %> 
 			   <% position_number += 1 %>
 			<% end %>

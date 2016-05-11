@@ -4,11 +4,15 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update
 apt-get install -y software-properties-common
 apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xcbcb082a1bb943db 
-add-apt-repository 'deb http://ftp.osuosl.org/pub/mariadb/repo/10.0/debian jessie main'
+# add-apt-repository 'deb http://ftp.osuosl.org/pub/mariadb/repo/10.0/debian jessie main'
 apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 561F9B9CAC40B2F7
 apt-get install -y apt-transport-https ca-certificates
 add-apt-repository 'deb https://oss-binaries.phusionpassenger.com/apt/passenger jessie main'
 apt-get update
+apt-get install -y ruby
+apt-get install -y ruby-dev
+apt-get install -y g++
+apt-get install -y libsqlite3-dev
 apt-get install -y apache2
 # debconf-set-selections <<< 'mariadb-server-10.0 mysql-server/root_password password PASS'
 # debconf-set-selections <<< 'mariadb-server-10.0 mysql-server/root_password_again password PASS'
