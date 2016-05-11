@@ -4,9 +4,7 @@ source 'https://rubygems.org'
 gem 'rails', '> 4'
 
 # Moving back to postgresql
-group :production do
-  gem 'pg'
-end
+gem 'pg'
 
 group :development, :test do
   gem 'sqlite3'
