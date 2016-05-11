@@ -23,6 +23,7 @@ html, body{
 	display: inline;
     position: relative;
 	white-space: pre-wrap;
+	font-size: 0.875em;
 }
 
 .event_detail {
@@ -31,8 +32,9 @@ html, body{
 
 .system {
 	display: inline-block;
-	width: 200px;
-	max-width: 200px;
+	font-size: 0.875em;
+	width: 100px;
+	max-width: 100px;
     position: relative;
 	white-space: pre-wrap;	
 }
