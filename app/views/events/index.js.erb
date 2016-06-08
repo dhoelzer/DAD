@@ -21,6 +21,7 @@ update_div.html("Last Updated: <%= Time.now %> | Pending Alerts: <%= Alert.where
 update_div.fadeIn();
 
 var events_div = $("#recent_events");
+evemts_div.html("Updated at <%= Time.now %>")
 <% Event.recent_events.each do |event| %>
   events_div.append("<br><%= event %>");
 <% end %>
