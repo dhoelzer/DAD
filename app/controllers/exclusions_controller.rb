@@ -28,6 +28,7 @@ class ExclusionsController < ApplicationController
   # GET /exclusions/new
   def new
     @exclusion = Exclusion.new
+    @exclusion.user = @current_user
   end
 
   # GET /exclusions/1/edit
