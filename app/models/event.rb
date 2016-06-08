@@ -28,7 +28,8 @@ class Event < ActiveRecord::Base
     exclusions = Exclusion.pluck(:pattern)
     reg = Regexp.union(exclusions)
     events = (Event.last(@@num_last_events).map { |a| a.hunks }).reject { |event| event.match(reg)}
-    @@num_last_events += 1 if events.count < 50
+    @@num_last_events += 10 if events.count < 50
+    @@num_last_events -= 5 if events.count > 70
     return events
   end
 
