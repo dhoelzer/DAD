@@ -25,7 +25,7 @@ class Event < ActiveRecord::Base
   
   def self.recent_events
     exclusions = ["did not find a VM", "default_url_options is passed", "type=traffic subtype=forward level=notice"]
-    reg = Regex.union(exclusions)
+    reg = Regexp.union(exclusions)
     (Event.last(50).map { |a| a.hunks }).reject { |event| event.match(reg)}
 
   end
