@@ -23,6 +23,10 @@ class Event < ActiveRecord::Base
   @event_fields = nil         # instantiate lazily but still only do one SQL query per event
   @@current_year = Time.new.year
   
+  def self.recent_events
+    Events.last(50)
+  end
+
   def self.hidden?(current_user = nil)
     return true if current_user.nil?
     return true unless current_user.has_right?("Viewer")
