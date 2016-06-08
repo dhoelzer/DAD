@@ -24,7 +24,7 @@ class Event < ActiveRecord::Base
   @@current_year = Time.new.year
   
   def self.recent_events
-    Event.last(50)
+    Event.last(50).pluck(:hunks)
   end
 
   def self.hidden?(current_user = nil)
