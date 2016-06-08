@@ -6,6 +6,7 @@ class Event < ActiveRecord::Base
 
   @bulk_insert_size=((Rails.env.development? || Rails.env.test?) ? 1 : 2000)
   @@cached_words = Hash.new
+  @@num_last_events = 50
   @added = 0
   @cache_hits = 0
   @@num_cached = 0
@@ -24,10 +25,11 @@ class Event < ActiveRecord::Base
   @@current_year = Time.new.year
   
   def self.recent_events
-    exclusions = ["did not find a VM", "default_url_options is passed", "type=traffic subtype=forward level=notice"]
+    exclusions = ["[ WARN]: * Accept-Language", "verbose \"vpxavpxaAlarm\"","did not find a VM", "default_url_options is passed", "type=traffic subtype=forward level=notice"]
     reg = Regexp.union(exclusions)
-    (Event.last(50).map { |a| a.hunks }).reject { |event| event.match(reg)}
-
+    events = (Event.last(@@num_last_events).map { |a| a.hunks }).reject { |event| event.match(reg)}
+    @@num_last_events += 1 if events.count < 50
+    return events
   end
 
   def self.hidden?(current_user = nil)
