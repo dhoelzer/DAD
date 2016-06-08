@@ -1,0 +1,25 @@
+<%= form_for(@exclusion) do |f| %>
+  <% if @exclusion.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(@exclusion.errors.count, "error") %> prohibited this exclusion from being saved:</h2>
+
+      <ul>
+      <% @exclusion.errors.full_messages.each do |message| %>
+        <li><%= message %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="field">
+    <%= f.label :pattern %><br>
+    <%= f.text_field :pattern %>
+  </div>
+  <div class="field">
+    <%= f.label :user %><br>
+    <%= @exclusion.user.username %>
+  </div>
+  <div class="actions">
+    <%= f.submit %>
+  </div>
+<% end %>

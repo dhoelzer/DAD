@@ -25,7 +25,7 @@ class Event < ActiveRecord::Base
   @@current_year = Time.new.year
   
   def self.recent_events
-    exclusions = ["[ WARN]: * Accept-Language", "verbose \"vpxavpxaAlarm\"","did not find a VM", "default_url_options is passed", "type=traffic subtype=forward level=notice"]
+    exclusions = Exclusion.pluck(:pattern)
     reg = Regexp.union(exclusions)
     events = (Event.last(@@num_last_events).map { |a| a.hunks }).reject { |event| event.match(reg)}
     @@num_last_events += 1 if events.count < 50

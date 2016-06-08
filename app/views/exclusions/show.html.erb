@@ -1,0 +1,14 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>Pattern:</strong>
+  <%= @exclusion.pattern %>
+</p>
+
+<p>
+  <strong>User:</strong>
+  <%= @exclusion.user_id %>
+</p>
+
+<%= link_to 'Edit', edit_exclusion_path(@exclusion) %> |
+<%= link_to 'Back', exclusions_path %>

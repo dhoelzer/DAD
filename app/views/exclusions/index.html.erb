@@ -1,0 +1,29 @@
+<p id="notice"><%= notice %></p>
+
+<h1>Listing Exclusions</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Pattern</th>
+      <th>User</th>
+      <th colspan="3"></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @exclusions.each do |exclusion| %>
+      <tr>
+        <td><%= exclusion.pattern %></td>
+        <td><%= exclusion.user.username %></td>
+        <td><%= link_to 'Show', exclusion %></td>
+        <td><%= link_to 'Edit', edit_exclusion_path(exclusion) %></td>
+        <td><%= link_to 'Destroy', exclusion, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<br>
+
+<%= link_to 'New Exclusion', new_exclusion_path %>
