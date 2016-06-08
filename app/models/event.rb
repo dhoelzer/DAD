@@ -24,7 +24,10 @@ class Event < ActiveRecord::Base
   @@current_year = Time.new.year
   
   def self.recent_events
-    Event.last(50).map { |a| a.hunks }
+    exclusions = ["did not find a VM", "default_url_options is passed", "type=traffic subtype=forward level=notice"]
+    reg = Regex.union(exclusions)
+    (Event.last(50).map { |a| a.hunks }).reject { |event| event.match(reg)}
+
   end
 
   def self.hidden?(current_user = nil)
