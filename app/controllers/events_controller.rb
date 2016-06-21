@@ -36,6 +36,7 @@ class EventsController < ApplicationController
     @events = Event.search(params[:search_terms], Time.now - @timeframe.to_i, 0, @num_results)
     @previous_search = params[:search_terms]
     @search_time = Time.now - start_time
+    puts params
     respond_to do |format|
       format.html
       format.js {render layout: false}
