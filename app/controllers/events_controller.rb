@@ -37,8 +37,8 @@ class EventsController < ApplicationController
       lefttime = params[:lefttime]
       righttime = params[:righttime]
       puts "Left: #{lefttime} Right: #{righttime}"
-      puts parse_datetime_params :lefttime, :start
-      puts parse_datetime_params :righttime, :end
+      puts parse_datetime_params lefttime, :start
+      puts parse_datetime_params righttime, :end
 
     end
     @events = Event.search(params[:search_terms], Time.now - @timeframe.to_i, 0, @num_results)
