@@ -36,12 +36,12 @@ class EventsController < ApplicationController
     if (params[:timesearch_enabled]) then
       lefttime = params[:lefttime]
       righttime = params[:righttime]
-      puts "Left: #{lefttime} Right: #{righttime}"
-      puts parse_datetime_params lefttime, :start
-      puts parse_datetime_params righttime, :end
+      starttime = parse_datetime_params lefttime, :start
+      endtime = parse_datetime_params righttime, :end
 
     end
-    @events = Event.search(params[:search_terms], Time.now - @timeframe.to_i, 0, @num_results)
+    @events = Event.search(params[:search_terms], Time.now - @timeframe.to_i, 0, @num_results) unless params[:timesearch_enabled]
+    @events = Event.search_period(params[:search_terms, starttime, endtime, 0, @num_results]) if params[:timesearch_enabled]
     @previous_search = params[:search_terms]
     @search_time = Time.now - start_time
     respond_to do |format|
@@ -64,7 +64,6 @@ class EventsController < ApplicationController
   #extract a datetime object from params, useful for receiving datetime_select attributes
   #out of any activemodel
   def parse_datetime_params params, label, utc_or_local = :utc
-    puts "params: #{params} label: #{label} #{params[(label.to_s+'(1i)')]}"
     begin
       year   = params[(label.to_s + '(1i)')].to_i
       month  = params[(label.to_s + '(2i)')].to_i

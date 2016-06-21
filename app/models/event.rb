@@ -92,6 +92,21 @@ class Event < ActiveRecord::Base
     @events = Event.order(generated: :asc).where("id in (?)", event_ids).limit(limit).offset(offset)
     return (@events.nil? ? [] : @events)    
   end 
+
+  def self.search_period(search_string, starting_time, ending_time, offset=0, limit=100)
+    @events = Array.new
+    event_ids = Array.new
+    connection = ActiveRecord::Base.connection
+    
+    terms = search_string.downcase.split(/\s+/)
+    return [] if terms.empty?
+    sql = "select event_id from events_words where (generated between '#{starting_time.to_s(:db)}' and '#{ending_time.to_s(:db)}') and word_id in (select distinct id from words where words.text in ('#{terms.join("', '")}')) group by events_words.event_id having count(distinct(word_id))=#{terms.count}"
+    puts sql
+    events_that_match = connection.execute(sql)
+    events_that_match.map { |e| event_ids << e["event_id"]}
+    @events = Event.order(generated: :asc).where("id in (?)", event_ids).limit(limit).offset(offset)
+    return (@events.nil? ? [] : @events)    
+  end 
   
   def self.iterativeSQLBuilder(sortedWordIDs, depth, starting_time)
     # this is massively bad in so many ways.
