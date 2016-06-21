@@ -34,8 +34,8 @@ class EventsController < ApplicationController
     @num_results = params[:numresults].to_i
     @timeframe = params[:timeframe]
     if (params[:timesearch_enabled]) then
-      lefttime = params[:timesearch]
-      righttime = params[:timesearch]
+      lefttime = params[:lefttime]
+      righttime = params[:righttime]
       puts "Left: #{lefttime} Right: #{righttime}"
       puts parse_datetime_params :lefttime, "start"
       puts parse_datetime_params :righttime, "end"
