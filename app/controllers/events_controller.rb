@@ -64,6 +64,7 @@ class EventsController < ApplicationController
   #extract a datetime object from params, useful for receiving datetime_select attributes
   #out of any activemodel
   def parse_datetime_params params, label, utc_or_local = :utc
+    puts "params: #{params} label: #{label}"
     begin
       year   = params[(label.to_s + '(1i)').to_sym].to_i
       month  = params[(label.to_s + '(2i)').to_sym].to_i
