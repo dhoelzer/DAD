@@ -55,9 +55,7 @@ class System < ActiveRecord::Base
     connection = ActiveRecord::Base.connection    
     sql = "select count(*) from events where events.system_id=#{self.id} and generated>'#{since}'"
     results = connection.execute sql
-    values = Array.new
-    results.each{|s| values << s[0].to_i }
-    return values[0]
+    return results[0]
   end
   
   def hourly_stats(since=1.day.ago)
@@ -65,7 +63,7 @@ class System < ActiveRecord::Base
       sql = "select count(*),extract(year from generated) as year, extract(month from generated) as month,extract(day from generated) as day, extract(hour from generated) as hour from events where events.system_id=#{self.id} and events.generated>'#{since}' group by year,month,day,hour order by year,month,day,hour asc"
       results = connection.execute sql
       values = Array.new
-      results.each{|s| values << s[0].to_i }
+      results.each{|s| values << s["count"].to_i }
       mean = Math.mean(values)
       variance = Math.variance(values)
       standard_deviation = Math.standard_deviation(values)
@@ -77,7 +75,7 @@ class System < ActiveRecord::Base
     sql = "select count(*),extract(year from generated) as year, extract(month from generated) as month,extract(day from generated) as day, extract(hour from generated) as hour from events where events.system_id=#{self.id} and events.generated>'#{since}' group by year,month,day,hour order by year,month,day,hour asc"
     results = connection.execute sql
     data=Hash.new
-    results.each{|s| data["#{s[2]}/#{s[3]}/#{s[1]} #{s[4]}:00:00"] = s[0].to_i}
+    results.each{|s| data["#{s['month']}/#{s['day']}/#{s['year']} #{s['hour']}:00:00"] = s["count"].to_i}
     data.map { |k,v| ["#{k}",v] }
   end
   
