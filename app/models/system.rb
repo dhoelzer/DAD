@@ -55,7 +55,7 @@ class System < ActiveRecord::Base
     connection = ActiveRecord::Base.connection    
     sql = "select count(*) from events where events.system_id=#{self.id} and generated>'#{since}'"
     results = connection.execute sql
-    return results[0]
+    return results[0]["count"].to_i
   end
   
   def hourly_stats(since=1.day.ago)
