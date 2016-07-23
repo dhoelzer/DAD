@@ -53,7 +53,7 @@ class System < ActiveRecord::Base
   
   def events_since(since=1.hour.ago)
     connection = ActiveRecord::Base.connection    
-    sql = "select count(*) from events where system_id=#{self.id} and generated>'#{since}'"
+    sql = "select count(*) from events where events.system_id=#{self.id} and generated>'#{since}'"
     results = connection.execute sql
     values = Array.new
     results.each{|s| values << s[0].to_i }
@@ -62,7 +62,7 @@ class System < ActiveRecord::Base
   
   def hourly_stats(since=1.day.ago)
       connection = ActiveRecord::Base.connection    
-      sql = "select count(*),extract(year from generated) as year, extract(month from generated) as month,extract(day from generated) as day, extract(hour from generated) as hour from events where system_id=#{self.id} and generated>'#{since}' group by year,month,day,hour order by year,month,day,hour asc"
+      sql = "select count(*),extract(year from generated) as year, extract(month from generated) as month,extract(day from generated) as day, extract(hour from generated) as hour from events where events.system_id=#{self.id} and events.generated>'#{since}' group by year,month,day,hour order by year,month,day,hour asc"
       results = connection.execute sql
       values = Array.new
       results.each{|s| values << s[0].to_i }
@@ -74,7 +74,7 @@ class System < ActiveRecord::Base
   
   def events_per_hour(since=7.days.ago)
     connection = ActiveRecord::Base.connection    
-    sql = "select count(*),extract(year from generated) as year, extract(month from generated) as month,extract(day from generated) as day, extract(hour from generated) as hour from events where system_id=#{self.id} and generated>'#{since}' group by year,month,day,hour order by year,month,day,hour asc"
+    sql = "select count(*),extract(year from generated) as year, extract(month from generated) as month,extract(day from generated) as day, extract(hour from generated) as hour from events where events.system_id=#{self.id} and events.generated>'#{since}' group by year,month,day,hour order by year,month,day,hour asc"
     results = connection.execute sql
     data=Hash.new
     results.each{|s| data["#{s[2]}/#{s[3]}/#{s[1]} #{s[4]}:00:00"] = s[0].to_i}
