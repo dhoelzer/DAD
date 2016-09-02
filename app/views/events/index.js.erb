@@ -23,7 +23,7 @@ update_div.fadeIn();
 var events_div = $("#recent_events");
 
 <% recentevents = Event.recent_events %>
-events_div.html("Showing <%= recentevents.count %> events filtered from <% Event.event_pruning_count %> recent events @ <%= Time.now %>")
+events_div.html("Showing <%= recentevents.count %> events filtered from <%= Event.event_pruning_count %> recent events @ <%= Time.now %>")
 <% recentevents.each do |event| %>
   events_div.append("<br><%= event %>");
 <% end %>
