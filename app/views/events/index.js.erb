@@ -17,13 +17,13 @@ draw_longitudinal("insert_rate", "Insert Rate", "Inserts Per Second", <%=raw ins
 
 var update_div = $("#updated")
 update_div.fadeOut();
-update_div.html("Last Updated: <%= Time.now %> | Pending Alerts: <%= Alert.where(:closed => false).count %>");
+update_div.html("Monitoring <%= number_with_delimiter(System.count, delimiter: ",") %> systems with <%= number_with_delimiter(Event.approximate_count, delimiter: ",") %> events | Last Updated: <%= Time.now %> | Pending Alerts: <%= Alert.where(:closed => false).count %>");
 update_div.fadeIn();
 
 var events_div = $("#recent_events");
 
 <% recentevents = Event.recent_events %>
-events_div.html("Showing <%= recentevents.count %> recent events @ <%= Time.now %>")
+events_div.html("Showing <%= recentevents.count %> events filtered from <% Event.event_pruning_count %> recent events @ <%= Time.now %>")
 <% recentevents.each do |event| %>
   events_div.append("<br><%= event %>");
 <% end %>

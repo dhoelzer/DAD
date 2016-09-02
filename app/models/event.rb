@@ -24,6 +24,10 @@ class Event < ActiveRecord::Base
   @event_fields = nil         # instantiate lazily but still only do one SQL query per event
   @@current_year = Time.new.year
   
+  def self.event_pruning_count
+    @@num_last_events
+  end
+  
   def self.recent_events
     exclusions = Exclusion.pluck(:pattern)
     reg = Regexp.union(exclusions)
@@ -31,6 +35,16 @@ class Event < ActiveRecord::Base
     @@num_last_events += 10 if events.count < 50
     @@num_last_events -= 5 if events.count > 70
     return events
+  end
+
+  def self.approximate_count
+    connection = ActiveRecord::Base.connection
+    # Postgresql performance on a count is awful.  Estimating based on tuples.
+    # This is a breaking change for Maria/MySQL.
+    sql = "SELECT SUM(n_live_tup) FROM pg_stat_user_tables where relname like 'events_p%';"
+    puts sql
+    count = connection.execute(sql)
+    count.first["sum"].to_i
   end
 
   def self.hidden?(current_user = nil)
