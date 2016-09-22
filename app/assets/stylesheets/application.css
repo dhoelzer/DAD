@@ -222,11 +222,14 @@ li#active {
 
 #events_window {
   float: left;
-  font-size: 1.0em;
-  font-style: bold;
   width: 99%;
   height: 220px;
   border: 1px black solid;
+}
+
+#events_header{
+  font-size: 1.0em;
+  font-style: bold;
 }
 
 #recent_events {

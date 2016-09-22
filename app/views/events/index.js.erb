@@ -21,10 +21,10 @@ update_div.html("Monitoring <%= number_with_delimiter(System.count, delimiter: "
 update_div.fadeIn();
 
 var events_div = $("#recent_events");
-var events_window = $("#events_window");
+var events_header = $("#events_header");
 <% recentevents = Event.recent_events %>
-events_window.html("<center>Showing <%= recentevents.count %> events filtered from <%= Event.event_pruning_count %> recent events @ <%= Time.now %></center>")
-events_div.html("")
+events_header.html("<center>Showing <%= recentevents.count %> events filtered from <%= Event.event_pruning_count %> recent events @ <%= Time.now %></center>");
+events_div.html("");
 <% recentevents.each do |event| %>
   events_div.append("<br><%= event %>");
 <% end %>
