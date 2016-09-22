@@ -230,6 +230,7 @@ li#active {
 }
 
 #recent_events {
+  height:210px;
   overflow: auto;
   background-color: #eeeeee;
 }
