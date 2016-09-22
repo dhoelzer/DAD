@@ -29,11 +29,13 @@ class Event < ActiveRecord::Base
   end
   
   def self.recent_events
+    @@num_last_events = Preference.eventsDashboard
     exclusions = Exclusion.pluck(:pattern)
     reg = Regexp.union(exclusions)
     events = (Event.last(@@num_last_events).map { |a| a.hunks }).reject { |event| event.match(reg)}
-    @@num_last_events += 10 if events.count < 50
-    @@num_last_events -= 5 if events.count > 70
+    @@num_last_events += @@num_last_events * 0.10 if events.count < 50
+    @@num_last_events -= @@num_last_events * 0.05 if events.count > 70
+    Preference.eventsDashboard(@@num_last_events)
     return events
   end
 
