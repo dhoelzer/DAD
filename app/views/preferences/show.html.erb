@@ -1,0 +1,19 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>User:</strong>
+  <%= @preference.user_id %>
+</p>
+
+<p>
+  <strong>Liveeventsdisplayed:</strong>
+  <%= @preference.liveEventsDisplayed %>
+</p>
+
+<p>
+  <strong>Dashboardelements:</strong>
+  <%= @preference.dashboardElements %>
+</p>
+
+<%= link_to 'Edit', edit_preference_path(@preference) %> |
+<%= link_to 'Back', preferences_path %>
