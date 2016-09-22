@@ -221,6 +221,7 @@ li#active {
 }
 
 #events_window {
+  float: left;
   width: 100%;
   height: 210px;
   border: 1px black solid;
