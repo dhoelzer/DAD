@@ -24,6 +24,7 @@ var events_div = $("#recent_events");
 var events_window = $("#events_window");
 <% recentevents = Event.recent_events %>
 events_window.html("<center>Showing <%= recentevents.count %> events filtered from <%= Event.event_pruning_count %> recent events @ <%= Time.now %></center>")
+events_div.html("")
 <% recentevents.each do |event| %>
   events_div.append("<br><%= event %>");
 <% end %>
