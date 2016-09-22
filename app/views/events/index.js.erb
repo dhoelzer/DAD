@@ -21,9 +21,9 @@ update_div.html("Monitoring <%= number_with_delimiter(System.count, delimiter: "
 update_div.fadeIn();
 
 var events_div = $("#recent_events");
-
+var events_window = $("#events_window");
 <% recentevents = Event.recent_events %>
-events_div.html("Showing <%= recentevents.count %> events filtered from <%= Event.event_pruning_count %> recent events @ <%= Time.now %>")
+events_window.html("<center>Showing <%= recentevents.count %> events filtered from <%= Event.event_pruning_count %> recent events @ <%= Time.now %></center>")
 <% recentevents.each do |event| %>
   events_div.append("<br><%= event %>");
 <% end %>

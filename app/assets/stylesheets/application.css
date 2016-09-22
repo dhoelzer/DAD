@@ -222,13 +222,14 @@ li#active {
 
 #events_window {
   float: left;
-  width: 100%;
-  height: 210px;
+  font-size: 1.0em;
+  font-style: bold;
+  width: 99%;
+  height: 220px;
   border: 1px black solid;
 }
 
 #recent_events {
-  height: 180px;
   overflow: auto;
   background-color: #eeeeee;
 }
