@@ -220,7 +220,13 @@ li#active {
 	background-color: #888855;
 }
 
-#recent-events {
+#events_window {
+  width: *;
+  height: 210px;
+  border: 1px black solid;
+}
+
+#recent_events {
   height: 180px;
   overflow: auto;
   background-color: #eeeeee;
