@@ -5,12 +5,10 @@ class Preference < ActiveRecord::Base
     return false
   end
 
-  def self.eventsDashboard
-  	Preference.where(:user_id => 0).first.liveEventsDisplayed
-  end
-  def self.eventsDashboard(numDisplayed)
+  def self.eventsDashboard(numDisplayed=-1)
+  	return Preference.where(:user_id => 0).first.liveEventsDisplayed if numDisplayed == -1
   	pref = Preference.where(:user_id => 0).first
   	pref.liveEventsDisplayed = numDisplayed
-  	pref.save
+  	pref.save  	
   end
 end
