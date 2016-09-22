@@ -219,3 +219,9 @@ li#active {
 #navbar a:hover {
 	background-color: #888855;
 }
+
+#recent-events {
+  height: 180px;
+  overflow: auto;
+  background-color: #eeeeee;
+}
