@@ -1,16 +1,19 @@
 source 'https://rubygems.org'
 
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
-gem 'rails', '> 4'
+group :production do
+	gem 'rails', '> 4'
+# See https://github.com/sstephenson/execjs#readme for more supported runtimes
+	gem 'therubyracer', platforms: :ruby
+	gem 'pg'
+end
 
-# Moving back to postgresql
-gem 'pg'
 
 group :development, :test do
   gem 'sqlite3'
   gem "rspec-rails"
   gem 'cucumber-rails', require: false
-  gem 'database_cleaner'
+#  gem 'database_cleaner'
 end
 
 gem 'mail'
@@ -23,13 +26,10 @@ gem 'codemirror-rails'
 gem 'sass-rails', '~> 4.0.0'
 
 # Use Uglifier as compressor for JavaScript assets
-gem 'uglifier', '>= 1.3.0'
+gem 'uglifier'
 
 # Use CoffeeScript for .js.coffee assets and views
 gem 'coffee-rails', '~> 4.0.0'
-
-# See https://github.com/sstephenson/execjs#readme for more supported runtimes
- gem 'therubyracer', platforms: :ruby
 
 # Use jquery as the JavaScript library
 gem 'jquery-rails'
