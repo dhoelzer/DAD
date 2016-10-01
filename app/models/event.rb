@@ -101,7 +101,7 @@ class Event < ActiveRecord::Base
     
     terms = search_string.downcase.split(/\s+/)
     return [] if terms.empty?
-    sql = "select event_id from events_words where (generated between '#{starting_time.to_s(:db)}' and '#{Time.now.to_s(:db)}') and word_id in (select distinct id from words where words.text in ('#{terms.join("', '")}')) group by events_words.event_id having count(distinct(word_id))=#{terms.count}"
+    sql = "select event_id from events_words where (generated between '#{starting_time.to_s(:db)}' and '#{Time.now.to_s(:db)}') and word_id in (select id from words where words.text LIKE '#{terms.join("%' union select id from words where words.text LIKE '")}%') group by events_words.event_id having count(distinct(word_id))=#{terms.count}"
     puts sql
     events_that_match = connection.execute(sql)
     events_that_match.map { |e| event_ids << e["event_id"]}
@@ -116,7 +116,7 @@ class Event < ActiveRecord::Base
     
     terms = search_string.downcase.split(/\s+/)
     return [] if terms.empty?
-    sql = "select event_id from events_words where (generated between '#{starting_time.to_s(:db)}' and '#{ending_time.to_s(:db)}') and word_id in (select distinct id from words where words.text in ('#{terms.join("', '")}')) group by events_words.event_id having count(distinct(word_id))=#{terms.count}"
+    sql = "select event_id from events_words where (generated between '#{starting_time.to_s(:db)}' and '#{ending_time.to_s(:db)}') and word_id in (select id from words where words.text LIKE '#{terms.join("%' union select id from words where words.text LIKE '")}%') group by events_words.event_id having count(distinct(word_id))=#{terms.count}"
     puts sql
     events_that_match = connection.execute(sql)
     events_that_match.map { |e| event_ids << e["event_id"]}
