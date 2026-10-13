@@ -18,21 +18,28 @@ module ApplicationHelper
     return span
   end
   
+  # One parameterized query behind the five dashboard helpers below. The
+  # aggregate is looked up in AGGREGATES rather than interpolated, so a caller
+  # can never steer the SQL text.
+  AGGREGATES = { 'sum' => 'sum(stat)', 'avg' => 'avg(stat)' }.freeze
+
+  def statistics_by_hour(type_id, since, agg = 'sum')
+    aggregate = AGGREGATES.fetch(agg)
+    sql = "select #{aggregate} as agg_value,extract(year from timestamp) as year, extract(month from timestamp) as month,extract(day from timestamp) as day, extract(hour from timestamp) as hour from statistics where type_id=? and timestamp>? group by year,month,day,hour order by year,month,day,hour asc"
+    ActiveRecord::Base.connection.exec_query sql, "SQL", [[nil, type_id], [nil, since]]
+  end
+
   def events_per_hour(since=7.days.ago)
-    connection = ActiveRecord::Base.connection    
-    sql = "select sum(stat),extract(year from timestamp) as year, extract(month from timestamp) as month,extract(day from timestamp) as day, extract(hour from timestamp) as hour from statistics where type_id=0 and timestamp>'#{since}' group by year,month,day,hour order by year,month,day,hour asc"
-    results = connection.execute sql
+    results = statistics_by_hour(0, since)
     data=Hash.new
-    results.each{|s| data["#{s['month']}/#{s['day']}/#{s['year']} #{s['hour']}:00:00"] = s['sum'].to_i}
+    results.each{|s| data["#{s['month']}/#{s['day']}/#{s['year']} #{s['hour']}:00:00"] = s['agg_value'].to_i}
     data.map { |k,v| ["#{k}",v] }
   end
   
   def inserts_per_second(since=1.day.ago)
-    connection = ActiveRecord::Base.connection    
-    sql = "select avg(stat),extract(year from timestamp) as year, extract(month from timestamp) as month,extract(day from timestamp) as day, extract(hour from timestamp) as hour from statistics where type_id=1 and timestamp>'#{since}' group by year,month,day,hour order by year,month,day,hour asc"
-    results = connection.execute sql
+    results = statistics_by_hour(1, since, 'avg')
     data=Hash.new
-    results.each{|s| data["#{s['month']}/#{s['day']}/#{s['year']} #{s['hour']}:00:00"] = s['avg'].to_f}
+    results.each{|s| data["#{s['month']}/#{s['day']}/#{s['year']} #{s['hour']}:00:00"] = s['agg_value'].to_f}
     data.map { |k,v| ["#{k}",v] }
   end
   
@@ -65,20 +72,16 @@ module ApplicationHelper
   end
   
   def hourly_average(since=1.day.ago)
-      connection = ActiveRecord::Base.connection    
-      sql = "select sum(stat),extract(year from timestamp) as year, extract(month from timestamp) as month,extract(day from timestamp) as day, extract(hour from timestamp) as hour from statistics where type_id=0 and timestamp>'#{since}' group by year,month,day,hour order by year,month,day,hour asc"
-      results = connection.execute sql
+      results = statistics_by_hour(0, since)
       values = Array.new
-      results.each{|s| values << s['sum'].to_i }
+      results.each{|s| values << s['agg_value'].to_i }
       Math.mean(values)
   end
 
   def hourly_stats(since=1.day.ago)
-      connection = ActiveRecord::Base.connection    
-      sql = "select sum(stat),extract(year from timestamp) as year, extract(month from timestamp) as month,extract(day from timestamp) as day, extract(hour from timestamp) as hour from statistics where type_id=0 and timestamp>'#{since}' group by year,month,day,hour order by year,month,day,hour asc"
-      results = connection.execute sql
+      results = statistics_by_hour(0, since)
       values = Array.new
-      results.each{|s| values << s['sum'].to_i }
+      results.each{|s| values << s['agg_value'].to_i }
       mean = Math.mean(values)
       variance = Math.variance(values)
       standard_deviation = Math.standard_deviation(values)
@@ -87,11 +90,9 @@ module ApplicationHelper
   
 
   def daily_insert_average(since=1.day.ago)
-      connection = ActiveRecord::Base.connection    
-      sql = "select sum(stat),extract(year from timestamp) as year, extract(month from timestamp) as month,extract(day from timestamp) as day, extract(hour from timestamp) as hour from statistics where type_id=1 and timestamp>'#{since}' group by year,month,day,hour order by year,month,day,hour asc"
-      results = connection.execute sql
+      results = statistics_by_hour(1, since)
       values = Array.new
-      results.each{|s| values << s['sum'].to_i }
+      results.each{|s| values << s['agg_value'].to_i }
       
       Math.mean(values) / 60.0
   end

@@ -23,8 +23,8 @@ class System < ActiveRecord::Base
   def self.reportingInLastDays(days)
     connection = ActiveRecord::Base.connection
     events_since = (Time.now - (days * 86400))
-    sql = "select system_id,b.name,count(*) from events as a join systems as b on  a.system_id=b.id where generated>'#{events_since.to_s(:db)}' group by system_id,b.name order by b.name asc"
-    connection.execute(sql)    
+    sql = "select system_id,b.name,count(*) as count from events as a join systems as b on  a.system_id=b.id where generated>? group by system_id,b.name order by b.name asc"
+    connection.exec_query(sql, "SQL", [[nil, events_since.to_s(:db)]])
   end
   
   def display_name
@@ -43,6 +43,14 @@ class System < ActiveRecord::Base
     return item
   end
   
+  # Shared by #hourly_stats and #events_per_hour. extract() is Postgres-only, so
+  # these dashboard queries never worked against the sqlite dev/test database;
+  # binding the parameters at least keeps them injection-free and consistent.
+  def self.hourly_counts(system_id, since)
+    sql = "select count(*) as count,extract(year from generated) as year, extract(month from generated) as month,extract(day from generated) as day, extract(hour from generated) as hour from events where events.system_id=? and events.generated>? group by year,month,day,hour order by year,month,day,hour asc"
+    ActiveRecord::Base.connection.exec_query sql, "SQL", [[nil, system_id], [nil, since]]
+  end
+
   def self.number_of_cached_items
     return @@cached_stuff.size
   end
@@ -53,15 +61,13 @@ class System < ActiveRecord::Base
   
   def events_since(since=1.hour.ago)
     connection = ActiveRecord::Base.connection    
-    sql = "select count(*) from events where events.system_id=#{self.id} and generated>'#{since}'"
-    results = connection.execute sql
+    sql = "select count(*) as count from events where events.system_id=? and generated>?"
+    results = connection.exec_query sql, "SQL", [[nil, self.id], [nil, since]]
     return results[0]["count"].to_i
   end
   
   def hourly_stats(since=1.day.ago)
-      connection = ActiveRecord::Base.connection    
-      sql = "select count(*),extract(year from generated) as year, extract(month from generated) as month,extract(day from generated) as day, extract(hour from generated) as hour from events where events.system_id=#{self.id} and events.generated>'#{since}' group by year,month,day,hour order by year,month,day,hour asc"
-      results = connection.execute sql
+      results = System.hourly_counts(self.id, since)
       values = Array.new
       results.each{|s| values << s["count"].to_i }
       mean = Math.mean(values)
@@ -71,9 +77,7 @@ class System < ActiveRecord::Base
   end
   
   def events_per_hour(since=7.days.ago)
-    connection = ActiveRecord::Base.connection    
-    sql = "select count(*),extract(year from generated) as year, extract(month from generated) as month,extract(day from generated) as day, extract(hour from generated) as hour from events where events.system_id=#{self.id} and events.generated>'#{since}' group by year,month,day,hour order by year,month,day,hour asc"
-    results = connection.execute sql
+    results = System.hourly_counts(self.id, since)
     data=Hash.new
     results.each{|s| data["#{s['month']}/#{s['day']}/#{s['year']} #{s['hour']}:00:00"] = s["count"].to_i}
     data.map { |k,v| ["#{k}",v] }

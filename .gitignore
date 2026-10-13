@@ -7,8 +7,10 @@
 
 # Ignore bundler config.
 /.bundle
-/Gemfile.lock
-/db/schema.rb
+/vendor/bundle
+
+# Gemfile.lock and db/schema.rb are deliberately tracked: they are what make
+# builds and test databases reproducible. Do not ignore them.
 # Ignore the default SQLite database.
 /db/*.sqlite3
 /db/*.sqlite3-journal

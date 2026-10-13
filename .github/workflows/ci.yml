@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      # pg is production-only and needs libpq-dev; the test suite uses sqlite3.
+      BUNDLE_WITHOUT: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '2.7.8'
+          bundler-cache: true
+
+      - name: Install sqlite dev headers
+        run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
+
+      - name: Verify the lockfile is committed and consistent
+        run: bundle install --frozen
+
+      - name: Prepare test database
+        run: bundle exec rake db:migrate RAILS_ENV=test
+
+      - name: Unit and controller tests
+        run: bundle exec rake test
+
+      # `rake cucumber:ok` runs cucumber in-process, where minitest's autorun
+      # then parses cucumber's --profile flag and exits 1. Invoke the binary.
+      - name: Cucumber features
+        run: bundle exec cucumber
+
+  security:
+    runs-on: ubuntu-latest
+    env:
+      BUNDLE_WITHOUT: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '2.7.8'
+          bundler-cache: true
+
+      # Rails 4.2 is end-of-life: rack 1.6.x, actionpack/activerecord 4.2.x and
+      # friends have open CVEs with no fix on the 4.2 line. Reporting is on so
+      # the debt stays visible, but non-blocking so it does not gate every PR.
+      # Flip these to blocking after the Rails upgrade lands.
+      - name: Dependency vulnerabilities
+        continue-on-error: true
+        run: bundle exec bundle-audit check --update
+
+      - name: Static analysis
+        continue-on-error: true
+        run: bundle exec brakeman -q --no-pager -o brakeman-report.txt
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-reports
+          path: brakeman-report.txt

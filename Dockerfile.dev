@@ -1,0 +1,27 @@
+# Reproducible dev/test image. The base tag is pinned to a patch release:
+# Rails 4.2 only boots on Ruby < 3.0 (bigdecimal 2.x removed BigDecimal.new),
+# so an unpinned `ruby:2` tag silently breaks the app on a future 2.x release.
+FROM ruby:2.7.8
+
+RUN apt-get update -qq && \
+    apt-get install -y --no-install-recommends \
+      build-essential \
+      libsqlite3-dev \
+      libpq-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+# Bundler version is pinned by the "BUNDLED WITH" section of Gemfile.lock.
+gem install bundler -v 1.17.3 --no-document
+
+ENV BUNDLE_PATH=/usr/local/bundle \
+    BUNDLE_WITHOUT=production
+
+WORKDIR /app
+
+COPY Gemfile Gemfile.lock ./
+RUN bundle install --frozen
+
+COPY . .
+
+EXPOSE 3000
+CMD ["bundle", "exec", "rails", "server", "-b", "0.0.0.0"]
