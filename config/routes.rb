@@ -27,7 +27,11 @@ Events::Application.routes.draw do
     end
   end
   
-  resources :sessions
+  # Sessions are an implementation detail of ApplicationController#gatekeeper, so
+  # this is read-only plus destroy (an admin force-terminating a login). create/
+  # new/edit/update are not routed: minting a session row by hand would bypass
+  # the password check entirely.
+  resources :sessions, only: [:index, :show, :destroy]
   # Imported from previous project ^^^
 
   resources :displays
