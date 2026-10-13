@@ -41,7 +41,19 @@ end
 # you've limited to :test, :development, or :production.
 Bundler.require(:default, Rails.env)
 
+# The Rails application itself. The name is only a namespace, but it is also the
+# constant the boot process expects: config.ru references Events::Application.
 module Events
+  # Application configuration. Beyond the usual Rails settings this does one unusual
+  # thing that several other parts of the app depend on: it eagerly requires every
+  # file under app/models and records the resulting subclass names in the global
+  # +$_models+.
+  #
+  # The nav-bar layout iterates +$_models+ and calls +hidden?+ on each, which is why
+  # every model must define that method. Note the requires are wrapped in a bare
+  # rescue, so a model that fails to load is skipped silently and simply disappears
+  # from the nav bar; and because subclasses are enumerated at boot, a model loaded
+  # later is never added.
   class Application < Rails::Application
     # Settings in config/environments/* take precedence over those specified here.
     # Application configuration should go into files in config/initializers
