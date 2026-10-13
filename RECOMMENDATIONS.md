@@ -18,7 +18,7 @@ Recommendations are ordered by priority. Each is tagged **[security]**, **[corre
 
 ---
 
-## 0. Status update: item 1 (reproducible, patched build + CI) is done
+## 0a. Status update: item 1 (reproducible, patched build + CI) is done
 
 Landed on branch `reproducible-build-and-ci` (base `db5c6b4`). The app now installs,
 boots, and runs a green test suite from a clean checkout.
@@ -86,12 +86,48 @@ boots, and runs a green test suite from a clean checkout.
 
 ---
 
+## 0b. Status update: item 2 (parameterise all SQL) is done
+
+Landed on the same branch. **Brakeman's SQL Injection warnings went from 11 to 0**
+(total warnings 18 → 7; the remainder are 3 XSS, 2 unmaintained deps, 1 session
+setting, 1 CSRF).
+
+- `Event.searchSQL` now returns `[sql, binds]` built purely from `?` placeholders;
+  `search`/`search_period` call `connection.exec_query`. `params[:search_terms]`
+  can no longer reach the SQL text, and `sanitize_sql_like` makes `%`/`_` in a
+  query literal rather than wildcards.
+- `System#events_since`, `System#hourly_stats`, `System#events_per_hour` and
+  `System.reportingInLastDays` bind their arguments. The two identical
+  `System` queries are now one `System.hourly_counts` helper.
+- The five duplicated `ApplicationHelper` statistics queries collapse onto a
+  single `statistics_by_hour` helper; the aggregate is looked up in a frozen
+  `AGGREGATES` map instead of being interpolated.
+- **`search2` / `iterativeSQLBuilder` deleted** (dead, unreferenced, and the
+  worst injection sink in the repo — it recursed unbounded user-derived SQL).
+- **The bulk ingestion INSERTs are parameterized.** `storeEvent` stages rows as
+  hashes and `Event.insertStatement` emits one multi-row `INSERT ... VALUES
+  (?, ?, ...)` plus binds. This also **removes the `hunks.gsub!("'", %q("))`
+  data-mangling** from §2.5: log text is now stored verbatim, single quotes and
+  all. Batching is preserved (SQLite accepts >98k host parameters; production
+  PostgreSQL is higher).
+- Regression tests in `test/models/event_test.rb` (10 runs / 30 assertions)
+  cover placeholder-only SQL, injection payloads, LIKE-wildcard escaping,
+  quote fidelity, and multi-flush bulk inserts.
+
+Not addressed here, and worth knowing: the async insert thread opens a second
+SQLite connection while the main thread holds a write lock, so bulk inserts
+raise `SQLite3::BusyException` under the sqlite dev database. That is
+**pre-existing** (verified identical on the original code) and does not affect
+the PostgreSQL deployment; §2.4 covers the real fix.
+
+---
+
 ## 1. Do this first: the app is remotely exploitable
 
 This is not theoretical. `syslog.pl` listens on UDP/514 for untrusted input, and the
 UI is exposed over HTTP/HTTPS with a hand-rolled auth layer.
 
-### 1.1 SQL injection in the search path **[security]**
+### 1.1 SQL injection in the search path **[security]** — ✅ fixed (see §0b)
 `app/models/event.rb:104` and `:119` interpolate the raw user query straight into SQL:
 
 ```ruby
@@ -288,7 +324,7 @@ ad-hoc thread pool with a single-threaded batch loop (the throughput win came fr
 size, not concurrency) or with Sidekiq. Replace `Event.all.count` with
 `Event.maximum(:id)`.
 
-### 2.5 `storeEvent` mangles data to avoid quoting bugs **[correctness]**
+### 2.5 `storeEvent` mangles data to avoid quoting bugs **[correctness]** — ✅ fixed (see §0b)
 `event.rb:260` — `hunks.gsub!("'", %q("))` with the comment *"This is non-optimal"*. The
 importer is deliberately corrupting stored log text (single quotes → double quotes)
 because the INSERT is string-built. That is data loss in a forensic tool.
@@ -472,7 +508,7 @@ per line, count failures into a `Statistic`, and keep going.
 | # | Change | Effort | Payoff |
 |---|--------|--------|--------|
 | 1 | ✅ **Done** — `Gemfile.lock` committed, `rails ~> 4.2.11` pinned, CI + Brakeman + Dockerfile, suite green | hours | reproducible, patched build; catches everything below |
-| 2 | Parameterise all SQL; delete `search2`/`iterativeSQLBuilder` | hours | closes the injection hole |
+| 2 | ✅ **Done** — all SQL parameterized; `search2`/`iterativeSQLBuilder` deleted; quote-mangling removed | hours | Brakeman SQL Injection 11 → 0 |
 | 3 | Indexes on `events_words`, `events.generated`, `words.text` | minutes | the search fix the README has been asking for since 2015 |
 | 4 | Remove `:password` from jbuilders; make `SessionsController` read-only | minutes | stops hash leakage |
 | 5 | `has_secure_password`/bcrypt + migration; `SecureRandom` session ids | day | fixes authn primitives |
@@ -485,7 +521,7 @@ per line, count failures into a `Statistic`, and keep going.
 | 12 | Extract `EventIngestor`; write the real test suite | 1 week | makes the core changeable |
 | 13 | Rails 5→7 upgrade, one hop per PR | ongoing | removes the EOL liability |
 
-If you only do three things: **#2 (SQL injection), #3 (indexes), #7 (silent data loss)**.
+If you only do three things: ~~#2 (SQL injection)~~ ✅, **#3 (indexes), #7 (silent data loss)**.
 Those are the ones that make the tool both safe and actually usable.
 
 ---

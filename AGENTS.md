@@ -30,9 +30,13 @@ inverted index) → Rails UI (dashboards, search, alerts, jobs, custom RBAC).
   `@@nextEventID`, word/system/service caches) and builds raw multi-row INSERTs.
 - Search = `LIKE '%term%'` over `words.text` joined through `events_words`, which has
   **no indexes** (the migration adding them is commented out).
-- Known landmines: `eval` in `scheduler.rb` and `Event#parsed`; SQL string interpolation in
-  `Event.search`/`search_period`; `Math` core module reopened in `config/application.rb`;
+- All SQL is parameterized (`exec_query` + `[[nil, value]]` binds; Rails 4.2's
+  `sanitize_sql_array` is protected, and `exec_query` normalizes unaliased aggregate
+  column names, so alias them). Brakeman reports 0 SQL Injection warnings.
+- Known landmines: `eval` in `scheduler.rb` and `Event#parsed`; `Math` core module
+  reopened in `config/application.rb`;
   hard-coded year window `2014..2019` in `Event.storeEvent`; `Regexp.union([])` in
   `Event.recent_events` rejects every event when there are no exclusions.
-- Tests are stale (controller tests exercise removed actions; fixtures reference a
-  nonexistent `positions` table), so the suite is red.
+- The suite is green (10 unit runs / 30 assertions, 4 cucumber scenarios). Bulk inserts
+  raise `SQLite3::BusyException` under sqlite because the async insert thread opens a
+  second connection while the main thread holds a write lock — pre-existing, PG-only path.
