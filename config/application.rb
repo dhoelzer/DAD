@@ -12,13 +12,15 @@ require 'set'
 # in the process, including gems. A gem that defines Math.mean would overwrite
 # this one. A namespaced module would be safer.
 
-# All four divide by values.count with no guard, so an empty array yields NaN or
-# Infinity rather than 0.
 module Math
+  # Square root of #variance for +values+. Defaults to an empty
+  # array, which yields NaN rather than 0.
   def self.standard_deviation(values=[])
     Math.sqrt(Math.variance(values))
   end
   
+  # Mean squared deviation from the mean of +values+ (population
+  # variance, dividing by n rather than n-1).
   def self.variance(values)
     sum = 0
     mean = Math.mean(values)
@@ -26,10 +28,14 @@ module Math
     sum.to_f / (values.count)
   end
   
+  # Arithmetic mean of +values+. Divides by values.count with no
+  # empty guard, so [] returns NaN.
   def self.mean(values)
     Math.sum_values(values).to_f / (values.count)
   end
   
+  # Sum of +values+, accumulated with integer + so the
+  # result stays exact for integer input.
   def self.sum_values(values)
     sum = 0
     values.each{|s| sum = sum + s}
