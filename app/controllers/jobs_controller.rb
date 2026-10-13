@@ -1,8 +1,8 @@
 # Management screens for Job records; requires the Taskmaster right.
 #
-# WARNING: Job#script is eval'd by scheduler.rb on a fixed interval, so create or
-# edit here is arbitrary code execution on the host. Restrict this right to
-# people who could run code on the server anyway.
+# Job#script names an entry in the JobHandler::HANDLERS registry, which the
+# scheduler looks up by name; no user-authored code is executed, so creating a
+# Job can no longer run arbitrary Ruby on the host.
 class JobsController < ApplicationController
   before_action :set_job, only: [:show, :edit, :update, :destroy]
 

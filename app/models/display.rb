@@ -1,12 +1,21 @@
-# A per-log-format display rule: a regex that recognises an event line plus the
-# Ruby that renders it.
+# A per-log-format display rule: a regex that recognises an event line plus a
+# declarative spec describing how to reformat it.
 #
 # Display.helper_for_event returns the first Display whose +key+ regex matches an
-# event's raw text; Event#parsed then eval's that Display's +display_script+ and
-# calls the +parse_event+ method it is expected to define. Editing a Display is
-# therefore arbitrary code execution -- restrict the Detective right.
+# event's raw text; Event#parsed then interprets that Display's +display_script+
+# through DisplayRule. The spec is parsed, never evaluated, so editing a Display
+# cannot execute Ruby.
 class Display < ActiveRecord::Base
   has_many :display_fields
+
+  validate :display_script_is_valid
+
+  # Rejects a malformed display_script at save time, so a broken rule surfaces in
+  # the form rather than while rendering the dashboard.
+  def display_script_is_valid
+    return if display_script.blank?
+    DisplayRule.validate(display_script).each { |err| errors.add(:display_script, err) }
+  end
 
   # Show the "Displays" tab only to users holding the Detective right.
   def self.hidden?(current_user = nil)

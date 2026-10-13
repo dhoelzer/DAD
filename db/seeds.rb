@@ -32,7 +32,7 @@ right.description = "Gives the possessor the ability to comment on alerts"
 right.save
 right = Right.new
 right.name = "Taskmaster"
-right.description = "Gives the possessor the ability to view, create, manipulate and schedule jobs.  Extremely powerful.  Can be used to compromise the system."
+right.description = "Gives the possessor the ability to view, create, manipulate and schedule jobs. Jobs run a fixed set of operations defined in the codebase; arbitrary scripts are not supported."
 right.save
 right = Right.new
 right.name = "Detective"
