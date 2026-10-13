@@ -7,6 +7,10 @@ Events::Application.configure do
   # and recreated between test runs. Don't rely on the data there!
   config.cache_classes = true
 
+  # Rails 4.2 defaults to :sorted and warns on every run; :random is the
+  # Rails 5 default and surfaces order dependencies in the fixtures.
+  config.active_support.test_order = :random
+
   # Do not eager load code on boot. This avoids loading your whole application
   # just for the purpose of running a single test. If you are using a tool that
   # preloads Rails for running tests, you may have to set it to true.

@@ -5,7 +5,6 @@ one:
   service_id: 1
   criticality: 1
   generated: 2015-02-14 17:30:18
-  event_id: 1
   closed: false
   description: MyText
   short_description: MyString
@@ -15,7 +14,6 @@ two:
   service_id: 1
   criticality: 1
   generated: 2015-02-14 17:30:18
-  event_id: 1
   closed: false
   description: MyText
   short_description: MyString

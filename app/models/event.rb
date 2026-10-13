@@ -44,7 +44,6 @@ class Event < ActiveRecord::Base
     # Postgresql performance on a count is awful.  Estimating based on tuples.
     # This is a breaking change for Maria/MySQL.
     sql = "SELECT SUM(n_live_tup) FROM pg_stat_user_tables where relname like 'events_p%';"
-    puts sql
     count = connection.execute(sql)
     count.first["sum"].to_i
   end
@@ -93,7 +92,47 @@ class Event < ActiveRecord::Base
   def self.resetStats
     @@start_time = Time.now
   end
+
+  # The class-level caches key on database row IDs. When the database is rolled
+  # back or truncated (test suites, or a long-lived process pointed at a fresh
+  # DB), those IDs dangle and later inserts/searches silently reference rows
+  # that no longer exist. Drop all of it and re-derive from the current DB.
+  def self.resetCaches
+    @@cached_words = Hash.new
+    @@num_cached = 0
+    @@nextEventID = -1
+    @@pendingEventValues = Set.new
+    @@system_cache = Hash.new
+    @@service_cache = Hash.new
+    @@events_words = Set.new
+    @@insertThreads.each { |t| t.join }
+    @@insertThreads = Array.new
+    @@current_year = Time.new.year
+    # @bulk_insert_size grows adaptively with throughput; without a reset, a
+    # single storeEvent can sit in the pending set indefinitely.
+    @bulk_insert_size = ((Rails.env.development? || Rails.env.test?) ? 1 : 2000)
+    @inserted_last_run = 100
+    @added = 0
+    @cache_hits = 0
+    resetStats
+  end
   
+  # Counts, per event, how many of the search terms match at least one of that
+  # event's words, and keeps events where every term matched. Counting distinct
+  # matching word_ids instead (the previous behaviour) breaks whenever one term
+  # is a prefix of another word on the same event ("test" also matches
+  # "testservice"), which silently hides events from search results.
+  def self.searchSQL(starting_time, ending_time, terms)
+    connection = ActiveRecord::Base.connection
+    matched_terms = terms.map do |term|
+      pattern = connection.quote("#{ActiveRecord::Base.sanitize_sql_like(term)}%")
+      "max(case when words.text like #{pattern} then 1 else 0 end)"
+    end
+    "select event_id from events_words inner join words on words.id = events_words.word_id " +
+      "where (events_words.generated between '#{starting_time.to_s(:db)}' and '#{ending_time.to_s(:db)}') " +
+      "group by event_id having (#{matched_terms.join(' + ')}) = #{terms.count}"
+  end
+
   def self.search(search_string, starting_time=(Time.now - 1.hour), offset=0, limit=100)
     @events = Array.new
     event_ids = Array.new
@@ -101,8 +140,7 @@ class Event < ActiveRecord::Base
     
     terms = search_string.downcase.split(/\s+/)
     return [] if terms.empty?
-    sql = "select event_id from events_words where (generated between '#{starting_time.to_s(:db)}' and '#{Time.now.to_s(:db)}') and word_id in (select id from words where words.text LIKE '#{terms.join("%' union select id from words where words.text LIKE '")}%') group by events_words.event_id having count(distinct(word_id))=#{terms.count}"
-    puts sql
+    sql = searchSQL(starting_time, Time.now, terms)
     events_that_match = connection.execute(sql)
     events_that_match.map { |e| event_ids << e["event_id"]}
     @events = Event.order(generated: :asc).where("id in (?)", event_ids).limit(limit).offset(offset)
@@ -116,8 +154,7 @@ class Event < ActiveRecord::Base
     
     terms = search_string.downcase.split(/\s+/)
     return [] if terms.empty?
-    sql = "select event_id from events_words where (generated between '#{starting_time.to_s(:db)}' and '#{ending_time.to_s(:db)}') and word_id in (select id from words where words.text LIKE '#{terms.join("%' union select id from words where words.text LIKE '")}%') group by events_words.event_id having count(distinct(word_id))=#{terms.count}"
-    puts sql
+    sql = searchSQL(starting_time, ending_time, terms)
     events_that_match = connection.execute(sql)
     events_that_match.map { |e| event_ids << e["event_id"]}
     @events = Event.order(generated: :asc).where("id in (?)", event_ids).limit(limit).offset(offset)
@@ -160,7 +197,6 @@ class Event < ActiveRecord::Base
 #    sql = iterativeSQLBuilder(ordered_words.sort_by{|k,v| v}, 0)
     sql = iterativeSQLBuilder(words,0, starting_time)
     #sql = "select e.event_id from (select distinct a.event_id,a.word_id from events_words as a where a.generated>NOW()-'1 day'::interval and a.word_id in (#{word}) #{event_ids.empty? ? "" : "and a.event_id in (#{event_ids.join(',')})"} group by event_id,word_id) as e"
-    puts sql
 
 
     #sql = "select e.event_id from (select distinct a.event_id,a.word_id from events_words as a where a.word_id in (#{words.join(",")}) group by event_id,word_id having count(distinct(a.event_id,a.word_id))=#{words.count}) as e"
@@ -275,10 +311,19 @@ class Event < ActiveRecord::Base
     events_words_sql = "INSERT INTO events_words (event_id, word_id, generated) VALUES #{@@events_words.to_a.join(", ")}"
     event_sql = "INSERT INTO events (id, system_id, service_id, generated, stored, hunks) VALUES #{@@pendingEventValues.to_a.join(", ")}"
 
-    @@insertThreads << Thread.new(events_words_sql, event_sql) do
+    if Rails.env.test?
+      # The async insert thread takes a second SQLite connection and deadlocks
+      # against DatabaseCleaner's open transaction, and its results are never
+      # joined, so tests cannot observe them. Insert inline in test.
       connection = ActiveRecord::Base.connection
       connection.execute events_words_sql
       connection.execute event_sql
+    else
+      @@insertThreads << Thread.new(events_words_sql, event_sql) do
+        connection = ActiveRecord::Base.connection
+        connection.execute events_words_sql
+        connection.execute event_sql
+      end
     end
 
     #puts "\t\t-->> Flushed #{@@pendingEventValues.count} events. <<--"
