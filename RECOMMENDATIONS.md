@@ -28,6 +28,14 @@ boots, and runs a green test suite from a clean checkout.
   Rails-4-era code). Every other gem pinned to a compatible line.
 - `Gemfile.lock` and `db/schema.rb` are now committed (both were gitignored);
   `.ruby-version` pins Ruby 2.7.8; `Gemfile.lock` pins Bundler 1.17.3.
+- **[correctness] `schema.rb` was not reproducible.** `create_events` and
+  `add_generated_to_events_words` passed `:default => Time.now`, so the column
+  default was the wall-clock time of whichever run created it: every
+  `rake db:migrate` rewrote `schema.rb`, and any insert that omitted
+  `generated` silently got a 2014/2015 timestamp. Migration
+  `20261013000001_fix_generated_column_defaults` drops the dead default
+  (nothing in the app relies on it) so `NOT NULL` surfaces the mistake;
+  `schema.rb` is now byte-identical across fresh migrations.
 - `Dockerfile.dev` (ruby:2.7.8, `bundle install --frozen`) and
   `.github/workflows/ci.yml` (install → migrate → `rake test` → `cucumber`, plus a
   bundle-audit + Brakeman job) reproduce the toolchain anywhere.

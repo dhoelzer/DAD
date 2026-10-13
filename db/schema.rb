@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20160922164301) do
+ActiveRecord::Schema.define(version: 20261013000001) do
 
   create_table "alerts", force: :cascade do |t|
     t.integer  "system_id",         limit: 8
@@ -53,7 +53,7 @@ ActiveRecord::Schema.define(version: 20160922164301) do
   create_table "events", force: :cascade do |t|
     t.integer  "system_id",  limit: 8
     t.integer  "service_id", limit: 8
-    t.datetime "generated",            default: '2026-10-13 20:38:49', null: false
+    t.datetime "generated",            null: false
     t.datetime "stored"
     t.datetime "created_at"
     t.datetime "updated_at"
@@ -65,7 +65,7 @@ ActiveRecord::Schema.define(version: 20160922164301) do
   create_table "events_words", id: false, force: :cascade do |t|
     t.integer  "event_id",  limit: 8
     t.integer  "word_id",   limit: 8
-    t.datetime "generated",           default: '2026-10-13 20:38:49', null: false
+    t.datetime "generated",           null: false
   end
 
   add_index "events_words", ["generated"], name: "index_events_words_on_generated"
