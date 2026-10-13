@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20261013000001) do
+ActiveRecord::Schema.define(version: 20261013000002) do
 
   create_table "alerts", force: :cascade do |t|
     t.integer  "system_id",         limit: 8
@@ -69,6 +69,7 @@ ActiveRecord::Schema.define(version: 20261013000001) do
   end
 
   add_index "events_words", ["generated"], name: "index_events_words_on_generated"
+  add_index "events_words", ["word_id", "generated", "event_id"], name: "index_events_words_on_word_id_and_generated_and_event_id"
 
   create_table "exclusions", force: :cascade do |t|
     t.string   "pattern"

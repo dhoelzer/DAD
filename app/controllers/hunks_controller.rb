@@ -1,6 +1,13 @@
+# Management screens for Hunk records; requires the Admin right.
+#
+# Hunks are a legacy token table that nothing else in the app reads (see Hunk),
+# so these screens are effectively dead weight kept for direct data inspection.
 class HunksController < ApplicationController
   before_action :set_hunk, only: [:show, :edit, :update, :destroy]
 
+  # Replaces the inherited ApplicationController#authorized? for every
+  # action in this controller. Requires the Admin right; otherwise flashes a
+  # notice and redirects to the logon page. Returning false stops the action.
   def authorized?  
     if @current_user.nil? then
       flash[:notice] = "Not authorized"
@@ -12,28 +19,27 @@ class HunksController < ApplicationController
     redirect_to logon_users_path
     return false
   end
-  # GET /hunks
-  # GET /hunks.json
+  # Lists all hunks records. No pagination or filtering.
   def index
     @hunks = Hunk.all
   end
 
-  # GET /hunks/1
-  # GET /hunks/1.json
+  # One hunk, addressed by id. @hunk is loaded by the
+  # before_action; the .json form returns the record as JSON.
   def show
   end
 
-  # GET /hunks/new
+  # Blank form for creating a hunk.
   def new
     @hunk = Hunk.new
   end
 
-  # GET /hunks/1/edit
+  # Form for changing an existing hunk.
   def edit
   end
 
-  # POST /hunks
-  # POST /hunks.json
+  # Inserts a hunk built from the whitelist in #hunk_params.
+  # Re-renders the form with validation errors when the save fails.
   def create
     @hunk = Hunk.new(hunk_params)
 
@@ -48,8 +54,8 @@ class HunksController < ApplicationController
     end
   end
 
-  # PATCH/PUT /hunks/1
-  # PATCH/PUT /hunks/1.json
+  # Applies the whitelisted attributes to the @hunk loaded by the
+  # before_action; re-renders the form on failure.
   def update
     respond_to do |format|
       if @hunk.update(hunk_params)
@@ -62,8 +68,7 @@ class HunksController < ApplicationController
     end
   end
 
-  # DELETE /hunks/1
-  # DELETE /hunks/1.json
+  # Deletes the @hunk.
   def destroy
     @hunk.destroy
     respond_to do |format|
@@ -73,12 +78,14 @@ class HunksController < ApplicationController
   end
 
   private
-    # Use callbacks to share common setup or constraints between actions.
+    # Loads @hunk from params[:id]; raises 404 when no such
+    # record exists. Internal: runs as a before_action.
     def set_hunk
       @hunk = Hunk.find(params[:id])
     end
 
-    # Never trust parameters from the scary internet, only allow the white list through.
+    # Attribute whitelist for hunk writes; any param not
+    # listed here is dropped before it reaches the model.
     def hunk_params
       params.require(:hunk).permit(:text)
     end

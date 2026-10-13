@@ -122,6 +122,70 @@ the PostgreSQL deployment; §2.4 covers the real fix.
 
 ---
 
+## 0c. Status update: item 3 (index the search path) is done
+
+Landed on the same branch. **Search is 1.2–2.1x faster than the original upstream
+query, and ~3x faster than the interim §0b rewrite**, with byte-identical result
+sets verified across 863 generated queries.
+
+Benchmark: 50,000 events / 350,000 `events_words` rows / 5,573 distinct words,
+30-day window, best of 3, sqlite.
+
+| query | upstream `db5c6b4` | after §0b | now |
+|---|---|---|---|
+| `failed` | 9.2 ms | 124.7 ms | **4.3 ms** |
+| `failed connection` | 4.7 ms | 139.0 ms | **3.7 ms** |
+| `svc1` | 45.4 ms | 140.1 ms | **21.4 ms** |
+| `10.0` | 102.0 ms | 157.0 ms | **49.4 ms** |
+| `user id svc` | 136.1 ms | 195.7 ms | **113.7 ms** |
+
+Worth being explicit about: **the §0b rewrite was a performance regression**
+(9 ms → 125 ms for a single term). It fixed the correctness bug in §1.1 — counting
+distinct matching `word_id`s hid any event where one term was a prefix of another
+word — but it did so by joining `words` into the scan, which forced a full scan of
+every join row in the time window. That is the number the table above's middle
+column records, and it is why this item mattered more than it first looked.
+
+What changed:
+
+- **`index_events_words_on_word_id_and_generated_and_event_id`**
+  (`db/migrate/20261013000002`). Built `CONCURRENTLY` on PostgreSQL via
+  `add_index ..., algorithm: :concurrently` behind an `index_algorithms.key?(:concurrently)`
+  guard, with `disable_ddl_transaction!`, so the build does not take a write lock on
+  `events_words` and stall ingestion. Verified up **and** down against a populated
+  350k-row table, and on PostgreSQL 17 directly.
+- **`searchSQL` restricts `events_words` on `word_id` via a subquery** instead of
+  joining `words` in. That is what makes the new index usable: the plan is now
+  `SEARCH events_words USING COVERING INDEX ... (word_id=? AND generated>? AND generated<?)`,
+  so SQLite reads only the rows for matched words and never touches the heap.
+- **The dictionary lookup is a range, not a `LIKE`.** `LIKE 'term%'` cannot drive a
+  B-tree scan, so the term→`word_id` lookup is `text >= term AND text < term + U+10FFFF`.
+  A `LIKE ... ESCAPE '\'` is kept *alongside* the range: the range is only a
+  narrowing filter, and under a punctuation-insensitive collation the range for
+  `ab` would admit `a-b`. The `LIKE` pins literal-prefix semantics on every adapter.
+- **`search`/`search_period` return a relation over a subquery** rather than
+  materialising every matching id into `id in (?)`. A broad search previously bound
+  ~50,000 parameters; PostgreSQL caps a statement at 65,535, so this was a latent
+  crash on the real deployment at roughly 1.3x the benchmark's data volume. It is now
+  one statement with 15 binds regardless of match count.
+- **A latent `LIKE`-escaping bug from §0b is fixed.** `sanitize_sql_like` escapes
+  `_` and `%` with a backslash, but SQLite's `LIKE` has **no default escape
+  character**, so searching the term `foo_bar` matched nothing at all. The queries
+  now say `escape '\'`. `index_words_on_text` and `index_events_on_generated`
+  already existed, so §3.1's third suggested index was already present.
+
+Tests added (14 runs / 49 assertions): placeholder/binding counts, the covering-index
+plan assertion, index existence, literal `_` matching, and that `ab` does not match
+`a-b`. Verified on a clean clone: `bundle install --frozen`, migrate, tests, cucumber
+(4 scenarios), and `schema.rb` byte-stable.
+
+Deliberately **not** done here: §3.2 (`tsvector` + GIN) is the right long-term shape
+and would retire `words`/`events_words` entirely — one join row per token per event is
+the dominant write and storage cost. This item is the cheap fix that makes the current
+model fast; §3.2 is the fix that makes it scale.
+
+---
+
 ## 1. Do this first: the app is remotely exploitable
 
 This is not theoretical. `syslog.pl` listens on UDP/514 for untrusted input, and the
@@ -353,7 +417,7 @@ exactly this use case.
 
 ## 3. Performance: the search path is the product, and it's unindexed
 
-### 3.1 `events_words` has no indexes **[performance]**
+### 3.1 `events_words` has no indexes **[performance]** — ✅ fixed (see §0c)
 The join table that *is* the search index has no index on `word_id` or `event_id` — the
 migration that would have added them is commented out. Combined with
 `LIKE '%term%'` over `words.text` (unindexable by a B-tree), every search is a full scan

@@ -1,28 +1,35 @@
+# Management screens for Preference records.
+#
+# Only the user_id 0 row is meaningful: it holds the live dashboard's page size
+# (see Preference.eventsDashboard). The remaining CRUD actions operate on rows
+# nothing reads.
+#
+# This controller defines no authorized? override, so the inherited
+# ApplicationController gate applies: any logged-in user may edit preferences.
 class PreferencesController < ApplicationController
   before_action :set_preference, only: [:show, :edit, :update, :destroy]
 
-  # GET /preferences
-  # GET /preferences.json
+  # Lists all preferences records. No pagination or filtering.
   def index
     @preferences = Preference.all
   end
 
-  # GET /preferences/1
-  # GET /preferences/1.json
+  # One preference, addressed by id. @preference is loaded by the
+  # before_action; the .json form returns the record as JSON.
   def show
   end
 
-  # GET /preferences/new
+  # Blank form for creating a preference.
   def new
     @preference = Preference.new
   end
 
-  # GET /preferences/1/edit
+  # Form for changing an existing preference.
   def edit
   end
 
-  # POST /preferences
-  # POST /preferences.json
+  # Inserts a preference built from the whitelist in #preference_params.
+  # Re-renders the form with validation errors when the save fails.
   def create
     @preference = Preference.new(preference_params)
 
@@ -37,8 +44,8 @@ class PreferencesController < ApplicationController
     end
   end
 
-  # PATCH/PUT /preferences/1
-  # PATCH/PUT /preferences/1.json
+  # Applies the whitelisted attributes to the @preference loaded by the
+  # before_action; re-renders the form on failure.
   def update
     respond_to do |format|
       if @preference.update(preference_params)
@@ -51,8 +58,7 @@ class PreferencesController < ApplicationController
     end
   end
 
-  # DELETE /preferences/1
-  # DELETE /preferences/1.json
+  # Deletes the @preference.
   def destroy
     @preference.destroy
     respond_to do |format|
@@ -62,12 +68,14 @@ class PreferencesController < ApplicationController
   end
 
   private
-    # Use callbacks to share common setup or constraints between actions.
+    # Loads @preference from params[:id]; raises 404 when no such
+    # record exists. Internal: runs as a before_action.
     def set_preference
       @preference = Preference.find(params[:id])
     end
 
-    # Never trust parameters from the scary internet, only allow the white list through.
+    # Attribute whitelist for preference writes; any param not
+    # listed here is dropped before it reaches the model.
     def preference_params
       params.require(:preference).permit(:user_id, :liveEventsDisplayed, :dashboardElements)
     end

@@ -1,6 +1,14 @@
 #!/usr/bin/env ruby
 require './config/environment.rb'
 
+# One pass over every staged log file: feeds each line to Event.storeEvent, then
+# moves the file to ../ProcessedLogs.
+#
+# Returns nothing but reports progress to stdout every 50 files. On a line that
+# raises, it flushes the pending inserts and exits the whole process rather than
+# skipping the line, so a persistent bad line stops ingestion until it is removed.
+# Ctrl-C is caught: the in-memory queues are flushed before exiting the pass, so
+# nothing already parsed is lost.
 def process_logs
   Event.resetStats # reset event timing counters
   pending_logs = Dir['*'].sort
@@ -33,6 +41,9 @@ def process_logs
   Statistic.logLinesProcessed(lines)
 end
 
+# Deletes processed logs older than a day. Currently a no-op: the find/rm command is
+# commented out, so ProcessedLogs accumulate indefinitely and the caller's "Purged
+# logs" message is misleading.
 def purge_logs
   # Purge logs older than 1 day ago from now.
   #system("cd ../ProcessedLogs;find . -mtime +1 | xargs rm -Rf")

@@ -1,7 +1,15 @@
+# Management screens for Role records; requires the Admin right.
+#
+# A Role bundles Rights, and Users gain rights only through roles. Rights are
+# granted to a role through #right_add / #right_remove rather than the update
+# form.
 class RolesController < ApplicationController
   before_action :set_role, only: [:show, :edit, :update, :destroy, :right_add, :rights]
   before_filter :authorized?
 
+  # Replaces the inherited ApplicationController#authorized? for every
+  # action in this controller. Requires the Admin right; otherwise flashes a
+  # notice and redirects to the logon page. Returning false stops the action.
   def authorized?  
     if @current_user.nil? then
       flash[:notice] = "Not authorized"
@@ -14,12 +22,16 @@ class RolesController < ApplicationController
     return false
   end
   
+  # GET /roles/:id/rights -- the grant/revoke screen: shows the rights this
+  # role holds plus #ungranted_rights as the candidates to add.
   def rights
     @role = Role.find(params[:id])
     @rights = @role.rights
   end
   
   # Add a right to a role
+  # Grants a right to the role (params[:role]) unless it already holds it,
+  # then redirects back to #rights.
   def right_add
     @role = Role.find(params[:id])
     @right = Right.find(params[:right])
@@ -34,6 +46,8 @@ class RolesController < ApplicationController
   end
 
   # Remove a right to a role
+  # Revokes a right from the role (params[:role]) if it holds it, then
+  # redirects back to #rights.
   def right_remove
     @role = Role.find(params[:id])
     @right = Right.find(params[:right])
@@ -47,28 +61,27 @@ class RolesController < ApplicationController
     redirect_to :action => :rights, :id => @role
   end
 
-  # GET /roles
-  # GET /roles.json
+  # Lists all roles records. No pagination or filtering.
   def index
     @roles = Role.all
   end
 
-  # GET /roles/1
-  # GET /roles/1.json
+  # One role, addressed by id. @role is loaded by the
+  # before_action; the .json form returns the record as JSON.
   def show
   end
 
-  # GET /roles/new
+  # Blank form for creating a role.
   def new
     @role = Role.new
   end
 
-  # GET /roles/1/edit
+  # Form for changing an existing role.
   def edit
   end
 
-  # POST /roles
-  # POST /roles.json
+  # Inserts a role built from the whitelist in #role_params.
+  # Re-renders the form with validation errors when the save fails.
   def create
     @role = Role.new(role_params)
 
@@ -83,8 +96,8 @@ class RolesController < ApplicationController
     end
   end
 
-  # PATCH/PUT /roles/1
-  # PATCH/PUT /roles/1.json
+  # Applies the whitelisted attributes to the @role loaded by the
+  # before_action; re-renders the form on failure.
   def update
     respond_to do |format|
       if @role.update(role_params)
@@ -97,8 +110,7 @@ class RolesController < ApplicationController
     end
   end
 
-  # DELETE /roles/1
-  # DELETE /roles/1.json
+  # Deletes the @role.
   def destroy
     @role.destroy
     respond_to do |format|
@@ -108,12 +120,14 @@ class RolesController < ApplicationController
   end
 
   private
-    # Use callbacks to share common setup or constraints between actions.
+    # Loads @role from params[:id]; raises 404 when no such record exists.
+    # Internal: runs as a before_action.
     def set_role
       @role = Role.find(params[:id])
     end
 
-    # Never trust parameters from the scary internet, only allow the white list through.
+    # Attribute whitelist for role writes; only the name is writable, since
+    # membership is managed through #right_add / #right_remove.
     def role_params
       params.require(:role).permit(:name, :description, :right_id)
     end

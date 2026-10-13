@@ -1,9 +1,20 @@
+# Management screens for Job records; requires the Taskmaster right.
+#
+# WARNING: Job#script is eval'd by scheduler.rb on a fixed interval, so create or
+# edit here is arbitrary code execution on the host. Restrict this right to
+# people who could run code on the server anyway.
 class JobsController < ApplicationController
   before_action :set_job, only: [:show, :edit, :update, :destroy]
 
+  # Debug aid: renders @job.script back to the view without evaluating it, so an
+  # operator can confirm what a Job would run. Note @job is only loaded by the
+  # before_action for show/edit/update/destroy, so this action 500s as routed.
   def test
     @output = @job.script
   end
+  # Replaces the inherited ApplicationController#authorized? for every
+  # action in this controller. Requires the Taskmaster right; otherwise flashes a
+  # notice and redirects to the logon page. Returning false stops the action.
   def authorized?  
     if @current_user.nil? then
       flash[:notice] = "Not authorized"
@@ -16,28 +27,27 @@ class JobsController < ApplicationController
     return false
   end
 
-  # GET /jobs
-  # GET /jobs.json
+  # Lists all jobs records. No pagination or filtering.
   def index
     @jobs = Job.all
   end
 
-  # GET /jobs/1
-  # GET /jobs/1.json
+  # One job, addressed by id. @job is loaded by the
+  # before_action; the .json form returns the record as JSON.
   def show
   end
 
-  # GET /jobs/new
+  # Blank form for creating a job.
   def new
     @job = Job.new
   end
 
-  # GET /jobs/1/edit
+  # Form for changing an existing job.
   def edit
   end
 
-  # POST /jobs
-  # POST /jobs.json
+  # Inserts a job built from the whitelist in #job_params.
+  # Re-renders the form with validation errors when the save fails.
   def create
     @job = Job.new(job_params)
     @job.user_id = @current_user.id
@@ -52,8 +62,8 @@ class JobsController < ApplicationController
     end
   end
 
-  # PATCH/PUT /jobs/1
-  # PATCH/PUT /jobs/1.json
+  # Applies the whitelisted attributes to the @job loaded by the
+  # before_action; re-renders the form on failure.
   def update
     respond_to do |format|
       if @job.update(job_params)
@@ -68,8 +78,7 @@ class JobsController < ApplicationController
     end
   end
 
-  # DELETE /jobs/1
-  # DELETE /jobs/1.json
+  # Deletes the @job.
   def destroy
     @job.destroy
     respond_to do |format|
@@ -79,12 +88,14 @@ class JobsController < ApplicationController
   end
 
   private
-    # Use callbacks to share common setup or constraints between actions.
+    # Loads @job from params[:id]; raises 404 when no such
+    # record exists. Internal: runs as a before_action.
     def set_job
       @job = Job.find(params[:id])
     end
 
-    # Never trust parameters from the scary internet, only allow the white list through.
+    # Attribute whitelist for job writes; any param not
+    # listed here is dropped before it reaches the model.
     def job_params
       params.require(:job).permit(:name, :description, :user_id, :script, :last_event_id, :last_run, :next_run, :frequency)
     end

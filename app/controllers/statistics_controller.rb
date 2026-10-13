@@ -1,6 +1,13 @@
+# Management screens for Statistic records; requires the Admin right.
+#
+# Statistics are append-only samples written by the ingestion pipeline and charted
+# on the dashboard. The CRUD actions exist for correcting or backfilling series.
 class StatisticsController < ApplicationController
   before_action :set_statistic, only: [:show, :edit, :update, :destroy]
 
+  # Replaces the inherited ApplicationController#authorized? for every
+  # action in this controller. Requires the Admin right; otherwise flashes a
+  # notice and redirects to the logon page. Returning false stops the action.
   def authorized?  
     if @current_user.nil? then
       flash[:notice] = "Not authorized"
@@ -13,28 +20,27 @@ class StatisticsController < ApplicationController
     return false
   end
 
-  # GET /statistics
-  # GET /statistics.json
+  # Lists all statistics records. No pagination or filtering.
   def index
     @statistics = Statistic.all
   end
 
-  # GET /statistics/1
-  # GET /statistics/1.json
+  # One statistic, addressed by id. @statistic is loaded by the
+  # before_action; the .json form returns the record as JSON.
   def show
   end
 
-  # GET /statistics/new
+  # Blank form for creating a statistic.
   def new
     @statistic = Statistic.new
   end
 
-  # GET /statistics/1/edit
+  # Form for changing an existing statistic.
   def edit
   end
 
-  # POST /statistics
-  # POST /statistics.json
+  # Inserts a statistic built from the whitelist in #statistic_params.
+  # Re-renders the form with validation errors when the save fails.
   def create
     @statistic = Statistic.new(statistic_params)
 
@@ -49,8 +55,8 @@ class StatisticsController < ApplicationController
     end
   end
 
-  # PATCH/PUT /statistics/1
-  # PATCH/PUT /statistics/1.json
+  # Applies the whitelisted attributes to the @statistic loaded by the
+  # before_action; re-renders the form on failure.
   def update
     respond_to do |format|
       if @statistic.update(statistic_params)
@@ -63,8 +69,7 @@ class StatisticsController < ApplicationController
     end
   end
 
-  # DELETE /statistics/1
-  # DELETE /statistics/1.json
+  # Deletes the @statistic.
   def destroy
     @statistic.destroy
     respond_to do |format|
@@ -74,12 +79,14 @@ class StatisticsController < ApplicationController
   end
 
   private
-    # Use callbacks to share common setup or constraints between actions.
+    # Loads @statistic from params[:id]; raises 404 when no such
+    # record exists. Internal: runs as a before_action.
     def set_statistic
       @statistic = Statistic.find(params[:id])
     end
 
-    # Never trust parameters from the scary internet, only allow the white list through.
+    # Attribute whitelist for statistic writes; any param not
+    # listed here is dropped before it reaches the model.
     def statistic_params
       params.require(:statistic).permit(:type_id, :timestamp, :system_id, :service_id, :stat)
     end

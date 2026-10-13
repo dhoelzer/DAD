@@ -1,7 +1,15 @@
+# Management screens for Right records; requires the Admin right.
+#
+# Rights are the permission atoms ("Viewer", "Commentator", "Detective",
+# "Taskmaster", "Admin") that User#has_right? and every controller's authorized?
+# check. Renaming or deleting one silently changes what those checks mean.
 class RightsController < ApplicationController
   before_action :set_right, only: [:show, :edit, :update, :destroy]
   before_filter :authorized?
   
+  # Replaces the inherited ApplicationController#authorized? for every
+  # action in this controller. Requires the Admin right; otherwise flashes a
+  # notice and redirects to the logon page. Returning false stops the action.
   def authorized?  
     if @current_user.nil? then
       flash[:notice] = "Not authorized"
@@ -15,28 +23,27 @@ class RightsController < ApplicationController
   end
   
 
-  # GET /rights
-  # GET /rights.json
+  # Lists all rights records. No pagination or filtering.
   def index
     @rights = Right.all
   end
 
-  # GET /rights/1
-  # GET /rights/1.json
+  # One right, addressed by id. @right is loaded by the
+  # before_action; the .json form returns the record as JSON.
   def show
   end
 
-  # GET /rights/new
+  # Blank form for creating a right.
   def new
     @right = Right.new
   end
 
-  # GET /rights/1/edit
+  # Form for changing an existing right.
   def edit
   end
 
-  # POST /rights
-  # POST /rights.json
+  # Inserts a right built from the whitelist in #right_params.
+  # Re-renders the form with validation errors when the save fails.
   def create
     @right = Right.new(right_params)
 
@@ -51,8 +58,8 @@ class RightsController < ApplicationController
     end
   end
 
-  # PATCH/PUT /rights/1
-  # PATCH/PUT /rights/1.json
+  # Applies the whitelisted attributes to the @right loaded by the
+  # before_action; re-renders the form on failure.
   def update
     respond_to do |format|
       if @right.update(right_params)
@@ -65,8 +72,7 @@ class RightsController < ApplicationController
     end
   end
 
-  # DELETE /rights/1
-  # DELETE /rights/1.json
+  # Deletes the @right.
   def destroy
     @right.destroy
     respond_to do |format|
@@ -76,12 +82,14 @@ class RightsController < ApplicationController
   end
 
   private
-    # Use callbacks to share common setup or constraints between actions.
+    # Loads @right from params[:id]; raises 404 when no such
+    # record exists. Internal: runs as a before_action.
     def set_right
       @right = Right.find(params[:id])
     end
 
-    # Never trust parameters from the scary internet, only allow the white list through.
+    # Attribute whitelist for right writes; any param not
+    # listed here is dropped before it reaches the model.
     def right_params
       params.require(:right).permit(:name, :description)
     end

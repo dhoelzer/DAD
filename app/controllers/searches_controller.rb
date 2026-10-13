@@ -1,6 +1,13 @@
+# Management screens for Search records; requires the Detective right.
+#
+# A saved search is a bookmark: the stored string and time window re-populate the
+# events search form. The query itself is still executed by Event.search.
 class SearchesController < ApplicationController
   before_action :set_search, only: [:show, :edit, :update, :destroy]
 
+  # Replaces the inherited ApplicationController#authorized? for every
+  # action in this controller. Requires the Detective right; otherwise flashes a
+  # notice and redirects to the logon page. Returning false stops the action.
   def authorized?  
     if @current_user.nil? then
       flash[:notice] = "Not authorized"
@@ -13,14 +20,13 @@ class SearchesController < ApplicationController
     return false
   end
 
-  # GET /searches
-  # GET /searches.json
+  # Lists all searches records. No pagination or filtering.
   def index
     @searches = Search.all
   end
 
-  # GET /searches/1
-  # GET /searches/1.json
+  # One search, addressed by id. @search is loaded by the
+  # before_action; the .json form returns the record as JSON.
   def show
     unless @current_user.has_right?("Viewer") 
       flash[:notice] = "You lack the appropriate rights"
@@ -29,7 +35,7 @@ class SearchesController < ApplicationController
     end
   end
 
-  # GET /searches/new
+  # Blank form for creating a search.
   def new
     unless @current_user.has_right?("Detective") 
       flash[:notice] = "You lack the appropriate rights"
@@ -39,7 +45,7 @@ class SearchesController < ApplicationController
     @search = Search.new
   end
 
-  # GET /searches/1/edit
+  # Form for changing an existing search.
   def edit
     unless @current_user.has_right?("Detective") 
       flash[:notice] = "You lack the appropriate rights"
@@ -48,8 +54,8 @@ class SearchesController < ApplicationController
     end
   end
 
-  # POST /searches
-  # POST /searches.json
+  # Inserts a search built from the whitelist in #search_params.
+  # Re-renders the form with validation errors when the save fails.
   def create
     unless @current_user.has_right?("Detective") 
       flash[:notice] = "You lack the appropriate rights"
@@ -69,8 +75,8 @@ class SearchesController < ApplicationController
     end
   end
 
-  # PATCH/PUT /searches/1
-  # PATCH/PUT /searches/1.json
+  # Applies the whitelisted attributes to the @search loaded by the
+  # before_action; re-renders the form on failure.
   def update
     unless @current_user.has_right?("Detective") 
       flash[:notice] = "You lack the appropriate rights"
@@ -88,8 +94,7 @@ class SearchesController < ApplicationController
     end
   end
 
-  # DELETE /searches/1
-  # DELETE /searches/1.json
+  # Deletes the @search.
   def destroy
     unless @current_user.has_right?("Detective") 
       flash[:notice] = "You lack the appropriate rights"
@@ -104,12 +109,14 @@ class SearchesController < ApplicationController
   end
 
   private
-  # Use callbacks to share common setup or constraints between actions.
+  # Loads @search from params[:id]; raises 404 when no such
+  # record exists. Internal: runs as a before_action.
   def set_search
     @search = Search.find(params[:id])
   end
 
-  # Never trust parameters from the scary internet, only allow the white list through.
+  # Attribute whitelist for search writes; any param not
+  # listed here is dropped before it reaches the model.
   def search_params
     params.require(:search).permit(:string, :user_id, :description, :short_description)
   end

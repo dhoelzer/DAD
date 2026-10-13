@@ -3,11 +3,24 @@ require File.expand_path('../boot', __FILE__)
 require 'rails/all'
 require 'set'
 
+# Reopens Ruby's built-in Math module to add the four statistics helpers the
+# dashboard uses (mean, variance, standard_deviation). Because this reopens the
+# core module rather than defining a new one, Math.sqrt and the rest of the
+# standard library remain available -- standard_deviation depends on that.
+
+# Adding methods to a core class is a global change: it applies to every caller
+# in the process, including gems. A gem that defines Math.mean would overwrite
+# this one. A namespaced module would be safer.
+
 module Math
+  # Square root of #variance for +values+. Defaults to an empty
+  # array, which yields NaN rather than 0.
   def self.standard_deviation(values=[])
     Math.sqrt(Math.variance(values))
   end
   
+  # Mean squared deviation from the mean of +values+ (population
+  # variance, dividing by n rather than n-1).
   def self.variance(values)
     sum = 0
     mean = Math.mean(values)
@@ -15,10 +28,14 @@ module Math
     sum.to_f / (values.count)
   end
   
+  # Arithmetic mean of +values+. Divides by values.count with no
+  # empty guard, so [] returns NaN.
   def self.mean(values)
     Math.sum_values(values).to_f / (values.count)
   end
   
+  # Sum of +values+, accumulated with integer + so the
+  # result stays exact for integer input.
   def self.sum_values(values)
     sum = 0
     values.each{|s| sum = sum + s}
@@ -30,7 +47,19 @@ end
 # you've limited to :test, :development, or :production.
 Bundler.require(:default, Rails.env)
 
+# The Rails application itself. The name is only a namespace, but it is also the
+# constant the boot process expects: config.ru references Events::Application.
 module Events
+  # Application configuration. Beyond the usual Rails settings this does one unusual
+  # thing that several other parts of the app depend on: it eagerly requires every
+  # file under app/models and records the resulting subclass names in the global
+  # +$_models+.
+  #
+  # The nav-bar layout iterates +$_models+ and calls +hidden?+ on each, which is why
+  # every model must define that method. Note the requires are wrapped in a bare
+  # rescue, so a model that fails to load is skipped silently and simply disappears
+  # from the nav bar; and because subclasses are enumerated at boot, a model loaded
+  # later is never added.
   class Application < Rails::Application
     # Settings in config/environments/* take precedence over those specified here.
     # Application configuration should go into files in config/initializers

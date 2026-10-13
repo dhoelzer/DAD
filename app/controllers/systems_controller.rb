@@ -1,6 +1,14 @@
+# Management screens for System records; requires the Viewer right.
+#
+# Systems are created implicitly during ingestion, keyed by address. #create and
+# #update let an operator attach a friendlier display name. There is no destroy
+# action, because deleting a System would orphan the Events that reference it.
 class SystemsController < ApplicationController
   before_action :set_system, only: [:show, :edit, :update]
 
+  # Replaces the inherited ApplicationController#authorized? for every
+  # action in this controller. Requires the Viewer right; otherwise flashes a
+  # notice and redirects to the logon page. Returning false stops the action.
   def authorized?  
     if @current_user.nil? then
       flash[:notice] = "Not authorized"
@@ -13,8 +21,7 @@ class SystemsController < ApplicationController
     return false
   end
 
-  # GET /systems
-  # GET /systems.json
+  # Lists all systems records. No pagination or filtering.
   def index
     #@systems = System.order(name: :asc).all
     @systems = System.with_events_within_hours(24)
@@ -24,23 +31,23 @@ class SystemsController < ApplicationController
     end
   end
 
-  # GET /systems/1
-  # GET /systems/1.json
+  # One system, addressed by id. @system is loaded by the
+  # before_action; the .json form returns the record as JSON.
   def show
     @events = Event.where(:system => @system).limit(25).order(generated: :desc).reverse
   end
 
-  # GET /systems/new
+  # Blank form for creating a system.
   def new
     @system = System.new
   end
 
-  # GET /systems/1/edit
+  # Form for changing an existing system.
   def edit
   end
 
-  # POST /systems
-  # POST /systems.json
+  # Inserts a system built from the whitelist in #system_params.
+  # Re-renders the form with validation errors when the save fails.
   def create
     @system = System.new(system_params)
 
@@ -55,8 +62,8 @@ class SystemsController < ApplicationController
     end
   end
 
-  # PATCH/PUT /systems/1
-  # PATCH/PUT /systems/1.json
+  # Applies the whitelisted attributes to the @system loaded by the
+  # before_action; re-renders the form on failure.
   def update
     respond_to do |format|
       if @system.update(system_params)
@@ -71,12 +78,14 @@ class SystemsController < ApplicationController
 
 
   private
-    # Use callbacks to share common setup or constraints between actions.
+    # Loads @system from params[:id]; raises 404 when no such
+    # record exists. Internal: runs as a before_action.
     def set_system
       @system = System.find(params[:id])
     end
 
-    # Never trust parameters from the scary internet, only allow the white list through.
+    # Attribute whitelist for system writes; any param not
+    # listed here is dropped before it reaches the model.
     def system_params
       params.require(:system).permit(:address, :description, :administrator, :contact_email, :monitor, :name)
     end

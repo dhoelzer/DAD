@@ -1,6 +1,14 @@
+# Management screens for Display records; requires the Detective right.
+#
+# A Display pairs a regex that recognises a log format with Ruby that renders it.
+# WARNING: Display#display_script is eval'd by Event#parsed, so create/edit here
+# is arbitrary code execution as the web process user.
 class DisplaysController < ApplicationController
   before_action :set_display, only: [:show, :edit, :update, :destroy]
 
+  # Replaces the inherited ApplicationController#authorized? for every
+  # action in this controller. Requires the Detective right; otherwise flashes a
+  # notice and redirects to the logon page. Returning false stops the action.
   def authorized?  
     if @current_user.nil? then
       flash[:notice] = "Not authorized"
@@ -13,28 +21,27 @@ class DisplaysController < ApplicationController
     return false
   end
 
-  # GET /displays
-  # GET /displays.json
+  # Lists all displays records. No pagination or filtering.
   def index
     @displays = Display.all
   end
 
-  # GET /displays/1
-  # GET /displays/1.json
+  # One display, addressed by id. @display is loaded by the
+  # before_action; the .json form returns the record as JSON.
   def show
   end
 
-  # GET /displays/new
+  # Blank form for creating a display.
   def new
     @display = Display.new
   end
 
-  # GET /displays/1/edit
+  # Form for changing an existing display.
   def edit
   end
 
-  # POST /displays
-  # POST /displays.json
+  # Inserts a display built from the whitelist in #display_params.
+  # Re-renders the form with validation errors when the save fails.
   def create
     @display = Display.new(display_params)
 
@@ -49,8 +56,8 @@ class DisplaysController < ApplicationController
     end
   end
 
-  # PATCH/PUT /displays/1
-  # PATCH/PUT /displays/1.json
+  # Applies the whitelisted attributes to the @display loaded by the
+  # before_action; re-renders the form on failure.
   def update
     respond_to do |format|
       if @display.update(display_params)
@@ -63,8 +70,7 @@ class DisplaysController < ApplicationController
     end
   end
 
-  # DELETE /displays/1
-  # DELETE /displays/1.json
+  # Deletes the @display.
   def destroy
     @display.destroy
     respond_to do |format|
@@ -74,12 +80,14 @@ class DisplaysController < ApplicationController
   end
 
   private
-    # Use callbacks to share common setup or constraints between actions.
+    # Loads @display from params[:id]; raises 404 when no such
+    # record exists. Internal: runs as a before_action.
     def set_display
       @display = Display.find(params[:id])
     end
 
-    # Never trust parameters from the scary internet, only allow the white list through.
+    # Attribute whitelist for display writes; any param not
+    # listed here is dropped before it reaches the model.
     def display_params
       params.require(:display).permit(:key, :name, :description, :display_script, :user_id)
     end

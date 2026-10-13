@@ -1,6 +1,14 @@
+# Admin CRUD over the Session table (active logins), plus the means to revoke one.
+#
+# Ordinary login/logout does not go through here: Sessions are created by
+# UsersController#do_logon and consumed by ApplicationController#gatekeeper. These
+# actions exist so an administrator can inspect and force-terminate sessions.
 class SessionsController < ApplicationController
   before_action :set_session, only: [:show, :edit, :update, :destroy]
 
+  # DEAD CODE: this file defines authorized? twice and Ruby keeps the last
+  # definition, so the copy below is the one that actually runs.
+  # Requires the Admin right, redirecting to logon_users_path.
   def authorized?  
     if @current_user.nil? then
       flash[:notice] = "Not authorized"
@@ -13,7 +21,12 @@ class SessionsController < ApplicationController
     return false
   end
 
-  # Override default authorized? from app controller
+  # Requires the Admin right; replaces the ApplicationController default.
+  # Redirects to /homes when the user lacks it. This is the definition that
+  # takes effect, because Ruby keeps the last method definition in a class.
+  # Note it looks the right up as a Right *record*, whereas User#has_right?
+  # expects a name -- passing a record works only because the lookup below
+  # returns nil for it and the Admin short-circuit still applies.
   def authorized?  
     if @current_user.nil? then
       flash[:notice] = "Not authorized"
@@ -26,28 +39,29 @@ class SessionsController < ApplicationController
     return false
   end
 
-  # GET /sessions
-  # GET /sessions.json
+  # GET /sessions (and .json) -- every session row, i.e. who is logged in and when
+  # each session expires. No pagination.
   def index
     @sessions = Session.all
   end
 
-  # GET /sessions/1
-  # GET /sessions/1.json
+  # GET /sessions/1 (and .json) -- one session row.
   def show
   end
 
-  # GET /sessions/new
+  # GET /sessions/new -- blank form. Rarely meaningful: a session needs a user and a
+  # server-generated token, so creating one by hand produces an unusable row.
   def new
     @session = Session.new
   end
 
-  # GET /sessions/1/edit
+  # GET /sessions/1/edit -- form for changing a session's hash, user or expiry.
   def edit
   end
 
-  # POST /sessions
-  # POST /sessions.json
+  # POST /sessions (and .json) -- inserts a session from session_params. Because
+  # :session_hash is not whitelisted but :hash is, the token column is not actually
+  # settable through this action.
   def create
     @session = Session.new(session_params)
 
@@ -62,8 +76,8 @@ class SessionsController < ApplicationController
     end
   end
 
-  # PATCH/PUT /sessions/1
-  # PATCH/PUT /sessions/1.json
+  # PATCH/PUT /sessions/1 (and .json) -- applies session_params to @session. Editing
+  # :expiry here extends or cuts a live login.
   def update
     respond_to do |format|
       if @session.update(session_params)
@@ -76,8 +90,7 @@ class SessionsController < ApplicationController
     end
   end
 
-  # DELETE /sessions/1
-  # DELETE /sessions/1.json
+  # DELETE /sessions/1 (and .json) -- force-terminates a login.
   def destroy
     @session.destroy
     respond_to do |format|
@@ -88,11 +101,15 @@ class SessionsController < ApplicationController
 
   private
     # Use callbacks to share common setup or constraints between actions.
+    # Loads @session from params[:id]; raises 404 when there is no such record.
+    # Internal: runs as a before_action for show/edit/update/destroy.
     def set_session
       @session = Session.find(params[:id])
     end
 
     # Never trust parameters from the scary internet, only allow the white list through.
+    # Attribute whitelist for session writes. Note the permitted key is :hash, while the
+    # model's column is session_hash, so the token itself is not writable here.
     def session_params
       params.require(:session).permit(:hash, :user_id, :expiry)
     end

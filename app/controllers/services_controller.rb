@@ -1,6 +1,14 @@
+# Management screens for Service records; requires the Admin right.
+#
+# Services are normally created implicitly during ingestion (Service.find_or_add);
+# these screens exist to inspect or rename them. There is no destroy action,
+# because deleting a Service would orphan the Events that reference it.
 class ServicesController < ApplicationController
   before_action :set_service, only: [:show, :edit, :update]
 
+  # Replaces the inherited ApplicationController#authorized? for every
+  # action in this controller. Requires the Admin right; otherwise flashes a
+  # notice and redirects to the logon page. Returning false stops the action.
   def authorized?  
     if @current_user.nil? then
       flash[:notice] = "Not authorized"
@@ -13,28 +21,27 @@ class ServicesController < ApplicationController
     return false
   end
 
-  # GET /services
-  # GET /services.json
+  # Lists all services records. No pagination or filtering.
   def index
     @services = Service.order(name: :asc).all
   end
 
-  # GET /services/1
-  # GET /services/1.json
+  # One service, addressed by id. @service is loaded by the
+  # before_action; the .json form returns the record as JSON.
   def show
   end
 
-  # GET /services/new
+  # Blank form for creating a service.
   def new
     @service = Service.new
   end
 
-  # GET /services/1/edit
+  # Form for changing an existing service.
   def edit
   end
 
-  # POST /services
-  # POST /services.json
+  # Inserts a service built from the whitelist in #service_params.
+  # Re-renders the form with validation errors when the save fails.
   def create
     @service = Service.new(service_params)
 
@@ -49,8 +56,8 @@ class ServicesController < ApplicationController
     end
   end
 
-  # PATCH/PUT /services/1
-  # PATCH/PUT /services/1.json
+  # Applies the whitelisted attributes to the @service loaded by the
+  # before_action; re-renders the form on failure.
   def update
     respond_to do |format|
       if @service.update(service_params)
@@ -65,12 +72,14 @@ class ServicesController < ApplicationController
 
 
   private
-    # Use callbacks to share common setup or constraints between actions.
+    # Loads @service from params[:id]; raises 404 when no such
+    # record exists. Internal: runs as a before_action.
     def set_service
       @service = Service.find(params[:id])
     end
 
-    # Never trust parameters from the scary internet, only allow the white list through.
+    # Attribute whitelist for service writes; any param not
+    # listed here is dropped before it reaches the model.
     def service_params
       params.require(:service).permit(:description)
     end
