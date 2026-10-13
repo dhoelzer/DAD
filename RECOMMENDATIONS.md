@@ -567,6 +567,64 @@ per line, count failures into a `Statistic`, and keep going.
 
 ---
 
+### 5.5 Broken admin screens found while documenting every method **[correctness]**
+
+Documenting all 262 methods surfaced defects that only show up when you read each
+action against the model it writes. Each is annotated in-place at the call site.
+
+**`SessionsController#create` and `#update` raise on every real submission.**
+`session_params` permits `:hash`, but the column is `session_hash`. ActiveRecord
+raises `UnknownAttributeError` rather than ignoring the unknown key -- verified
+with `rails runner`. So the admin "create session" and "edit session" forms are
+dead; only index, show and destroy work. One-word fix, and it is the kind of bug
+that survives because no test exercises those two routes.
+
+**`JobsController#test` 500s as routed.** `set_job` runs only for
+`[:show, :edit, :update, :destroy]`, so `@job` is nil when `test` reads
+`@job.script`. The route exists (`get 'test'`), the action exists, and it cannot
+work. Either add `:test` to the `before_action` list or delete the action.
+
+**`PreferencesController` has no `authorized?` override.** Every other controller
+defines one; this one inherits the `ApplicationController` default, so any
+logged-in user can change the dashboard page size. Low impact, but it is the
+odd-one-out pattern that invites the next controller to skip its gate too.
+
+**`Users#destroy` does not revoke sessions.** Deleting an account leaves its
+Session rows live, so the deleted user keeps their existing login until the
+token expires (up to an hour, sliding on each request). `#do_logon` already shows
+the correct pattern -- `Session.where(user_id:).each(&:destroy)`.
+
+**`Users#update` re-hashes the password unconditionally.** An update that omits
+the password field sets it to a hash of `nil`, silently locking the account out.
+Guard on the param being present.
+
+**Login answers differently for unknown users than for bad passwords.** Unknown
+username redirects with no flash; a wrong password flashes "Logon Failed!". That
+is an account-enumeration oracle, and it also means lockout state is only tracked
+for accounts that exist.
+
+**`CACHESIZE` is assigned twice** in `Event` (lines 31 and 57, both `100000`).
+Harmless today because the values match, but it emits a redefine warning and
+means a future edit to one is silently overridden by the other.
+
+### 5.6 Project hygiene **[operations]**
+
+**No LICENSE file.** The repo has no license, which for anything published on
+GitHub means all rights are reserved by default and downstream use is legally
+blocked. If DAD is meant to be open source, pick one and add it.
+
+**The README is a 2014 status note, not documentation.** It describes work
+planned for "January of 2015" and discusses insert rates as the headline metric.
+It does not tell a new operator how to install, configure, or run the importer,
+scheduler, or syslog collector. `README` and `README.rdoc` are near-duplicates of
+each other; keep one.
+
+**CI is green but shallow.** The workflow runs and passes in ~40s, which is the
+14 unit tests plus 4 cucumber scenarios. That is not enough to catch the class of
+bug in 5.5 -- two broken admin routes and a nil-instance action are all reachable
+by a single request each. The highest-value next tests are request specs over the
+CRUD routes, not more unit tests of model helpers.
+
 ## 6. Suggested sequence
 
 | # | Change | Effort | Payoff |

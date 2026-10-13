@@ -59,9 +59,10 @@ class SessionsController < ApplicationController
   def edit
   end
 
-  # POST /sessions (and .json) -- inserts a session from session_params. Because
-  # :session_hash is not whitelisted but :hash is, the token column is not actually
-  # settable through this action.
+  # POST /sessions (and .json) -- inserts a session from session_params.
+  #
+  # Currently raises UnknownAttributeError for any real submission, because
+  # session_params permits :hash and Session has no such attribute.
   def create
     @session = Session.new(session_params)
 
@@ -76,8 +77,12 @@ class SessionsController < ApplicationController
     end
   end
 
-  # PATCH/PUT /sessions/1 (and .json) -- applies session_params to @session. Editing
-  # :expiry here extends or cuts a live login.
+  # PATCH/PUT /sessions/1 (and .json) -- applies session_params to @session, so
+  # editing :expiry here extends or cuts a live login.
+  #
+  # Currently raises UnknownAttributeError for any real submission (see
+  # #session_params); a submission with no session key at all is rescued as
+  # RecordNotFound and renders 404.
   def update
     respond_to do |format|
       if @session.update(session_params)
@@ -108,8 +113,12 @@ class SessionsController < ApplicationController
     end
 
     # Never trust parameters from the scary internet, only allow the white list through.
-    # Attribute whitelist for session writes. Note the permitted key is :hash, while the
-    # model's column is session_hash, so the token itself is not writable here.
+    # Attribute whitelist for session writes.
+    #
+    # BUG: permits :hash, but the Session column is session_hash, so #create and
+    # #update raise ActiveRecord::UnknownAttributeError rather than ignoring the
+    # key. The admin session create/edit forms are therefore broken; only index,
+    # show and destroy work. See RECOMMENDATIONS.md 5.5.
     def session_params
       params.require(:session).permit(:hash, :user_id, :expiry)
     end
