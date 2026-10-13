@@ -298,23 +298,41 @@ mint a session row directly.
 `SessionsController` read-only (or delete it — sessions are an implementation detail of
 `gatekeeper`). Add a request spec asserting `/users.json` has no `password` key.
 
-### 1.5 Secrets committed to the repository **[security]**
-- `config/initializers/secret_token.rb` — hard-coded `secret_key_base`. This signs Rails
-  cookies; with it public, signed/encrypted cookies can be forged.
-- `config/database.yml` — production DB user/password (`rails`/`example`) in git.
-- `gather_eventlogs.rb:1` — a real WMI command with a domain account and password
-  (`auditor%Password1`) plus internal hostnames (`*.enclaveforensics.com`). This file is
-  a pasted shell transcript, not code.
-- `provision.sh:112` — default admin password `Password1`, and the seeded admin hash in
-  `db/seeds.rb:10` is the same value.
+### 1.5 Secrets committed to the repository **[security]** — **FIXED**
 
-**Fix:** move all of it to environment variables (`ENV["SECRET_KEY_BASE"]`,
-`ENV["DATABASE_URL"]`) or an untracked `config/application.yml`; rotate every credential
-that has ever been committed; delete `gather_eventlogs.rb` (or reduce it to a documented
-example with placeholders); force a password change on first admin login. Note
-`.gitignore` currently ignores `db/schema.rb` but *not* `config/database.yml`, so the
-password is in history — scrub with `git filter-repo` if the repo is public, and treat
-the history as compromised regardless.
+Four secrets were committed. All are now supplied at deploy time instead.
+
+- `config/initializers/secret_token.rb` — hard-coded `secret_key_base`, deleted.
+  Replaced by `config/secrets.yml` (the Rails 4.2 convention), which holds
+  throwaway development/test values and reads production from
+  `ENV["SECRET_KEY_BASE"]`.
+- `config/database.yml` — production `rails`/`example` credentials replaced with
+  `ENV["DAD_DB_*"]` interpolation. Verified to parse as ERB+YAML and to yield
+  `nil` rather than a committed fallback when unset.
+- `gather_eventlogs.rb` — deleted. It was a pasted shell transcript containing a
+  live-looking domain account credential and internal hostnames, not code.
+  Nothing referenced it.
+- `db/seeds.rb` — the seeded admin hash (`Password1`) is gone. Seeding now reads
+  `DAD_ADMIN_PASSWORD` and **refuses to run** if it is unset, rather than
+  silently creating a well-known account on a public host.
+- `provision.sh` — generates `SECRET_KEY_BASE`, a random DB password and a
+  random admin password into `/etc/DAD/environment` (mode 600, created with
+  `install -m 600` so it is never briefly world-readable), reuses them on
+  re-provision, and passes them to Postgres, Apache/Passenger (`SetEnv`) and the
+  CLI jobs. The completion banner prints the generated password instead of
+  `Password1`.
+- `config/initializers/require_secrets.rb` — new. Rails 4.2 only *warns* when
+  `secret_key_base` is blank, so an unconfigured host would boot and sign
+  cookies with no key. This raises instead.
+
+**Still required, and outside this repo:** every credential above must be
+**rotated**. They are in git history, which is not rewritten here — treat
+`secret_key_base`, the `rails`/`example` DB password, and the `auditor` domain
+account as compromised. If the repo has ever been public, scrub with
+`git filter-repo`; note `.gitignore` never covered `config/database.yml`.
+
+Brakeman: 7 → 6 warnings (the `Session Setting` finding on `secret_token.rb`
+is gone; nothing new introduced).
 
 ### 1.6 Session handling **[security]**
 `UsersController#generate_session_id` builds a 62-char-alphabet token from
