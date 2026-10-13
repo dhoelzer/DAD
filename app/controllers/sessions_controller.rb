@@ -49,52 +49,6 @@ class SessionsController < ApplicationController
   def show
   end
 
-  # GET /sessions/new -- blank form. Rarely meaningful: a session needs a user and a
-  # server-generated token, so creating one by hand produces an unusable row.
-  def new
-    @session = Session.new
-  end
-
-  # GET /sessions/1/edit -- form for changing a session's hash, user or expiry.
-  def edit
-  end
-
-  # POST /sessions (and .json) -- inserts a session from session_params.
-  #
-  # Currently raises UnknownAttributeError for any real submission, because
-  # session_params permits :hash and Session has no such attribute.
-  def create
-    @session = Session.new(session_params)
-
-    respond_to do |format|
-      if @session.save
-        format.html { redirect_to @session, notice: 'Session was successfully created.' }
-        format.json { render :show, status: :created, location: @session }
-      else
-        format.html { render :new }
-        format.json { render json: @session.errors, status: :unprocessable_entity }
-      end
-    end
-  end
-
-  # PATCH/PUT /sessions/1 (and .json) -- applies session_params to @session, so
-  # editing :expiry here extends or cuts a live login.
-  #
-  # Currently raises UnknownAttributeError for any real submission (see
-  # #session_params); a submission with no session key at all is rescued as
-  # RecordNotFound and renders 404.
-  def update
-    respond_to do |format|
-      if @session.update(session_params)
-        format.html { redirect_to @session, notice: 'Session was successfully updated.' }
-        format.json { render :show, status: :ok, location: @session }
-      else
-        format.html { render :edit }
-        format.json { render json: @session.errors, status: :unprocessable_entity }
-      end
-    end
-  end
-
   # DELETE /sessions/1 (and .json) -- force-terminates a login.
   def destroy
     @session.destroy

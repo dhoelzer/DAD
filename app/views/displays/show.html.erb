@@ -14,17 +14,10 @@
   <strong>Key:</strong>
   <%= @display.key %>
 </p>
-  <div class="field">
-    <%= text_area_tag "None", content = @display.display_script, options = {:class => "script"} %>
-  </div>
-<script>	$(".script").each(function() {
-    CodeMirror.fromTextArea($(this).get(0), {
-      lineNumbers: true,
-	  mode: "ruby",
-	  readOnly: "nocursor"
-    });
-  });
-</script>
+<p>
+  <strong>Display rule:</strong>
+  <pre class="display-rule"><%= @display.display_script %></pre>
+</p>
 
 <%= link_to 'Edit', edit_display_path(@display) %> |
 <%= link_to 'Back', displays_path %>

@@ -58,8 +58,8 @@ group :doc do
   gem 'sdoc', '~> 0.4', require: false
 end
 
-# Use ActiveModel has_secure_password
-# gem 'bcrypt', '~> 3.1.7'
+# Password hashing for User#store_password / #check_password.
+gem 'bcrypt', '~> 3.1.20'
 
 # Use unicorn as the app server
 # gem 'unicorn'

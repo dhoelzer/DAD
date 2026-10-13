@@ -10,27 +10,63 @@ class User < ActiveRecord::Base
   has_many :rights, through: :roles
   has_one :session
 
-  # Hashes +password+ with a per-user salt and stores it as "salt$hexdigest".
+  BCRYPT_COST = 12
+
+  # Hashes +password+ with bcrypt and stores the self-describing hash.
   #
-  # Call this instead of assigning #password directly when creating or updating a
-  # user (UsersController#create/#update do). Note the scheme is a single fast
-  # SHA-256 round with a 4-digit salt -- not suitable against offline cracking;
-  # see RECOMMENDATIONS.md 1.3.
+  # Call this instead of assigning #password directly (UsersController#create
+  # and #update do). bcrypt is a slow, salted, adaptive KDF; the stored value
+  # embeds the algorithm version, cost factor and salt, so #check_password needs
+  # no separate salt column.
+  #
+  # Returns the hash as well as assigning it, so callers can use the return
+  # value without re-reading the attribute.
   def store_password(password)
-    salt = Random.srand % 9999
-    hash = Digest::SHA256.hexdigest "#{salt}#{password}"
-    self.password = "#{salt}$#{hash}"
+    # bcrypt silently truncates at 72 bytes; reject rather than accept a
+    # password whose tail is ignored.
+    raise ArgumentError, "password is too long" if password.nil? || password.bytesize > 72
+    self.password = BCrypt::Password.create(password, cost: BCRYPT_COST)
   end
 
-  # True if +password+ matches the stored "salt$hexdigest" value.
+  # True if +password+ matches the stored hash.
   #
-  # Returns false rather than raising when #password is nil or malformed. The
-  # comparison is a plain string equality, so it is not constant-time.
+  # Transparently handles the pre-bcrypt "salt$sha256hex" format: a legacy row
+  # is verified with the old scheme and, on success, re-hashed with bcrypt and
+  # saved. So existing accounts keep working and are upgraded on next login
+  # without a mass reset. Returns false for a nil or malformed stored value
+  # rather than raising.
   def check_password(password)
-    salt,hash = self.password.split('$')
-    calculated_hash = Digest::SHA256.hexdigest "#{salt}#{password}"
-    return true if calculated_hash == hash
-    return false
+    return false if self.password.blank? || password.nil?
+    if legacy_hash?
+      return false unless legacy_match?(password)
+      store_password(password)
+      save!
+      return true
+    end
+    begin
+      BCrypt::Password.new(self.password) == password
+    rescue BCrypt::Errors::InvalidHash
+      false
+    end
+  end
+
+  # True if #password holds the pre-bcrypt "salt$sha256hex" format.
+  def legacy_hash?
+    self.password.to_s =~ /\A\d{1,5}\$[0-9a-f]{64}\z/ ? true : false
+  end
+
+  # Verifies +password+ against a legacy "salt$sha256hex" value.
+  #
+  # Kept only so existing accounts can be upgraded on login; it is deliberately
+  # not usable for new passwords. The old scheme used `Random.srand % 9999`,
+  # which seeds the global PRNG and returns the previous seed, so the salt space
+  # is ~10k predictable values -- treat any un-upgraded hash as compromised.
+  def legacy_match?(password)
+    salt, hash = self.password.split('$')
+    return false if salt.nil? || hash.nil?
+    calculated = Digest::SHA256.hexdigest "#{salt}#{password}"
+    # Constant-time comparison; the old code used ==.
+    ActiveSupport::SecurityUtils.secure_compare(calculated, hash)
   end
 
   # Clears the failed-logon counter in memory (call #save to persist).

@@ -110,11 +110,7 @@ class UsersController < ApplicationController
       end
       @session.user = @user
       @session.save
-      if Rails.env == "development" then
-        cookies[:sessionID] = { value: @session.session_hash, httponly: true, secure: false, expires: Time.now+3600 }
-      else
-        cookies[:sessionID] = { value: @session.session_hash, httponly: true, secure: true, expires: Time.now+3600 }
-      end
+      set_session_cookie(@session.session_hash)
     else
       flash[:notice] = "Logon Failed!"
       if (@user) then
@@ -138,7 +134,7 @@ class UsersController < ApplicationController
       session = @current_user.session
       session.destroy!
     end
-    cookies[:sessionID] = nil
+    cookies.delete(:sessionID)
     @current_user = nil
     redirect_to "/"
   end
@@ -213,15 +209,7 @@ class UsersController < ApplicationController
   # rand(10000) %% 62, which is slightly biased toward the earlier characters; see
   # RECOMMENDATIONS.md 1.4.
   def generate_session_id
-    length = 64
-    field = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    field = field + field.downcase
-    field = field + "0123456789"
-    field = field.split(//)
-    i=length
-    random_id = ""
-    i.downto(1) { random_id = random_id + field[rand(10000)%field.count] }
-    return random_id
+    SecureRandom.hex(32)
   end
   # Use callbacks to share common setup or constraints between actions.
   # Loads @user from params[:id]; raises 404 when there is no such record. Internal:

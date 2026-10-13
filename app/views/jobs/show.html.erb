@@ -15,17 +15,10 @@
   <%= @job.user.username %>
 </p>
 
-  <div class="field">
-    <%= text_area_tag "None", content = @job.script, options = {:class => "script"} %>
-  </div>
-<script>	$(".script").each(function() {
-    CodeMirror.fromTextArea($(this).get(0), {
-      lineNumbers: true,
-	  mode: "ruby",
-	  readOnly: "nocursor"
-    });
-  });
-</script>
+  <p>
+    <strong>Operation:</strong>
+    <%= @job.script.nil? ? "none (disabled)" : @job.script.humanize %>
+  </p>
 <p>
   <strong>Last event:</strong>
   <%= @job.last_event_id %>

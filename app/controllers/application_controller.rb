@@ -45,15 +45,28 @@ class ApplicationController < ActionController::Base
       end
       @current_user = User.find(@session.user_id) unless @session.nil?
       if(@session) then
-        if Rails.env == "development" then
-          cookies[:sessionID] = { value: @session.session_hash, httponly: true, secure: false, expires: Time.now+1.hour }
-        else
-          cookies[:sessionID] = { value: @session.session_hash, httponly: true, secure: true, expires: Time.now+1.hour }
-        end
+        set_session_cookie(@session.session_hash)
         @session.expiry = Time.now + 1.hour
         @session.save
       end
     end
+  end
+
+  # Writes the :sessionID cookie with a consistent set of hardening options.
+  #
+  # Shared by #gatekeeper (sliding the expiry forward on each request) and
+  # UsersController#do_logon (issuing it at login), so the two cannot drift apart.
+  # HttpOnly keeps it out of JavaScript; Secure is off only in development so the
+  # dev server works over http; SameSite=Lax blocks cross-site POSTs from
+  # carrying the token.
+  def set_session_cookie(token)
+    cookies[:sessionID] = {
+      value: token,
+      httponly: true,
+      secure: (Rails.env != "development"),
+      same_site: :lax,
+      expires: Time.now + 1.hour
+    }
   end
 
   # Default gate: requires any logged-in user, redirecting to the logon page

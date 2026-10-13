@@ -1,8 +1,8 @@
 # Management screens for Display records; requires the Detective right.
 #
-# A Display pairs a regex that recognises a log format with Ruby that renders it.
-# WARNING: Display#display_script is eval'd by Event#parsed, so create/edit here
-# is arbitrary code execution as the web process user.
+# A Display pairs a regex that recognises a log format with a declarative spec
+# that reformats it. Event#parsed interprets display_script through DisplayRule,
+# so create/edit here cannot execute Ruby.
 class DisplaysController < ApplicationController
   before_action :set_display, only: [:show, :edit, :update, :destroy]
 

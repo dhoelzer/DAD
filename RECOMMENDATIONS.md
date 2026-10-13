@@ -186,6 +186,46 @@ model fast; §3.2 is the fix that makes it scale.
 
 ---
 
+## 0d. Status update: item 1.2 (remove the `eval` sinks) is done
+
+Both sinks are gone; no Ruby from the database is evaluated anywhere in the app.
+
+**Jobs.** `Job#script` is no longer a script -- it names an entry in a closed
+registry, `JobHandler::HANDLERS` (`app/models/job_handler.rb`). `scheduler.rb`
+looks the name up and calls it; an unrecognised name raises `UnknownHandler`
+rather than falling back to evaluation. `Job` validates that the name is
+registered, and the Jobs form is now a `<select>` over `JobHandler.names` -- the
+CodeMirror Ruby editor is gone, so there is no path from the UI to arbitrary
+code. Four handlers are registered (`prune_words`, `reset_caches`, `reset_stats`,
+`disk_utilization`); adding capability means editing code and deploying, which is
+the point.
+
+**Displays.** `Display#display_script` is now a declarative, line-oriented spec
+(`fields 1,2,5`, `regex PATTERN`, `label 3=proto:`, `join ,`) interpreted by
+`DisplayRule` (`app/models/display_rule.rb`). `Event#parsed` calls
+`DisplayRule.apply` instead of `eval` + `parse_event`. Specs are validated on
+save, and a spec that fails to parse degrades to returning the raw line rather
+than raising, so a bad rule cannot break the dashboard.
+
+**Existing rows.** `20261014000001_retire_legacy_job_scripts.rb` clears `script`
+and nulls `next_run` on every pre-existing Job. Those rows held Ruby that cannot
+be translated into handler names, and leaving them would have made the scheduler
+raise and fire a Critical Alert every cycle forever. The migration is
+irreversible by design.
+
+**Tests.** 27 new tests: `DisplayRuleTest` (grammar, edge cases, and an explicit
+"Ruby in a display script is never evaluated" assertion), `JobHandlerTest`
+(registry + `Job` validation), and functional `JobsControllerTest` /
+`DisplaysControllerTest` that POST Ruby through the real forms and assert both
+that the record is not created and that no marker file appears on disk. Suite is
+41 runs / 106 assertions / 0 failures; cucumber 4/4; Brakeman unchanged at 7 with
+no `Evaluation` findings.
+
+**Residual risk.** `Display#key` is still compiled with `Regexp.new` on
+operator input, which is a ReDoS vector (not code execution) -- tracked under
+§2.6. The `Taskmaster` and `Detective` rights are no longer equivalent to RCE,
+so the trust boundary described in §1.8 is much less sharp than it was.
+
 ## 1. Do this first: the app is remotely exploitable
 
 This is not theoretical. `syslog.pl` listens on UDP/514 for untrusted input, and the
@@ -213,7 +253,7 @@ express the search with ActiveRecord (`Word.where(text: terms)` + `joins`), and 
 bad in so many ways"*). Add a regression spec that feeds `a' OR 1=1 --` through
 `Event.search`.
 
-### 1.2 Two `eval` sinks = remote code execution as root **[security]**
+### 1.2 Two `eval` sinks = remote code execution as root **[security]** — ✅ fixed (see §0d)
 - `scheduler.rb:9` — `eval(job.script)` where `script` is a DB column that any user with
   the `Taskmaster` right can set through `JobsController` (`job_params` permits `:script`).
   The seed data even admits it: *"Extremely powerful. Can be used to compromise the system."*

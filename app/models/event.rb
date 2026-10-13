@@ -132,16 +132,14 @@ class Event < ActiveRecord::Base
   
   # This event rendered through its Display rule.
   #
-  # WARNING: this eval's the display_script stored in the database, then calls
-  # parse_event, which that script is expected to define. Editing a Display is
-  # arbitrary Ruby execution as the web process user (RECOMMENDATIONS.md 1.2).
-  # Returns the string "BAD DISPLAY FILTER" when no rule matches, so callers
-  # should check #use_display_helper? first.
+  # The rule's display_script is interpreted by DisplayRule, which parses a
+  # declarative field-selection spec; no Ruby from the database is evaluated
+  # (RECOMMENDATIONS.md 1.2). Returns "BAD DISPLAY FILTER" when no rule matches,
+  # so callers should check #use_display_helper? first.
   def parsed
     @display_helper = self.display_helper
     return "BAD DISPLAY FILTER" if @display_helper.nil?
-    eval @display_helper.display_script
-    parse_event(self.hunks)
+    DisplayRule.apply(@display_helper.display_script, self.hunks)
   end
   
   # The raw line split on spaces, memoised per instance.
