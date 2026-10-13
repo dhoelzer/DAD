@@ -3,6 +3,17 @@ require File.expand_path('../boot', __FILE__)
 require 'rails/all'
 require 'set'
 
+# Reopens Ruby's built-in Math module to add the four statistics helpers the
+# dashboard uses (mean, variance, standard_deviation). Because this reopens the
+# core module rather than defining a new one, Math.sqrt and the rest of the
+# standard library remain available -- standard_deviation depends on that.
+
+# Adding methods to a core class is a global change: it applies to every caller
+# in the process, including gems. A gem that defines Math.mean would overwrite
+# this one. A namespaced module would be safer.
+
+# All four divide by values.count with no guard, so an empty array yields NaN or
+# Infinity rather than 0.
 module Math
   def self.standard_deviation(values=[])
     Math.sqrt(Math.variance(values))

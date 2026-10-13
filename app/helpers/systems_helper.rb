@@ -1,5 +1,9 @@
+# View helpers for the per-host detail page.
 module SystemsHelper
   
+  # Event counts per service for one host, as [["service", n], ...] rendered through
+  # #inspect for an inline script tag. Unbounded: counts every event ever recorded for
+  # that host, not a time window.
   def system_service_stats(system_id)
     counts = Event.where(:system_id => system_id).group(:service_id).count
     results = Hash.new
