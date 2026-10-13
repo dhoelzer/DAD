@@ -117,6 +117,18 @@ class Event < ActiveRecord::Base
     resetStats
   end
   
+  # U+10FFFF is the highest Unicode code point, so [term, term + PREFIX_UPPER)
+  # is a B-tree-friendly range that contains every string starting with term.
+  # LIKE 'term%' cannot drive an index scan, which is why the lookup is written
+  # as a range. The range is only a narrowing filter: under a collating sequence
+  # that ignores punctuation (PostgreSQL's en_US.UTF-8, say) it can also admit
+  # strings that do not start with term -- 'a-b' falls inside the range for
+  # 'ab'. The trailing LIKE with an explicit ESCAPE is what pins the semantics
+  # down to a literal prefix on every adapter.
+  PREFIX_UPPER = "\u{10FFFF}".freeze
+
+  WORD_IDS = "select id from words where text >= ? and text < ? and text like ? escape '\\'".freeze
+
   # Returns [sql, binds]. Counts, per event, how many of the search terms match
   # at least one of that event's words, and keeps events where every term
   # matched. Counting distinct matching word_ids instead (the previous
@@ -124,47 +136,66 @@ class Event < ActiveRecord::Base
   # event ("test" also matches "testservice"), which silently hides events from
   # search results.
   #
+  # The term -> word_id lookup happens in a subquery rather than by joining
+  # words into the scan: the join forces events_words to be read through the
+  # generated index and then re-filtered, which is a full scan of every join row
+  # in the time window. Restricting on word_id instead lets the database use
+  # index_events_words_on_word_id_and_generated_and_event_id as a covering
+  # index and read only the rows for the matched words.
+  #
   # The query string is built only from placeholders: `search_terms` arrives
   # straight from params[:search_terms], so nothing user-supplied may be
   # interpolated into it.
   def self.searchSQL(starting_time, ending_time, terms)
-    matched_terms = terms.map { "max(case when words.text like ? then 1 else 0 end)" }.join(' + ')
-    sql = "select event_id from events_words inner join words on words.id = events_words.word_id " +
-      "where (events_words.generated between ? and ?) " +
+    matched_terms = terms.map { "max(case when events_words.word_id in (#{WORD_IDS}) then 1 else 0 end)" }.join(' + ')
+    sql = "select event_id from events_words " +
+      "where events_words.word_id in (#{terms.map { WORD_IDS }.join(' union all ')}) " +
+      "and (events_words.generated between ? and ?) " +
       "group by event_id having (#{matched_terms}) = ?"
-    binds = [[nil, starting_time.to_s(:db)], [nil, ending_time.to_s(:db)]]
-    binds.concat(terms.map { |term| [nil, "#{ActiveRecord::Base.sanitize_sql_like(term)}%"] })
+
+    binds = []
+    # binds must follow placeholder order: WHERE subqueries, then the range,
+    # then the HAVING subqueries, then the expected term count.
+    terms.each { |term| binds.concat(word_binds(term)) }
+    binds << [nil, starting_time.to_s(:db)] << [nil, ending_time.to_s(:db)]
+    terms.each { |term| binds.concat(word_binds(term)) }
     binds << [nil, terms.count]
     [sql, binds]
   end
 
+  # Range bounds plus the escaped LIKE pattern for one search term.
+  def self.word_binds(term)
+    [
+      [nil, term],
+      [nil, term + PREFIX_UPPER],
+      [nil, "#{sanitize_sql_like(term)}%"],
+    ]
+  end
+  private_class_method :word_binds
+
+  # Returns a relation over the matching events. The search SQL is embedded as a
+  # subquery rather than run first and its ids interpolated into an `id in (?)`
+  # list: that round trip materialised every matching id (a search over a busy
+  # system can match hundreds of thousands of events) and blew past PostgreSQL's
+  # 65535-parameter statement limit.
   def self.search(search_string, starting_time=(Time.now - 1.hour), offset=0, limit=100)
-    @events = Array.new
-    event_ids = Array.new
-    connection = ActiveRecord::Base.connection
-    
     terms = search_string.downcase.split(/\s+/)
     return [] if terms.empty?
-    sql, binds = searchSQL(starting_time, Time.now, terms)
-    events_that_match = connection.exec_query(sql, "SQL", binds)
-    events_that_match.map { |e| event_ids << e["event_id"]}
-    @events = Event.order(generated: :asc).where("id in (?)", event_ids).limit(limit).offset(offset)
-    return (@events.nil? ? [] : @events)    
-  end 
+    matching_events(terms, starting_time, Time.now, offset, limit)
+  end
 
   def self.search_period(search_string, starting_time, ending_time, offset=0, limit=100)
-    @events = Array.new
-    event_ids = Array.new
-    connection = ActiveRecord::Base.connection
-    
     terms = search_string.downcase.split(/\s+/)
     return [] if terms.empty?
+    matching_events(terms, starting_time, ending_time, offset, limit)
+  end
+
+  def self.matching_events(terms, starting_time, ending_time, offset, limit)
     sql, binds = searchSQL(starting_time, ending_time, terms)
-    events_that_match = connection.exec_query(sql, "SQL", binds)
-    events_that_match.map { |e| event_ids << e["event_id"]}
-    @events = Event.order(generated: :asc).where("id in (?)", event_ids).limit(limit).offset(offset)
-    return (@events.nil? ? [] : @events)
-  end    
+    scoped = sanitize_sql_array(["id in (#{sql})", *binds.map(&:last)])
+    Event.where(scoped).order(generated: :asc).limit(limit).offset(offset)
+  end
+  private_class_method :matching_events
 
   def self.storeEvent(eventString)
     # This next line is to seek and destroy invalid UTF-8 byte sequences.  They seem to show up in some
