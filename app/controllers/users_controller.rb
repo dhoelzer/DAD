@@ -1,8 +1,14 @@
+# Account administration plus the login/logout flow.
+#
+# This is the only place credentials are checked and the only place a Session is
+# issued, so it is the entry point for the whole application.
 class UsersController < ApplicationController
   before_action :set_user, only: [:show, :edit, :update, :destroy]
   before_filter :authorized?, except: [:logon, :do_logon, :logoff]
 
-  # Override default authorized? from app controller
+  # Requires the Admin right; replaces the ApplicationController default. Applies to
+  # every action except #logon, #do_logon and #logoff, which are exempted by the
+  # before_filter so that unauthenticated users can sign in and out.
   def authorized?  
     if @current_user.nil? then
       flash[:notice] = "Not authorized"
@@ -15,23 +21,26 @@ class UsersController < ApplicationController
     return false
   end
 
-  # GET /users
-  # GET /users.json
+  # GET /users (and .json) -- every account.
   def index
     @users = User.all
   end
 
-  # GET /users/1
-  # GET /users/1.json
+  # GET /users/1 (and .json) -- one account.
   def show
   end
 
+  # GET /users/:id/roles -- the grant/revoke screen for a user's roles, listing
+  # @user.roles plus #ungranted_roles as candidates.
   def roles
     @user = User.find(params[:id])
     @roles = @user.roles
   end
 
   # Add a role to a user
+  # Grants a role (params[:role]) to the user unless they already hold it, then
+  # redirects back to #roles. Adding an Admin role is how privilege is escalated, so
+  # this action is itself Admin-gated.
   def role_add
     @user = User.find(params[:id])
     @role = Role.find(params[:role])
@@ -46,6 +55,8 @@ class UsersController < ApplicationController
   end
 
   # Remove a role from a user
+  # Revokes a role (params[:role]) from the user if they hold it, then redirects back
+  # to #roles.
   def role_remove
     @user = User.find(params[:id])
     @role = Role.find(params[:role])
@@ -60,7 +71,14 @@ class UsersController < ApplicationController
   end
 
 
-  # POST /users/do_logon
+  # POST /users/do_logon -- the login form handler.
+  #
+  # Looks up the username, enforces lockout after 4 failed attempts (resetting the
+  # counter once 5 minutes have passed), and on success clears the user's existing
+  # sessions, mints a fresh 64-character token, and sets the :sessionID cookie.
+  # Redirects to "/" in every case, so a failed login is distinguished only by a
+  # flash message. Note a nonexistent username and a wrong password produce different
+  # responses, which lets an attacker enumerate accounts.
   def do_logon
     @username = params[:user][:username]
     @password = params[:user][:password]
@@ -113,6 +131,8 @@ class UsersController < ApplicationController
     return true
   end
 
+  # Destroys the current user's session row and clears the cookie. Exempt from the
+  # authorization filter so a signed-in user can always sign out.
   def logoff
     if !@current_user.nil? && !@current_user.session.nil?
       session = @current_user.session
@@ -123,22 +143,24 @@ class UsersController < ApplicationController
     redirect_to "/"
   end
 
-  # GET /users/logon
+  # GET /users/logon -- the sign-in form. Exempt from the authorization filter.
   def logon
     @logon = User.new
   end
 
-  # GET /users/new
+  # GET /users/new -- blank registration form (Admin-gated: accounts are created by an
+  # administrator, not self-service).
   def new
     @user = User.new
   end
 
-  # GET /users/1/edit
+  # GET /users/1/edit -- form for changing an account.
   def edit
   end
 
-  # POST /users
-  # POST /users.json
+  # POST /users (and .json) -- creates an account. The plaintext password from the
+  # form is passed through #store_password before saving, so the column never holds a
+  # raw password.
   def create
     @user = User.new(user_params)
     @user.attempts = 0
@@ -154,8 +176,10 @@ class UsersController < ApplicationController
     end
   end
 
-  # PATCH/PUT /users/1
-  # PATCH/PUT /users/1.json
+  # PATCH/PUT /users/1 (and .json) -- updates an account, then re-hashes
+  # params[:user][:password] and resets the failed-attempt counter. Because the
+  # password is re-hashed unconditionally, an update that omits the password field
+  # sets it to a hash of nil.
   def update
     respond_to do |format|
       if @user.update(user_params)
@@ -171,8 +195,8 @@ class UsersController < ApplicationController
     end
   end
 
-  # DELETE /users/1
-  # DELETE /users/1.json
+  # DELETE /users/1 (and .json) -- deletes an account. Does not revoke that user's
+  # existing sessions, so a deleted account stays logged in until its session expires.
   def destroy
     @user.destroy
     respond_to do |format|
@@ -183,6 +207,11 @@ class UsersController < ApplicationController
 
   private
 
+  # Returns a 64-character alphanumeric token for a session cookie.
+  #
+  # Internal. Uses rand rather than SecureRandom and indexes the alphabet with
+  # rand(10000) %% 62, which is slightly biased toward the earlier characters; see
+  # RECOMMENDATIONS.md 1.4.
   def generate_session_id
     length = 64
     field = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -195,11 +224,15 @@ class UsersController < ApplicationController
     return random_id
   end
   # Use callbacks to share common setup or constraints between actions.
+  # Loads @user from params[:id]; raises 404 when there is no such record. Internal:
+  # runs as a before_action for show/edit/update/destroy.
   def set_user
     @user = User.find(params[:id])
   end
 
   # Never trust parameters from the scary internet, only allow the white list through.
+  # Attribute whitelist for account writes. The password is permitted as plaintext
+  # here and hashed afterwards by #create / #update.
   def user_params
     params.require(:user).permit(:username, :password, :first, :last, :lastlogon)
   end

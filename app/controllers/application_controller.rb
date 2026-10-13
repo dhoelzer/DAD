@@ -1,3 +1,10 @@
+# Base controller: enforces HTTPS, resolves the session cookie into @current_user,
+# and gates every action behind an authorisation check.
+#
+# Every other controller inherits from this. The three before_filters run in order
+# for all actions: #ssl, #gatekeeper, #authorized?. A subclass customises access by
+# defining its own #authorized?, which replaces the one below for that controller
+# only.
 class ApplicationController < ActionController::Base
   # Prevent CSRF attacks by raising an exception.
   # For APIs, you may want to use :null_session instead.
@@ -5,6 +12,9 @@ class ApplicationController < ActionController::Base
 
   before_filter :ssl, :gatekeeper, :authorized?
 
+  # Redirects plain-HTTP requests to the equivalent HTTPS URL. Skipped in development
+  # so the dev server can be used over http. Returns false after redirecting, which
+  # halts the filter chain. Internal: runs as a before_filter.
   def ssl
     return true if Rails.env == "development" # Do not redirect to SSL in development.
     if request.protocol == "http://" then
@@ -15,6 +25,13 @@ class ApplicationController < ActionController::Base
     return true
   end
 
+  # Resolves the :sessionID cookie into @current_user and slides the session's expiry
+  # forward an hour on each request, so an active session never times out in use.
+  #
+  # Leaves @current_user nil when there is no cookie, the token is unknown, or the
+  # session has expired (expired rows are deleted here). Internal: runs as a
+  # before_filter, and both #authorized? and the views depend on @current_user having
+  # been set by this first. The cookie is HttpOnly, and Secure except in development.
   def gatekeeper
     @current_user = nil
     if cookies[:sessionID] then
@@ -39,7 +56,10 @@ class ApplicationController < ActionController::Base
     end
   end
 
-  # Unless there is a local Authorized? function in the controller, this will be called.
+  # Default gate: requires any logged-in user, redirecting to the logon page
+  # otherwise. Unless a controller defines its own authorized?, this is what runs.
+  # Subclasses override it to require a specific right (Viewer, Commentator,
+  # Detective, Taskmaster, Admin).
   def authorized?  
     if @current_user.nil? then
       flash[:notice] = "Not authorized"

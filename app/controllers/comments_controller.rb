@@ -1,6 +1,13 @@
+# Management screens for Comment records; requires the Commentator right.
+#
+# Comments are always attributed to @current_user, never to a user id in params.
+# Standard scaffold actions; all writes go through the comment_params whitelist.
 class CommentsController < ApplicationController
   before_action :set_comment, only: [:show, :edit, :update, :destroy]
 
+  # Replaces the inherited ApplicationController#authorized? for every
+  # action in this controller. Requires the Commentator right; otherwise flashes a
+  # notice and redirects to the logon page. Returning false stops the action.
   def authorized?  
     if @current_user.nil? then
       flash[:notice] = "Not authorized"
@@ -13,29 +20,28 @@ class CommentsController < ApplicationController
     return false
   end
 
-  # GET /comments
-  # GET /comments.json
+  # Lists all comments records. No pagination or filtering.
   def index
     @comments = Comment.all
   end
 
-  # GET /comments/1
-  # GET /comments/1.json
+  # One comment, addressed by id. @comment is loaded by the
+  # before_action; the .json form returns the record as JSON.
   def show
   end
 
-  # GET /comments/new
+  # Blank form for creating a comment.
   def new
     @comment = Comment.new
     @comment.alert_id = params[:alert_id] if !params[:alert_id].nil? && Alert.find(params[:alert_id])
   end
 
-  # GET /comments/1/edit
+  # Form for changing an existing comment.
   def edit
   end
 
-  # POST /comments
-  # POST /comments.json
+  # Inserts a comment built from the whitelist in #comment_params.
+  # Re-renders the form with validation errors when the save fails.
   def create
     @comment = Comment.new(comment_params)
     @comment.user_id = @current_user.id
@@ -51,8 +57,8 @@ class CommentsController < ApplicationController
     end
   end
 
-  # PATCH/PUT /comments/1
-  # PATCH/PUT /comments/1.json
+  # Applies the whitelisted attributes to the @comment loaded by the
+  # before_action; re-renders the form on failure.
   def update
     respond_to do |format|
       if @comment.update(comment_params)
@@ -65,8 +71,7 @@ class CommentsController < ApplicationController
     end
   end
 
-  # DELETE /comments/1
-  # DELETE /comments/1.json
+  # Deletes the @comment.
   def destroy
     @comment.destroy
     respond_to do |format|
@@ -76,12 +81,14 @@ class CommentsController < ApplicationController
   end
 
   private
-    # Use callbacks to share common setup or constraints between actions.
+    # Loads @comment from params[:id]; raises 404 when no such
+    # record exists. Internal: runs as a before_action.
     def set_comment
       @comment = Comment.find(params[:id])
     end
 
-    # Never trust parameters from the scary internet, only allow the white list through.
+    # Attribute whitelist for comment writes; any param not
+    # listed here is dropped before it reaches the model.
     def comment_params
       params.require(:comment).permit(:message, :user_id, :alert_id)
     end

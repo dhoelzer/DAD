@@ -1,7 +1,15 @@
+# Management screens for Exclusion records; requires the Commentator right.
+#
+# An Exclusion#pattern is used as a regex by Event.recent_events to hide matching
+# lines from the live dashboard. A malformed pattern breaks the dashboard for
+# every user, not just the author's.
 class ExclusionsController < ApplicationController
   before_action :set_exclusion, only: [:show, :edit, :update, :destroy]
 
 
+  # Replaces the inherited ApplicationController#authorized? for every
+  # action in this controller. Requires the Commentator right; otherwise flashes a
+  # notice and redirects to the logon page. Returning false stops the action.
   def authorized?  
     if @current_user.nil? then
       flash[:notice] = "Not authorized"
@@ -14,29 +22,28 @@ class ExclusionsController < ApplicationController
     return false
   end
 
-  # GET /exclusions
-  # GET /exclusions.json
+  # Lists all exclusions records. No pagination or filtering.
   def index
     @exclusions = Exclusion.all
   end
 
-  # GET /exclusions/1
-  # GET /exclusions/1.json
+  # One exclusion, addressed by id. @exclusion is loaded by the
+  # before_action; the .json form returns the record as JSON.
   def show
   end
 
-  # GET /exclusions/new
+  # Blank form for creating a exclusion.
   def new
     @exclusion = Exclusion.new
     @exclusion.user = @current_user
   end
 
-  # GET /exclusions/1/edit
+  # Form for changing an existing exclusion.
   def edit
   end
 
-  # POST /exclusions
-  # POST /exclusions.json
+  # Inserts a exclusion built from the whitelist in #exclusion_params.
+  # Re-renders the form with validation errors when the save fails.
   def create
     @exclusion = Exclusion.new(exclusion_params)
     @exclusion.user = @current_user
@@ -51,8 +58,8 @@ class ExclusionsController < ApplicationController
     end
   end
 
-  # PATCH/PUT /exclusions/1
-  # PATCH/PUT /exclusions/1.json
+  # Applies the whitelisted attributes to the @exclusion loaded by the
+  # before_action; re-renders the form on failure.
   def update
     respond_to do |format|
       if @exclusion.update(exclusion_params)
@@ -66,8 +73,7 @@ class ExclusionsController < ApplicationController
     end
   end
 
-  # DELETE /exclusions/1
-  # DELETE /exclusions/1.json
+  # Deletes the @exclusion.
   def destroy
     @exclusion.destroy
     respond_to do |format|
@@ -77,12 +83,14 @@ class ExclusionsController < ApplicationController
   end
 
   private
-    # Use callbacks to share common setup or constraints between actions.
+    # Loads @exclusion from params[:id]; raises 404 when no such
+    # record exists. Internal: runs as a before_action.
     def set_exclusion
       @exclusion = Exclusion.find(params[:id])
     end
 
-    # Never trust parameters from the scary internet, only allow the white list through.
+    # Attribute whitelist for exclusion writes; any param not
+    # listed here is dropped before it reaches the model.
     def exclusion_params
       params.require(:exclusion).permit(:pattern, :user_id)
     end

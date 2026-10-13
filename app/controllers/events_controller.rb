@@ -1,6 +1,11 @@
+# The search and live-dashboard screens: the primary read path into events.
+#
+# Events are never created or edited here -- ingestion writes them (see
+# Event.storeEvent). This controller only queries and renders.
 class EventsController < ApplicationController
   before_action :set_event, only: [:show]
 
+  # Requires the Viewer right; replaces the ApplicationController default.
   def authorized?  
     if @current_user.nil? then
       flash[:notice] = "Not authorized"
@@ -13,8 +18,8 @@ class EventsController < ApplicationController
     return false
   end
 
-  # GET /events
-  # GET /events.json
+  # GET /events (and .json) -- the live dashboard page. No records are loaded here;
+  # the view and the polling #recent action pull them via Event.recent_events.
   def index
     respond_to do |format|
       format.html
@@ -22,12 +27,24 @@ class EventsController < ApplicationController
     end
   end
 
+  # GET /events/recent (JS only) -- polling endpoint backing the live dashboard.
+  # Renders recent.js.erb, which replaces the event list in place. Data comes from
+  # Event.recent_events, which applies the Exclusion patterns and self-tunes how many
+  # rows to fetch.
   def recent
     respond_to do |format|
       format.js { render layout: false }
     end
   end
 
+  # GET/POST /events/search (HTML and JS) -- runs a full-text search and renders the
+  # result page. Expects:
+  # :search_terms        whitespace-separated terms, all of which must match
+  # :timeframe           seconds to look back (relative-range form)
+  # :numresults          maximum events to return (also the page size)
+  # :timesearch_enabled  when present, use an absolute range instead, reading the
+  # :lefttime(1i..6i) / :righttime(1i..6i) datetime_select fields
+  # Sets @events (a relation), @previous_search and @search_time for the view.
   def search
     @remote = true
     start_time = Time.now
@@ -50,19 +67,26 @@ class EventsController < ApplicationController
     end
   end
   
-  # GET /events/1
-  # GET /events/1.json
+  # GET /events/1 (and .json) -- single event detail page; @event is loaded by the
+  # #set_event before_action.
   def show
   end
   
   private
     # Use callbacks to share common setup or constraints between actions.
+    # Loads @event from params[:id]; raises 404 when there is no such record.
+    # Internal: runs as a before_action for #show.
     def set_event
       @event = Event.find(params[:id])
     end
 
-  #extract a datetime object from params, useful for receiving datetime_select attributes
-  #out of any activemodel
+  # Extracts a DateTime from the six Rails datetime_select fields named
+  # "<label>(1i)" .. "<label>(6i)" (year, month, day, hour, minute, second).
+  #
+  # +utc_or_local+ selects the interpretation (:utc or :local). Returns nil when the
+  # fields are missing or nonsensical, so callers must handle nil -- note #search
+  # currently passes the result to Event.search_period unchecked.
+  #
   def parse_datetime_params params, label, utc_or_local = :utc
     begin
       year   = params[(label.to_s + '(1i)')].to_i
