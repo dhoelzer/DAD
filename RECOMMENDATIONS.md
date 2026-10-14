@@ -308,7 +308,7 @@ Verified at `b6adf25`:
 `Restart=always`, make `provision.sh` a thin wrapper around them, and use
 `install -m 0644` with a heredoc instead of `sudo cat >`.
 
-### 5.2 Rails 4.2 is end-of-life **[operations]**
+### 5.2 Rails 4.2 is end-of-life — what a Rails 8 upgrade actually requires **[operations]**
 
 `Gemfile:7` pins `rails '~> 4.2.11'`. The 4.2 line has open CVEs with no fix
 available, which is why bundle-audit is non-blocking (§1.2). Ruby is pinned to
@@ -317,6 +317,155 @@ available, which is why bundle-audit is non-blocking (§1.2). Ruby is pinned to
 This is the dependency that gates several other items: Postgres partitioning
 (§3.2) and a Postgres test database (§4.1 option C) both become tractable during
 a Rails upgrade, and the CI security gates can only be made blocking afterwards.
+
+**Baseline.** Rails 4.2.11.3 · Ruby 2.7.8 · Bundler 1.17.3 · rack 1.6.13 ·
+sprockets 2.12.5 · SQLite in dev/test, Postgres in prod (`pg 0.21.0`).
+3,680 LOC of Ruby in `app`/`lib`, 1,735 LOC across 90 views (34 of them
+jbuilder), 2,923 LOC of tests, 29 migrations, 22 models, 19 controllers.
+
+**4.2 → 8.0 is eight majors.** The findings below are separated by *where they
+break*, because that determines the order of work. Claims marked **verified** were
+run against ActiveRecord 7.0.8 on this machine; the rest are from release notes.
+
+#### The constraint that sets the whole shape: Ruby and Rails cannot move independently
+
+Rails 8 requires Ruby ≥ 3.2.0 — **verified**: `gem install rails -v 8.0.0` refuses
+outright on 2.7.8. But Rails 4.2 cannot run on Ruby 3 either (the `bigdecimal
+~> 1.4.4` pin exists only because bigdecimal 2.x removed `BigDecimal.new`, which
+ActiveSupport 4.2 calls during boot — see `Gemfile:11`).
+
+So Rails 4.2 is hard-capped at Ruby 2.7, and the two have to be walked up in
+lockstep. The useful part: **Rails 7.1 is the last release that allows Ruby 2.7**
+— **verified** from the gemspecs: 7.0.8 and 7.1.5 are both `>= 2.7.0`, 7.2.2 is
+`>= 3.1.0`, 8.0.0 is `>= 3.2.0`. That means 4.2 → 5 → 6 → 7.1 can all be done
+*without* touching Ruby, and the Ruby jump lands once, at 7.2 — which is also
+exactly where `Rails.application.secrets` disappears (item 7). Splitting the work
+that way is much cheaper than doing both at once.
+
+#### Hard failures, fixable *now* on 4.2 (do these first — they are free)
+
+1. **`exec_query` bind format.** Six call sites pass Rails-4 style pairs:
+   `[[nil, value]]` (`event.rb:533-534`, `system.rb:47,82,99`,
+   `application_helper.rb:72`). On AR 7.0.8 that raises **`TypeError: can't cast
+   Array`** — **verified**. It is not a deprecation; it is a hard failure.
+
+   The fix is `sanitize_sql_array` + `exec_query(sql)` with no binds argument.
+   **Verified working on both 4.2.11.3 and 7.0.8**, so it can be merged today and
+   removes a whole class of breakage from every later step. (Note
+   `sanitize_sql_array` is `protected` on 4.2 and public from 5.0, so call it from
+   inside the model, not as `ActiveRecord::Base.sanitize_sql_array`.)
+
+2. **`before_filter` → `before_action`** (`application_controller.rb:53`).
+   `before_action` already exists on 4.2 — **verified** — so this is a one-line
+   back-port.
+
+3. **Dead weight to delete now**, all of it reducing later conflicts:
+   `rspec-rails ~> 3.5` (there is no `spec/` directory and zero rspec usage),
+   `sdoc`, and the `mail` gem plus the `config.action_mailer` lines in all three
+   environments — **the app has no mailers at all**, so that config is vestigial.
+   `scheduler.rb:4` `puts $SAFE`: deprecated on 2.7, an ordinary global (nil) in
+   Ruby 3.x, so it is noise rather than a crash — delete it.
+
+4. **The `$_models` boot hack is the biggest structural risk** and it is worth
+   fixing before any upgrade starts. `config/application.rb:39-43` eagerly
+   `require`s every file under `app/models` inside a **bare `rescue`**, then
+   snapshots `ActiveRecord::Base.subclasses` into a global that the nav bar
+   iterates (`layouts/application.html.erb:12`). Two separate problems:
+   - Zeitwerk (default from Rails 6) autoloads *lazily*, so a boot-time
+     `subclasses` snapshot is **empty** — **verified**: `ActiveRecord::Base.subclasses`
+     returns `[]` before anything is referenced. The nav bar would silently render
+     nothing rather than fail.
+   - The bare `rescue` already swallows model load failures today, so a broken
+     model just vanishes from the nav bar. This is the same "nothing exercises the
+     entry points" pattern as §4.3.
+
+   Replace it with an explicit, ordered list of the models the nav bar shows.
+   Good news: **the file naming is already Zeitwerk-clean** — all 56 files under
+   `app/` map filename → constant correctly, and nested constants
+   (`DisplayRule::Invalid`, `JobHandler::UnknownHandler`) are legal. Zeitwerk will
+   not reject this codebase; only the boot-time snapshot blocks it.
+
+#### Breaks that cannot be back-ported (they land at a specific step)
+
+5. **Bare `ActiveRecord::Migration`** — all 29 migrations. On 7.0.8 this raises
+   **"Directly inheriting from ActiveRecord::Migration is not supported"** —
+   **verified**. Needs `ActiveRecord::Migration[5.0]`-style brackets, but
+   `ActiveRecord::Migration[4.2]` **does not exist on 4.2** (**verified**:
+   `NoMethodError`), so this cannot be prepared in advance — it happens at the 5.0
+   step. `db/schema.rb` needs the same treatment (`ActiveRecord::Schema[7.0].define`).
+
+6. **`belongs_to` becomes required by default in Rails 5.0.** 19 `belongs_to`
+   associations. **Verified** that an `Event` with `service_id: nil` saves on 4.2,
+   and nil service ids are legitimate here — `application_helper.rb:145` explicitly
+   discusses a nil `service_id` having no `Service` row. So at the 5.0 step either
+   set `config.active_record.belongs_to_required_by_default = false` in the
+   `load_defaults` or add `optional: true` where nil is intended. Getting this
+   wrong turns the ingest path into validation failures, which is the worst place
+   in this app to be wrong.
+
+7. **`Rails.application.secrets`** (`initializers/require_secrets.rb:9`) —
+   deprecated 7.1, **removed in 7.2**. Migrate to `credentials` or, since this app
+   only reads `SECRET_KEY_BASE` from the environment, `config_for(:secrets)`.
+   `config/secrets.yml` and `provision.sh`'s `/etc/DAD/environment` both change.
+
+8. **`to_s(:db)`** — 10 call sites. **Verified deprecated on 7.0.8**
+   (`Time#to_s(:db) is deprecated. Please use Time#to_fs(:db)`), and gone by 8.0.
+   Mechanical, but it appears in the ingest path (`event.rb:459,478`) and in the
+   statistics helpers, so a silent format change would corrupt stored timestamps.
+
+9. **Zeitwerk at 6.0.** Rails 6.0 allows `config.autoloader = :classic` to defer
+   this, but classic is **removed in 6.1** — so item 4 must be done by 6.1 at the
+   latest.
+
+#### The asset stack is the least pleasant part
+
+`sprockets 2.12.5` / `sprockets-rails 2.3.3` / `sass-rails 4.0.5` /
+`coffee-rails 4.0.1` / `uglifier 2.7` / `turbolinks 2.5` / `jquery-rails 3.1` /
+`codemirror-rails 5.16` (last released 2016) / `jbuilder 1.2`.
+
+Rails 8 defaults to **Propshaft**; Sprockets 4 is the ceiling for Rails 7 and is
+not the Rails 8 default. `sass-rails` and `coffee-rails` are both unmaintained
+(successors: `dartsass-rails`, and hand-written JS). Converting 14 `.js.coffee`
+files is only **84 lines total** — trivial to do by hand rather than with a
+transpiler. `turbolinks 2.5` uses `data-no-turbolink` (5 sites) and
+`data-turbolinks-track` (2 sites), both dropped by Turbolinks 5 and replaced by
+different semantics under Turbo. `jbuilder 1.2` → 2.x across 34 views is a real
+but mechanical sweep.
+
+One thing to check on a real production boot rather than assume:
+`production.rb:31` sets `config.assets.enabled = false` while the layout still
+calls `javascript_include_tag`/`stylesheet_link_tag`, and `public/` contains no
+`assets/` directory. That combination needs confirming on an actual production
+boot — it is adjacent to the upgrade and may already be a latent bug.
+
+#### Test and deployment stack
+
+`cucumber-rails 1.5.0` → 4.1.0 (requires Ruby 3.2), `capybara 2.18` → 3.40,
+`database_cleaner 1.5` → 2.x, `sqlite3 1.3.13` → 2.x (requires Ruby 3.2),
+`pg 0.21` → 1.7, Bundler 1.17.3 → 2.x. Six test files use
+`ActionController::TestCase`; `test_helper.rb:26` declares `fixtures :all` but
+there are no fixtures. `rack 1.6` → 3.x is low-risk here because the app defines
+**no custom middleware** (verified: zero `middleware` references in `config/`,
+`app/`, `lib/`). CI (`ruby-version: 2.7.8`) and `Dockerfile.dev` (`FROM ruby:2.7.8`)
+both move, and §1.2's advisory security gates become blocking at the end.
+
+#### Recommended sequence
+
+| Step | Ruby | Main work |
+|---|---|---|
+| **0. Prepare (on 4.2, today)** | 2.7.8 | Items 1–4: `sanitize_sql_array`, `before_action`, delete dead deps, replace the `$_models` boot hack. All back-portable, all reduce later risk. |
+| **1. → 5.2** | 2.7.8 | Migration brackets (item 5), `belongs_to` decision (item 6), `load_defaults 5.0`. |
+| **2. → 6.1** | 2.7.8 | Zeitwerk is now mandatory (item 9). Sprockets 3→4. |
+| **3. → 7.1** | 2.7.8 | Last Ruby-2.7-compatible step. `to_s(:db)` (item 8), jbuilder 2.x. |
+| **4. → 7.2** | **3.1+** | Ruby jump. `secrets` removal (item 7). |
+| **5. → 8.1** | **3.2+** | Propshaft, Turbo, `dartsass-rails`. Target 8.1, not 8.0: 8.0 gets security fixes only to Nov 2026, 8.1 to Oct 2027. |
+
+**Do §4.3 first.** The suite is 194 runs against 90 views and the ingest path, and
+the two most dangerous items above (6 and 8) both fail *silently* — dropped nav
+entries, validation failures, reformatted timestamps — rather than loudly. Request
+specs over the CRUD routes and the ingest entry points are the prerequisite that
+makes each of the five steps verifiable; without them this is a multi-week change
+validated by eyeballing a dashboard.
 
 Worth treating as the main long-running workstream rather than a task.
 
@@ -384,7 +533,8 @@ three processes fit together, and where logs go.
 | 3 | §4.1 option A: subprocess coverage of threaded ingest | hours | Nearly free — harness exists |
 | 4 | §5.3 poison-line handling + `Rails.logger` | hours | Stops silent ingestion stalls; compounds §5.1 |
 | 5 | §5.1 systemd units | days | The importer dying silently is the main operational risk |
-| 6 | §5.2 Rails 5→7 | ongoing | Gates §3.2, §4.1-C, and blocking security gates |
+| 5b | §5.2 step 0: back-portable prep (`sanitize_sql_array`, `before_action`, drop dead deps, replace `$_models` boot hack) | days | Free now, and removes a class of breakage from every later upgrade step |
+| 6 | §5.2 Rails 4.2→8.1 (see the staged plan there) | months | Gates §3.2, §4.1-C, and blocking security gates |
 | 7 | §3.2 partitioning, §3.3 FTS, §4.1-B `EventIngestor` | ongoing | Real work, but bounded by the above |
 | 8 | §5.4 LICENSE, §5.5 README, §4.2 dead code | hours | Hygiene; do opportunistically |
 
