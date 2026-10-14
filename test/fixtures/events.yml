@@ -5,9 +5,11 @@ one:
   service_id: 1
   generated: 2014-12-17 11:32:30
   stored: 2014-12-17 11:32:30
+  hunks: "fixture event one"
 
 two:
   system_id: 1
   service_id: 1
   generated: 2014-12-17 11:32:30
   stored: 2014-12-17 11:32:30
+  hunks: "fixture event two"

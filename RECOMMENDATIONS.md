@@ -226,6 +226,53 @@ operator input, which is a ReDoS vector (not code execution) -- tracked under
 §2.6. The `Taskmaster` and `Detective` rights are no longer equivalent to RCE,
 so the trust boundary described in §1.8 is much less sharp than it was.
 
+## 0e. Status update: the Postgres-only dashboard queries are portable and now tested
+
+**The gap.** `index.js.erb` and `systems/show.js.erb` call the statistics
+helpers directly, and those helpers bucketed by hour with `extract(year from
+...)`. `extract()` is Postgres-only; SQLite rejects it outright (`near "from":
+syntax error`). Since CI runs SQLite, **both pages raised on every dev, test,
+and CI run** -- the suite never rendered them, so nothing in the repo could
+tell you the dashboard was broken. Confirmed by probe before the fix: `GET
+/events.js` and `GET /systems/:id.js` both raised
+`ActionView::Template::Error`.
+
+**Why not just add a Postgres CI job?** Tried it, and it does not work on this
+stack. Rails 4.2's `reset_pk_sequence!` reads `increment_by` from the sequence
+(`postgresql/schema_statements.rb:339`), a column **removed in PostgreSQL 10**;
+against PG 17 every fixture load fails (`column "increment_by" does not
+exist`) -- 59/59 errors. And the pinned `pg 0.21.0` no longer compiles on Ruby
+2.7 (GCC treats `rb_rescue`'s pointer mismatch as a hard error), while the
+`pg 1.x` that does compile is rejected by the adapter, which requires
+`pg ~> 0.15`. A Postgres job means upgrading Rails first (§4.1). Portable SQL
+is the fix that is actually available today.
+
+**The fix.** Both queries now bucket with
+`substr(cast(<ts> as text), 1, 13)`. Both engines render a timestamp as
+`YYYY-MM-DD HH:MM:SS[.ffffff]`, so the first 13 characters name the hour on
+either one. Verified against a real PostgreSQL 17: the new query returns
+identical buckets and aggregates to the old `extract()` version. Chart labels
+are unchanged (`10/14/2026 7:00:00`), produced by the new
+`ApplicationHelper.chart_label`.
+
+`Event.approximate_count` was the other Postgres-only call in the render path
+(`pg_stat_user_tables`); it now uses the planner estimate on Postgres and
+falls back to `Event.count` elsewhere -- including on an unpartitioned Postgres
+install, where the old code returned `nil.to_i` and silently reported zero
+events.
+
+**Tests.** `test/controllers/dashboard_render_test.rb` renders both real
+endpoints and feeds the response to `node --check`, so a broken JS literal
+fails the build rather than the browser. Reverting the fix makes these tests
+fail with the original `SQLException`, so they genuinely pin the behaviour.
+Suite: 64 runs / 206 assertions / 0 failures; cucumber 4/4; Brakeman unchanged.
+
+**Found on the way, not fixed.** `daily_insert_average` returns `NaN` when its
+window has no samples (`Math.mean([])` divides by zero), which renders as a
+literal `NaN` in the `insert_rate` chart -- harmless-looking, but Highcharts
+plots nothing and the baseline is lost. `Math.mean/variance/standard_deviation`
+have no empty guard; see §5.2.
+
 ## 1. Do this first: the app is remotely exploitable
 
 This is not theoretical. `syslog.pl` listens on UDP/514 for untrusted input, and the
@@ -567,7 +614,9 @@ so the two can be compared on real data. This is a bigger change than §3.1 — 
 
 ### 3.3 Partitioning and retention **[performance] [operations]**
 `approximate_count` queries `pg_stat_user_tables where relname like 'events_p%'` — it
-expects partitioned tables (`events_p…`) that no migration creates. Meanwhile
+expects partitioned tables (`events_p…`) that no migration creates. (It now falls back
+to `Event.count` when that sum comes back null, so an unpartitioned install reports a
+real number instead of zero — see §0e. The partitioning and pruning gaps below remain.) Meanwhile
 `import_syslog.rb`'s `purge_logs` body is commented out, so nothing prunes `events`,
 `events_words`, or `statistics` at all. `statistics` gets a row per import batch, forever.
 

@@ -71,11 +71,15 @@ class System < ActiveRecord::Base
     return item
   end
 
-  # Shared by #hourly_stats and #events_per_hour. extract() is Postgres-only, so
-  # these dashboard queries never worked against the sqlite dev/test database;
-  # binding the parameters at least keeps them injection-free and consistent.
+  # Shared by #hourly_stats and #events_per_hour. Returns count/bucket rows, where
+  # bucket names the hour as "YYYY-MM-DD HH".
+  #
+  # Buckets with substr(cast(<ts> as text),1,13) rather than extract(): extract() is
+  # Postgres-only and SQLite rejects it, which meant these dashboard queries raised
+  # on every dev/test run. See ApplicationHelper#statistics_by_hour for the same
+  # reasoning.
   def self.hourly_counts(system_id, since)
-    sql = "select count(*) as count,extract(year from generated) as year, extract(month from generated) as month,extract(day from generated) as day, extract(hour from generated) as hour from events where events.system_id=? and events.generated>? group by year,month,day,hour order by year,month,day,hour asc"
+    sql = "select count(*) as count,substr(cast(generated as text),1,13) as bucket from events where events.system_id=? and events.generated>? group by bucket order by bucket asc"
     ActiveRecord::Base.connection.exec_query sql, "SQL", [[nil, system_id], [nil, since]]
   end
 
@@ -100,7 +104,6 @@ class System < ActiveRecord::Base
   # [mean, variance, standard deviation] of this system's hourly event counts
   # since +since+. Used to spot a host that has become abnormally noisy or quiet.
   #
-  # Depends on System.hourly_counts, so it is Postgres-only (extract()).
   def hourly_stats(since=1.day.ago)
       results = System.hourly_counts(self.id, since)
       values = Array.new
@@ -112,11 +115,11 @@ class System < ActiveRecord::Base
   end
 
   # This system's hourly event counts since +since+ as [["M/D/YYYY H:00:00", n], ...],
-  # ready to hand to a charting library. Postgres-only (see hourly_counts).
+  # ready to hand to a charting library.
   def events_per_hour(since=7.days.ago)
     results = System.hourly_counts(self.id, since)
     data=Hash.new
-    results.each{|s| data["#{s['month']}/#{s['day']}/#{s['year']} #{s['hour']}:00:00"] = s["count"].to_i}
+    results.each{|s| data[ApplicationHelper.chart_label(s['bucket'])] = s["count"].to_i}
     data.map { |k,v| ["#{k}",v] }
   end
 

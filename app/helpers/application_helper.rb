@@ -2,8 +2,8 @@
 # aggregate queries behind the charts.
 #
 # Mixed into every view. The statistics helpers are read-only and are called
-# directly from the dashboard templates; they are Postgres-only where they use
-# extract().
+# directly from the dashboard templates. Their SQL is portable across Postgres
+# (production) and SQLite (test/dev) so the dashboard renders under both.
 module ApplicationHelper
   # Returns "active" or "inactive" for the nav bar, comparing the given controller
   # name against the current request. Call from a layout as class="<%%= is_active(model) %%>".
@@ -58,20 +58,26 @@ module ApplicationHelper
   #
   # +type_id+ selects the series (0 = lines processed, 1 = events/sec); +agg+ must be
   # a key of AGGREGATES, anything else raises KeyError instead of reaching the
-  # database. Uses extract(), so it is Postgres-only. Returns a result set with
-  # agg_value/year/month/day/hour columns.
+  # database. Returns a result set with agg_value/bucket columns, where bucket is the
+  # hour as "YYYY-MM-DD HH".
+  #
+  # The bucket is built with substr(cast(<ts> as text), 1, 13) rather than
+  # extract(), because extract() is Postgres-only and SQLite rejects it outright.
+  # Both engines render a timestamp as "YYYY-MM-DD HH:MM:SS[.ffffff]", so the first
+  # 13 characters name the hour on either one. Keeping the query portable is what
+  # lets the dashboard render under the sqlite test suite at all.
   def statistics_by_hour(type_id, since, agg = 'sum')
     aggregate = AGGREGATES.fetch(agg)
-    sql = "select #{aggregate} as agg_value,extract(year from timestamp) as year, extract(month from timestamp) as month,extract(day from timestamp) as day, extract(hour from timestamp) as hour from statistics where type_id=? and timestamp>? group by year,month,day,hour order by year,month,day,hour asc"
+    sql = "select #{aggregate} as agg_value,substr(cast(timestamp as text),1,13) as bucket from statistics where type_id=? and timestamp>? group by bucket order by bucket asc"
     ActiveRecord::Base.connection.exec_query sql, "SQL", [[nil, type_id], [nil, since]]
   end
 
   # Lines-processed totals per hour since +since+, as [["M/D/YYYY H:00:00", n], ...]
-  # in a form ready for the charting library. Postgres-only (see #statistics_by_hour).
+  # in a form ready for the charting library.
   def events_per_hour(since=7.days.ago)
     results = statistics_by_hour(0, since)
     data=Hash.new
-    results.each{|s| data["#{s['month']}/#{s['day']}/#{s['year']} #{s['hour']}:00:00"] = s['agg_value'].to_i}
+    results.each{|s| data[ApplicationHelper.chart_label(s["bucket"])] = s['agg_value'].to_i}
     data.map { |k,v| ["#{k}",v] }
   end
   
@@ -80,8 +86,16 @@ module ApplicationHelper
   def inserts_per_second(since=1.day.ago)
     results = statistics_by_hour(1, since, 'avg')
     data=Hash.new
-    results.each{|s| data["#{s['month']}/#{s['day']}/#{s['year']} #{s['hour']}:00:00"] = s['agg_value'].to_f}
+    results.each{|s| data[ApplicationHelper.chart_label(s["bucket"])] = s['agg_value'].to_f}
     data.map { |k,v| ["#{k}",v] }
+  end
+
+  # Turns an "YYYY-MM-DD HH" bucket into the "M/D/YYYY H:00:00" label the charts
+  # expect, dropping the zero padding the database adds. A module function so the
+  # models that build the same labels can call it without including this module.
+  def self.chart_label(bucket)
+    time = DateTime.parse("#{bucket}:00")
+    "#{time.month}/#{time.day}/#{time.year} #{time.hour}:00:00"
   end
   
   # Event counts per host over the last +days+ days, keyed by System#display_name.
