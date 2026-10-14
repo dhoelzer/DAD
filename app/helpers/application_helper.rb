@@ -72,22 +72,28 @@ module ApplicationHelper
     ActiveRecord::Base.connection.exec_query sql, "SQL", [[nil, type_id], [nil, since]]
   end
 
+  # The bucketed rows behind every chart helper, as [["YYYY-MM-DD HH", value], ...].
+  #
+  # The helpers below reduce this in Ruby rather than each issuing their own query,
+  # so a page that needs several views of one series fetches it once.
+  def hourly_buckets(type_id, since, agg = 'sum')
+    statistics_by_hour(type_id, since, agg).map { |row| [row['bucket'], row['agg_value']] }
+  end
+
   # Lines-processed totals per hour since +since+, as [["M/D/YYYY H:00:00", n], ...]
   # in a form ready for the charting library.
   def events_per_hour(since=7.days.ago)
-    results = statistics_by_hour(0, since)
-    data=Hash.new
-    results.each{|s| data[ApplicationHelper.chart_label(s["bucket"])] = s['agg_value'].to_i}
-    data.map { |k,v| ["#{k}",v] }
+    BucketStats.series(hourly_buckets(0, since))
   end
-  
+
   # Average insert rate per hour since +since+, as [["M/D/YYYY H:00:00", rate], ...].
   # Averages rather than sums, because the underlying samples are already rates.
   def inserts_per_second(since=1.day.ago)
-    results = statistics_by_hour(1, since, 'avg')
-    data=Hash.new
-    results.each{|s| data[ApplicationHelper.chart_label(s["bucket"])] = s['agg_value'].to_f}
-    data.map { |k,v| ["#{k}",v] }
+    data = Hash.new
+    hourly_buckets(1, since, 'avg').each do |bucket, value|
+      data[ApplicationHelper.chart_label(bucket)] = value.to_f
+    end
+    data.map { |label, value| [label, value] }
   end
 
   # Turns an "YYYY-MM-DD HH" bucket into the "M/D/YYYY H:00:00" label the charts
@@ -136,35 +142,20 @@ module ApplicationHelper
     [["Used", used], ["Free", 100 - used]]
   end
   
-  # Mean of the hourly event totals since +since+. 0.0 when there are no
-  # samples; see Stats.mean.
-  def hourly_average(since=1.day.ago)
-      results = statistics_by_hour(0, since)
-      values = Array.new
-      results.each{|s| values << s['agg_value'].to_i }
-      Stats.mean(values)
-  end
-
   # [mean, variance, standard deviation] of the hourly event totals since +since+,
   # for the dashboard's baseline-vs-anomaly display.
   def hourly_stats(since=1.day.ago)
-      results = statistics_by_hour(0, since)
-      values = Array.new
-      results.each{|s| values << s['agg_value'].to_i }
-      mean = Stats.mean(values)
-      variance = Stats.variance(values)
-      standard_deviation = Stats.standard_deviation(values)
-      [mean, variance, standard_deviation]
+    BucketStats.summary(hourly_buckets(0, since))
   end
-  
 
   # Mean hourly insert rate since +since+, converted to a per-second figure by
   # dividing by 60.
+  #
+  # Averages the 'sum' aggregate, preserving the pre-existing behaviour. The type_id
+  # 1 samples are already per-second rates, so 'avg' is arguably the right
+  # aggregate, but switching it would change the number on the gauge; that is a
+  # behaviour change rather than a refactor, so it is left for a separate decision.
   def daily_insert_average(since=1.day.ago)
-      results = statistics_by_hour(1, since)
-      values = Array.new
-      results.each{|s| values << s['agg_value'].to_i }
-      
-      Stats.mean(values) / 60.0
+    Stats.mean(hourly_buckets(1, since).map { |_, value| value.to_i }) / 60.0
   end
 end
