@@ -273,6 +273,56 @@ literal `NaN` in the `insert_rate` chart -- harmless-looking, but Highcharts
 plots nothing and the baseline is lost. `Math.mean/variance/standard_deviation`
 have no empty guard; see §5.2.
 
+## 0f. Status update: §2.2 (timestamp parsing) is fixed, and it was worse than described
+
+**What the section claimed.** A hard-coded 2014-2019 window, with out-of-window
+dates stamped with the *current* year.
+
+**What it actually did.** `DateTime.parse("jun 01 2023 2026 GMT")` takes `2023`
+as the year and discards the appended current year, so the year survived by
+accident. What got destroyed was the **time of day**: every dated line outside
+the window was stored at `00:00:00`. Measured on the pre-fix code:
+
+| input | stored `generated` | stored service |
+|---|---|---|
+| `Jun 01 2015 12:34:56` | `2015-06-01 12:34:56` | `sshd` |
+| `Jun 01 2026 12:34:56` | `2026-06-01 `**`00:00:00`** | `sshd` |
+| `Jun  1 12:34:56` (classic) | `2026-06-01 12:34:56` | **`""`** |
+| `2026-06-01T12:34:56.123Z` | `2026-06-01 12:34:56` | **`""`** |
+| `2026-06-01T12:34:56Z` | `2026-06-01 12:34:56` | **`"hi"`** |
+| `2026-06-01T12:34:56+00:00` | `2026-06-01 12:34:56` | **`""`** |
+
+Two defects the original write-up missed, both visible in the table:
+
+- **Service attribution was wrong for every format but one.** `service_offset`
+  was hard-coded to `5`, but the service follows the timestamp, so its index
+  depends on how many tokens the timestamp consumed. Classic syslog puts it at
+  `4`; index `5` is the PID, which `tr("^a-zA-Z\-_/","")` reduces to `""`.
+  The most common syslog format in the wild was filing every event with no
+  service. `...T12:34:56Z` read index `5` as a *message word* (`"hi"` above).
+- **The ISO regex required exactly three fractional digits and a literal `Z`.**
+  rsyslog's `RFC3339timestamps` emits `2026-06-01T12:34:56Z` and
+  `...+00:00`; neither matched.
+
+**Fix.** `Event.parse_timestamp` recognizes four formats and returns the token
+count alongside the timestamp, so `service_offset` is derived rather than
+assumed. The year window is gone. RFC 3339 offsets are normalized to UTC,
+because the value is stored with `to_s(:db)`, which drops the offset. Note the
+sanitizer replaces `+` with a space, so a `+HH:MM` offset arrives as a second
+token and is rejoined; `-HH:MM` survives attached.
+
+Unparseable lines are still dropped -- a live feed must not stop on a bad line
+-- but they are now counted and reported at flush instead of vanishing.
+
+**Tests.** `test/models/timestamp_parsing_test.rb`, 12 cases through the real
+`storeEvent` path. Reverting the fix fails 11 of 12.
+
+Suite: 89 runs / 274 assertions / 0 failures; cucumber 4/4; Brakeman unchanged
+at 3.
+
+**Still open.** Historical rows already stored at `00:00:00` are not repaired
+by this change; `hunks` retains the raw line, so a backfill re-run is possible.
+
 ## 1. Do this first: the app is remotely exploitable
 
 This is not theoretical. `syslog.pl` listens on UDP/514 for untrusted input, and the
@@ -510,7 +560,7 @@ unbounded growth loop that also writes to `preferences` on every page load.
 **Fix:** `reg = exclusions.empty? ? nil : Regexp.union(exclusions)` and skip the reject
 when `reg` is nil. Also compile it once per request, not per event.
 
-### 2.2 Timestamp parsing has a hard-coded 2014–2019 window **[correctness]**
+### 2.2 Timestamp parsing has a hard-coded 2014–2019 window **[correctness]** — ✅ fixed (see §0f)
 `event.rb:196` — `elsif split_text[3].to_i > 2014 && split_text[3].to_i < 2020`. Every
 event with a modern (2020+) year in that field falls through to the legacy
 `"#{txttimestamp} #{@@current_year} GMT"` branch, which assumes the syslog day-of-year
@@ -801,7 +851,7 @@ CRUD routes, not more unit tests of model helpers.
 | 4 | Remove `:password` from jbuilders; make `SessionsController` read-only | minutes | stops hash leakage |
 | 5 | `has_secure_password`/bcrypt + migration; `SecureRandom` session ids | day | fixes authn primitives |
 | 6 | Secrets → env vars; rotate committed credentials; scrub history | day | closes the committed-secrets blast radius |
-| 7 | Fix `Regexp.union([])`, the 2014–2019 year window, and `module Math` | day | stops silent data loss/corruption |
+| 7 | Fix `Regexp.union([])` and `module Math`; ✅ the 2014–2019 year window is done (§0f) | day | stops silent data loss/corruption |
 | 8 | ✅ **Done** — single `authorized?` filter + rights map; `PreferencesController` fixed | day | closes the authz gaps |
 | 9 | Replace `eval` in `scheduler.rb` and `Display#display_script` | 2–3 days | removes the RCE sinks |
 | 10 | Transactions + `insert_all` + staged-file rename in the importer | 2 days | crash-safe, no quote mangling |

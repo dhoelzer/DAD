@@ -26,6 +26,9 @@ class Event < ActiveRecord::Base
   @added = 0
   @cache_hits = 0
   @@num_cached = 0
+  # Lines dropped because no timestamp format matched. Counted rather
+  # than silently returned, so ingestion loss is observable.
+  @@timestamp_parse_failures = 0
   # Word-cache size that triggers a prune, and the current TTL in seconds.
   # prune_words grows/shrinks the TTL to keep the cache near CACHESIZE.
   CACHESIZE=100000
@@ -195,6 +198,7 @@ class Event < ActiveRecord::Base
     @@insertThreads.each { |t| t.join }
     @@insertThreads = Array.new
     @@current_year = Time.new.year
+    @@timestamp_parse_failures = 0
     # @bulk_insert_size grows adaptively with throughput; without a reset, a
     # single storeEvent can sit in the pending set indefinitely.
     @bulk_insert_size = ((Rails.env.development? || Rails.env.test?) ? 1 : 2000)
@@ -297,6 +301,79 @@ class Event < ActiveRecord::Base
   end
   private_class_method :matching_events
 
+  # Recognizes the timestamp that follows the host token and reports how many
+  # whitespace-separated tokens it consumed, so the caller can locate the
+  # service name without assuming a fixed offset.
+  #
+  # Returns [DateTime, token_count], or [nil, 0] when nothing parses. Formats,
+  # tried in order:
+  #   1. ISO 8601 / RFC 3339 ("2026-06-01T12:34:56.123Z", "...+02:00")
+  #      -- 1 token, or 2 when the sanitizer split a "+HH:MM" offset off it
+  #   2. ISO date and time as separate tokens ("2026-06-01 12:34:56")  -- 2 tokens
+  #   3. RFC 3164 with an explicit year ("Jun 01 2015 12:00:00")       -- 4 tokens
+  #   4. Classic RFC 3164, no year ("Jun  1 12:00:00")                 -- 3 tokens
+  #
+  # Format 1 used to require exactly three fractional digits and a literal Z,
+  # which silently mis-parsed the RFC 3339 output rsyslog emits by default.
+  # Format 3 used to be gated on a hard-coded 2015-2019 window; outside it,
+  # dated lines fell through to format 4 and lost their time of day.
+  #
+  # +year+ fills in the missing year for format 4. Offsets are normalized to
+  # UTC because the value is stored with to_s(:db), which drops the offset.
+  def self.parse_timestamp(tokens, year)
+    return [nil, 0] if tokens.nil? || tokens.empty?
+
+    if tokens[0] =~ /\A\d{4}-\d{2}-\d{2}t[\d:.]+(?:z|[+-]\d{2}:?\d{2})\z/
+      begin
+        return [DateTime.parse(tokens[0]).new_offset(0), 1]
+      rescue ArgumentError
+        return [nil, 0]
+      end
+    end
+
+    if tokens[0] =~ /\A\d{4}-\d{2}-\d{2}t[\d:.]+\z/
+      # storeEvent's sanitizer replaces '+' with a space, so an RFC 3339
+      # '+HH:MM' offset arrives as a second token; '-HH:MM' stays attached.
+      iso = tokens[0]
+      consumed = 1
+      if tokens[1] =~ /\A\d{2}:?\d{2}\z/
+        iso = "#{iso}+#{tokens[1]}"
+        consumed = 2
+      end
+      begin
+        return [DateTime.parse(iso).new_offset(0), consumed]
+      rescue ArgumentError
+        return [nil, 0]
+      end
+    end
+
+    if tokens.size >= 2 && tokens[0] =~ /\A\d{4}-\d{2}-\d{2}\z/ && tokens[1] =~ /\A\d{2}:\d{2}(?::\d{2})?(?:[.,]\d+)?\z/
+      begin
+        return [DateTime.parse("#{tokens[0..1].join(' ')} GMT"), 2]
+      rescue ArgumentError
+        return [nil, 0]
+      end
+    end
+
+    if tokens.size >= 4 && tokens[3] =~ /\A\d{2}:\d{2}:\d{2}\z/ && tokens[2] =~ /\A\d{4}\z/
+      begin
+        return [DateTime.parse("#{tokens[0..3].join(' ')} GMT"), 4]
+      rescue ArgumentError
+        return [nil, 0]
+      end
+    end
+
+    if tokens.size >= 3 && tokens[2] =~ /\A\d{2}:\d{2}:\d{2}\z/
+      begin
+        return [DateTime.parse("#{tokens[0..2].join(' ')} #{year.to_i} GMT"), 3]
+      rescue ArgumentError
+        return [nil, 0]
+      end
+    end
+
+    [nil, 0]
+  end
+
   # Parses one raw log line and stages it for insertion.
   #
   # This is the ingestion entry point, called once per line by import_syslog.rb.
@@ -304,7 +381,7 @@ class Event < ActiveRecord::Base
   # parse (too few fields, unparseable timestamp, empty service) -- that is
   # deliberate: a live syslog feed must never stop on a malformed line.
   #
-  # Steps: normalise the text, detect the timestamp format (three are supported),
+  # Steps: normalise the text, detect the timestamp format (see parse_timestamp),
   # resolve the System and Service, map each unique token to a word id, then
   # append to the pending batches. Nothing is written until the batch reaches
   # @bulk_insert_size, at which point performPendingInserts flushes it.
@@ -320,40 +397,18 @@ class Event < ActiveRecord::Base
     eventString.downcase!
     eventString.gsub!(/([^a-zA-Z0-9 \-_:@\*\/.])/," " )
     split_text = eventString.split(/\s+/)
-    # The service name's position depends on how many tokens the timestamp
-    # occupies, so it is inferred from which timestamp format was detected.
-    service_offset = 5 # Assume the service is here. It adjusts based on where the timestamp is found
     if split_text.count < 5 then
       puts "Invalid for syslog format: Too few fields -> " << eventString
       return
     end
-    return unless split_text.size > 1 # If there's no date and only an IP then it's not a valid message.
-    # Three timestamp dialects are recognised, in this order:
-    #   1. ISO 8601 ("2015-06-01T12:00:00.000Z") -- 1 token, service at offset 3
-    #   2. RFC with an explicit year in 2015-2019 ("Jun 01 2015 12:00:00") -- 4 tokens
-    #   3. Classic syslog, no year ("Jun  1 12:00:00") -- 3 tokens, year assumed
-    # The hard-coded 2015-2019 window in branch 2 is a known defect
-    # (RECOMMENDATIONS.md 2.2): dates outside it fall through to branch 3.
-    if split_text[1] =~ /20[0-9][0-9]-[0-1][0-9]-[0-3][0-9]t[0-9][0-9]:[0-9][0-9]:[0-9][0-9]\.[0-9][0-9][0-9]z/ then
-      timestamp = DateTime.parse(split_text[1])
-      service_offset = 3
-    elsif split_text[3].to_i > 2014 && split_text[3].to_i < 2020 then
-      txttimestamp = split_text[1..4].join(' ')
-      begin
-        timestamp = DateTime.parse(txttimestamp << " GMT")
-      rescue Exception => e
-        #puts "#{e}: #{eventString}"
-        return
-      end
-    else
-      txttimestamp = split_text[1..3].join(' ')
-      begin
-        timestamp = DateTime.parse("#{txttimestamp} #{@@current_year}  GMT")
-      rescue Exception => e
-        #puts "#{e}: #{eventString}"
-        return
-      end
+    # The service follows the timestamp, so its position is whatever the
+    # timestamp turned out to consume; +1 skips the host token.
+    timestamp, consumed = parse_timestamp(split_text[1..-1], @@current_year)
+    if timestamp.nil? then
+      @@timestamp_parse_failures += 1
+      return
     end
+    service_offset = 1 + consumed
     txtsystem = split_text[0]
     if @@system_cache.has_key?(txtsystem) then
       system = @@system_cache[txtsystem]
@@ -471,6 +526,9 @@ class Event < ActiveRecord::Base
     end
     @inserted_last_run = eventsPerSecond
     Statistic.logEventsPerSecond(eventsPerSecond)
+    if @@timestamp_parse_failures > 0 then
+      puts "Dropped #{@@timestamp_parse_failures} line(s) with no recognizable timestamp."
+    end
     @@start_time = Time.now
     @@pendingEventValues = Array.new
     @@events_words = Array.new
