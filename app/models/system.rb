@@ -100,26 +100,28 @@ class System < ActiveRecord::Base
     return results[0]["count"].to_i
   end
 
-  # [mean, variance, standard deviation] of this system's hourly event counts
-  # since +since+. Used to spot a host that has become abnormally noisy or quiet.
-  #
-  def hourly_stats(since=1.day.ago)
-      results = System.hourly_counts(self.id, since)
-      values = Array.new
-      results.each{|s| values << s["count"].to_i }
-      mean = Stats.mean(values)
-      variance = Stats.variance(values)
-      standard_deviation = Stats.standard_deviation(values)
-      [mean, variance, standard_deviation]
+  # This system's hourly event counts since +since+ as [[bucket, count], ...].
+  # Shared by #hourly_stats and #events_per_hour so the page fetches the series once.
+  def self.hourly_buckets(system_id, since)
+    hourly_counts(system_id, since).map { |row| [row['bucket'], row['count']] }
   end
 
   # This system's hourly event counts since +since+ as [["M/D/YYYY H:00:00", n], ...],
   # ready to hand to a charting library.
   def events_per_hour(since=7.days.ago)
-    results = System.hourly_counts(self.id, since)
-    data=Hash.new
-    results.each{|s| data[ApplicationHelper.chart_label(s['bucket'])] = s["count"].to_i}
-    data.map { |k,v| ["#{k}",v] }
+    BucketStats.series(System.hourly_buckets(self.id, since))
+  end
+
+  # [mean, variance, standard deviation] of this system's hourly event counts
+  # since +since+. Used to spot a host that has become abnormally noisy or quiet.
+  #
+  # Not derived from the 7-day series #events_per_hour fetches on the same page,
+  # even though that would save a query: the SQL counts only the events after the
+  # exact +since+ instant, so the bucket straddling it is partial, and that cannot
+  # be recovered from already-bucketed rows. Narrowing pre-bucketed data instead
+  # would silently change the baseline the gauges compare against.
+  def hourly_stats(since=1.day.ago)
+    BucketStats.summary(System.hourly_buckets(self.id, since))
   end
 
 end

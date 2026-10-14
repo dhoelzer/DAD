@@ -1,7 +1,7 @@
 # DAD — Open Recommendations
 
 Scanned at `b6adf25` (2026-10-14); §2.1 re-verified and closed at the branch
-adding `users_admin_test.rb`. PRs #1–#22 all merged.
+adding `users_admin_test.rb`. PRs #1–#23 all merged.
 
 **This document lists only work that is still outstanding.** Everything marked
 closed is verified against the current tree, not against what a PR claimed. The
@@ -21,7 +21,7 @@ than carried forward.
 | Secrets in the working tree | Closed — **but a production key is still in git history (§1.1)** |
 | Ingestion crash-safety and idempotency | Closed, at-least-once (§2.2) |
 | Search indexing, dashboard SQL portability, timestamp parsing | Closed |
-| Test suite | Green: 180 runs / 512 assertions, 4 cucumber scenarios |
+| Test suite | Green: 194 runs / 534 assertions, 4 cucumber scenarios |
 | Admin screens (sessions, users, jobs) | Closed — now covered by request tests (§2.1) |
 | Poison line / observability | **Open — was mis-marked as fixed (§5.3)** |
 | Rails 4.2 EOL, CI security gates | Open (§5.2, §1.2) |
@@ -89,7 +89,7 @@ supported, since those CVEs are unfixable on 4.2 and blocking on them is noise.
 
 ### 2.1 ✅ Closed — admin screens were broken and untested **[correctness]**
 
-Closed by the branch that adds `test/controllers/users_admin_test.rb` and
+Closed by PR #23, which adds `test/controllers/users_admin_test.rb` and
 `sessions_admin_test.rb`. **Three of the four defects listed in the previous
 revision of this document were described incorrectly**, which is worth recording
 because the misdescriptions changed what the right fix was:
@@ -149,32 +149,48 @@ it unless duplicates are actually causing problems.
 
 ## 3. Performance
 
-### 3.1 The statistics helpers run the same query up to four times per dashboard render **[performance]**
+### 3.1 ✅ Closed — the statistics helpers re-ran the same query **[performance]**
 
-`ApplicationHelper` has four methods that call `statistics_by_hour(0, since)` and
-then reduce the same result set differently:
+`ApplicationHelper` had four methods calling `statistics_by_hour(0, since)` and
+reducing the same rows differently; `System#hourly_stats` and
+`System#events_per_hour` did the same over `System.hourly_counts`. Each reduction
+was its own round trip for identical rows, on a page that re-renders itself every
+60 seconds.
 
-- `hourly_average` → mean
-- `hourly_stats` → mean, variance, standard deviation
-- `events_per_hour` → chart series
-- `daily_insert_average` → mean of type 1, divided by 60
+Fixed by fetching the bucketed rows once (`ApplicationHelper#hourly_buckets`,
+`System.hourly_buckets`) and reducing them in Ruby through a new `BucketStats`
+module (`series`, `summary`). A module rather than view helpers because
+the models build the same series — previously `System` reached into
+`ApplicationHelper.chart_label` directly.
 
-`System#hourly_stats` and `System#events_per_hour` are the same pattern over
-`System.hourly_counts(self.id, since)`.
+Measured on a real `events.js` render: **5 grouped queries → 4**. The fifth was
+`hourly_stats(1.days.ago)` and `hourly_stats(1.day.ago)` on consecutive template
+lines — the same series fetched twice, so the template now reuses `stats`.
 
-Each is a separate round trip returning the same rows. On a dashboard that polls
-(`index.js.erb`), that is the same aggregate computed repeatedly.
+Two judgement calls worth knowing about:
 
-**Fix:** one method returning the bucketed rows, with the reductions applied to
-it in Ruby. `hourly_stats` already computes mean/variance/sd from `values`;
-`hourly_average` is that same `values.mean`. This is a contained refactor with an
-obvious test — assert one query where there are currently four.
+- **`hourly_average` was deleted, not refactored.** It had no call sites anywhere
+  in the repo.
+- **`System#hourly_stats` deliberately still issues its own query** rather than
+  deriving from the 7-day series `#events_per_hour` already fetches on the same
+  page. The SQL filters on the exact `since` instant, so the bucket straddling it
+  is *partial*; that cannot be recovered from already-bucketed rows, and narrowing
+  pre-bucketed data would silently change the baseline the anomaly gauges compare
+  against. Pinned by `test_system_hourly_stats_counts_only_events_after_the_exact_instant`.
+- `daily_insert_average` keeps averaging the `sum` aggregate. The type_id 1 samples
+  are already per-second rates, so `avg` is arguably correct — but switching it
+  moves a number on the dashboard, which is a behaviour change, not a refactor.
 
-*Correction:* an earlier revision of this document also listed
-`system_service_stats` as an N+1. That method no longer exists. The three N+1s
-that did exist — `system_stats`, `service_stats`,
-`System.with_events_within_hours` — were fixed in PR #18 and verified at two
-queries regardless of row count.
+*The previous revision's "correction" here was wrong.* It stated
+`system_service_stats` no longer exists. It does — `app/helpers/systems_helper.rb`,
+called from `systems/show.js.erb:21` — and it was a live N+1 doing one `Service.find`
+per distinct service. Unbounded (no time window), so on a long-lived install that is
+one query per service the host has ever reported. Fixed to the batched-lookup pattern
+PR #18 used for `system_stats`/`service_stats`: **4 finds → 0**, two queries total.
+
+New coverage in `test/helpers/statistics_query_test.rb` (14 tests) asserts both the
+round-trip counts and that the numbers did not move. Negative control: 4 of the 14
+fail against the pre-fix tree.
 
 ### 3.2 No partitioning or retention enforcement at the database level **[performance] [operations]**
 
@@ -261,7 +277,7 @@ and its fixture, and the empty `CreateIndicesOnEventsWords` migration.
 
 ### 4.3 The suite is green but shallow on the routes that broke **[maintainability]**
 
-180 runs / 512 assertions across 43 test files, plus 4 cucumber scenarios.
+194 runs / 534 assertions across 44 test files, plus 4 cucumber scenarios.
 
 The admin CRUD request specs called for in the previous revision now exist
 (`users_admin_test.rb`, `sessions_admin_test.rb`), which is what closed §2.1.
@@ -365,20 +381,19 @@ three processes fit together, and where logs go.
 |---|---|---|---|
 | 1 | §1.1 production secret: rotate + secret scanning | hours | Impersonation risk if any deployment still uses the 2015 key |
 | 2 | §1.2 make brakeman blocking (baselined) | hours | Cheap, stops new sinks landing |
-| 3 | §3.1 statistics query duplication | hours | Contained, measurable, dashboard hot path |
-| 4 | §4.1 option A: subprocess coverage of threaded ingest | hours | Nearly free — harness exists |
-| 5 | §5.3 poison-line handling + `Rails.logger` | hours | Stops silent ingestion stalls; compounds §5.1 |
-| 6 | §5.1 systemd units | days | The importer dying silently is the main operational risk |
-| 7 | §5.2 Rails 5→7 | ongoing | Gates §3.2, §4.1-C, and blocking security gates |
-| 8 | §3.2 partitioning, §3.3 FTS, §4.1-B `EventIngestor` | ongoing | Real work, but bounded by the above |
-| 9 | §5.4 LICENSE, §5.5 README, §4.2 dead code | hours | Hygiene; do opportunistically |
+| 3 | §4.1 option A: subprocess coverage of threaded ingest | hours | Nearly free — harness exists |
+| 4 | §5.3 poison-line handling + `Rails.logger` | hours | Stops silent ingestion stalls; compounds §5.1 |
+| 5 | §5.1 systemd units | days | The importer dying silently is the main operational risk |
+| 6 | §5.2 Rails 5→7 | ongoing | Gates §3.2, §4.1-C, and blocking security gates |
+| 7 | §3.2 partitioning, §3.3 FTS, §4.1-B `EventIngestor` | ongoing | Real work, but bounded by the above |
+| 8 | §5.4 LICENSE, §5.5 README, §4.2 dead code | hours | Hygiene; do opportunistically |
 
 **The pattern worth acting on.** Three separate findings in this review — the
 importer that died at startup while CI stayed green, the four broken admin
 screens, and the checkpoint bugs — have the same cause: nothing exercises the
 entry points. The `__FILE__ == $PROGRAM_NAME` guard added in PR #16 and request
-specs over the CRUD routes are the two structural fixes for it. Priorities 1, 3
-and 6 are all versions of the same investment.
+specs over the CRUD routes are the two structural fixes for it. Priorities 1 and 3
+are both versions of the same investment.
 
 ---
 
@@ -414,7 +429,8 @@ Verified closed against the current tree:
 | 7.2 | Crash-then-reclaim duplicating rows | #17 |
 | 6.5 | The three dashboard N+1s, `has_right?`, `criticality_name`, `resources :positions`, `Service has_many :servers`, the empty migration, dev/test secret rotation | #18 |
 | — | Ingest throughput measured after the queue reset (a regression introduced by #17): the dashboard EPS chart read 0.0 and `@bulk_insert_size` grew +20 per flush with no ceiling | #22 |
-| §2.1 | Four admin screens: `sessions#index`/`#show` 500'd on removed route helpers; `jobs#test` 500'd on nil `@job`; `Users#destroy` orphaned Session rows and 500'd subsequent requests; `Users#update` locked accounts out on a blank password and could persist plaintext; `Users#create` accepted an empty password. Plus request-spec coverage for all of it | this branch |
+| §3.1 | Statistics helpers re-running the same grouped query per reduction; `system_service_stats` N+1 (4 finds → 0); duplicate `hourly_stats` call in the dashboard template (5 grouped queries → 4 per render) | this branch |
+| §2.1 | Four admin screens: `sessions#index`/`#show` 500'd on removed route helpers; `jobs#test` 500'd on nil `@job`; `Users#destroy` orphaned Session rows and 500'd subsequent requests; `Users#update` locked accounts out on a blank password and could persist plaintext; `Users#create` accepted an empty password. Plus request-spec coverage for all of it | #23 |
 
 The superseded review revisions -- including the misdiagnoses and the reasoning
 that corrected them -- are preserved in git:
