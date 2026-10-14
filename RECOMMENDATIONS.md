@@ -1181,3 +1181,121 @@ plus one smoke test is the part that stops it happening again.
 ---
 
 *This review was produced by an AI agent (OpenHands) on behalf of the user.*
+
+---
+
+## 8. Reassessment (2026-10-14, at `104abd4` + §7.5 items 1, 2, 4)
+
+Items 1, 2 and 4 from §7.5 are implemented and pushed. Item 3 turned out to rest
+on a false premise; see §8.3.
+
+### 8.1 ✅ §7.1 -- the importer was dead on arrival (branch `fix-import-syslog`)
+
+`purge_logs` called `LogRetention.purge` with no `require './lib/log_retention.rb'`,
+so every run died at startup with `NameError: uninitialized constant LogRetention`.
+The suite was green throughout: nothing loaded `import_syslog.rb`.
+
+Also on that branch: duplicate `PROCESSED_DIR` / `PROCESSED_LOGS` constants
+collapsed into one, and a `__FILE__ == $PROGRAM_NAME` guard makes the script
+loadable, which is what makes the new tests possible at all.
+
+### 8.2 ✅ §7.2 -- reclaim is now idempotent (branch `fix-reclaim-idempotent`)
+
+Byte-offset checkpoints. `LogQueue` keeps a `<name>.processing.offset` sidecar;
+`Event` releases it per batch, only ever for the head of the queue.
+
+Three findings that only appeared once crash-then-reclaim was actually driven
+end to end:
+
+1. **The checkpoint has to be written by the writer thread.** If only the main
+   thread records it, a process killed while a batch is in flight commits rows
+   it never recorded, and the next run re-inserts them. Measured: 6-line file,
+   died mid-batch, lines 1 and 2 stored twice.
+2. **The checkpoint must derive from staged rows, not a mutable global.** An
+   early version tracked a position updated by the reader, which ran ahead of
+   what had been staged. Measured: line 2 went *missing* -- data loss, strictly
+   worse than the duplication it was meant to fix. `storeEvent` now takes the
+   line's byte offset, so a batch's checkpoint is the offset of its last row.
+3. **A latent double-insert, independent of reclaim.** `performPendingInserts`
+   cleared `@@pendingEventValues` / `@@events_words` *after*
+   `Statistic.logEventsPerSecond`, which writes to the same database. When that
+   raised, rows already handed to a writer thread were still staged, and the
+   next flush inserted them again under the same explicit ids:
+   `UNIQUE constraint failed: events.id`. The queues are now cleared as soon as
+   the statements are built.
+
+`test/import_syslog_crash_test.rb` drives real subprocesses with `exit!`, so the
+crash bypasses every rescue and `at_exit`. Negative control: master's
+`Event` + `LogQueue` fail 2 of 3; the fix passes 3/3.
+
+The guarantee is at-least-once, bounded to one batch. A crash with a batch in
+flight may re-read it; it may not lose a line, and it may not duplicate more
+than one batch.
+
+### 8.3 ❌ §7.5 item 3 -- "delete the `Rails.env.test?` branch" cannot be done
+
+The branch exists because of a hard constraint, not laziness. Measured directly:
+forcing the threaded path under transactional fixtures on SQLite fails
+immediately --
+
+```
+ActiveRecord::StatementInvalid: SQLite3::BusyException: database is locked:
+  INSERT INTO events_words (event_id, word_id, generated) VALUES ...
+```
+
+The test transaction holds the only SQLite writer; a second connection cannot
+write at all. So the branch cannot be deleted while the suite runs on SQLite.
+
+Revised options, in order of value per unit of risk:
+
+| Option | What it buys | Cost |
+|---|---|---|
+| **A. Test the threaded path in subprocesses** | Real coverage of production code, no production change. Already proven: `event_ingest_flush_test.rb` and `import_syslog_crash_test.rb` both do this. | hours |
+| **B. Extract `EventIngestor` as a stateful object** | Kills the 80 `@@` references and the `class_variable_get` poking in `event_state_test.rb:42-49` and `timestamp_parsing_test.rb:107`. Does **not** remove the env branch. | ~1 week, touches the hot path |
+| **C. Move the test DB to Postgres** | The only way to actually delete the branch and test in-process. | large; changes CI and every dev setup |
+
+Recommendation: **A now, B later, C only alongside the §4.1 Rails upgrade.**
+A is nearly free because the subprocess harness already exists.
+
+### 8.4 ✅ §6.5 -- N+1s and residuals (branch `fix-n1-and-residuals`)
+
+- `system_stats` / `service_stats`: one `find` per group -> one grouped count
+  plus a single `WHERE id IN (...)`.
+- `System.with_events_within_hours`: same, and it runs on every dashboard poll.
+  Verified at 2 queries regardless of host count.
+- `system_stats` keyed results by `display_name`, so two hosts sharing a name
+  collapsed into one entry and one count silently vanished from the chart.
+  Keyed by id.
+- `User#has_right?` ran two `Right.where(...).first` queries per call, and
+  `authorized?` calls it once per required right per request. Now one rights
+  load per user.
+- `Alert#criticality_name` compared the integer column against the string `"4"`,
+  so a Serious alert was labelled Critical.
+- Dead code removed: `Service has_many :servers` (no `Server` model, no
+  callers), `resources :positions` (no model, controller, view or table), and
+  `CreateIndicesOnEventsWords`, which was entirely commented out.
+- Committed development/test `secret_key_base` values rotated. Production
+  already reads `SECRET_KEY_BASE` from the environment, so no live credential
+  changed; the old values remain burned in history.
+
+### 8.5 Suite state
+
+| | Result |
+|---|---|
+| `rake test` | 157 runs, 457 assertions, **0 failures, 0 errors** |
+| `cucumber` | 4 scenarios, 4 passed |
+| `brakeman` | 3 warnings (unchanged baseline) |
+
+One intermittent `SQLite3::BusyException` remains in the threaded-path tests
+(§7.3). It predates this work and is the same single-writer constraint as §8.3;
+it is not caused by any change here.
+
+### 8.6 Revised sequence from here
+
+| Priority | Change | Effort |
+|---|---|---|
+| 1 | Merge §8.1, §8.2, §8.4 (three stacked branches) | -- |
+| 2 | §8.3 option A: more subprocess coverage of the threaded path | hours |
+| 3 | §3.3 partitioning; §4.1 Rails 5 -> 7 | ongoing |
+| 4 | §8.3 option B: `EventIngestor` extraction, if the `@@` state still hurts | ~1 week |
+| 5 | §8.3 option C: Postgres test DB, folded into the Rails upgrade | large |
