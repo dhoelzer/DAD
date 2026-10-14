@@ -3,46 +3,6 @@ require File.expand_path('../boot', __FILE__)
 require 'rails/all'
 require 'set'
 
-# Reopens Ruby's built-in Math module to add the four statistics helpers the
-# dashboard uses (mean, variance, standard_deviation). Because this reopens the
-# core module rather than defining a new one, Math.sqrt and the rest of the
-# standard library remain available -- standard_deviation depends on that.
-
-# Adding methods to a core class is a global change: it applies to every caller
-# in the process, including gems. A gem that defines Math.mean would overwrite
-# this one. A namespaced module would be safer.
-
-module Math
-  # Square root of #variance for +values+. Defaults to an empty
-  # array, which yields NaN rather than 0.
-  def self.standard_deviation(values=[])
-    Math.sqrt(Math.variance(values))
-  end
-  
-  # Mean squared deviation from the mean of +values+ (population
-  # variance, dividing by n rather than n-1).
-  def self.variance(values)
-    sum = 0
-    mean = Math.mean(values)
-    values.each{|s| sum = sum + ((s - mean)**2)}
-    sum.to_f / (values.count)
-  end
-  
-  # Arithmetic mean of +values+. Divides by values.count with no
-  # empty guard, so [] returns NaN.
-  def self.mean(values)
-    Math.sum_values(values).to_f / (values.count)
-  end
-  
-  # Sum of +values+, accumulated with integer + so the
-  # result stays exact for integer input.
-  def self.sum_values(values)
-    sum = 0
-    values.each{|s| sum = sum + s}
-    sum
-  end
-end
-
 # Require the gems listed in Gemfile, including any gems
 # you've limited to :test, :development, or :production.
 Bundler.require(:default, Rails.env)

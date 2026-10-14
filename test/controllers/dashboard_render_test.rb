@@ -70,6 +70,19 @@ class DashboardRenderTest < ActionDispatch::IntegrationTest
     assert_valid_javascript body
   end
 
+  # A fresh install has no statistics rows, which is the case that used to emit
+  # `var stats = [NaN, NaN, NaN]` and hand Highcharts NaN gauge axes.
+  def test_dashboard_js_renders_without_statistics
+    get 'https://www.example.com/events.js', nil, @headers
+    assert_response :success
+    body = response.body
+
+    refute_match(/NaN/, body, "stats must not be NaN on an empty install: #{body[0, 200]}")
+    assert_match(/var stats = \[0\.0, 0\.0, 0\.0\];/, body,
+                 "empty statistics must render as zeroes")
+    assert_valid_javascript body
+  end
+
   def test_host_page_js_renders
     system, = seed_recent_data
     get "https://www.example.com/systems/#{system.id}.js", nil, @headers

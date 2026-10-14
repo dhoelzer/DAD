@@ -56,24 +56,6 @@ class Event < ActiveRecord::Base
   # (the classic "Jun  1 12:00:00" form). Refreshed on each flush so a long
   # ingest run does not misdate lines across a year boundary.
   @@current_year = Time.new.year
-  @@cached_words = Hash.new
-  @@num_last_events = 50
-  @added = 0
-  @cache_hits = 0
-  @@num_cached = 0
-  CACHESIZE=100000
-  @@cachelifetime=320
-  @@insertThreads = Array.new
-  @inserted_last_run = 100
-  @@nextEventID = -1
-  @@pendingEventValues = Array.new
-  @@system_cache = Hash.new
-  @@service_cache = Hash.new
-  @@events_words = Array.new
-  @@start_time = Time.now
-  @display_helper = nil       # Using lazy initialization but still using instance vars so that we
-  @event_fields = nil         # instantiate lazily but still only do one SQL query per event
-  @@current_year = Time.new.year
   
   # Current dashboard page size (how many recent events to fetch).
   # Read by the dashboard views; adjusted automatically by recent_events.
@@ -454,11 +436,10 @@ class Event < ActiveRecord::Base
     # Events are assigned ids explicitly so events_words rows can be staged ahead of
     # the event row; the counter must not collide with existing rows.
     if @@nextEventID == -1 then
-      if Event.all.count == 0 then
-        @@nextEventID = 1
-      else
-        @@nextEventID = Event.order(id: :desc).limit(1)[0].id + 1 if @@nextEventID == -1
-      end
+      # maximum(:id) is MAX(id) over the primary key. The previous Event.all.count
+      # was a full table scan on every importer restart, on a table sized in the
+      # hundreds of millions.
+      @@nextEventID = (Event.maximum(:id) || 0) + 1
     end
 
     # Precalculate some needed values and perform necessary conversions.
@@ -499,42 +480,95 @@ class Event < ActiveRecord::Base
     [sql, binds]
   end
 
+  # Batches allowed in flight at once.
+  #
+  # One still keeps a batch writing while the main thread parses the next one,
+  # which is the point of the threads, without ever holding two write
+  # transactions at the same time. The old limit of 5 meant 5 insert threads plus
+  # the main thread could ask for 6 connections from a pool of 5, so a flush
+  # would block on the pool timeout instead of writing; and two concurrent
+  # writers are not available on the SQLite database development and the test
+  # suite use, which fails them with SQLite3::BusyException.
+  MAX_INSERT_THREADS = 1
+
   # Writes the staged event and events_words batches, then resets them.
   #
   # Called automatically by storeEvent once a batch is full, and explicitly by
   # import_syslog.rb at the end of each pass (and on Ctrl-C) so nothing is left
   # in memory. Outside the test environment the two INSERTs run on a background
-  # thread so ingestion is not blocked by the write; threads are joined once more
-  # than five have accumulated.
+  # thread so ingestion is not blocked by the write; at most
+  # MAX_INSERT_THREADS batches are in flight, and a batch that failed on its
+  # thread raises here rather than being dropped.
   #
   # After each flush it retunes @bulk_insert_size (+20 when throughput improved,
   # -20 down to a floor of 20 when it fell) and logs the rate as a Statistic.
+
+  # Writes one staged batch. Both INSERTs share a transaction: events_words is
+  # written first, so a crash between the two left index rows pointing at
+  # events that do not exist -- search hits that 404.
+  #
+  # Takes the rows as arguments instead of reading the class-level queues, so a
+  # caller can hand a batch to a thread without the queues changing underneath
+  # it. Internal: the only writer of a staged batch.
+  def self.write_batch(ew_sql, ew_binds, ev_sql, ev_binds)
+    ActiveRecord::Base.transaction do
+      connection = ActiveRecord::Base.connection
+      connection.exec_query ew_sql, "SQL", ew_binds
+      connection.exec_query ev_sql, "SQL", ev_binds
+    end
+  end
+  private_class_method :write_batch
+
+  # Joins every outstanding INSERT thread and re-raises the first failure any
+  # of them recorded.
+  #
+  # A thread that died holding a batch means those events are gone, so the
+  # failure is surfaced rather than swallowed: the importer stops with its logs
+  # still in LogsToProcess instead of carrying on as if the write succeeded.
+  # Silent loss is the worse outcome for a tool whose whole job is to keep
+  # these lines.
+  def self.join_insert_threads
+    failures = @@insertThreads.map do |thread|
+      thread.join
+      thread.value
+    end.compact
+    @@insertThreads = []
+    raise failures.first unless failures.empty?
+  end
+
   def self.performPendingInserts
+    # Surface a batch that already failed before staging any more work.
+    join_insert_threads if @@insertThreads.any? { |t| !t.alive? }
+
     return if @@pendingEventValues.count < 1
 
-    if @@insertThreads.count > 5 then
-      puts "Joining previous inserts."; 
-      @@insertThreads.each { |thread| thread.join }
-      @@insertThreads = []
+    if @@insertThreads.count >= MAX_INSERT_THREADS then
+      puts "Joining previous inserts."
+      join_insert_threads
     end
     ew_sql, ew_binds = insertStatement('events_words', [:event_id, :word_id, :generated], @@events_words)
     ev_sql, ev_binds = insertStatement('events', [:id, :system_id, :service_id, :generated, :stored, :hunks], @@pendingEventValues)
 
     if Rails.env.test?
-      # The async insert thread takes a second SQLite connection and deadlocks
-      # against DatabaseCleaner's open transaction, and its results are never
-      # joined, so tests cannot observe them. Insert inline in test.
-      connection = ActiveRecord::Base.connection
-      connection.exec_query ew_sql, "SQL", ew_binds
-      connection.exec_query ev_sql, "SQL", ev_binds
+      # Cucumber runs DatabaseCleaner inside an open transaction and SQLite
+      # permits a single writer, so a second connection deadlocks the suite.
+      # Inline keeps the same write_batch path, just without the thread.
+      write_batch(ew_sql, ew_binds, ev_sql, ev_binds)
     else
+      # The batch reaches the thread by value, and the queues are cleared only
+      # after the handoff, so the thread owns its own rows and no later reset
+      # can pull them out from under it.
       @@insertThreads << Thread.new(ew_sql, ew_binds, ev_sql, ev_binds) do |ew_sql, ew_binds, ev_sql, ev_binds|
-        connection = ActiveRecord::Base.connection
-        connection.exec_query ew_sql, "SQL", ew_binds
-        connection.exec_query ev_sql, "SQL", ev_binds
+        begin
+          write_batch(ew_sql, ew_binds, ev_sql, ev_binds)
+          nil
+        rescue Exception => e
+          # Thread#value returns a raised exception rather than re-raising it;
+          # join_insert_threads turns that back into a real failure.
+          e
+        end
       end
     end
-
     #puts "\t\t-->> Flushed #{@@pendingEventValues.count} events. <<--"
     elapsed_time = (Time.now - @@start_time)
     eventsPerSecond = @@pendingEventValues.count/elapsed_time
@@ -555,6 +589,14 @@ class Event < ActiveRecord::Base
     @@events_words = Array.new
     @@current_year = "#{Time.new.year}"
     self.prune_words if @@num_cached > CACHESIZE
+  end
+
+  # Flushes, then waits for every outstanding INSERT thread. The importer calls
+  # this before exiting: without it the last flush's thread can still be running
+  # when the process ends, and that batch is lost with it.
+  def self.flush_and_wait
+    performPendingInserts
+    join_insert_threads
   end
   
   # Drops word-cache entries not used within @@cachelifetime seconds, then

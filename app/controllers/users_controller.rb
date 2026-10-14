@@ -187,11 +187,11 @@ class UsersController < ApplicationController
 
   private
 
-  # Returns a 64-character alphanumeric token for a session cookie.
+  # Returns a 64-character hex token for a session cookie.
   #
-  # Internal. Uses rand rather than SecureRandom and indexes the alphabet with
-  # rand(10000) %% 62, which is slightly biased toward the earlier characters; see
-  # RECOMMENDATIONS.md 1.4.
+  # Internal. SecureRandom, not Kernel#rand: the previous implementation built
+  # the token from rand(10000) % 62, which is both predictable across processes
+  # and biased toward the earlier characters of the alphabet.
   def generate_session_id
     SecureRandom.hex(32)
   end

@@ -108,9 +108,9 @@ class System < ActiveRecord::Base
       results = System.hourly_counts(self.id, since)
       values = Array.new
       results.each{|s| values << s["count"].to_i }
-      mean = Math.mean(values)
-      variance = Math.variance(values)
-      standard_deviation = Math.standard_deviation(values)
+      mean = Stats.mean(values)
+      variance = Stats.variance(values)
+      standard_deviation = Stats.standard_deviation(values)
       [mean, variance, standard_deviation]
   end
 
