@@ -10,7 +10,7 @@
 
     <% @alerts.each do |alert| %>
       <div id='criticality-<%=alert.criticality%>'>
-		<div id='alert-time'><%=raw timestamp_helper(alert.generated) %>&nbsp;</div>
+		<div id='alert-time'><%= timestamp_helper(alert.generated) %>&nbsp;</div>
         <div id='alert-system'><%= alert.system.display_name unless alert.system.nil? %>&nbsp;</div>
         <div id='alert-system'><%= alert.service.name unless alert.service.nil? %>&nbsp;</div>
         <div id='alert-desc'><%= link_to alert.short_description, alert %>&nbsp;</div>
