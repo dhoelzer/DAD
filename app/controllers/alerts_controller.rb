@@ -6,20 +6,6 @@
 class AlertsController < ApplicationController
   before_action :set_alert, only: [:show, :edit, :update, :destroy, :acknowledge]
 
-  # Requires Viewer or Commentator; replaces the ApplicationController default.
-  # Commentator is accepted because acknowledging an alert is an operator action.
-  def authorized?  
-    if @current_user.nil? then
-      flash[:notice] = "Not authorized"
-      redirect_to logon_users_path
-      return false
-    end
-    return true if(@current_user.has_right?("Viewer") || @current_user.has_right?("Commentator"))
-    flash[:notice] = "You lack the appropriate rights"
-    redirect_to logon_users_path
-    return false
-  end
-
   # GET /alerts (and .json) -- the open-alert queue, most critical first and oldest
   # first within a level. Closed alerts are not listed.
   def index

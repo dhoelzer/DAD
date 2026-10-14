@@ -5,19 +5,6 @@
 class EventsController < ApplicationController
   before_action :set_event, only: [:show]
 
-  # Requires the Viewer right; replaces the ApplicationController default.
-  def authorized?  
-    if @current_user.nil? then
-      flash[:notice] = "Not authorized"
-      redirect_to logon_users_path
-      return false
-    end
-    return true if(@current_user.has_right?("Viewer"))
-    flash[:notice] = "You lack the appropriate rights"
-    redirect_to logon_users_path
-    return false
-  end
-
   # GET /events (and .json) -- the live dashboard page. No records are loaded here;
   # the view and the polling #recent action pull them via Event.recent_events.
   def index

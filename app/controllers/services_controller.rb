@@ -6,21 +6,6 @@
 class ServicesController < ApplicationController
   before_action :set_service, only: [:show, :edit, :update]
 
-  # Replaces the inherited ApplicationController#authorized? for every
-  # action in this controller. Requires the Admin right; otherwise flashes a
-  # notice and redirects to the logon page. Returning false stops the action.
-  def authorized?  
-    if @current_user.nil? then
-      flash[:notice] = "Not authorized"
-      redirect_to logon_users_path
-      return false
-    end
-    return true if(@current_user.has_right?("Admin"))
-    flash[:notice] = "You lack the appropriate rights"
-    redirect_to logon_users_path
-    return false
-  end
-
   # Lists all services records. No pagination or filtering.
   def index
     @services = Service.order(name: :asc).all
