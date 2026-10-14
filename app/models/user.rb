@@ -3,6 +3,9 @@
 # Authentication is handled by UsersController#do_logon; authorisation everywhere
 # else flows through has_right?, which every controller's authorized? calls.
 class User < ActiveRecord::Base
+  # The right that satisfies every authorisation check.
+  ADMIN_RIGHT = 'Admin'
+
   has_and_belongs_to_many :roles
   has_many :comments
   has_many :exclusions
@@ -92,11 +95,23 @@ class User < ActiveRecord::Base
   # +right+ is a right *name* (String). Anyone holding the Admin right returns
   # true for every right, so Admin is a wildcard and does not need to be granted
   # each permission individually. Returns false for an unknown right name.
+  # True when the user holds +right+ (a Right row or its name), or holds Admin,
+  # which satisfies everything.
+  #
+  # Resolved against the user's own right names rather than by looking up the
+  # requested right and Admin separately: that was two Right queries on every
+  # call, and authorized? calls it once per required right per request.
   def has_right?(right)
-    right = Right.where(:name => right).first
-    admin = Right.where(:name => "Admin").first
-    return true if self.rights.include?(admin) # Always return true for the administrator role regardless of rights
-    self.rights.include?(right)
+    names = right_names
+    return true if names.include?(ADMIN_RIGHT)
+    names.include?(right.is_a?(Right) ? right.name : right.to_s)
+  end
+
+  # Memoised per instance. Safe because the callers only read authorisation;
+  # the paths that grant or revoke rights act on Role records and take effect
+  # for the next request's user.
+  def right_names
+    @right_names ||= rights.pluck(:name)
   end
 
   # True if +role+ (a Role record) is assigned to this user.
