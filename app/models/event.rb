@@ -92,19 +92,21 @@ class Event < ActiveRecord::Base
     return events
   end
 
-  # Cheap total event count for the dashboard, read from Postgres statistics
-  # rather than COUNT(*).
+  # Cheap total event count for the dashboard.
   #
-  # Postgres-only: it queries pg_stat_user_tables and assumes the events table is
-  # partitioned as events_p*. On sqlite or an unpartitioned Postgres install this
-  # raises or returns nil. The value is an estimate and lags real inserts.
+  # On Postgres the figure comes from the planner statistics in pg_stat_user_tables
+  # rather than COUNT(*), which is expensive on a large table. That view is
+  # Postgres-specific and assumes events is partitioned as events_p*, so on any
+  # other adapter -- and on an unpartitioned install, where the sum comes back
+  # null -- it falls back to an exact COUNT(*). The estimate lags real inserts.
   def self.approximate_count
     connection = ActiveRecord::Base.connection
-    # Postgresql performance on a count is awful.  Estimating based on tuples.
-    # This is a breaking change for Maria/MySQL.
-    sql = "SELECT SUM(n_live_tup) FROM pg_stat_user_tables where relname like 'events_p%';"
-    count = connection.execute(sql)
-    count.first["sum"].to_i
+    if connection.adapter_name == "PostgreSQL"
+      sql = "SELECT SUM(n_live_tup) FROM pg_stat_user_tables where relname like 'events_p%';"
+      sum = connection.execute(sql).first["sum"]
+      return sum.to_i unless sum.nil?
+    end
+    Event.count
   end
 
   # Show the "Events" tab only to users holding the Viewer right.
