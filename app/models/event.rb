@@ -23,6 +23,10 @@ class Event < ActiveRecord::Base
   @@cached_words = Hash.new
   # Dashboard feed size, tuned by recent_events.
   @@num_last_events = 50
+  # Ceiling for that tuning. Without it, noisy exclusions keep N climbing;
+  # fetching this many rows per dashboard poll is the point where the cost
+  # outweighs the benefit.
+  DASHBOARD_MAX_EVENTS = 1000
   @added = 0
   @cache_hits = 0
   @@num_cached = 0
@@ -84,14 +88,31 @@ class Event < ActiveRecord::Base
   # rows that fewer than 50 survive, N grows 10%; if more than 70 survive, N
   # shrinks 5%. The adjusted value is persisted, so the feed converges on
   # showing roughly 50-70 lines regardless of how noisy the exclusions are.
+  #
+  # Patterns are matched literally: Regexp.union escapes metacharacters, so
+  # "sshd.*fail" matches those seven characters, not "sshd" followed by
+  # "fail". Blank and nil patterns are dropped -- Regexp.union([""]) is //,
+  # which matches every line and would empty the feed for every user.
   def self.recent_events
-    @@num_last_events = Preference.eventsDashboard
-    exclusions = Exclusion.pluck(:pattern)
-    reg = Regexp.union(exclusions)
-    events = (Event.last(@@num_last_events).map { |a| a.hunks }).reject { |event| event.match(reg)}
-    @@num_last_events += @@num_last_events * 0.10 if events.count < 50
-    @@num_last_events -= @@num_last_events * 0.05 if events.count > 70
-    Preference.eventsDashboard(@@num_last_events)
+    configured = Preference.eventsDashboard.to_i
+    @@num_last_events = configured
+    patterns = Exclusion.pluck(:pattern).reject { |p| p.nil? || p.strip.empty? }
+    fetched = Event.last(@@num_last_events)
+    events = fetched.map { |a| a.hunks }.compact
+    unless patterns.empty?
+      reg = Regexp.union(patterns)
+      events = events.reject { |event| event.match(reg) }
+    end
+    # Growing only pays off when the fetch was actually truncated. If fewer
+    # rows came back than were asked for, the table is that small and N would
+    # otherwise climb forever on a quiet install.
+    if events.count < 50 && fetched.count == configured
+      @@num_last_events += configured * 0.10
+    elsif events.count > 70
+      @@num_last_events -= configured * 0.05
+    end
+    @@num_last_events = @@num_last_events.round.clamp(1, DASHBOARD_MAX_EVENTS)
+    Preference.eventsDashboard(@@num_last_events) if @@num_last_events != configured
     return events
   end
 

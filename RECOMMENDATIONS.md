@@ -323,6 +323,58 @@ at 3.
 **Still open.** Historical rows already stored at `00:00:00` are not repaired
 by this change; `hunks` retains the raw line, so a backfill re-run is possible.
 
+## 0g. Status update: §2.1 was misdiagnosed; the real bug is a blank pattern
+
+**What the section claimed.** `Regexp.union([])` returns `/(?!)/`, "which matches
+at every position", so an empty `exclusions` table empties the dashboard.
+
+**That is backwards.** `/(?!)/` is a negative lookahead that never succeeds -- it
+matches *nothing*. Verified directly:
+
+```ruby
+Regexp.union([])          # => /(?!)/
+"anything" =~ /(?!)/      # => nil
+```
+
+Measured against the real method with an empty `Exclusion` table and 200 events,
+the feed returned all 10 requested rows. The empty-table path was never broken.
+
+**The actual trigger is a blank pattern.** `Regexp.union([""])` is `//`, which
+*does* match every line. `Exclusion` has no validations and the form has no
+default, so submitting it without typing a pattern stores `""` and empties the
+dashboard for **every** user -- the symptom §2.1 described, reached by a
+different route. Reproduced on the pre-fix code: 30 events seeded, one blank
+exclusion, feed returned **0**.
+
+**The growth loop is real, but it is not caused by the empty table.** With
+fewer than 50 events on an install, `events.count < 50` is permanently true, so
+N grows on every poll and compounds once past 10%:
+
+```
+poll 0..11 -> 11, 12, 13, ... 20, 22, 24      # 7 events total
+```
+
+It never converges, and the dashboard polls repeatedly. The fix stops growth
+when the fetch was not truncated (the table is simply that small) and caps N at
+`DASHBOARD_MAX_EVENTS = 1000` for the genuinely noisy case.
+
+**Found on the way, not fixed.** Two more `Exclusion` defects, both left alone:
+
+- `pattern` is documented as a regex in the model and views, but
+  `Regexp.union` escapes metacharacters, so patterns are matched **literally**:
+  `sshd.*fail` matches those seven characters, not `sshd` ... `fail`. A test
+  pins the current behaviour; whether to change it is a product decision.
+- A `nil` pattern raises `TypeError: no implicit conversion of nil into String`
+  inside `Regexp.union`, breaking the dashboard for everyone. Unreachable via
+  the form (it posts `""`), but reachable through the JSON API. Blank patterns
+  are now filtered out, which incidentally covers `nil` too.
+
+**Tests.** `test/models/recent_events_test.rb`, 9 cases. Reverting the fix
+fails 4 of them.
+
+Suite: 98 runs / 285 assertions / 0 failures; cucumber 4/4; Brakeman unchanged
+at 3.
+
 ## 1. Do this first: the app is remotely exploitable
 
 This is not theoretical. `syslog.pl` listens on UDP/514 for untrusted input, and the
@@ -543,7 +595,7 @@ model; this keeps the existing roles/rights schema and adds no dependency.
 
 ## 2. Correctness bugs that are silently corrupting data
 
-### 2.1 The dashboard drops *every* event when there are no exclusions **[correctness]**
+### 2.1 The dashboard drops *every* event when there are no exclusions **[correctness]** — ❌ misdiagnosed, real bug fixed (see §0g)
 `Event.recent_events` (`event.rb:31-40`):
 
 ```ruby
@@ -851,7 +903,7 @@ CRUD routes, not more unit tests of model helpers.
 | 4 | Remove `:password` from jbuilders; make `SessionsController` read-only | minutes | stops hash leakage |
 | 5 | `has_secure_password`/bcrypt + migration; `SecureRandom` session ids | day | fixes authn primitives |
 | 6 | Secrets → env vars; rotate committed credentials; scrub history | day | closes the committed-secrets blast radius |
-| 7 | Fix `Regexp.union([])` and `module Math`; ✅ the 2014–2019 year window is done (§0f) | day | stops silent data loss/corruption |
+| 7 | Fix `module Math`; ✅ the year window (§0f) and `Regexp.union` (§0g) are done | day | stops silent data loss/corruption |
 | 8 | ✅ **Done** — single `authorized?` filter + rights map; `PreferencesController` fixed | day | closes the authz gaps |
 | 9 | Replace `eval` in `scheduler.rb` and `Display#display_script` | 2–3 days | removes the RCE sinks |
 | 10 | Transactions + `insert_all` + staged-file rename in the importer | 2 days | crash-safe, no quote mangling |
