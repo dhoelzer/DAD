@@ -9,7 +9,7 @@
 # to NULL, which the scheduler's `next_run < ?` predicate never matches. An
 # operator who still wants the task re-enables it deliberately by choosing a
 # registered handler.
-class RetireLegacyJobScripts < ActiveRecord::Migration
+class RetireLegacyJobScripts < ActiveRecord::Migration[4.2]
   def up
     execute "UPDATE jobs SET script = NULL, next_run = NULL"
   end

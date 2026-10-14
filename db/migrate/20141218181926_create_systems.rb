@@ -1,4 +1,4 @@
-class CreateSystems < ActiveRecord::Migration
+class CreateSystems < ActiveRecord::Migration[4.2]
   def change
     create_table :systems do |t|
       t.string :address

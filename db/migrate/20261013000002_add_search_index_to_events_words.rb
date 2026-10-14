@@ -1,4 +1,4 @@
-class AddSearchIndexToEventsWords < ActiveRecord::Migration
+class AddSearchIndexToEventsWords < ActiveRecord::Migration[4.2]
   INDEX_NAME = 'index_events_words_on_word_id_and_generated_and_event_id'.freeze
   COLUMNS = %w[word_id generated event_id].freeze
 

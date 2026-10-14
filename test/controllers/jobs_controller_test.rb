@@ -25,7 +25,7 @@ class JobsControllerTest < ActionController::TestCase
   # displays, so the action and its route are gone.
   test 'the removed test action is not reachable' do
     job = Job.create!(name: 'j', script: 'prune_words', frequency: 3600, user: @user)
-    assert_raises(ActionController::UrlGenerationError) { get :test, id: job.id }
+    assert_raises(ActionController::UrlGenerationError) { get :test, params: { id: job.id } }
   end
   test "the form offers registered operations, not a script editor" do
     get :new
@@ -37,7 +37,7 @@ class JobsControllerTest < ActionController::TestCase
 
   test "creating a job with a registered handler succeeds" do
     assert_difference "Job.count" do
-      post :create, job: { name: "nightly", script: "prune_words", frequency: 3600 }
+      post :create, params: { job: { name: "nightly", script: "prune_words", frequency: 3600 } }
     end
     assert_equal "prune_words", Job.last.script
   end
@@ -46,7 +46,7 @@ class JobsControllerTest < ActionController::TestCase
     marker = Rails.root.join("tmp_pwned_job")
     File.delete(marker) if File.exist?(marker)
     assert_no_difference "Job.count" do
-      post :create, job: { name: "evil", script: "File.write('#{marker}','ran')", frequency: 60 }
+      post :create, params: { job: { name: "evil", script: "File.write('#{marker}','ran')", frequency: 60 } }
     end
     refute File.exist?(marker)
   end

@@ -25,6 +25,14 @@ module Events
     # Application configuration should go into files in config/initializers
     # -- all .rb files in that directory are automatically loaded.
 
+    # No `config.load_defaults` call, deliberately. Rails 5.2 with no call keeps
+    # the 4.1-era framework defaults, which is what this app was written against;
+    # opting into the 5.0 set would flip belongs_to_required_by_default to true
+    # (19 belongs_to associations here have nullable foreign keys that legitimately
+    # hold nil -- see RECOMMENDATIONS.md 5.2 item 6) and would change per-form CSRF
+    # tokens and button_to markup. Introduce load_defaults at the Rails 6 step,
+    # where it is expected, as its own reviewed change.
+
     # Set Time.zone default to the specified zone and make Active Record auto-convert to this zone.
     # Run "rake -D time" for a list of tasks for finding time zone names. Default is UTC.
     # config.time_zone = 'Central Time (US & Canada)'

@@ -1,4 +1,4 @@
-class CreateAlertsEventsJointable < ActiveRecord::Migration
+class CreateAlertsEventsJointable < ActiveRecord::Migration[4.2]
   def change
      create_join_table :alerts, :events do |t|
       t.integer :alert_id, :limit => 8

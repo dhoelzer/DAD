@@ -1,4 +1,4 @@
-class CreateDisplays < ActiveRecord::Migration
+class CreateDisplays < ActiveRecord::Migration[4.2]
   def change
     create_table :displays do |t|
       t.string :key

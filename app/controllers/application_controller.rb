@@ -1,7 +1,7 @@
 # Base controller: enforces HTTPS, resolves the session cookie into @current_user,
 # and gates every action behind an authorisation check.
 #
-# Every other controller inherits from this. The three before_filters run in order
+# Every other controller inherits from this. The three before_actions run in order
 # for all actions: #ssl, #gatekeeper, #authorized?. Access control is declared in
 # the constants below rather than by overriding #authorized? per controller, so the
 # whole policy is readable in one place.
@@ -50,7 +50,7 @@ class ApplicationController < ActionController::Base
   # would sit behind the login check.
   PUBLIC_ACTIONS = { 'users' => %w[logon do_logon logoff] }.freeze
 
-  before_filter :ssl, :gatekeeper, :authorized?
+  before_action :ssl, :gatekeeper, :authorized?
 
   # The rights that grant +controller+#+action+, or nil when nothing grants it.
   # Public actions are handled by #authorized? before this is consulted, so nil
@@ -72,7 +72,7 @@ class ApplicationController < ActionController::Base
 
   # Redirects plain-HTTP requests to the equivalent HTTPS URL. Skipped in development
   # so the dev server can be used over http. Returns false after redirecting, which
-  # halts the filter chain. Internal: runs as a before_filter.
+  # halts the callback chain. Internal: runs as a before_action.
   def ssl
     return true if Rails.env == "development" # Do not redirect to SSL in development.
     if request.protocol == "http://" then
@@ -88,12 +88,12 @@ class ApplicationController < ActionController::Base
   #
   # Leaves @current_user nil when there is no cookie, the token is unknown, or the
   # session has expired (expired rows are deleted here). Internal: runs as a
-  # before_filter, and both #authorized? and the views depend on @current_user having
+  # before_action, and both #authorized? and the views depend on @current_user having
   # been set by this first. The cookie is HttpOnly, and Secure except in development.
   def gatekeeper
     @current_user = nil
     if cookies[:sessionID] then
-      @session = Session.find_by_session_hash(cookies[:sessionID])
+      @session = Session.find_by(session_hash: cookies[:sessionID])
       if !@session.nil? then
         if @session.expiry < Time.now then
           @session.destroy

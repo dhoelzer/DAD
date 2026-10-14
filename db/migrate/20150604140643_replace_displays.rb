@@ -1,4 +1,4 @@
-class ReplaceDisplays < ActiveRecord::Migration
+class ReplaceDisplays < ActiveRecord::Migration[4.2]
   def change
     drop_table :displays
     drop_table :display_fields

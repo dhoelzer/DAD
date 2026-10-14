@@ -6,10 +6,9 @@ inverted index) → Rails UI (dashboards, search, alerts, jobs, custom RBAC).
 `scheduler.rb` polls the `jobs` table and `eval`s each `script`.
 
 ## Build / test (as of the reproducible-build branch)
-- Toolchain: Ruby 2.7.8 + Bundler 1.17.3 (pinned in `.ruby-version` / `Gemfile.lock`
-  "BUNDLED WITH"). Rails 4.2.11.3 is the ceiling: 4.2 does not boot on Ruby 3.x
-  (`BigDecimal.new` removed) and `bigdecimal ~> 1.4.4` is pinned to keep it booting
-  on 2.7.
+- Toolchain: Ruby 2.7.8 + Bundler 2.4.22 (pinned in `.ruby-version` / `Gemfile.lock`
+  "BUNDLED WITH"). Rails is 5.2.8.1. Ruby stays on 2.7 because 5.2 predates Ruby 3.0's
+  keyword-argument separation; Bundler stays on 2.4.x because 2.5+ requires Ruby 3.x.
 - `Gemfile.lock` and `db/schema.rb` are now tracked on purpose — do not re-add them
   to `.gitignore`.
 - Run tests: `bundle install --frozen` (set `BUNDLE_WITHOUT=production` to skip `pg`),
@@ -37,7 +36,7 @@ inverted index) → Rails UI (dashboards, search, alerts, jobs, custom RBAC).
   reopened in `config/application.rb`;
   hard-coded year window `2014..2019` in `Event.storeEvent`; `Regexp.union([])` in
   `Event.recent_events` rejects every event when there are no exclusions.
-- The suite is green (10 unit runs / 30 assertions, 4 cucumber scenarios). Bulk inserts
+- The suite is green (194 unit runs / 534 assertions, 4 cucumber scenarios). Bulk inserts
   raise `SQLite3::BusyException` under sqlite because the async insert thread opens a
   second connection while the main thread holds a write lock — pre-existing, PG-only path.
 

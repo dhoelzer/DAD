@@ -27,7 +27,7 @@ class SessionsAdminTest < ActionController::TestCase
   end
 
   test 'show renders' do
-    get :show, id: @other.id
+    get :show, params: { id: @other.id }
     assert_response :success
   end
 
@@ -47,13 +47,13 @@ class SessionsAdminTest < ActionController::TestCase
   end
 
   test 'show json does not expose a usable session token' do
-    get :show, id: @other.id, format: :json
+    get :show, params: { id: @other.id }, format: :json
     refute_includes response.body, @other.session_hash
   end
 
   test 'destroy force-terminates a login' do
     assert_difference 'Session.count', -1 do
-      delete :destroy, id: @other.id
+      delete :destroy, params: { id: @other.id }
     end
     assert_response :redirect
   end
@@ -61,8 +61,8 @@ class SessionsAdminTest < ActionController::TestCase
   # create/new/edit/update are not routed on purpose: hand-minting a Session row
   # would bypass the password check entirely.
   test 'minting a session by hand is not routable' do
-    assert_raises(ActionController::UrlGenerationError) { post :create, session: { user_id: @admin.id } }
+    assert_raises(ActionController::UrlGenerationError) { post :create, params: { session: { user_id: @admin.id } } }
     assert_raises(ActionController::UrlGenerationError) { get :new }
-    assert_raises(ActionController::UrlGenerationError) { get :edit, id: @other.id }
+    assert_raises(ActionController::UrlGenerationError) { get :edit, params: { id: @other.id } }
   end
 end

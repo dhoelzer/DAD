@@ -1,4 +1,4 @@
-class FixGeneratedColumnDefaults < ActiveRecord::Migration
+class FixGeneratedColumnDefaults < ActiveRecord::Migration[4.2]
   def up
     # The original migrations passed `:default => Time.now`, which bakes the
     # timestamp of *that* migration run into the column. Every later

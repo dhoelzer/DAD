@@ -66,7 +66,7 @@ class AuthorizationEnforcementTest < ActionDispatch::IntegrationTest
     make_user(["Viewer"])
     pref = Preference.create!(user_id: 0, liveEventsDisplayed: 10)
     put "https://www.example.com/preferences/#{pref.id}",
-        { :preference => { :user_id => 0, :liveEventsDisplayed => 999 } }
+        params: { :preference => { :user_id => 0, :liveEventsDisplayed => 999 } }
     assert_response :redirect
     assert_equal 10, Preference.find(pref.id).liveEventsDisplayed,
                  "a Viewer changed the dashboard page size"
@@ -76,7 +76,7 @@ class AuthorizationEnforcementTest < ActionDispatch::IntegrationTest
     make_user(["Admin"])
     pref = Preference.create!(user_id: 0, liveEventsDisplayed: 10)
     put "https://www.example.com/preferences/#{pref.id}",
-        { :preference => { :user_id => 0, :liveEventsDisplayed => 25 } }
+        params: { :preference => { :user_id => 0, :liveEventsDisplayed => 25 } }
     assert_response :redirect
     assert_equal 25, Preference.find(pref.id).liveEventsDisplayed
   end

@@ -66,7 +66,7 @@ class StatisticsQueryTest < ActionDispatch::IntegrationTest
     log_in
 
     bucket_queries = count_queries('group by bucket') do
-      get 'https://www.example.com/events.js', nil, 'X-Requested-With' => 'XMLHttpRequest'
+      get 'https://www.example.com/events.js', headers: { 'X-Requested-With' => 'XMLHttpRequest' }
     end
     assert_response :success
     assert_equal 4, bucket_queries, 'one fetch per distinct series'

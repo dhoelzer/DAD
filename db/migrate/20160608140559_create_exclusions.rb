@@ -1,4 +1,4 @@
-class CreateExclusions < ActiveRecord::Migration
+class CreateExclusions < ActiveRecord::Migration[4.2]
   def change
     create_table :exclusions do |t|
       t.string :pattern

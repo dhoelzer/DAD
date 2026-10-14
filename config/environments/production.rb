@@ -20,7 +20,7 @@ Events::Application.configure do
   # config.action_dispatch.rack_cache = true
 
   # Disable Rails's static asset server (Apache or nginx will already do this).
-  config.serve_static_files = false
+  config.public_file_server.enabled = false
 
   # Compress JavaScripts and CSS.
   config.assets.js_compressor = :uglifier
@@ -30,7 +30,13 @@ Events::Application.configure do
 #  config.assets.compile = false
     config.assets.enabled = false
   # Generate digests for assets URLs.
- # config.assets.digest = true
+  # Rails 4.2 read config.assets.enabled = false as "no asset pipeline", which
+  # made the helpers emit undigested /assets/application.* paths served straight
+  # out of public/assets by Apache. Sprockets 3 (sprockets-rails 3.x) ignores
+  # assets.enabled entirely and digests by default, so digest = false is now
+  # what preserves those paths; without it the pages reference fingerprinted
+  # files that are never generated and every stylesheet/script 404s.
+  config.assets.digest = false
 
   # Version of your assets, change this if you want to expire all your assets.
 #  config.assets.version = '1.0'

@@ -55,7 +55,7 @@ class DashboardRenderTest < ActionDispatch::IntegrationTest
 
   def test_dashboard_js_renders
     seed_recent_data
-    get 'https://www.example.com/events.js', nil, @headers
+    get 'https://www.example.com/events.js', headers: @headers
     assert_response :success
     body = response.body
 
@@ -73,7 +73,7 @@ class DashboardRenderTest < ActionDispatch::IntegrationTest
   # A fresh install has no statistics rows, which is the case that used to emit
   # `var stats = [NaN, NaN, NaN]` and hand Highcharts NaN gauge axes.
   def test_dashboard_js_renders_without_statistics
-    get 'https://www.example.com/events.js', nil, @headers
+    get 'https://www.example.com/events.js', headers: @headers
     assert_response :success
     body = response.body
 
@@ -85,7 +85,7 @@ class DashboardRenderTest < ActionDispatch::IntegrationTest
 
   def test_host_page_js_renders
     system, = seed_recent_data
-    get "https://www.example.com/systems/#{system.id}.js", nil, @headers
+    get "https://www.example.com/systems/#{system.id}.js", headers: @headers
     assert_response :success
     body = response.body
     refute_match(/NaN/, body, "stats must not be NaN: #{body[0, 200]}")

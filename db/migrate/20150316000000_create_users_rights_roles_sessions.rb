@@ -1,4 +1,4 @@
-class CreateUsersRightsRolesSessions < ActiveRecord::Migration
+class CreateUsersRightsRolesSessions < ActiveRecord::Migration[4.2]
   # Create all of the database tables and such in one migration
   # Imported from previous project
   # TODO: User's password is currently not hashed at all.

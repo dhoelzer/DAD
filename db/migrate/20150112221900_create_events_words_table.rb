@@ -1,4 +1,4 @@
-class CreateEventsWordsTable < ActiveRecord::Migration
+class CreateEventsWordsTable < ActiveRecord::Migration[4.2]
   def change
     create_join_table :events, :words do |t|
       t.integer :event_id, :limit => 8

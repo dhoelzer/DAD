@@ -1,4 +1,4 @@
-class CreateDisplayFields < ActiveRecord::Migration
+class CreateDisplayFields < ActiveRecord::Migration[4.2]
   def change
     create_table :display_fields do |t|
       t.integer :display_id, :limit => 8

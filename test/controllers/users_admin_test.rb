@@ -34,7 +34,7 @@ class UsersAdminTest < ActionController::TestCase
   test 'updating without a password leaves the existing password working' do
     victim = new_user('original-pw')
 
-    patch :update, id: victim.id, user: { username: victim.username, first: 'Ada' }
+    patch :update, params: { id: victim.id, user: { username: victim.username, first: 'Ada' } }
 
     assert_response :redirect
     victim.reload
@@ -47,7 +47,7 @@ class UsersAdminTest < ActionController::TestCase
     victim = new_user('original-pw')
     before = victim.password
 
-    patch :update, id: victim.id, user: { username: victim.username }
+    patch :update, params: { id: victim.id, user: { username: victim.username } }
 
     assert_response :redirect
     assert_equal before, victim.reload.password
@@ -56,7 +56,7 @@ class UsersAdminTest < ActionController::TestCase
   test 'updating with a new password changes it' do
     victim = new_user('original-pw')
 
-    patch :update, id: victim.id, user: { username: victim.username, password: 'new-pw-123' }
+    patch :update, params: { id: victim.id, user: { username: victim.username, password: 'new-pw-123' } }
 
     assert_response :redirect
     victim.reload
@@ -69,7 +69,7 @@ class UsersAdminTest < ActionController::TestCase
   test 'an over-long password is a form error, not a 500' do
     victim = new_user('original-pw')
 
-    patch :update, id: victim.id, user: { username: victim.username, password: 'A' * 100 }
+    patch :update, params: { id: victim.id, user: { username: victim.username, password: 'A' * 100 } }
 
     assert_response :success # re-renders :edit
     assert victim.check_password('original-pw')
@@ -81,7 +81,7 @@ class UsersAdminTest < ActionController::TestCase
     victim = new_user('original-pw')
     plaintext = 'B' * 100
 
-    patch :update, id: victim.id, user: { username: victim.username, password: plaintext }
+    patch :update, params: { id: victim.id, user: { username: victim.username, password: plaintext } }
 
     raw = User.connection.select_value("select password from users where id = #{victim.id}")
     refute_equal plaintext, raw, 'plaintext must never be persisted'
@@ -92,21 +92,21 @@ class UsersAdminTest < ActionController::TestCase
 
   test 'creating with a blank password is rejected' do
     assert_no_difference 'User.count' do
-      post :create, user: { username: "blank#{SecureRandom.hex(6)}", password: '' }
+      post :create, params: { user: { username: "blank#{SecureRandom.hex(6)}", password: '' } }
     end
     assert_response :success # re-renders :new
   end
 
   test 'creating with no password is rejected' do
     assert_no_difference 'User.count' do
-      post :create, user: { username: "none#{SecureRandom.hex(6)}" }
+      post :create, params: { user: { username: "none#{SecureRandom.hex(6)}" } }
     end
     assert_response :success
   end
 
   test 'creating with a real password succeeds and stores a hash' do
     assert_difference 'User.count' do
-      post :create, user: { username: "good#{SecureRandom.hex(6)}", password: 'hunter2pass' }
+      post :create, params: { user: { username: "good#{SecureRandom.hex(6)}", password: 'hunter2pass' } }
     end
     created = User.order(:id).last
     assert created.check_password('hunter2pass')
@@ -123,7 +123,7 @@ class UsersAdminTest < ActionController::TestCase
     token = SecureRandom.hex(16)
     Session.create!(user: victim, expiry: Time.now + 1.hour, session_hash: token)
 
-    delete :destroy, id: victim.id
+    delete :destroy, params: { id: victim.id }
 
     assert_response :redirect
     assert_nil User.find_by(id: victim.id)
@@ -136,10 +136,10 @@ class UsersAdminTest < ActionController::TestCase
     token = SecureRandom.hex(16)
     Session.create!(user: victim, expiry: Time.now + 1.hour, session_hash: token)
 
-    delete :destroy, id: victim.id
-    assert_nil Session.find_by_session_hash(token)
+    delete :destroy, params: { id: victim.id }
+    assert_nil Session.find_by(session_hash: token)
 
-    cookies.delete(:sessionID)
+    reset_cookies!
     cookies[:sessionID] = token
     get :index
     assert_response :redirect
@@ -155,10 +155,10 @@ class UsersAdminTest < ActionController::TestCase
     gone_token = SecureRandom.hex(16)
     Session.create!(user: gone, expiry: Time.now + 1.hour, session_hash: gone_token)
 
-    delete :destroy, id: gone.id
+    delete :destroy, params: { id: gone.id }
 
-    refute_nil Session.find_by_session_hash(keep_token),
+    refute_nil Session.find_by(session_hash: keep_token),
                'unrelated sessions must survive'
-    assert_nil Session.find_by_session_hash(gone_token)
+    assert_nil Session.find_by(session_hash: gone_token)
   end
 end

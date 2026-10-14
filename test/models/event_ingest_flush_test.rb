@@ -30,12 +30,16 @@ class EventIngestFlushTest < ActiveSupport::TestCase
   # Replaces the adapter's exec_query so the events INSERT fails on demand.
   # Patched on the adapter, not ActiveRecord::Base: exec_query is a connection
   # method, and aliasing a method that does not exist raises NameError.
+  #
+  # The signature is splat/kwargs rather than the adapter's own (sql, name, binds,
+  # prepare:) so the patch keeps working across Rails versions: 4.2 passes three
+  # positionals, 5.2 adds a prepare: keyword, and later versions add more.
   FAIL_ON_EVENTS_INSERT = <<~'PATCH'
     class ActiveRecord::ConnectionAdapters::SQLite3Adapter
       alias_method :orig_exec_query, :exec_query
-      def exec_query(sql, name = 'SQL', binds = [])
+      def exec_query(sql, *args, **kwargs)
         raise ActiveRecord::StatementInvalid, 'forced failure' if sql.include?('INSERT INTO events (')
-        orig_exec_query(sql, name, binds)
+        orig_exec_query(sql, *args, **kwargs)
       end
     end;
   PATCH

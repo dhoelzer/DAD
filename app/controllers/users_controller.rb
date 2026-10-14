@@ -66,7 +66,7 @@ class UsersController < ApplicationController
   def do_logon
     @username = params[:user][:username]
     @password = params[:user][:password]
-    @user = User.find_by_username(@username)
+    @user = User.find_by(username: @username)
     if(@user.nil?) then
       redirect_to "/"
       return false
@@ -89,7 +89,7 @@ class UsersController < ApplicationController
       @session.user_id = @user.id
       @session.expiry = Time.now + 1.hour
       @session.session_hash = generate_session_id
-      while Session.find_by_session_hash(@session.session_hash) do
+      while Session.find_by(session_hash: @session.session_hash) do
         @session.session_hash = generate_session_id
       end
       @session.user = @user

@@ -24,7 +24,8 @@ than carried forward.
 | Test suite | Green: 194 runs / 534 assertions, 4 cucumber scenarios |
 | Admin screens (sessions, users, jobs) | Closed — now covered by request tests (§2.1) |
 | Poison line / observability | **Open — was mis-marked as fixed (§5.3)** |
-| Rails 4.2 EOL, CI security gates | Open (§5.2, §1.2) |
+| Rails upgrade | **4.2 → 5.2 landed**; 5.2 → 8.1 open (§5.2) |
+| Rails 5.2 EOL, CI security gates | Open (§5.2, §1.2) |
 | Partitioning, full-text search | Open (§3) |
 
 ---
@@ -73,15 +74,14 @@ instance still uses that key.
 `continue-on-error: true`. Both are currently informational, so a new vulnerable
 gem or a new injection sink merges green.
 
-Brakeman reports **3 warnings** today (2 high confidence, 1 medium) and
-bundle-audit reports open CVEs against the Rails 4.2 line. The comment in the
-workflow says to flip these after the Rails upgrade — which is reasonable, but
-nothing currently tracks that, and the Rails upgrade is unscheduled (§5.2).
+After the 4.2 → 5.2 step, Brakeman reports **2 warnings** (down from 3) and
+bundle-audit advisories drop from **88 to 46** — the Rails/rack/actionpack
+framework CVEs are gone; what remains is mostly transitive (`rdoc`, `sqlite3`).
 
-**Fix:** split the job. Make **brakeman blocking now** (the 3 warnings are
-pre-existing and can be baselined with `--combine-branches` or an ignore file, so
-blocking does not stall PRs); leave bundle-audit advisory until Rails is
-supported, since those CVEs are unfixable on 4.2 and blocking on them is noise.
+**Fix:** split the job. Make **brakeman blocking now** (the 2 warnings are
+pre-existing and can be baselined with an ignore file, so blocking does not stall
+PRs); keep bundle-audit advisory until Rails is on a supported line, since the
+remaining advisories still need dependency work rather than app changes.
 
 ---
 
@@ -533,8 +533,8 @@ three processes fit together, and where logs go.
 | 3 | §4.1 option A: subprocess coverage of threaded ingest | hours | Nearly free — harness exists |
 | 4 | §5.3 poison-line handling + `Rails.logger` | hours | Stops silent ingestion stalls; compounds §5.1 |
 | 5 | §5.1 systemd units | days | The importer dying silently is the main operational risk |
-| 5b | §5.2 step 0: back-portable prep (`sanitize_sql_array`, `before_action`, drop dead deps, replace `$_models` boot hack) | days | Free now, and removes a class of breakage from every later upgrade step |
-| 6 | §5.2 Rails 4.2→8.1 (see the staged plan there) | months | Gates §3.2, §4.1-C, and blocking security gates |
+| 5b | ~~§5.2 step 0: back-portable prep~~ **done** | — | Landed with the 5.2 step |
+| 6 | §5.2 Rails **5.2 → 6.1 → 7.1 → 7.2 → 8.1** (see the staged plan there) | months | Gates §3.2, §4.1-C, and blocking security gates |
 | 7 | §3.2 partitioning, §3.3 FTS, §4.1-B `EventIngestor` | ongoing | Real work, but bounded by the above |
 | 8 | §5.4 LICENSE, §5.5 README, §4.2 dead code | hours | Hygiene; do opportunistically |
 

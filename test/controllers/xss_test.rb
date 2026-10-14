@@ -55,7 +55,7 @@ class XssTest < ActionDispatch::IntegrationTest
 
   def search_js(terms)
     get "https://www.example.com/events/search.js",
-        { search_terms: terms, timeframe: "3600", numresults: 10 }, @headers
+        params: { search_terms: terms, timeframe: "3600", numresults: 10 }, headers: @headers
     assert_response :success
     response.body
   end

@@ -28,7 +28,7 @@ class DisplaysControllerTest < ActionController::TestCase
 
   test "creating a display with a valid spec succeeds" do
     assert_difference "Display.count" do
-      post :create, display: { name: "ssh", key: "sshd", display_script: "fields 4,5" }
+      post :create, params: { display: { name: "ssh", key: "sshd", display_script: "fields 4,5" } }
     end
     assert_equal "fields 4,5", Display.last.display_script
   end
@@ -37,7 +37,7 @@ class DisplaysControllerTest < ActionController::TestCase
     marker = Rails.root.join("tmp_pwned_display")
     File.delete(marker) if File.exist?(marker)
     assert_no_difference "Display.count" do
-      post :create, display: { name: "evil", key: "x", display_script: "File.write('#{marker}','ran')" }
+      post :create, params: { display: { name: "evil", key: "x", display_script: "File.write('#{marker}','ran')" } }
     end
     refute File.exist?(marker)
   end
