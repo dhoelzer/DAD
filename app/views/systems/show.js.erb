@@ -5,8 +5,8 @@
 	var total_events = <%= @system.events_since(1.day.ago) %>;
 	var events_last_hour = <%= @system.events_since(1.hour.ago) %>;
 	
-	draw_gauge_no_title("<%= @system.name %>_gauge", events_last_hour, average_events, standard_deviation);
-	draw_longitudinal("<%= @system.name %>_graph", "", "Events Per Hour", <%=raw @system.events_per_hour(7.days.ago) %>, stats[0], stats[2]);
+	draw_gauge_no_title(<%= js_literal "#{@system.name}_gauge" %>, events_last_hour, average_events, standard_deviation);
+	draw_longitudinal(<%= js_literal "#{@system.name}_graph" %>, "", "Events Per Hour", <%= js_literal @system.events_per_hour(7.days.ago) %>, stats[0], stats[2]);
 
 
 var results = function(data, code, xhr)
@@ -18,7 +18,7 @@ var services_chart = function()
 {
 	if($('#services_chart').length) {
 		$("services_chart").html("Loading...");
-		draw_graph("services_chart","<%= "Breakdown for #{@system.display_name}"%>", <%=raw system_service_stats(@system.id) %>);
+		draw_graph("services_chart",<%= js_literal "Breakdown for #{@system.display_name}" %>, <%= js_literal system_service_stats(@system.id) %>);
 	}
 }
 

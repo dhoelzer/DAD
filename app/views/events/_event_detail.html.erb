@@ -1,12 +1,13 @@
 <% if !@event.nil? then %>
 	<div class="event_detail">
 		<div class="system"><%= link_to @event.system.display_name, @event.system %></div>
-		<%=raw timestamp_helper(@event.generated)%>
+		<%= timestamp_helper(@event.generated)%>
 		<% event_text = @event.reconstitute %>
 		<% event_text = @event.parsed if @event.use_display_helper? %>
 		<% position_number = 0 %>
 		<% event_text.split(/\s+/).each do |position| %>
-			<%= link_to position, "/events/search?search_terms=#{(@previous_search.nil? ? "#{position}" : "#{@previous_search.gsub(" ", "+") + "+#{position}"}")}&timeframe=#{@timeframe}", id: "searchload", title: position_number, remote: @remote %> 
+			<% terms = @previous_search.nil? ? position : "#{@previous_search} #{position}" %>
+			<%= link_to position, search_events_path(search_terms: terms, timeframe: @timeframe), id: "searchload", title: position_number, remote: @remote %>
 		   <% position_number += 1 %>
 	   <% end %>
 	</div>

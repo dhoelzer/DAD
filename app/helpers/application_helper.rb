@@ -12,11 +12,27 @@ module ApplicationHelper
     params[:controller] == controller ? "active" : "inactive"     
   end
   
-  # Wraps +timestamp+ in a <span> whose title-style attribute lists the same instant
+  # Emits +value+ as a JavaScript literal for a .js.erb template.
+  #
+  # Needed because Rails HTML-escapes <%= %> in a JS template (see
+  # ErubiHandler.escape_whitelist, which covers text/plain only). HTML escaping
+  # neutralises a quote but leaves a backslash alone, so a value ending in "\"
+  # silently corrupts the generated script. to_json produces a real JS literal;
+  # json_escape additionally turns < > & into \uXXXX so the value cannot
+  # terminate a surrounding <script> tag if the template is ever inlined.
+  #
+  # Do not use for values that may be NaN: JSON has no NaN, so to_json emits
+  # null and the arithmetic changes. Those stay as plain numeric interpolation.
+  def js_literal(value)
+    ERB::Util.json_escape(value.to_json).html_safe
+  end
+
+  # Wraps +timestamp+ in a <span> whose time attribute lists the same instant
   # in five fixed time zones, so hovering a log time reveals it in each.
   #
-  # Returns an HTML string; render it raw or it will be escaped. The zone list is
-  # hard-coded -- see the array below if a deployment needs different zones.
+  # Built with content_tag so the result is html_safe by construction and call
+  # sites need no raw. The zone list is hard-coded -- see the array below if a
+  # deployment needs different zones.
   def timestamp_helper(timestamp=Time.now)
     timezones = [
       "Eastern Time (US & Canada)",
@@ -28,8 +44,7 @@ module ApplicationHelper
     timezones.each do |zone|
       tooltip = tooltip + "#{zone}: #{timestamp.in_time_zone(zone)}\n"
     end
-    span = "<span class='timestamp' time=\"#{tooltip}\">#{timestamp}</span>"
-    return span
+    content_tag :span, timestamp, class: "timestamp", time: tooltip
   end
   
   # Whitelist of aggregate expressions usable by #statistics_by_hour.
@@ -80,18 +95,19 @@ module ApplicationHelper
     results.map { |k,v| [k,v] }
   end
   
-  # Event counts per service over the last +days+ days.
+  # Event counts per service over the last +days+ days, as [["name", n], ...].
   #
-  # Returns a *string* (the array's #inspect) rather than the array itself, because
-  # the chart is fed by an inline script tag. Note it calls Service.find on every
-  # service_id, so a nil service_id raises.
+  # Returns the array, not #inspect: the chart consumes it through #js_literal,
+  # which emits a real JS literal. Ruby's #inspect is not a JavaScript escaper
+  # and the service names arrive from syslog. Note it calls Service.find on
+  # every service_id, so a nil service_id raises.
   def service_stats(days)
     counts = Event.where("generated > ?", (Time.now()-(days*86400)).to_s(:db)).group(:service_id).count
     results = Hash.new
     counts.each do |service_id, count|
       results[Service.find(service_id).name] = count
     end
-    (results.map { |k,v| [k,v] }).inspect
+    results.map { |k,v| [k,v] }
   end  
   
   # Number of events generated after +time_frame+. Exact COUNT(*), so it is expensive
@@ -101,12 +117,11 @@ module ApplicationHelper
   end
   
   # Root-filesystem usage as a two-slice pie chart, [["Used", n], ["Free", 100-n]].
-  # Returns a string for an inline script tag; delegates to Event.diskUtilization,
-  # which shells out to df.
+  # Delegates to Event.diskUtilization, which shells out to df; render the result
+  # through #js_literal.
   def disk_utilization()
     used = Event.diskUtilization
-    free = 100 - used
-    "[[\"Used\", #{used}],[\"Free\", #{free}]]"
+    [["Used", used], ["Free", 100 - used]]
   end
   
   # Mean of the hourly event totals since +since+. Returns NaN when there are no
