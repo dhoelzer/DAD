@@ -37,6 +37,16 @@ class Event < ActiveRecord::Base
   # prune_words grows/shrinks the TTL to keep the cache near CACHESIZE.
   CACHESIZE=100000
   @@cachelifetime=320
+  # Ingest checkpoint state, set by begin_ingest for the file being read.
+  # @@ingest_position is the byte offset just staged; @@ingest_checkpoint is the
+  # offset whose rows are known durable. They differ by whatever is staged or in
+  # flight, and only the checkpoint may be persisted.
+  @@checkpoint_writer = nil
+  @@ingest_position = 0
+  @@ingest_checkpoint = 0
+  # Guards @@insertThreads and the checkpoint sidecar: writer threads advance it
+  # concurrently with the main thread.
+  @@checkpoint_mutex = Mutex.new
   # Background INSERT threads not yet joined.
   @@insertThreads = Array.new
   @inserted_last_run = 100
@@ -198,8 +208,11 @@ class Event < ActiveRecord::Base
     @@system_cache = Hash.new
     @@service_cache = Hash.new
     @@events_words = Array.new
-    @@insertThreads.each { |t| t.join }
+    @@insertThreads.each { |batch| batch.thread.join }
     @@insertThreads = Array.new
+    @@checkpoint_writer = nil
+    @@ingest_position = 0
+    @@ingest_checkpoint = 0
     @@current_year = Time.new.year
     @@timestamp_parse_failures = 0
     # @bulk_insert_size grows adaptively with throughput; without a reset, a
@@ -391,7 +404,7 @@ class Event < ActiveRecord::Base
   #
   # +eventString+ must begin with the originating host, followed by the timestamp
   # and service, e.g. "host.example.com Jun  1 12:00:00 sshd[123]: ...".
-  def self.storeEvent(eventString)
+  def self.storeEvent(eventString, position = nil)
     # This next line is to seek and destroy invalid UTF-8 byte sequences.  They seem to show up in some
     # logs, sometimes in URLs.
     eventString = eventString.encode('UTF-8', :invalid => :replace)
@@ -465,6 +478,10 @@ class Event < ActiveRecord::Base
                              :generated => timestamp_s, :stored => time_now.to_s(:db), :hunks => hunks}
 
     @@nextEventID += 1
+    # Set before the flush so the batch being handed off carries this line's
+    # offset. Lines the parser skipped leave it behind; the next staged line
+    # covers them, since offsets only move forward.
+    @@ingest_position = position if position
     self.performPendingInserts if @@pendingEventValues.count >= @bulk_insert_size
   end
 
@@ -528,17 +545,66 @@ class Event < ActiveRecord::Base
   # Silent loss is the worse outcome for a tool whose whole job is to keep
   # these lines.
   def self.join_insert_threads
-    failures = @@insertThreads.map do |thread|
-      thread.join
-      thread.value
+    pending = @@checkpoint_mutex.synchronize { @@insertThreads.dup }
+    failures = pending.map do |batch|
+      batch.thread.join
+      batch.thread.value
     end.compact
-    @@insertThreads = []
+    @@checkpoint_mutex.synchronize { @@insertThreads = [] }
     raise failures.first unless failures.empty?
   end
 
+  # Starts a checkpointed ingest pass over one file.
+  #
+  # +resume_offset+ is where a previous run left off, 0 for a fresh file.
+  # +checkpoint_writer+ is handed the byte offset each time its rows become
+  # durable. It is a block rather than a call into LogQueue because lib/ is not
+  # autoloaded, so the model must not name that constant.
+  def self.begin_ingest(resume_offset, &checkpoint_writer)
+    # Drain the previous file first. Its batches still carry its byte offsets,
+    # and checkpointing those into the new file's sidecar would skip rows.
+    flush_and_wait
+    @@checkpoint_writer = checkpoint_writer
+    @@ingest_position = resume_offset
+  end
+
+  # Records the durable checkpoint for every finished batch at the head of the
+  # queue, in order.
+  #
+  # Called by the writer threads themselves, not only by the main thread: if
+  # only the main thread did it, a process killed while a batch was in flight
+  # could commit rows without ever recording them, and the next run would
+  # re-insert them. Measured as exactly that failure -- a 6-line file that died
+  # with one batch in flight ended up with lines 1 and 2 stored twice.
+  #
+  # Only the head can be released. With two batches in flight, recording the
+  # later offset while the earlier one is still unwritten would tell a
+  # recovering run to skip rows that were never committed.
+  #
+  # The mutex covers both the queue mutation and the sidecar write, so two
+  # threads cannot interleave and persist an offset that the other has not
+  # earned yet.
+  def self.advance_checkpoint!
+    @@checkpoint_mutex.synchronize do
+      while (entry = @@insertThreads.first)
+        break unless entry.finished
+        @@insertThreads.shift
+        @@ingest_checkpoint = entry.position
+        @@checkpoint_writer&.call(entry.position)
+      end
+    end
+  end
+
+  # One staged batch on its way to the database.
+  #
+  # +position+ is the byte offset of the last line the batch covers; +finished+
+  # is set by the thread once its rows are committed, which is what makes the
+  # batch eligible to advance the checkpoint.
+  IngestBatch = Struct.new(:thread, :position, :finished)
+
   def self.performPendingInserts
     # Surface a batch that already failed before staging any more work.
-    join_insert_threads if @@insertThreads.any? { |t| !t.alive? }
+    join_insert_threads if @@insertThreads.any? { |b| !b.thread.alive? }
 
     return if @@pendingEventValues.count < 1
 
@@ -549,22 +615,47 @@ class Event < ActiveRecord::Base
     ew_sql, ew_binds = insertStatement('events_words', [:event_id, :word_id, :generated], @@events_words)
     ev_sql, ev_binds = insertStatement('events', [:id, :system_id, :service_id, :generated, :stored, :hunks], @@pendingEventValues)
 
+    # Cleared as soon as the rows are captured into the statements, before the
+    # stats bookkeeping below. Statistic.logEventsPerSecond writes to the same
+    # database and can fail; when it raised, the rows it had *already* handed to
+    # a writer thread were still staged, so the next flush inserted them a
+    # second time under the same explicit ids and died on
+    # UNIQUE constraint failed: events.id. Reproduced on SQLite under a
+    # crash-then-reclaim run.
+    @@pendingEventValues = Array.new
+    @@events_words = Array.new
+
     if Rails.env.test?
       # Cucumber runs DatabaseCleaner inside an open transaction and SQLite
       # permits a single writer, so a second connection deadlocks the suite.
       # Inline keeps the same write_batch path, just without the thread.
       write_batch(ew_sql, ew_binds, ev_sql, ev_binds)
+      # Inline: the rows are durable the moment write_batch returns.
+      @@checkpoint_mutex.synchronize do
+        @@ingest_checkpoint = @@ingest_position
+        @@checkpoint_writer&.call(@@ingest_position)
+      end
     else
       # The batch reaches the thread by value, and the queues are cleared only
       # after the handoff, so the thread owns its own rows and no later reset
       # can pull them out from under it.
-      @@insertThreads << Thread.new(ew_sql, ew_binds, ev_sql, ev_binds) do |ew_sql, ew_binds, ev_sql, ev_binds|
+      batch = IngestBatch.new(nil, @@ingest_position, false)
+      # Queued before the thread starts. If the write finished first, the thread
+      # would call advance_checkpoint! against a queue that does not yet hold
+      # this batch and its checkpoint would never be released.
+      @@checkpoint_mutex.synchronize { @@insertThreads << batch }
+      batch.thread = Thread.new(ew_sql, ew_binds, ev_sql, ev_binds, batch) do |ew_sql, ew_binds, ev_sql, ev_binds, batch|
         begin
           write_batch(ew_sql, ew_binds, ev_sql, ev_binds)
+          # Rows are durable: this batch may now release the checkpoint, but
+          # only if every earlier batch has already finished.
+          batch.finished = true
+          Event.advance_checkpoint!
           nil
         rescue Exception => e
           # Thread#value returns a raised exception rather than re-raising it;
-          # join_insert_threads turns that back into a real failure.
+          # join_insert_threads turns that back into a real failure. A failed
+          # batch never advances the checkpoint, so its lines get re-read.
           e
         end
       end
@@ -585,8 +676,6 @@ class Event < ActiveRecord::Base
       puts "Dropped #{@@timestamp_parse_failures} line(s) with no recognizable timestamp."
     end
     @@start_time = Time.now
-    @@pendingEventValues = Array.new
-    @@events_words = Array.new
     @@current_year = "#{Time.new.year}"
     self.prune_words if @@num_cached > CACHESIZE
   end

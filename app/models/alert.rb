@@ -20,12 +20,15 @@ class Alert < ActiveRecord::Base
 
   # Human-readable label for the integer +criticality+ (0=Debug .. 5=Critical).
   #
-  # Note the comparison against the *string* "4" for Serious: a criticality
-  # stored as the integer 4 falls through to "Critical" instead. Callers that
-  # write criticality should store integers 0-5 and treat 4 as Critical, or fix
-  # the comparison.
+  # Compared as integers: criticality is an integer column, and the previous
+  # == "4" never matched, so a Serious alert was labelled Critical.
+  CRITICALITY_NAMES = %w[Debug Informational Warning Important Serious Critical]
+
   def criticality_name
-    self.criticality == 0 ? "Debug" : self.criticality == 1 ? "Informational" : self.criticality == 2 ? "Warning" : self.criticality == 3 ? "Important" : self.criticality == "4" ? "Serious" : "Critical"
+    # nil stays Critical, matching the old chain of == tests, none of which
+    # matched nil.
+    return CRITICALITY_NAMES.last if criticality.nil?
+    CRITICALITY_NAMES[criticality.to_i] || CRITICALITY_NAMES.last
   end
 
   # Raises a Critical alert stating that +system+ has stopped sending events.

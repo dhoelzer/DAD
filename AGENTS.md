@@ -40,3 +40,11 @@ inverted index) → Rails UI (dashboards, search, alerts, jobs, custom RBAC).
 - The suite is green (10 unit runs / 30 assertions, 4 cucumber scenarios). Bulk inserts
   raise `SQLite3::BusyException` under sqlite because the async insert thread opens a
   second connection while the main thread holds a write lock — pre-existing, PG-only path.
+
+## Credentials (do not commit)
+- A GitHub PAT for `dhoelzer/DAD` is stored at `../.secrets/github_pat` relative to
+  this repo (i.e. `<workspace>/.secrets/github_pat`), mode 0600 and outside version
+  control. The workspace root `.gitignore` excludes `.secrets/`.
+- Load it as `GITHUB_TOKEN` when GitHub API/`gh` access is needed:
+  `export GITHUB_TOKEN=$(cat ../.secrets/github_pat)`.
+- Never paste the token into this file, into commits, or into PR/issue text.

@@ -63,18 +63,30 @@ class EventIngestFlushTest < ActiveSupport::TestCase
     [out, $?.exitstatus]
   end
 
+  # The batch is observed by whether write_batch ran off the main thread, not by
+  # counting @@insertThreads: a writer that finishes fast now releases its batch
+  # from the queue itself, so the count is 0 or 1 depending on timing.
+  RECORD_THREAD = <<~'PATCH'
+    Event.singleton_class.send(:alias_method, :write_batch_orig, :write_batch)
+    Event.define_singleton_method(:write_batch) do |*args|
+      $off_main = true if Thread.current != Thread.main
+      # send: write_batch is private_class_method.
+      Event.send(:write_batch_orig, *args)
+    end;
+  PATCH
+
   test 'the threaded path writes events and their index rows' do
-    out, status = run_development(BOOT + <<~'RUBY')
+    out, status = run_development(BOOT + RECORD_THREAD + <<~'RUBY')
       3.times { |i| Event.storeEvent("1.1.1.1 Jun 1 00:00:0#{i} host svc[1]: threaded probe #{i}") }
       Event.performPendingInserts
-      puts "IN_FLIGHT=#{Event.class_variable_get(:@@insertThreads).size}"
       Event.flush_and_wait
+      puts "OFF_MAIN=#{$off_main}"
       puts "EVENTS=#{Event.count}"
       puts "INDEX_ROWS=#{Event.connection.execute('select count(*) as c from events_words').first['c']}"
     RUBY
 
     assert_equal 0, status, "subprocess failed:\n#{out}"
-    assert_includes out, 'IN_FLIGHT=1', 'the threaded branch must have been taken'
+    assert_includes out, 'OFF_MAIN=true', 'the threaded branch must have been taken'
     assert_includes out, 'EVENTS=3'
     assert_operator out[/INDEX_ROWS=(\d+)/, 1].to_i, :>, 0, 'events_words rows must be written too'
   end
