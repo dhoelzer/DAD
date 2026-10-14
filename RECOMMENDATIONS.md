@@ -1,8 +1,9 @@
 # DAD — Code Review & Improvement Recommendations
 
-Reviewed at commit `db5c6b4` (last commit: 2016-10-01). ~2,300 lines of app code
-(18 controllers, 17 models), plus standalone ingestion scripts (`syslog.pl`,
-`import_syslog.rb`, `scheduler.rb`) and a Vagrant/Apache-Passenger provisioning path.
+Originally reviewed at commit `db5c6b4` (last commit: 2016-10-01). Re-measured
+2026-10-14 at `537e1fe`: **3,294 lines** of app/lib Ruby across 18 controllers and
+21 models, plus 1,459 lines of tests. Standalone ingestion is `import_syslog.rb`
+at the repo root; `syslog.pl` and `scheduler.rb` are gone.
 
 DAD is a genuinely interesting design: a syslog collector writes rolling files, a Ruby
 importer tokenises each line into a `words` dictionary and an `events_words` join table
@@ -419,7 +420,7 @@ declarative format the app interprets — field selection/rename by position, re
 capture groups, a whitelist of formatting helpers. A display filter should not be a
 Ruby program.
 
-### 1.3 Password hashing is broken by construction **[security]**
+### 1.3 Password hashing is broken by construction **[security]** — ✅ fixed (bcrypt)
 `app/models/user.rb:9-20`:
 
 ```ruby
@@ -436,7 +437,7 @@ constant-time.
 that re-hashes on next successful login. `db/migrate/20151225004757_use_password_hashes.rb`
 already shows the pattern for a one-way upgrade; reuse it.
 
-### 1.4 Password hashes leak through the JSON API **[security]**
+### 1.4 Password hashes leak through the JSON API **[security]** — ✅ fixed
 `app/views/users/index.json.jbuilder` and `show.json.jbuilder` do
 `json.extract! user, :id, :username, :password, ...`. Any caller that can reach
 `/users.json` gets every salted hash. `SessionsController` also exposes full CRUD over
@@ -483,7 +484,7 @@ account as compromised. If the repo has ever been public, scrub with
 Brakeman: 7 → 6 warnings (the `Session Setting` finding on `secret_token.rb`
 is gone; nothing new introduced).
 
-### 1.6 Session handling **[security]**
+### 1.6 Session handling **[security]** — ✅ fixed (SecureRandom)
 `UsersController#generate_session_id` builds a 62-char-alphabet token from
 `rand(10000) % field.count` — biased modulo reduction on `Kernel#rand`, and `rand` is not
 a CSPRNG. Sessions are never rotated on login (the code does delete prior sessions, which
@@ -624,7 +625,7 @@ This is the single most likely reason DAD appears to "lose" events today.
 `DateTime.strptime` patterns, and treat unparseable timestamps as "now" plus a counter,
 never as a silent `return`. Keep the raw line so the parse can be re-run later.
 
-### 2.3 `Math` core module is reopened **[correctness]**
+### 2.3 `Math` core module is reopened **[correctness]** — ✅ fixed (see §6.6)
 `config/application.rb:6-27` defines `module Math` with `mean`/`variance`/
 `standard_deviation`/`sum_values`. Ruby's built-in `::Math` is a module (not a class), so
 this *reopens the core module* rather than shadowing it — `Math.sqrt`, `Math.sin`, etc.
@@ -637,7 +638,7 @@ pages end up drawing Highcharts gauges with `NaN` axes.
 **Fix:** move these to `StatisticsCalculator` (or a `Stats` module) under `lib/`, and
 guard the empty-array case. This is a two-line rename with outsized payoff.
 
-### 2.4 Ingestion is not crash-safe and can double-insert **[correctness]**
+### 2.4 Ingestion is not crash-safe and can double-insert **[correctness]** — **still open; now the top priority, see §6.2**
 `Event.performPendingInserts` (`event.rb:267-301`) hand-manages `@@nextEventID`,
 `@@pendingEventValues`, `@@events_words` and up to 5 background `Thread`s, each of which
 grabs `ActiveRecord::Base.connection` — the same connection object Rails hands out per
@@ -714,7 +715,7 @@ re-point `Event.search`. Keep `words`/`events_words` behind a feature flag for o
 so the two can be compared on real data. This is a bigger change than §3.1 — do §3.1 now,
 §3.2 when you have a maintenance window.
 
-### 3.3 Partitioning and retention **[performance] [operations]**
+### 3.3 Partitioning and retention **[performance] [operations]** — still open, see §6.4
 `approximate_count` queries `pg_stat_user_tables where relname like 'events_p%'` — it
 expects partitioned tables (`events_p…`) that no migration creates. (It now falls back
 to `Event.count` when that sum comes back null, so an unpartitioned install reports a
@@ -776,7 +777,7 @@ around them (or replace it with a container/compose setup). Use `a2enmod ssl` an
 
 ## 5. Maintainability
 
-### 5.1 The `Event` model is 320 lines of class-variable global state **[maintainability]**
+### 5.1 The `Event` model is 320 lines of class-variable global state **[maintainability]** — still open, see §6.3
 `@@cached_words`, `@@system_cache`, `@@service_cache`, `@@pendingEventValues`,
 `@@events_words`, `@@nextEventID`, `@@insertThreads`, `@@cachelifetime`, `@@num_cached`
 are process-global mutable state on an AR model, mixed with instance-level `@bulk_insert_size`
@@ -804,7 +805,7 @@ parallelism.
 **Fix:** delete the unreachable paths outright (git keeps them). Extract the shared
 statistics query into one helper with named scopes.
 
-### 5.3 The test suite is red and misleading **[maintainability]**
+### 5.3 The test suite is red and misleading **[maintainability]** — ✅ fixed
 `test/controllers/events_controller_test.rb` tests `new`/`create`/`edit`/`update`/`destroy`
 — none of which exist on `EventsController` anymore. `test/fixtures/positions.yml`
 references a nonexistent table. All 11 model tests are empty comment blocks. The Cucumber
@@ -823,7 +824,7 @@ the tests that actually protect the product:
    cannot write; `/users.json` has no `password`.
 Run them in CI (§4.1).
 
-### 5.4 `puts` as the only observability **[operations]**
+### 5.4 `puts` as the only observability **[operations]** — ✅ fixed (see §6.1)
 `Event.search`/`search_period`/`approximate_count` `puts` the generated SQL on every call
 (`event.rb:47,105,120,163`) — in production that goes to the Passenger log, unbounded, and
 leaks query internals. `prune_words` `puts` cache stats. `import_syslog.rb` rescues
@@ -836,7 +837,7 @@ per line, count failures into a `Statistic`, and keep going.
 
 ---
 
-### 5.5 Broken admin screens found while documenting every method **[correctness]**
+### 5.5 Broken admin screens found while documenting every method **[correctness]** — partly obsolete, see §6.7
 
 Documenting all 262 methods surfaced defects that only show up when you read each
 action against the model it writes. Each is annotated in-place at the call site.
@@ -893,26 +894,159 @@ bug in 5.5 -- two broken admin routes and a nil-instance action are all reachabl
 by a single request each. The highest-value next tests are request specs over the
 CRUD routes, not more unit tests of model helpers.
 
-## 6. Suggested sequence
+## 6. Reassessment (2026-10-14, at `537e1fe`)
 
-| # | Change | Effort | Payoff |
-|---|--------|--------|--------|
-| 1 | ✅ **Done** — `Gemfile.lock` committed, `rails ~> 4.2.11` pinned, CI + Brakeman + Dockerfile, suite green | hours | reproducible, patched build; catches everything below |
-| 2 | ✅ **Done** — all SQL parameterized; `search2`/`iterativeSQLBuilder` deleted; quote-mangling removed | hours | Brakeman SQL Injection 11 → 0 |
-| 3 | Indexes on `events_words`, `events.generated`, `words.text` | minutes | the search fix the README has been asking for since 2015 |
-| 4 | Remove `:password` from jbuilders; make `SessionsController` read-only | minutes | stops hash leakage |
-| 5 | `has_secure_password`/bcrypt + migration; `SecureRandom` session ids | day | fixes authn primitives |
-| 6 | Secrets → env vars; rotate committed credentials; scrub history | day | closes the committed-secrets blast radius |
-| 7 | Fix `module Math`; ✅ the year window (§0f) and `Regexp.union` (§0g) are done | day | stops silent data loss/corruption |
-| 8 | ✅ **Done** — single `authorized?` filter + rights map; `PreferencesController` fixed | day | closes the authz gaps |
-| 9 | Replace `eval` in `scheduler.rb` and `Display#display_script` | 2–3 days | removes the RCE sinks |
-| 10 | Transactions + `insert_all` + staged-file rename in the importer | 2 days | crash-safe, no quote mangling |
-| 11 | Retention/partitioning + re-enable `purge_logs` | 2 days | keeps the DB usable at 300 eps |
-| 12 | Extract `EventIngestor`; write the real test suite | 1 week | makes the core changeable |
-| 13 | Rails 5→7 upgrade, one hop per PR | ongoing | removes the EOL liability |
+Everything in §1 and most of §2–5 has been fixed. Re-measuring the tree rather than
+trusting this document's own checkmarks changed the ranking, so the rest of this
+section supersedes the old "suggested sequence" table.
 
-If you only do three things: ~~#2 (SQL injection)~~ ✅, **#3 (indexes), #7 (silent data loss)**.
-Those are the ones that make the tool both safe and actually usable.
+### 6.1 What is actually done
+
+| Original item | Verified how |
+|---|---|
+| 1.1 SQL injection | no string-interpolated SQL left; Brakeman SQL Injection 11 → 0 |
+| 1.2 `eval` sinks | `JobHandler::HANDLERS` closed registry; `DisplayRule` parses, never evals |
+| 1.3 password hashing | `BCRYPT_COST = 12`, `store_password`/`check_password`, legacy rows upgraded on login |
+| 1.4 hash leakage | no `password` key in any `app/views/**/*.jbuilder` |
+| 1.5 committed secrets | §1.5 FIXED |
+| 1.6 session ids | `SecureRandom.hex(32)` |
+| 1.7 XSS, 1.8 authz | single `authorized?` gate, deny-by-default rights map |
+| 2.1 exclusion filter | §0g (doc was misdiagnosed; real bug was a blank pattern) |
+| 2.2 timestamp window | §0f |
+| 2.3 `module Math` | moved to `Stats` (see §6.6) |
+| 2.5 quote mangling | §0b |
+| 3.1 search indexes | migration `20261013000002` |
+| 5.3 red test suite | 107 runs / 0 failures; `positions.yml` fixture deleted |
+| 5.4 `puts` in search path | no `puts` in `search`/`search_period`/`approximate_count` |
+
+### 6.2 The biggest remaining win: make ingestion crash-safe (§2.4)
+
+This is now the single highest-value change, and re-reading the code shows it is
+worse than §2.4 described. Three separate ways to lose or duplicate data:
+
+1. **Queues are cleared before the writes land.** `performPendingInserts`
+   (`event.rb:512-557`) spawns a thread, then *unconditionally* resets
+   `@@pendingEventValues` and `@@events_words` to empty arrays. Nothing joins that
+   thread before the reset. If the thread raises, the batch is gone and the
+   importer keeps going as if it succeeded.
+2. **The two INSERTs are not in a transaction.** `events_words` is written first,
+   then `events`. A crash between them leaves index rows pointing at events that
+   do not exist -- searchable hits that 404.
+3. **Files are renamed *after* processing.** `import_syslog.rb` moves each log to
+   `../ProcessedLogs/` only once every line has been handed to `storeEvent`. Kill
+   the process mid-file and the whole file is re-read on restart, colliding with
+   the manually assigned `@@nextEventID` counter.
+
+Compounding all three: **the threaded path is never executed by any test.**
+`performPendingInserts` branches on `Rails.env.test?` and inserts inline during
+tests, so the production code path -- the one with the threads, the missing joins
+and the connection-pool pressure -- has zero coverage. `grep insertThreads test/`
+returns nothing.
+
+Also still present and still wrong: `@@nextEventID` is seeded from
+`Event.all.count` (`event.rb:457`), a full table scan on a table the README
+describes as holding hundreds of millions of rows.
+
+**Fix, in order of value:** wrap each flush in one `ActiveRecord::Base.transaction`
+and join the thread before clearing the queues; rename to a `.processing` name
+*before* reading a file so a restart cannot re-process it; replace `Event.all.count`
+with `Event.maximum(:id)`; then delete the `Rails.env.test?` branch so tests
+exercise the same path production takes. Roughly 2 days, and it is the only item
+here that prevents silent data loss.
+
+### 6.3 Second win: the duplicated state block in `Event`
+
+`event.rb:23-58` and again `59-75` declare the *same* 14 class variables and
+constants twice. This is not cosmetic -- it is why every boot emits
+
+```
+warning: already initialized constant Event::CACHESIZE
+```
+
+and it is the visible symptom of the real problem: `Event` holds **102 `@@`
+references** of mutable process-global state (word cache, system cache, service
+cache, next-id counter, pending rows, thread list, throughput counters). That
+state is why ingestion is hard to reason about, why the threaded path is
+untestable, and why §5.1's "extract `EventIngestor`" is a prerequisite for
+safely doing §6.2 rather than an independent cleanup.
+
+**Cheapest useful step:** delete the duplicate block (minutes, removes the
+warning, no behaviour change). **The real step:** move the ingest state into an
+`EventIngestor` instance rather than class variables, which makes the transaction
+and thread-join fixes in §6.2 straightforward instead of delicate.
+
+### 6.4 Third win: retention (§3.3), because everything else is bounded by it
+
+`purge_logs` in `import_syslog.rb` is an empty method with its body commented out,
+yet the loop still prints `"Purged logs older than: ..."`. `ProcessedLogs`
+therefore grows without limit on the same disk as the live queue. With no
+partitioning and no row retention, `events` grows forever, which in turn makes
+§6.2's full-table `Event.all.count` slower every month. This is a day of work and
+it bounds the cost of several other items.
+
+### 6.5 Worth doing, but not urgent
+
+- **3.4 N+1s** are real and confirmed: `system_stats`/`service_stats` call
+  `System.find`/`Service.find` once per group, and `System.with_events_within_hours`
+  (`system.rb:31-38`) calls `System.find` per row on every dashboard poll. One
+  `joins(...).pluck(...)` each.
+- **2.6 residuals**, all still present: `Alert#criticality_name` compares
+  `criticality == "4"` as a *string* while every sibling branch uses integers, so
+  severity 4 renders as "Critical" instead of "Serious"; `Service` declares
+  `has_many :servers` with no `Server` model; `routes.rb:71` still declares
+  `resources :positions` for a model that does not exist; the empty
+  `CreateIndicesOnEventsWords` migration is still in `db/migrate/`; `has_right?`
+  still issues two `Right` queries per call.
+- **5.6 hygiene**: still no LICENSE file.
+
+### 6.6 §2.3 fixed, and it carried a user-visible bug
+
+The four statistics helpers moved from a reopened core `Math` module to
+`app/models/stats.rb`. The namespace collision was a latent hazard; the actual
+user-facing defect was the empty-array case. On a fresh install the dashboard
+rendered
+
+```js
+var stats = [NaN, NaN, NaN];
+```
+
+and `draw_gauge` computes `max = Math.floor(average + 3*standard_deviation)`, so
+Highcharts received NaN axes. `Stats` now returns `0.0` for empty input, and the
+dashboard renders `[0.0, 0.0, 0.0]`. Pinned by a new test that fails on the old
+code with the literal NaN body.
+
+### 6.7 Corrections to this document
+
+- **§5.5 SessionsController claim is obsolete.** It says `#create` and `#update`
+  raise on every submission. Those actions no longer exist and
+  `resources :sessions, only: [:index, :show, :destroy]` does not route them. The
+  `session_params` method that permits the nonexistent `:hash` attribute survives
+  as dead code -- worth deleting, but it is not a live bug.
+- **§5.5 `Users#update` claim needs care.** The action does call
+  `store_password(params[:user][:password])` unconditionally, and `store_password`
+  raises `ArgumentError` on nil, so an update omitting the field *should* 500.
+  Probing it end-to-end returned 302 with the password unchanged, and the probe
+  could not reach `GET /users` either (302) despite holding the Admin right -- so
+  the request was denied before reaching the action. **The defect is unproven
+  either way**; it needs a test that is actually authorized before anyone calls it
+  fixed or broken.
+- **§5.4 is fixed** and was left marked open.
+- **§2.4's `Event.all.count` claim is confirmed still true** (`event.rb:457`).
+
+### 6.8 Revised sequence
+
+| Priority | Change | Effort | Payoff |
+|---|---|---|---|
+| 1 | §6.2 ingestion: transaction + join-before-clear + staged rename + `maximum(:id)` | 2 days | stops silent data loss and double-inserts |
+| 2 | §6.3 delete duplicate state block; extract `EventIngestor` | 1 week | makes #1 safe to do and testable |
+| 3 | §6.4 retention: implement `purge_logs`, re-enable, partition | 1 day | bounds every other cost |
+| 4 | §3.4 dashboard N+1s | hours | faster dashboard polls |
+| 5 | §2.6 residuals + dead code | hours | removes long-standing papercuts |
+| 6 | Rails 5→7, one hop per PR | ongoing | removes the EOL liability |
+
+If you only do two things: **§6.2 and §6.3**. They are the same problem viewed from
+two sides, and they are the only items on the list that stop the tool from
+quietly losing the data it exists to collect.
 
 ---
 
