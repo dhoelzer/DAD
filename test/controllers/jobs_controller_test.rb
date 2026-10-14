@@ -19,6 +19,14 @@ class JobsControllerTest < ActionController::TestCase
     cookies[:sessionID] = @session_hash
   end
 
+
+  # The #test action read @job.script but was not in set_job's before_action list,
+  # so it 500'd as routed. It had no view and duplicated what #show already
+  # displays, so the action and its route are gone.
+  test 'the removed test action is not reachable' do
+    job = Job.create!(name: 'j', script: 'prune_words', frequency: 3600, user: @user)
+    assert_raises(ActionController::UrlGenerationError) { get :test, id: job.id }
+  end
   test "the form offers registered operations, not a script editor" do
     get :new
     assert_response :success

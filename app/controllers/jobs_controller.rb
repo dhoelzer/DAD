@@ -6,12 +6,6 @@
 class JobsController < ApplicationController
   before_action :set_job, only: [:show, :edit, :update, :destroy]
 
-  # Debug aid: renders @job.script back to the view without evaluating it, so an
-  # operator can confirm what a Job would run. Note @job is only loaded by the
-  # before_action for show/edit/update/destroy, so this action 500s as routed.
-  def test
-    @output = @job.script
-  end
   # Lists all jobs records. No pagination or filtering.
   def index
     @jobs = Job.all

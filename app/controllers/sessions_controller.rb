@@ -1,10 +1,12 @@
-# Admin CRUD over the Session table (active logins), plus the means to revoke one.
+# Read-only inspection of the Session table (active logins), plus the means to
+# revoke one. create/new/edit/update are deliberately not routed: minting a
+# session row by hand would bypass the password check entirely.
 #
 # Ordinary login/logout does not go through here: Sessions are created by
 # UsersController#do_logon and consumed by ApplicationController#gatekeeper. These
 # actions exist so an administrator can inspect and force-terminate sessions.
 class SessionsController < ApplicationController
-  before_action :set_session, only: [:show, :edit, :update, :destroy]
+  before_action :set_session, only: [:show, :destroy]
 
   # GET /sessions (and .json) -- every session row, i.e. who is logged in and when
   # each session expires. No pagination.
@@ -28,19 +30,8 @@ class SessionsController < ApplicationController
   private
     # Use callbacks to share common setup or constraints between actions.
     # Loads @session from params[:id]; raises 404 when there is no such record.
-    # Internal: runs as a before_action for show/edit/update/destroy.
+    # Internal: runs as a before_action for show/destroy.
     def set_session
       @session = Session.find(params[:id])
-    end
-
-    # Never trust parameters from the scary internet, only allow the white list through.
-    # Attribute whitelist for session writes.
-    #
-    # BUG: permits :hash, but the Session column is session_hash, so #create and
-    # #update raise ActiveRecord::UnknownAttributeError rather than ignoring the
-    # key. The admin session create/edit forms are therefore broken; only index,
-    # show and destroy work. See RECOMMENDATIONS.md 5.5.
-    def session_params
-      params.require(:session).permit(:hash, :user_id, :expiry)
     end
 end

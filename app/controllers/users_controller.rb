@@ -138,15 +138,29 @@ class UsersController < ApplicationController
   def edit
   end
 
-  # POST /users (and .json) -- creates an account. The plaintext password from the
-  # form is passed through #store_password before saving, so the column never holds a
-  # raw password.
+  # POST /users (and .json) -- creates an account. The plaintext password from
+  # the form is passed through #store_password before saving, so the column never
+  # holds a raw password.
+  #
+  # A blank password is rejected rather than hashed: store_password('') succeeds,
+  # which would create an account that check_password('') accepts.
   def create
-    @user = User.new(user_params)
+    @user = User.new(user_params.except(:password))
     @user.attempts = 0
-    @user.store_password(@user.password)
+    supplied = params[:user] && params[:user][:password]
+
+    if supplied.blank?
+      @user.errors.add(:password, "can't be blank")
+    else
+      begin
+        @user.store_password(supplied)
+      rescue ArgumentError => e
+        @user.errors.add(:password, e.message)
+      end
+    end
+
     respond_to do |format|
-      if @user.save
+      if @user.errors.empty? && @user.save
         format.html { redirect_to @user, notice: 'User was successfully created.' }
         format.json { render :show, status: :created, location: @user }
       else
@@ -156,16 +170,31 @@ class UsersController < ApplicationController
     end
   end
 
-  # PATCH/PUT /users/1 (and .json) -- updates an account, then re-hashes
-  # params[:user][:password] and resets the failed-attempt counter. Because the
-  # password is re-hashed unconditionally, an update that omits the password field
-  # sets it to a hash of nil.
+  # PATCH/PUT /users/1 (and .json) -- updates an account. The password is
+  # re-hashed only when the form actually supplied one; the edit form renders the
+  # field blank, so an unconditional re-hash would set every edited account's
+  # password to a hash of the empty string and lock the operator out.
+  #
+  # The hash is assigned in memory and saved once, rather than written by
+  # user_params and re-hashed afterwards: a rejected store_password (a password
+  # over 72 bytes) used to leave the plaintext already persisted.
   def update
+    supplied = params[:user] && params[:user][:password]
+
+    @user.attempts = 0
+    @user.assign_attributes(user_params.except(:password))
+    begin
+      @user.store_password(supplied) if supplied.present?
+      saved = @user.save
+    rescue ArgumentError => e
+      # store_password rejects nil and anything over 72 bytes (bcrypt truncates
+      # silently above that). Report it as a form error rather than a 500.
+      @user.errors.add(:password, e.message)
+      saved = false
+    end
+
     respond_to do |format|
-      if @user.update(user_params)
-        @user.attempts = 0
-        @user.store_password(params[:user][:password])
-        @user.save
+      if saved
         format.html { redirect_to @user, notice: 'User was successfully updated.' }
         format.json { render :show, status: :ok, location: @user }
       else
@@ -175,9 +204,15 @@ class UsersController < ApplicationController
     end
   end
 
-  # DELETE /users/1 (and .json) -- deletes an account. Does not revoke that user's
-  # existing sessions, so a deleted account stays logged in until its session expires.
+  # DELETE /users/1 (and .json) -- deletes an account and revokes its sessions.
+  #
+  # Revocation is required, not tidiness: gatekeeper resolves a cookie to
+  # User.find(session.user_id), so a surviving Session row for a deleted user
+  # raises ActiveRecord::RecordNotFound on every request that carries the cookie.
+  # The Session rows are also has_one children, so leaving them orphaned keeps
+  # rows whose user_id points at nothing.
   def destroy
+    Session.where(user_id: @user.id).each(&:destroy)
     @user.destroy
     respond_to do |format|
       format.html { redirect_to users_url, notice: 'User was successfully destroyed.' }
