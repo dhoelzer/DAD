@@ -163,7 +163,10 @@ class EventIngestFlushTest < ActiveSupport::TestCase
   # fit inside the pool of 5, or a flush blocks on the pool timeout instead of
   # writing. The old limit of 5 let 5 inserts plus the main thread ask for 6.
   test 'the in-flight limit leaves headroom in the connection pool' do
-    pool = ActiveRecord::Base.configurations['test']['pool']
+    # Rails 6.1 replaced the configurations hash with DatabaseConfigurations;
+    # configurations['test']['pool'] now returns nil (the deprecated [] hands back
+    # a symbol-keyed hash). configs_for is the API that survives into 7.x.
+    pool = ActiveRecord::Base.configurations.configs_for(env_name: 'test').first.pool
     assert_operator Event::MAX_INSERT_THREADS + 1, :<, pool,
       'insert threads plus the main thread must fit inside the pool'
   end

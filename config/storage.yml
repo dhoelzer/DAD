@@ -1,0 +1,19 @@
+# Active Storage is not used by this app (no has_one_attached/has_many_attached
+# anywhere), but Rails 6.1 loads config/storage.yml unconditionally whenever
+# ActiveStorage::Blob is loaded, which eager_load = true does in production.
+# Rails 5.2 only read this file when config.active_storage.service was set, so
+# the file was never needed; without it production dies at boot with
+# "Couldn't find Active Storage configuration in config/storage.yml".
+#
+# The services below exist only to satisfy that load. Nothing writes to them.
+test:
+  service: Disk
+  root: <%= Rails.root.join("tmp/storage") %>
+
+development:
+  service: Disk
+  root: <%= Rails.root.join("tmp/storage") %>
+
+production:
+  service: Disk
+  root: <%= Rails.root.join("storage") %>

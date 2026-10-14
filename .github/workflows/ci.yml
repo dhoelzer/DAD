@@ -48,8 +48,8 @@ jobs:
           ruby-version: '2.7.8'
           bundler-cache: true
 
-      # Rails 5.2 is still end-of-life (April 2020): the remaining advisories are
-      # mostly transitive (rdoc, sqlite3, nokogiri-era) rather than framework CVEs.
+      # Rails 6.1 is itself end-of-life, so the remaining advisories are expected;
+      # they are mostly transitive (rdoc, sqlite3, nokogiri-era) not framework CVEs.
       # Reporting stays on and non-blocking so the debt stays visible without
       # gating every PR; clearing it is a dependency-refresh task, not a gate.
       - name: Dependency vulnerabilities

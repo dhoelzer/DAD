@@ -7,8 +7,9 @@ inverted index) → Rails UI (dashboards, search, alerts, jobs, custom RBAC).
 
 ## Build / test (as of the reproducible-build branch)
 - Toolchain: Ruby 2.7.8 + Bundler 2.4.22 (pinned in `.ruby-version` / `Gemfile.lock`
-  "BUNDLED WITH"). Rails is 5.2.8.1. Ruby stays on 2.7 because 5.2 predates Ruby 3.0's
-  keyword-argument separation; Bundler stays on 2.4.x because 2.5+ requires Ruby 3.x.
+  "BUNDLED WITH"). Rails is 6.1.7.10 (`~> 6.1.0`). Ruby stays on 2.7 because Rails
+  7.2+ is the first release that requires 3.x; Bundler stays on 2.4.x because 2.5+
+  requires Ruby 3.x.
 - `Gemfile.lock` and `db/schema.rb` are now tracked on purpose — do not re-add them
   to `.gitignore`.
 - Run tests: `bundle install --frozen` (set `BUNDLE_WITHOUT=production` to skip `pg`),
@@ -24,6 +25,15 @@ inverted index) → Rails UI (dashboards, search, alerts, jobs, custom RBAC).
   `assets.enabled`). On each step, diff production behaviour (asset tag URLs,
   middleware stack, `db/schema.rb` DDL) against the previous version, not just
   the test suite.
+- Upgrades also break **only in paths the suite barely touches**. 5.2->6.1 hit:
+  jbuilder's template handler arity (every `.json.jbuilder` view, fails at render
+  time), `create_join_table` raising on a column the block re-declares (only on a
+  from-scratch `db:migrate`, which is what CI runs), and Active Storage demanding
+  `config/storage.yml` once `eager_load = true` loads `Blob`. Probe JSON endpoints
+  and boot production explicitly; `rake test` alone passes through all three.
+- `require 'logger'` lives in `config/boot.rb`, not `application.rb`: concurrent-ruby
+  >= 1.3.5 stopped requiring it, Rails 6.1 needs it before activesupport loads, and
+  `bin/rails` reaches activesupport before `application.rb` does.
 
 ## Facts worth remembering
 - Last upstream commit: 2016-10-01. Before the reproducible-build branch: `rails '> 4'`

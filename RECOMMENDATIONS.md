@@ -24,8 +24,8 @@ than carried forward.
 | Test suite | Green: 194 runs / 534 assertions, 4 cucumber scenarios |
 | Admin screens (sessions, users, jobs) | Closed — now covered by request tests (§2.1) |
 | Poison line / observability | **Open — was mis-marked as fixed (§5.3)** |
-| Rails upgrade | **4.2 → 5.2 landed**; 5.2 → 8.1 open (§5.2) |
-| Rails 5.2 EOL, CI security gates | Open (§5.2, §1.2) |
+| Rails upgrade | **4.2 → 5.2 → 6.1 landed**; 6.1 → 8.1 open (§5.2) |
+| Rails 6.1 EOL, CI security gates | Open (§5.2, §1.2) |
 | Partitioning, full-text search | Open (§3) |
 
 ---
@@ -308,18 +308,23 @@ Verified at `b6adf25`:
 `Restart=always`, make `provision.sh` a thin wrapper around them, and use
 `install -m 0644` with a heredoc instead of `sudo cat >`.
 
-### 5.2 Rails 4.2 is end-of-life — what a Rails 8 upgrade actually requires **[operations]**
+### 5.2 Rails is end-of-life — what a Rails 8 upgrade actually requires **[operations]**
 
-`Gemfile:7` pins `rails '~> 4.2.11'`. The 4.2 line has open CVEs with no fix
-available, which is why bundle-audit is non-blocking (§1.2). Ruby is pinned to
-2.7.8 in CI, also EOL.
+`Gemfile` pins `rails '~> 6.1.0'` (resolves 6.1.7.10). Steps 1 (→ 5.2) and
+2 (→ 6.1) of the sequence at the end of this section have landed; the plan below
+is kept in full because the remaining steps (7.1 → 7.2 → 8.1) still depend on it.
+6.1 has been EOL since late 2023 and has open CVEs with no fix available, which
+is why bundle-audit stays non-blocking (§1.2). Ruby is pinned to 2.7.8 in CI,
+also EOL.
 
 This is the dependency that gates several other items: Postgres partitioning
 (§3.2) and a Postgres test database (§4.1 option C) both become tractable during
 a Rails upgrade, and the CI security gates can only be made blocking afterwards.
 
-**Baseline.** Rails 4.2.11.3 · Ruby 2.7.8 · Bundler 1.17.3 · rack 1.6.13 ·
-sprockets 2.12.5 · SQLite in dev/test, Postgres in prod (`pg 0.21.0`).
+**Baseline at the start of this workstream.** Rails 4.2.11.3 · Ruby 2.7.8 ·
+Bundler 1.17.3 · rack 1.6.13 · sprockets 2.12.5 · SQLite in dev/test, Postgres in
+prod (`pg 0.21.0`). **Current baseline after steps 1–2:** Rails 6.1.7.10 ·
+Ruby 2.7.8 · Bundler 2.4.22 · rack 2.2 · sprockets 3.7.5 · jbuilder 2.13.
 3,680 LOC of Ruby in `app`/`lib`, 1,735 LOC across 90 views (34 of them
 jbuilder), 2,923 LOC of tests, 29 migrations, 22 models, 19 controllers.
 
@@ -413,9 +418,70 @@ that way is much cheaper than doing both at once.
    Mechanical, but it appears in the ingest path (`event.rb:459,478`) and in the
    statistics helpers, so a silent format change would corrupt stored timestamps.
 
-9. **Zeitwerk at 6.0.** Rails 6.0 allows `config.autoloader = :classic` to defer
-   this, but classic is **removed in 6.1** — so item 4 must be done by 6.1 at the
-   latest.
+9. **Zeitwerk at 6.0 — landed at the 6.1 step.** Rails 6.0 allowed
+   `config.autoloader = :classic` to defer this, and classic is removed in 6.1, so
+   the app now runs on Zeitwerk with no `config.autoloader` set. **Verified** the
+   `$_models` boot hack in `config/application.rb` still yields the same 27 model
+   names under Zeitwerk, and that `Rails.application.eager_load!` completes without
+   raising — the eager `require` of every `app/models/**/*.rb` happens before
+   `ActiveRecord::Base.subclasses` is read, so the ordering the nav bar depends on
+   survives. Zeitwerk's own eager-load pass is what would have surfaced a
+   filename/constant mismatch; none exist.
+
+#### What the 5.2 → 6.1 step actually hit (landed)
+
+Everything below was found by running the step, not predicted by the list above.
+Recorded because the same class of failure recurs at 7.1.
+
+- **`concurrent-ruby` no longer requires `logger`.** Boot died with
+  `uninitialized constant ActiveSupport::LoggerThreadSafeLevel::Logger`. Rails 6.1
+  expects `Logger` to already be defined when activesupport loads; concurrent-ruby
+  ≥ 1.3.5 stopped requiring it. Fixed with `require 'logger'` in `config/boot.rb`
+  — **not** `config/application.rb`, because `bin/rails` loads
+  `rails/commands` (and thus activesupport) *before* `application.rb`, so the
+  require has to be in the file `bin/rails` reads first.
+- **`codemirror-rails` caps `railties < 6.0`** and has had no release since 2016,
+  so it cannot be bumped. Vendored instead: `codemirror.js`, the ruby mode, and
+  `codemirror.css` under `vendor/assets/`. **Verified** the sprockets-built
+  `application.js` and `application.css` are **byte-identical** to the 5.2 output
+  (md5 `d88f67e6…` / `3fb16751…`), so the editor is a true drop-in.
+- **`jbuilder` 2.7.0 is incompatible with 6.1.** Its `JbuilderTemplate` handler
+  takes one argument; the 6.1 template compiler calls it with two, so *every*
+  `.json.jbuilder` view died with `wrong number of arguments (given 2, expected 1)`
+  — and only at render time, which the pre-existing suite barely exercised. Bumped
+  to `~> 2.11` (resolves 2.13). **Verified** all 18 JSON endpoints return byte-for-
+  byte the same bodies as 5.2, including that `sessions.json` still omits
+  `session_hash` (§1.6).
+- **`create_join_table` now raises on a re-declared column.** Two migrations
+  (`CreateEventsWordsTable`, `CreateAlertsEventsJointable`) declared `event_id`/
+  `word_id` inside the block, which duplicates the columns `create_join_table`
+  already emits via `references`. 5.2 let the block silently win; 6.1 raises
+  "you can't define an already defined column". This only bites a **from-scratch**
+  `db:migrate` — CI runs exactly that, so it would have broken the build. Fixed by
+  moving `limit: 8` into `column_options:` and dropping the block. **Verified** all
+  29 migrations apply from scratch and the resulting `db/schema.rb` body and all 30
+  `sqlite_master` objects are DDL-identical to 5.2.
+- **Active Storage now needs `config/storage.yml` in production.** 5.2 only read
+  that file when `config.active_storage.service` was set; 6.1 reads it whenever
+  `ActiveStorage::Blob` is loaded, and `eager_load = true` loads it. Production
+  died at boot with "Couldn't find Active Storage configuration". The app uses no
+  attachments, so `config/storage.yml` exists purely to satisfy the loader.
+- **`ActiveRecord::Base.configurations['test']['pool']` returns nil** on 6.1 (the
+  hash was replaced by `DatabaseConfigurations`; the deprecated `[]` hands back a
+  symbol-keyed hash). One test compared against that nil. Now uses
+  `configs_for(env_name: 'test').first.pool`, which is the API that survives to 7.x.
+- **`ActionDispatch::HostAuthorization` is new in 6.0** and appears in the
+  production middleware stack. It is inert here because there is no
+  `config.load_defaults`, so `config.hosts` is empty and everything is allowed —
+  **verified** `/events` returns the same 302 on the same hosts as 5.2. It becomes
+  a live restriction the moment `load_defaults 6.0` is adopted: at that point the
+  real `ServerName` from `provision.sh` must be added to `config.hosts` or every
+  request 403s.
+- **Deliberately not done: `config.load_defaults`.** The 5.2 plan listed it for
+  this step, but adopting `load_defaults 6.0` flips `belongs_to_required_by_default`
+  (19 associations with legitimately nullable FKs — §5.2 item 6) *and* arms
+  HostAuthorization, both silently. It is a reviewed change of its own, not a
+  side effect of a version bump.
 
 #### The asset stack is the least pleasant part
 
@@ -454,8 +520,8 @@ both move, and §1.2's advisory security gates become blocking at the end.
 | Step | Ruby | Main work |
 |---|---|---|
 | **0. Prepare (on 4.2, today)** | 2.7.8 | Items 1–4: `sanitize_sql_array`, `before_action`, delete dead deps, replace the `$_models` boot hack. All back-portable, all reduce later risk. |
-| **1. → 5.2** | 2.7.8 | Migration brackets (item 5), `belongs_to` decision (item 6), `load_defaults 5.0`. |
-| **2. → 6.1** | 2.7.8 | Zeitwerk is now mandatory (item 9). Sprockets 3→4. |
+| **1. → 5.2** | 2.7.8 | **Done.** Migration brackets (item 5), `belongs_to` decision (item 6). `load_defaults` deliberately *not* adopted — see the note below the table. |
+| **2. → 6.1** | 2.7.8 | **Done.** Zeitwerk now mandatory (item 9). Sprockets stayed on 3.7.5 (4 is not required at this step). |
 | **3. → 7.1** | 2.7.8 | Last Ruby-2.7-compatible step. `to_s(:db)` (item 8), jbuilder 2.x. |
 | **4. → 7.2** | **3.1+** | Ruby jump. `secrets` removal (item 7). |
 | **5. → 8.1** | **3.2+** | Propshaft, Turbo, `dartsass-rails`. Target 8.1, not 8.0: 8.0 gets security fixes only to Nov 2026, 8.1 to Oct 2027. |

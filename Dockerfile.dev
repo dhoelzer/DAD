@@ -1,6 +1,6 @@
 # Reproducible dev/test image. The base tag is pinned to a patch release:
-# Rails 5.2 predates Ruby 3.0's keyword-argument separation and does not boot
-# there, so an unpinned `ruby:2` tag silently breaks the app on a future
+# this Rails line predates Ruby 3.0's keyword-argument separation and does not
+# boot there, so an unpinned `ruby:2` tag silently breaks the app on a future
 # minor release.
 FROM ruby:2.7.8
 

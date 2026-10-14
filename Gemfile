@@ -1,12 +1,12 @@
 source 'https://rubygems.org'
 
-# Rails 5.2.8.1 is the last release of the 5.2 line. The 4.2 -> 8 upgrade is
-# staged (RECOMMENDATIONS.md 5.2); 5.2 is the first step that still runs on Ruby
-# 2.7, so the Ruby jump is deferred to the 7.2 step. Keep this in lockstep with
-# .github/workflows/ci.yml and Dockerfile.dev.
-gem 'rails', '~> 5.2.5'
+# Rails 6.1.7 is the last release of the 6.1 line. The 4.2 -> 8 upgrade is staged
+# (RECOMMENDATIONS.md 5.2); 6.1 is the last step that still runs on Ruby 2.7
+# before the 7.x line, so the Ruby jump stays deferred to the 7.2 step. Keep this
+# in lockstep with .github/workflows/ci.yml and Dockerfile.dev.
+gem 'rails', '~> 6.1.0'
 
-# Ruby 2.7 ships bigdecimal 2.x, which removed BigDecimal.new. Rails 5.2 no
+# Ruby 2.7 ships bigdecimal 2.x, which removed BigDecimal.new. Rails 6.1 no
 # longer calls it, but the pin is kept so the resolved graph stays close to what
 # CI has always built; drop it together with the Ruby upgrade.
 gem 'bigdecimal', '~> 1.4.4'
@@ -22,7 +22,10 @@ group :production do
 end
 
 group :development, :test do
-  gem 'sqlite3', '~> 1.3.13'
+  # Rails 6.1's sqlite3 adapter requires sqlite3 ~> 1.4 (1.3 is rejected at
+  # boot). 1.7+ requires Ruby >= 3.0, so the ceiling keeps it installable on
+  # Ruby 2.7; raise it together with the Ruby upgrade.
+  gem 'sqlite3', '~> 1.4', '< 1.7'
   gem 'rspec-rails', '~> 3.9'
   gem 'cucumber-rails', '~> 2.0', require: false
   gem 'database_cleaner', '~> 1.7'
@@ -38,10 +41,15 @@ gem 'mail', '~> 2.7.0'
 # For JSON requests for the IP Address blocking service.
 gem 'httparty', '~> 0.18.0'
 
-gem 'codemirror-rails', '~> 5.16'
+# CodeMirror is vendored under vendor/assets (three files added with the Rails 6.1
+# step). The codemirror-rails gem capped railties at < 6.0 and has not been
+# released since 2016, so it cannot resolve against Rails 6.1. Verified the
+# sprockets-built application.js/application.css are byte-identical to the 5.2
+# build, so the vendored copies are a drop-in replacement.
 
-# Use SCSS for stylesheets. 5.0.x is the last line that accepts Rails 5.2 while
-# still pinning sprockets < 4.0, which keeps the existing asset pipeline intact.
+# Use SCSS for stylesheets. 5.0.x is the last line that still pins sprockets < 4.0,
+# which keeps the existing (sprockets 3.7) asset pipeline intact. It resolves
+# against Rails 6.1; the 6.x line would drag in sprockets 4.
 gem 'sass-rails', '~> 5.0.7'
 
 # Use Uglifier as compressor for JavaScript assets
@@ -65,7 +73,10 @@ gem 'turbolinks', '~> 2.5'
 # json.extract! and json.url, all unchanged in 2.x, so 2.7 renders them
 # identically -- verified by diffing all 22 JSON endpoint responses against the
 # 4.2 baseline.
-gem 'jbuilder', '~> 2.7.0'
+# 2.7.0's JbuilderTemplate handler takes one argument; Rails 6.1's template
+# compiler calls it with two, so every .json.jbuilder view dies with
+# "wrong number of arguments (given 2, expected 1)".
+gem 'jbuilder', '~> 2.11'
 
 group :doc do
   # bundle exec rake doc:rails generates the API under doc/api.
