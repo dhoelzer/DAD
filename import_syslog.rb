@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 require './config/environment.rb'
+require './lib/log_retention.rb'
 
 # One pass over every staged log file: feeds each line to Event.storeEvent, then
 # moves the file to ../ProcessedLogs.
@@ -41,14 +42,20 @@ def process_logs
   Statistic.logLinesProcessed(lines)
 end
 
-# Deletes processed logs older than a day. Currently a no-op: the find/rm command is
-# commented out, so ProcessedLogs accumulate indefinitely and the caller's "Purged
-# logs" message is misleading.
+# Deletes processed logs older than RETENTION_DAYS. Reports what it actually
+# removed: the previous version was an empty method whose caller still printed
+# "Purged logs older than: ...", so the importer claimed a cleanup it never did
+# while ProcessedLogs grew without bound on the same disk as the live queue.
 def purge_logs
-  # Purge logs older than 1 day ago from now.
-  #system("cd ../ProcessedLogs;find . -mtime +1 | xargs rm -Rf")
-  # -mtime +1 means modified more than 1 day ago.
+  result = LogRetention.purge(PROCESSED_LOGS, max_age: RETENTION_DAYS * 24 * 60 * 60)
+  puts "Purged #{result} from #{PROCESSED_LOGS}"
 end
+
+# How long a file stays in ProcessedLogs before deletion. Keep it generous: the
+# files are the only record of what was ingested, and shortening this after the
+# fact cannot recover anything already deleted.
+RETENTION_DAYS = 7
+PROCESSED_LOGS = '../ProcessedLogs'
 
 Dir.chdir("Logs/LogsToProcess")
 referenceTime = Time.now - 13.hours #force a purge when importer first runs
@@ -56,7 +63,6 @@ referenceTime = Time.now - 13.hours #force a purge when importer first runs
 while true do
   process_logs
   if Time.now-12.hours > referenceTime then
-    puts "Purged logs older than: #{Time.now}"
     referenceTime = Time.now
     purge_logs
   end
