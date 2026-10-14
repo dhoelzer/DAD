@@ -615,6 +615,12 @@ class Event < ActiveRecord::Base
     ew_sql, ew_binds = insertStatement('events_words', [:event_id, :word_id, :generated], @@events_words)
     ev_sql, ev_binds = insertStatement('events', [:id, :system_id, :service_id, :generated, :stored, :hunks], @@pendingEventValues)
 
+    # Measured before the queues are cleared: the throughput figure below needs
+    # the size of the batch just handed off. Reading @@pendingEventValues after
+    # the reset yields 0, which zeroed every logged rate and let
+    # @bulk_insert_size climb without bound.
+    batch_count = @@pendingEventValues.count
+
     # Cleared as soon as the rows are captured into the statements, before the
     # stats bookkeeping below. Statistic.logEventsPerSecond writes to the same
     # database and can fail; when it raised, the rows it had *already* handed to
@@ -660,9 +666,9 @@ class Event < ActiveRecord::Base
         end
       end
     end
-    #puts "\t\t-->> Flushed #{@@pendingEventValues.count} events. <<--"
+    #puts "\t\t-->> Flushed #{batch_count} events. <<--"
     elapsed_time = (Time.now - @@start_time)
-    eventsPerSecond = @@pendingEventValues.count/elapsed_time
+    eventsPerSecond = batch_count/elapsed_time
     #puts "\t\t-->> Started run: #{@@start_time}\t#{elapsed_time} seconds elapsed\t#{eventsPerSecond} events processed per second."
     #puts "\t\t-->> First word cache: #{@@cached_words.keys.count}"
     if @inserted_last_run > eventsPerSecond then
