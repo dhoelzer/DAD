@@ -4,22 +4,6 @@
 # issued, so it is the entry point for the whole application.
 class UsersController < ApplicationController
   before_action :set_user, only: [:show, :edit, :update, :destroy]
-  before_filter :authorized?, except: [:logon, :do_logon, :logoff]
-
-  # Requires the Admin right; replaces the ApplicationController default. Applies to
-  # every action except #logon, #do_logon and #logoff, which are exempted by the
-  # before_filter so that unauthenticated users can sign in and out.
-  def authorized?  
-    if @current_user.nil? then
-      flash[:notice] = "Not authorized"
-      redirect_to logon_users_path
-      return false
-    end
-    return true if(@current_user.has_right?("Admin"))
-    flash[:notice] = "You lack the appropriate rights"
-    redirect_to logon_users_path
-    return false
-  end
 
   # GET /users (and .json) -- every account.
   def index

@@ -5,22 +5,7 @@
 # form.
 class RolesController < ApplicationController
   before_action :set_role, only: [:show, :edit, :update, :destroy, :right_add, :rights]
-  before_filter :authorized?
 
-  # Replaces the inherited ApplicationController#authorized? for every
-  # action in this controller. Requires the Admin right; otherwise flashes a
-  # notice and redirects to the logon page. Returning false stops the action.
-  def authorized?  
-    if @current_user.nil? then
-      flash[:notice] = "Not authorized"
-      redirect_to logon_users_path
-      return false
-    end
-    return true if(@current_user.has_right?("Admin"))
-    flash[:notice] = "You lack the appropriate rights"
-    redirect_to logon_users_path
-    return false
-  end
   
   # GET /roles/:id/rights -- the grant/revoke screen: shows the rights this
   # role holds plus #ungranted_rights as the candidates to add.

@@ -5,21 +5,6 @@
 class CommentsController < ApplicationController
   before_action :set_comment, only: [:show, :edit, :update, :destroy]
 
-  # Replaces the inherited ApplicationController#authorized? for every
-  # action in this controller. Requires the Commentator right; otherwise flashes a
-  # notice and redirects to the logon page. Returning false stops the action.
-  def authorized?  
-    if @current_user.nil? then
-      flash[:notice] = "Not authorized"
-      redirect_to logon_users_path
-      return false
-    end
-    return true if(@current_user.has_right?("Commentator"))
-    flash[:notice] = "You lack the appropriate rights"
-    redirect_to logon_users_path
-    return false
-  end
-
   # Lists all comments records. No pagination or filtering.
   def index
     @comments = Comment.all

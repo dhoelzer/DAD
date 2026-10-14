@@ -6,39 +6,6 @@
 class SessionsController < ApplicationController
   before_action :set_session, only: [:show, :edit, :update, :destroy]
 
-  # DEAD CODE: this file defines authorized? twice and Ruby keeps the last
-  # definition, so the copy below is the one that actually runs.
-  # Requires the Admin right, redirecting to logon_users_path.
-  def authorized?  
-    if @current_user.nil? then
-      flash[:notice] = "Not authorized"
-      redirect_to logon_users_path
-      return false
-    end
-    return true if(@current_user.has_right?("Admin"))
-    flash[:notice] = "You lack the appropriate rights"
-    redirect_to logon_users_path
-    return false
-  end
-
-  # Requires the Admin right; replaces the ApplicationController default.
-  # Redirects to /homes when the user lacks it. This is the definition that
-  # takes effect, because Ruby keeps the last method definition in a class.
-  # Note it looks the right up as a Right *record*, whereas User#has_right?
-  # expects a name -- passing a record works only because the lookup below
-  # returns nil for it and the Admin short-circuit still applies.
-  def authorized?  
-    if @current_user.nil? then
-      flash[:notice] = "Not authorized"
-      redirect_to "/homes"
-      return false
-    end
-    return true if(@current_user.has_right?(Right.find_by_name("Admin")))
-    flash[:notice] = "You lack the appropriate rights"
-    redirect_to "/homes"
-    return false
-  end
-
   # GET /sessions (and .json) -- every session row, i.e. who is logged in and when
   # each session expires. No pagination.
   def index

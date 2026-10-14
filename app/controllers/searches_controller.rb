@@ -5,21 +5,6 @@
 class SearchesController < ApplicationController
   before_action :set_search, only: [:show, :edit, :update, :destroy]
 
-  # Replaces the inherited ApplicationController#authorized? for every
-  # action in this controller. Requires the Detective right; otherwise flashes a
-  # notice and redirects to the logon page. Returning false stops the action.
-  def authorized?  
-    if @current_user.nil? then
-      flash[:notice] = "Not authorized"
-      redirect_to logon_users_path
-      return false
-    end
-    return true if(@current_user.has_right?("Viewer"))
-    flash[:notice] = "You lack the appropriate rights"
-    redirect_to logon_users_path
-    return false
-  end
-
   # Lists all searches records. No pagination or filtering.
   def index
     @searches = Search.all
@@ -28,40 +13,20 @@ class SearchesController < ApplicationController
   # One search, addressed by id. @search is loaded by the
   # before_action; the .json form returns the record as JSON.
   def show
-    unless @current_user.has_right?("Viewer") 
-      flash[:notice] = "You lack the appropriate rights"
-      redirect_to events_path    
-      return
-    end
   end
 
   # Blank form for creating a search.
   def new
-    unless @current_user.has_right?("Detective") 
-      flash[:notice] = "You lack the appropriate rights"
-      redirect_to events_path    
-      return
-    end
     @search = Search.new
   end
 
   # Form for changing an existing search.
   def edit
-    unless @current_user.has_right?("Detective") 
-      flash[:notice] = "You lack the appropriate rights"
-      redirect_to events_path    
-      return
-    end
   end
 
   # Inserts a search built from the whitelist in #search_params.
   # Re-renders the form with validation errors when the save fails.
   def create
-    unless @current_user.has_right?("Detective") 
-      flash[:notice] = "You lack the appropriate rights"
-      redirect_to events_path    
-      return
-    end
     @search = Search.new(search_params)
     @search.user_id = @current_user.id
     respond_to do |format|
@@ -78,11 +43,6 @@ class SearchesController < ApplicationController
   # Applies the whitelisted attributes to the @search loaded by the
   # before_action; re-renders the form on failure.
   def update
-    unless @current_user.has_right?("Detective") 
-      flash[:notice] = "You lack the appropriate rights"
-      redirect_to events_path    
-      return
-    end
     respond_to do |format|
       if @search.update(search_params)
         format.html { redirect_to @search, notice: 'Search was successfully updated.' }
@@ -96,11 +56,6 @@ class SearchesController < ApplicationController
 
   # Deletes the @search.
   def destroy
-    unless @current_user.has_right?("Detective") 
-      flash[:notice] = "You lack the appropriate rights"
-      redirect_to events_path    
-      return
-    end
     @search.destroy
     respond_to do |format|
       format.html { redirect_to searches_url }
