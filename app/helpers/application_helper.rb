@@ -98,30 +98,28 @@ module ApplicationHelper
     "#{time.month}/#{time.day}/#{time.year} #{time.hour}:00:00"
   end
   
-  # Event counts per host over the last +days+ days, keyed by System#display_name.
-  # Issues one lookup per system_id, so it is O(number of reporting hosts).
+  # Event counts per host over the last +days+ days, as [["display name", n], ...].
+  #
+  # One grouped query plus one lookup for all the systems, rather than a
+  # System.find per group. Keyed by id instead of display name: two hosts with
+  # the same display name used to collapse into one entry, silently dropping a
+  # count.
   def system_stats(days)
     counts = Event.where("generated > ?", (Time.now()-(days * 86400)).to_s(:db)).group(:system_id).count
-    results = Hash.new
-    counts.each do |system_id, count|
-      results[System.find(system_id).display_name] = count
-    end
-    results.map { |k,v| [k,v] }
+    systems = System.where(id: counts.keys).index_by(&:id)
+    counts.map { |system_id, count| [systems.fetch(system_id).display_name, count] }
   end
   
   # Event counts per service over the last +days+ days, as [["name", n], ...].
   #
   # Returns the array, not #inspect: the chart consumes it through #js_literal,
   # which emits a real JS literal. Ruby's #inspect is not a JavaScript escaper
-  # and the service names arrive from syslog. Note it calls Service.find on
-  # every service_id, so a nil service_id raises.
+  # and the service names arrive from syslog. A nil service_id still has no
+  # Service row to resolve, so it raises rather than rendering a blank label.
   def service_stats(days)
     counts = Event.where("generated > ?", (Time.now()-(days*86400)).to_s(:db)).group(:service_id).count
-    results = Hash.new
-    counts.each do |service_id, count|
-      results[Service.find(service_id).name] = count
-    end
-    results.map { |k,v| [k,v] }
+    services = Service.where(id: counts.keys).index_by(&:id)
+    counts.map { |service_id, count| [services.fetch(service_id).name, count] }
   end  
   
   # Number of events generated after +time_frame+. Exact COUNT(*), so it is expensive

@@ -20,6 +20,47 @@ PURGE_INTERVAL = 12.hours
 #
 # The directories are parameters rather than hardcoded so the pass can be driven
 # against a temporary queue in tests.
+# Reads one claimed file, resuming at the offset a previous run checkpointed.
+#
+# The offset is what makes reclaim safe: rows committed before a crash are
+# already durable, so re-reading from byte 0 would insert them a second time.
+# Event only hands the writer an offset once that batch's rows are committed, so
+# the checkpoint never runs ahead of the database.
+def process_file(in_flight, processed_dir)
+  resume = LogQueue.read_offset(in_flight)
+  Event.begin_ingest(resume) { |offset| LogQueue.write_offset(in_flight, offset) }
+
+  File.open(in_flight, 'r') do |file|
+    file.seek(resume)
+    loop do
+      line_start = file.pos
+      line = file.gets
+      break if line.nil?
+
+      begin
+        Event.storeEvent(line, file.pos)
+        yield
+      rescue Exception => e
+        puts "Error processing #{in_flight}!"
+        puts e
+        puts "Offending line: #{line}"
+        # Leave the file claimed and rewind the checkpoint to the start of this
+        # line: its rows were never staged, so a restart must retry it rather
+        # than skip it.
+        Event.flush_and_wait
+        LogQueue.write_offset(in_flight, line_start)
+        exit 1
+      end
+    end
+  end
+
+  # Durable before the file leaves the queue. Without this the last batch can
+  # still be in flight when the file is moved to ProcessedLogs, and a crash then
+  # loses rows with no .processing file left to recover them from.
+  Event.flush_and_wait
+  LogQueue.complete(in_flight, processed_dir)
+end
+
 def process_logs(queue_dir = '.', processed_dir = PROCESSED_DIR)
   Event.resetStats # reset event timing counters
   LogQueue.reclaim(queue_dir).each { |name| puts "Reclaiming abandoned #{name}" }
@@ -35,21 +76,7 @@ def process_logs(queue_dir = '.', processed_dir = PROCESSED_DIR)
       # visible as .processing and reclaimed on the next pass instead of being
       # re-read from scratch by a queue that never knew it had been started.
       in_flight = LogQueue.claim(log)
-
-      File.foreach(in_flight) do |line|
-        begin
-          lines += 1
-          Event.storeEvent(line)
-        rescue Exception => e
-          puts "Error processing #{in_flight}!"
-          puts e
-          puts "Offending line: #{line}"
-          # Leave the file claimed: re-running it would hit the same line.
-          Event.flush_and_wait
-          exit 1
-        end
-      end
-      LogQueue.complete(in_flight, processed_dir)
+      process_file(in_flight, processed_dir) { lines += 1 }
     end
   rescue Interrupt
     puts "\nHalting operations... Emptying memory queues..."

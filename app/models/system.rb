@@ -25,16 +25,15 @@ class System < ActiveRecord::Base
 
   # Systems that produced at least one event in the last +hours+ hours.
   #
-  # Used by the dashboard to decide which hosts to chart. Returns System records
-  # (one query per system_id -- acceptable because the result set is small).
-  # Systems absent from the result are the ones Alert.hostUnreachable flags.
+  # Used by the dashboard to decide which hosts to chart. Systems absent from
+  # the result are the ones Alert.hostUnreachable flags.
+  #
+  # One grouped query plus one lookup for all ids, instead of a System.find per
+  # group: this runs on every dashboard poll.
   def self.with_events_within_hours(hours=1)
     counts = Event.where("generated > ?", (Time.now()-(hours * 3600)).to_s(:db)).group(:system_id).count
-    results = Array.new
-    counts.each do |system_id, count|
-      results << System.find(system_id) unless count <= 0
-    end
-    return results
+    reporting = counts.select { |_id, count| count > 0 }.keys
+    System.where(id: reporting).to_a
   end
 
   # Per-system event counts over the last +days+ days, as [system_id, name, count].
