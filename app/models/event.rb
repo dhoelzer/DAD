@@ -56,24 +56,6 @@ class Event < ActiveRecord::Base
   # (the classic "Jun  1 12:00:00" form). Refreshed on each flush so a long
   # ingest run does not misdate lines across a year boundary.
   @@current_year = Time.new.year
-  @@cached_words = Hash.new
-  @@num_last_events = 50
-  @added = 0
-  @cache_hits = 0
-  @@num_cached = 0
-  CACHESIZE=100000
-  @@cachelifetime=320
-  @@insertThreads = Array.new
-  @inserted_last_run = 100
-  @@nextEventID = -1
-  @@pendingEventValues = Array.new
-  @@system_cache = Hash.new
-  @@service_cache = Hash.new
-  @@events_words = Array.new
-  @@start_time = Time.now
-  @display_helper = nil       # Using lazy initialization but still using instance vars so that we
-  @event_fields = nil         # instantiate lazily but still only do one SQL query per event
-  @@current_year = Time.new.year
   
   # Current dashboard page size (how many recent events to fetch).
   # Read by the dashboard views; adjusted automatically by recent_events.
