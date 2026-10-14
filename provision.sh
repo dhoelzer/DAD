@@ -20,10 +20,37 @@ apt-get install -y postgresql
 apt-get install -y postgresql-server
 apt-get install -y postgresql-client
 apt-get install -y postgresql-server-dev-all
+echo Generating secrets
+# Secrets are generated at provision time and written to a root-owned file that
+# is never committed. Re-running provision reuses them, so re-provisioning does
+# not invalidate existing sessions or rotate the database password out from
+# under the app.
+ENV_FILE=/etc/DAD/environment
+if ! [ -f "$ENV_FILE" ]; then
+  sudo mkdir -p /etc/DAD
+  DAD_DB_PASSWORD=$(openssl rand -hex 16)
+  DAD_ADMIN_PASSWORD=$(openssl rand -hex 12)
+  # Create the file with 0600 *before* writing: tee runs as root, so the
+  # invoking user's umask does not apply and a plain redirect would land it
+  # world-readable, exposing the DB password and session signing key.
+  sudo install -m 600 /dev/null "$ENV_FILE"
+  sudo tee "$ENV_FILE" > /dev/null << EOF0
+export SECRET_KEY_BASE=$(openssl rand -hex 64)
+export DAD_DB_USER=rails
+export DAD_DB_PASSWORD=$DAD_DB_PASSWORD
+export DAD_DB_NAME=events_prod
+export DAD_DB_HOST=127.0.0.1
+export DAD_ADMIN_USER=admin
+export DAD_ADMIN_PASSWORD=$DAD_ADMIN_PASSWORD
+EOF0
+fi
+# shellcheck disable=SC1090
+source "$ENV_FILE"
+
 echo Configuring Postgresql
-sudo -u postgres psql -c "CREATE USER rails WITH PASSWORD 'example';"
-sudo -u postgres psql -c "CREATE DATABASE events_prod;"
-sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE events_prod TO rails;"
+sudo -u postgres psql -c "CREATE USER $DAD_DB_USER WITH PASSWORD '$DAD_DB_PASSWORD';"
+sudo -u postgres psql -c "CREATE DATABASE $DAD_DB_NAME;"
+sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DAD_DB_NAME TO $DAD_DB_USER;"
 
 if ! [ -L /var/DAD ]; then
   rm -rf /var/DAD
@@ -52,6 +79,17 @@ sudo cat << EOF1 > /etc/apache2/sites-enabled/dad.conf
     </Directory>
 </VirtualHost>
 EOF1
+# Passenger reads app secrets from the Apache environment; without this the
+# Rails app boots with a nil secret_key_base and refuses to run.
+sudo cat << EOF4 > /etc/apache2/conf-available/dad-environment.conf
+SetEnv SECRET_KEY_BASE $SECRET_KEY_BASE
+SetEnv DAD_DB_USER $DAD_DB_USER
+SetEnv DAD_DB_PASSWORD $DAD_DB_PASSWORD
+SetEnv DAD_DB_NAME $DAD_DB_NAME
+SetEnv DAD_DB_HOST $DAD_DB_HOST
+EOF4
+sudo a2enconf dad-environment
+
 sudo cat << EOF2 > /etc/apache2/sites-enabled/dad-ssl.conf
 <IfModule mod_ssl.c>
 	<VirtualHost *:443>
@@ -108,8 +146,11 @@ warning.  Accept the untrusted certificate.
 
 You can log on with the initial administrative user:
 
-Username: admin
-Password: Password1
+Username: $DAD_ADMIN_USER
+Password: $DAD_ADMIN_PASSWORD
+
+Both are also in $ENV_FILE (root-owned, mode 600). Change the
+password after first sign-in; that file is the only place it exists.
 
 The provisioned server is automatically configured
 to process logs, run the scheduler and to

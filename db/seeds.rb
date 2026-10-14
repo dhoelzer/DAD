@@ -5,10 +5,17 @@
 #
 #   cities = City.create([{ name: 'Chicago' }, { name: 'Copenhagen' }])
 #   Mayor.create(name: 'Emanuel', city: cities.first)
-user=User.new
-user.username="admin"
-user.password="3960$21b2c59f31f72fe2a8d69c6f799597b1e9b1801d0d51facecb86373e7310988b" # Password1
+# The initial administrator. Its password is NOT committed: it comes from
+# DAD_ADMIN_PASSWORD, and seeding fails loudly if that is unset, rather than
+# silently creating a well-known "Password1" account on a public host.
+#   DAD_ADMIN_PASSWORD='<a-long-random-passphrase>' rake db:seed
+admin_password = ENV["DAD_ADMIN_PASSWORD"]
+raise "Refusing to seed: set DAD_ADMIN_PASSWORD to the initial admin password." if admin_password.nil? || admin_password.empty?
+
+user = User.new
+user.username = ENV["DAD_ADMIN_USER"] || "admin"
 user.attempts = 0
+user.store_password(admin_password)
 user.save
 right=Right.new
 right.name="Admin"

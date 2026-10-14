@@ -18,13 +18,19 @@ test: &test
     pool: 5
     timeout: 5000
 
+# Production credentials come from the environment, never from this file.
+# Set DATABASE_URL (preferred), e.g.
+#   postgres://rails:<password>@127.0.0.1/events_prod
+# or the individual DAD_DB_* variables. provision.sh writes these to
+# /etc/DAD/environment; the individual variables exist so an operator can point
+# at a cluster without hand-writing a URL.
 production:
   adapter: postgresql
   encoding: utf8
-  database: events_prod
-  username: rails
-  password: example
-  host: 127.0.0.1
+  database: <%= ENV["DAD_DB_NAME"] || "events_prod" %>
+  username: <%= ENV["DAD_DB_USER"] %>
+  password: <%= ENV["DAD_DB_PASSWORD"] %>
+  host: <%= ENV["DAD_DB_HOST"] || "127.0.0.1" %>
   pool: 5
   timeout: 5000
 
