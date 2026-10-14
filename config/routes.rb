@@ -68,8 +68,6 @@ Events::Application.routes.draw do
   
   resources :comments, :only => [:index]
 
-  resources :positions
-
   resources :words
 
   # The priority is based upon order of creation: first created -> highest priority.

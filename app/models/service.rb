@@ -5,7 +5,6 @@
 # foreign key, so grouping and filtering by service is a plain join.
 class Service < ActiveRecord::Base
   has_many :events
-  has_many :servers, :through => :events
 
   # Process-local memo of name -> Service row, so a busy ingest does not hit the
   # DB once per line. Never expired: safe for the long-running importer because
