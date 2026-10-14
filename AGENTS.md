@@ -17,6 +17,13 @@ inverted index) → Rails UI (dashboards, search, alerts, jobs, custom RBAC).
   rake task runs cucumber in-process and minitest's autorun then dies on `--profile`.
 - CI: `.github/workflows/ci.yml` (test + informational security job). `Dockerfile.dev`
   mirrors the same pinned toolchain.
+- Rails upgrades here keep breaking on **renamed-but-not-raising config keys**:
+  `Rails::Railtie::Configuration#method_missing` swallows unknown `config.*` writes
+  instead of erroring, so a renamed setting silently stops applying (4.2->5.2 hit
+  `serve_static_files`->`public_file_server.*` and the Sprockets-2-only
+  `assets.enabled`). On each step, diff production behaviour (asset tag URLs,
+  middleware stack, `db/schema.rb` DDL) against the previous version, not just
+  the test suite.
 
 ## Facts worth remembering
 - Last upstream commit: 2016-10-01. Before the reproducible-build branch: `rails '> 4'`
