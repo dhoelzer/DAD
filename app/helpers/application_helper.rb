@@ -138,13 +138,13 @@ module ApplicationHelper
     [["Used", used], ["Free", 100 - used]]
   end
   
-  # Mean of the hourly event totals since +since+. Returns NaN when there are no
-  # samples (Math.mean divides by an empty count).
+  # Mean of the hourly event totals since +since+. 0.0 when there are no
+  # samples; see Stats.mean.
   def hourly_average(since=1.day.ago)
       results = statistics_by_hour(0, since)
       values = Array.new
       results.each{|s| values << s['agg_value'].to_i }
-      Math.mean(values)
+      Stats.mean(values)
   end
 
   # [mean, variance, standard deviation] of the hourly event totals since +since+,
@@ -153,9 +153,9 @@ module ApplicationHelper
       results = statistics_by_hour(0, since)
       values = Array.new
       results.each{|s| values << s['agg_value'].to_i }
-      mean = Math.mean(values)
-      variance = Math.variance(values)
-      standard_deviation = Math.standard_deviation(values)
+      mean = Stats.mean(values)
+      variance = Stats.variance(values)
+      standard_deviation = Stats.standard_deviation(values)
       [mean, variance, standard_deviation]
   end
   
@@ -167,6 +167,6 @@ module ApplicationHelper
       values = Array.new
       results.each{|s| values << s['agg_value'].to_i }
       
-      Math.mean(values) / 60.0
+      Stats.mean(values) / 60.0
   end
 end
