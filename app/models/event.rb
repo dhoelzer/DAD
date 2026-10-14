@@ -498,21 +498,28 @@ class Event < ActiveRecord::Base
     [sql, binds]
   end
 
+  # Batches allowed in flight at once.
+  #
+  # One still keeps a batch writing while the main thread parses the next one,
+  # which is the point of the threads, without ever holding two write
+  # transactions at the same time. The old limit of 5 meant 5 insert threads plus
+  # the main thread could ask for 6 connections from a pool of 5, so a flush
+  # would block on the pool timeout instead of writing; and two concurrent
+  # writers are not available on the SQLite database development and the test
+  # suite use, which fails them with SQLite3::BusyException.
+  MAX_INSERT_THREADS = 1
+
   # Writes the staged event and events_words batches, then resets them.
   #
   # Called automatically by storeEvent once a batch is full, and explicitly by
   # import_syslog.rb at the end of each pass (and on Ctrl-C) so nothing is left
   # in memory. Outside the test environment the two INSERTs run on a background
-  # thread so ingestion is not blocked by the write; threads are joined once more
-  # than five have accumulated.
+  # thread so ingestion is not blocked by the write; at most
+  # MAX_INSERT_THREADS batches are in flight, and a batch that failed on its
+  # thread raises here rather than being dropped.
   #
   # After each flush it retunes @bulk_insert_size (+20 when throughput improved,
   # -20 down to a floor of 20 when it fell) and logs the rate as a Statistic.
-  # Maximum INSERT threads in flight. Must stay below the connection pool (5 in
-  # every config): the old limit of 5 let 5 insert threads plus the main thread
-  # ask for 6 connections, so a flush could block on the pool timeout rather
-  # than write.
-  MAX_INSERT_THREADS = 2
 
   # Writes one staged batch. Both INSERTs share a transaction: events_words is
   # written first, so a crash between the two left index rows pointing at
