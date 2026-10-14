@@ -1,6 +1,7 @@
 # DAD — Open Recommendations
 
-Scanned at `b6adf25` (2026-10-14), after PRs #1–#19 all merged.
+Scanned at `b6adf25` (2026-10-14); §2.1 re-verified and closed at the branch
+adding `users_admin_test.rb`. PRs #1–#22 all merged.
 
 **This document lists only work that is still outstanding.** Everything marked
 closed is verified against the current tree, not against what a PR claimed. The
@@ -20,8 +21,8 @@ than carried forward.
 | Secrets in the working tree | Closed — **but a production key is still in git history (§1.1)** |
 | Ingestion crash-safety and idempotency | Closed, at-least-once (§2.2) |
 | Search indexing, dashboard SQL portability, timestamp parsing | Closed |
-| Test suite | Green: 157 runs / 457 assertions, 4 cucumber scenarios — but shallow on CRUD (§4.3) |
-| Broken admin screens | **Open — 4 live defects (§2.1)** |
+| Test suite | Green: 180 runs / 512 assertions, 4 cucumber scenarios |
+| Admin screens (sessions, users, jobs) | Closed — now covered by request tests (§2.1) |
 | Poison line / observability | **Open — was mis-marked as fixed (§5.3)** |
 | Rails 4.2 EOL, CI security gates | Open (§5.2, §1.2) |
 | Partitioning, full-text search | Open (§3) |
@@ -86,28 +87,47 @@ supported, since those CVEs are unfixable on 4.2 and blocking on them is noise.
 
 ## 2. Correctness
 
-### 2.1 🔴 Four admin screens are broken, and none is covered by a test **[correctness]**
+### 2.1 ✅ Closed — admin screens were broken and untested **[correctness]**
 
-Each was verified still present at `b6adf25`. Each is reachable by a single
-request, and none is exercised by the suite — `test/controllers/` contains no
-`sessions_controller_test.rb` or `users_controller_test.rb`, and
-`jobs_controller_test.rb` never hits the `test` action.
+Closed by the branch that adds `test/controllers/users_admin_test.rb` and
+`sessions_admin_test.rb`. **Three of the four defects listed in the previous
+revision of this document were described incorrectly**, which is worth recording
+because the misdescriptions changed what the right fix was:
 
-| # | Defect | Evidence | Fix |
-|---|---|---|---|
-| 1 | `SessionsController#create`/`#update` raise on every real submission | `session_params` permits `:hash`; the column is `session_hash`. ActiveRecord raises `UnknownAttributeError` rather than ignoring the unknown key | Permit `:session_hash` |
-| 2 | `JobsController#test` 500s as routed | `before_action :set_job, only: [:show, :edit, :update, :destroy]` — `@job` is nil when `test` reads `@job.script` | Add `:test` to the list, or delete the action and its route |
-| 3 | `Users#destroy` does not revoke sessions | Body is just `@user.destroy`; Session rows stay live. `gatekeeper` slides `expiry` forward an hour on every request (`application_controller.rb:107`), so **an active deleted account keeps its login indefinitely** — it only expires if the user stops making requests for an hour | `Session.where(user_id:).each(&:destroy)` before destroying — `#do_logon` (`users_controller.rb:87`) already shows the pattern |
-| 4 | `Users#update` can lock an account out | `@user.store_password(params[:user][:password])` runs unconditionally; omit the field and the password becomes a hash of `nil` | Guard on the param being present |
+| Claimed | Actual |
+|---|---|
+| `Sessions#create`/`#update` raise `UnknownAttributeError` on `:hash` | **Not a live defect.** Those actions are not routed (`resources :sessions, only: [:index, :show, :destroy]`) and do not exist; `session_params` was never called. The real defect was in the *routed* screens: `index.html.erb` and `show.html.erb` called `edit_session_path`/`new_session_path`, which no longer exist, so **both 500'd** on `ActionView::Template::Error`. |
+| `Users#destroy` leaves sessions live, so a deleted account **keeps access indefinitely** | Sessions were indeed left live, but the consequence is the opposite: `gatekeeper` resolves a cookie via `User.find(session.user_id)`, so the orphaned row made every request carrying that cookie raise `ActiveRecord::RecordNotFound`. A deleted account did not stay logged in — it produced a 500 until the cookie expired. |
+| `Users#update` with no password sets "a hash of `nil`" | `store_password` raises `ArgumentError` on `nil` ("password is too long"), so that path was a **500**, not a silent lockout. The real lockout comes from the *empty string*: the edit form renders `password` blank, submitting it unchanged hashed `""`, so the original password stopped working and `check_password('')` began returning true. |
 
-Defect 3 is the most serious: **deleting an account does not end its access**,
-and because the session expiry slides on each request, an actively used session
-survives indefinitely. Defect 4 is the most likely to bite a real operator,
-because Rails' `form_for` edit forms commonly omit the password field.
+Two further defects in the same code, found while probing and fixed together:
 
-**Do these with tests, not alone.** The reason all four survived is that no
-request ever touched those routes. Fix #1 and #2 are one-word changes that will
-stay fixed only once a request spec covers them.
+- **Plaintext passwords were persisted.** `user_params` permits `:password`, so
+  `update` wrote the raw value to the column *before* `store_password` ran. When
+  `store_password` raised (any password over 72 bytes), the plaintext stayed
+  saved. Verified: `select password from users` returned the submitted string.
+- **`create` minted accounts with an empty password.** `store_password('')`
+  succeeds, so posting a blank password created an account that
+  `check_password('')` accepts.
+
+Also fixed in the same pass:
+
+- `jobs#test` 500'd exactly as described (`@job` nil). It had **no view at all** —
+  `app/views/jobs/test.html.erb` has never existed in the repo's history — so
+  fixing `set_job` would only have moved the failure to a missing template. The
+  action duplicated what `jobs#show` already renders, so the action and its route
+  are deleted.
+- The Sessions JSON views extracted `:hash`, which is `Object#hash` — a random
+  integer, not the token. Harmless by accident. Both now omit `session_hash`
+  deliberately: it is the sole bearer credential `gatekeeper` accepts, so
+  exposing it to anyone with the Sessions right would be a session-hijack path.
+  The HTML views show an 8-character prefix for correlation.
+- Dead code removed: `session_params`, `sessions/{_form,new,edit}.html.erb`
+  (unroutable), and the `jobs` `test` member route.
+
+**The lesson holds.** Every one of these survived because no request ever touched
+the route. The new tests are request-level, and 12 of the 18 fail against the
+pre-fix tree.
 
 ### 2.2 Ingestion is at-least-once, not exactly-once **[correctness]** — accepted, document it
 
@@ -241,13 +261,12 @@ and its fixture, and the empty `CreateIndicesOnEventsWords` migration.
 
 ### 4.3 The suite is green but shallow on the routes that broke **[maintainability]**
 
-157 runs / 457 assertions across 41 test files, plus 4 cucumber scenarios. That
-sounds substantial, and it caught real regressions during the ingest work — but
-it covers no CRUD request path for `sessions`, `users`, or the `jobs#test`
-action, which is exactly why the four defects in §2.1 survived.
+180 runs / 512 assertions across 43 test files, plus 4 cucumber scenarios.
 
-The highest-value next tests are **request specs over the admin CRUD routes**,
-not more unit tests of model helpers. They also make the §2.1 fixes durable.
+The admin CRUD request specs called for in the previous revision now exist
+(`users_admin_test.rb`, `sessions_admin_test.rb`), which is what closed §2.1.
+Remaining gaps: no coverage of the `roles`/`role_add`/`role_remove` privilege
+escalation path, and no coverage of `alerts` acknowledgement.
 
 One known flake: an intermittent `SQLite3::BusyException` in the threaded-path
 tests. It is the same single-writer constraint as §4.1 and predates all recent
@@ -321,10 +340,6 @@ timestamps survive into the Passenger log.
 Higher priority than it looks: this is the most likely way the system silently
 stops collecting, and §5.1 means nothing brings it back.
 
-Still no license file. On GitHub that means all rights are reserved by default,
-so downstream use is legally blocked. If DAD is meant to be open source, pick one
-and add it.
-
 ### 5.4 No LICENSE **[operations]**
 
 Still no license file. On GitHub that means all rights are reserved by default,
@@ -348,17 +363,15 @@ three processes fit together, and where logs go.
 
 | Priority | Item | Effort | Why here |
 |---|---|---|---|
-| 1 | §2.1 four admin defects, **with request specs** | hours | Live data-integrity and access-control bugs; the tests are what keep them fixed |
-| 2 | §1.1 production secret: rotate + secret scanning | hours | Impersonation risk if any deployment still uses the 2015 key |
-| 3 | §4.3 CRUD request coverage | days | Prevents the §2.1 class of bug recurring |
-| 4 | §1.2 make brakeman blocking (baselined) | hours | Cheap, stops new sinks landing |
-| 5 | §3.1 statistics query duplication | hours | Contained, measurable, dashboard hot path |
-| 6 | §4.1 option A: subprocess coverage of threaded ingest | hours | Nearly free — harness exists |
-| 7 | §5.3 poison-line handling + `Rails.logger` | hours | Stops silent ingestion stalls; compounds §5.1 |
-| 8 | §5.1 systemd units | days | The importer dying silently is the main operational risk |
-| 9 | §5.2 Rails 5→7 | ongoing | Gates §3.2, §4.1-C, and blocking security gates |
-| 10 | §3.2 partitioning, §3.3 FTS, §4.1-B `EventIngestor` | ongoing | Real work, but bounded by the above |
-| 11 | §5.4 LICENSE, §5.5 README, §4.2 dead code | hours | Hygiene; do opportunistically |
+| 1 | §1.1 production secret: rotate + secret scanning | hours | Impersonation risk if any deployment still uses the 2015 key |
+| 2 | §1.2 make brakeman blocking (baselined) | hours | Cheap, stops new sinks landing |
+| 3 | §3.1 statistics query duplication | hours | Contained, measurable, dashboard hot path |
+| 4 | §4.1 option A: subprocess coverage of threaded ingest | hours | Nearly free — harness exists |
+| 5 | §5.3 poison-line handling + `Rails.logger` | hours | Stops silent ingestion stalls; compounds §5.1 |
+| 6 | §5.1 systemd units | days | The importer dying silently is the main operational risk |
+| 7 | §5.2 Rails 5→7 | ongoing | Gates §3.2, §4.1-C, and blocking security gates |
+| 8 | §3.2 partitioning, §3.3 FTS, §4.1-B `EventIngestor` | ongoing | Real work, but bounded by the above |
+| 9 | §5.4 LICENSE, §5.5 README, §4.2 dead code | hours | Hygiene; do opportunistically |
 
 **The pattern worth acting on.** Three separate findings in this review — the
 importer that died at startup while CI stayed green, the four broken admin
@@ -400,6 +413,8 @@ Verified closed against the current tree:
 | 7.1 | `NameError` that made `import_syslog.rb` dead on arrival | #16 |
 | 7.2 | Crash-then-reclaim duplicating rows | #17 |
 | 6.5 | The three dashboard N+1s, `has_right?`, `criticality_name`, `resources :positions`, `Service has_many :servers`, the empty migration, dev/test secret rotation | #18 |
+| — | Ingest throughput measured after the queue reset (a regression introduced by #17): the dashboard EPS chart read 0.0 and `@bulk_insert_size` grew +20 per flush with no ceiling | #22 |
+| §2.1 | Four admin screens: `sessions#index`/`#show` 500'd on removed route helpers; `jobs#test` 500'd on nil `@job`; `Users#destroy` orphaned Session rows and 500'd subsequent requests; `Users#update` locked accounts out on a blank password and could persist plaintext; `Users#create` accepted an empty password. Plus request-spec coverage for all of it | this branch |
 
 The superseded review revisions -- including the misdiagnoses and the reasoning
 that corrected them -- are preserved in git:

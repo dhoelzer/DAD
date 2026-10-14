@@ -2,7 +2,7 @@
 
 <p>
   <strong>Hash:</strong>
-  <%= @session.hash %>
+  <%= @session.session_hash[0, 8] %>…
 </p>
 
 <p>
@@ -15,5 +15,4 @@
   <%= @session.expiry %>
 </p>
 
-<%= link_to 'Edit', edit_session_path(@session) %> |
 <%= link_to 'Back', sessions_path %>
