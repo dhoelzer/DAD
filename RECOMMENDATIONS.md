@@ -1,8 +1,9 @@
 # DAD — Code Review & Improvement Recommendations
 
 Originally reviewed at commit `db5c6b4` (last commit: 2016-10-01). Re-measured
-2026-10-14 at `537e1fe`: **3,294 lines** of app/lib Ruby across 18 controllers and
-21 models, plus 1,459 lines of tests. Standalone ingestion is `import_syslog.rb`
+2026-10-14 at `104abd4`: **3,470 lines** of app/lib Ruby across 18 controllers and
+22 models, plus 1,885 lines of tests. **Read §7 first** — it supersedes §6 and
+records two regressions that a green CI does not catch. Standalone ingestion is `import_syslog.rb`
 at the repo root; `syslog.pl` and `scheduler.rb` are gone.
 
 DAD is a genuinely interesting design: a syslog collector writes rolling files, a Ruby
@@ -638,7 +639,7 @@ pages end up drawing Highcharts gauges with `NaN` axes.
 **Fix:** move these to `StatisticsCalculator` (or a `Stats` module) under `lib/`, and
 guard the empty-array case. This is a two-line rename with outsized payoff.
 
-### 2.4 Ingestion is not crash-safe and can double-insert **[correctness]** — **still open; now the top priority, see §6.2**
+### 2.4 Ingestion is not crash-safe and can double-insert **[correctness]** — **partly fixed (§6.2); double-insert still open, see §7.2**
 `Event.performPendingInserts` (`event.rb:267-301`) hand-manages `@@nextEventID`,
 `@@pendingEventValues`, `@@events_words` and up to 5 background `Thread`s, each of which
 grabs `ActiveRecord::Base.connection` — the same connection object Rails hands out per
@@ -715,7 +716,7 @@ re-point `Event.search`. Keep `words`/`events_words` behind a feature flag for o
 so the two can be compared on real data. This is a bigger change than §3.1 — do §3.1 now,
 §3.2 when you have a maintenance window.
 
-### 3.3 Partitioning and retention **[performance] [operations]** — still open, see §6.4
+### 3.3 Partitioning and retention **[performance] [operations]** — retention implemented (§6.4) but its caller is broken (§7.1); partitioning still open
 `approximate_count` queries `pg_stat_user_tables where relname like 'events_p%'` — it
 expects partitioned tables (`events_p…`) that no migration creates. (It now falls back
 to `Event.count` when that sum comes back null, so an unpartitioned install reports a
@@ -777,7 +778,7 @@ around them (or replace it with a container/compose setup). Use `a2enmod ssl` an
 
 ## 5. Maintainability
 
-### 5.1 The `Event` model is 320 lines of class-variable global state **[maintainability]** — still open, see §6.3
+### 5.1 The `Event` model is 320 lines of class-variable global state **[maintainability]** — duplicate block deleted (§6.3); extraction still open
 `@@cached_words`, `@@system_cache`, `@@service_cache`, `@@pendingEventValues`,
 `@@events_words`, `@@nextEventID`, `@@insertThreads`, `@@cachelifetime`, `@@num_cached`
 are process-global mutable state on an AR model, mixed with instance-level `@bulk_insert_size`
@@ -1047,6 +1048,135 @@ code with the literal NaN body.
 If you only do two things: **§6.2 and §6.3**. They are the same problem viewed from
 two sides, and they are the only items on the list that stop the tool from
 quietly losing the data it exists to collect.
+
+---
+
+## 7. Reassessment (2026-10-14, at `104abd4`)
+
+§6.2, §6.3 and §6.4 have all landed (PRs #12–#15, all merged; no PRs are open).
+Re-measured: **3,470 lines** of app/lib Ruby across 18 controllers and 22 models,
+plus 1,885 lines of tests. Suite is **135 runs / 390 assertions / 0 failures**,
+Cucumber 4/4.
+
+That green suite is the problem. **The importer does not run on master.** Two
+regressions survived the merge, and neither is visible to CI.
+
+### 7.1 🔴 Top priority: `import_syslog.rb` crashes on startup — `NameError`
+
+`purge_logs` calls `LogRetention.purge`, but the file only requires
+`./lib/log_queue.rb`. `lib/` is **not** in Rails' autoload paths, so the constant
+does not resolve:
+
+```
+$ ruby import_syslog.rb
+import_syslog.rb:59:in `purge_logs': uninitialized constant LogRetention (NameError)
+```
+
+Reproduced end-to-end against a migrated database. It is not a corner case: the
+loop initialises `referenceTime = Time.now - 13.hours` specifically to *force* a
+purge on the first iteration, so the process dies within seconds of every start.
+
+**How it got in.** PR #13 added `require './lib/log_retention.rb'`; PR #15 added
+`require './lib/log_queue.rb'` at the same line. The merge of #13 into #15
+(`f376465`) kept one require and dropped the other while keeping both call sites.
+A textual merge that resolved cleanly and produced a broken program.
+
+**Why CI missed it.** Nothing in `test/` or `features/` ever loads
+`import_syslog.rb` -- `grep -rn import_syslog test/ features/` returns nothing.
+The retention tests exercise `LogRetention` directly, so they pass while its only
+caller is dead. This is the same blind spot §6.2 flagged for the threaded path,
+one level up: the entry point itself has no coverage.
+
+**Fix (minutes):** add the missing `require`. **Then prevent a recurrence:**
+require the script in a test. It cannot be `require`d as-is because of the
+top-level `while true` loop, so guard the loop with `if __FILE__ == $0` -- that
+also makes the whole importer testable, which it currently is not.
+
+Also from the same merge: `PROCESSED_DIR` and `PROCESSED_LOGS` are two constants
+for the same `'../ProcessedLogs'` path, used by different halves of the file.
+Collapse to one.
+
+### 7.2 🔴 Crash-then-reclaim still duplicates rows
+
+§6.2's stated goal was to stop "silent data loss **and double-inserts**". The
+data-loss half is fixed; the double-insert half is not. Reclaim re-reads a
+`.processing` file **from the beginning**, but rows committed before the crash are
+already in the database, and `storeEvent` has no dedup.
+
+Reproduced: 6-line file, batch size 2, crash before line 4.
+
+```
+RUN 1: stores lines 1-3; batches of 2 commit  -> ids 1,2 persisted
+RUN 2: reclaims sample.log.processing, re-reads all 6 lines
+FINAL: count=4
+  1 ... line number 1
+  2 ... line number 2
+  3 ... line number 1      <- duplicate
+  4 ... line number 2      <- duplicate
+DUPLICATE LINE TEXTS: 2
+```
+
+The `.processing` rename makes a crash *visible*, which is real progress, but it
+does not make reprocessing *safe*. The claim in `log_queue.rb` that re-reading
+from the top is "the correct recovery" is only true for rows that were never
+committed -- and there is no mechanism that knows which those were.
+
+**Options, in order of cost:**
+1. **Idempotent re-read.** Persist a byte offset per in-flight file and resume
+   there. Cheapest correct fix; needs the offset written at each flush, not each
+   line.
+2. **Natural key + `ON CONFLICT DO NOTHING`** on `(system_id, generated, hunks)`.
+   Needs a unique index over a `text` column on a table sized in the hundreds of
+   millions -- expensive, and it changes semantics for legitimate repeats.
+3. **Accept duplicates and document them.** Defensible for a log search tool, but
+   it must be a written decision, not an accident, and it inflates every count on
+   the dashboard.
+
+Recommend (1). Roughly a day, and it is the only remaining item that corrupts data.
+
+### 7.3 Two probe results worth recording, one of which corrects an earlier claim
+
+- **The `SQLite3::BusyException` in §0b's footnote is not fixed.** It reproduces
+  in the threaded development path: a `Statistic` write from the main thread
+  collides with the in-flight insert thread. It does not affect the PostgreSQL
+  deployment, but it does mean the SQLite dev database cannot exercise the
+  threaded path at more than one batch in flight -- which is exactly why the new
+  ingest tests run one batch per case and the multi-batch concurrent case is
+  **still untested**.
+- **Correction to a claim made while writing §6.2:** an earlier probe appeared to
+  show reclaim producing no duplicates. It was wrong -- the probe called
+  `load 'db/schema.rb'` on restart, and `schema.rb` uses `force: :cascade`, so it
+  silently dropped the rows run 1 had committed. The result was an artifact of the
+  harness. §7.2 is the corrected measurement.
+
+### 7.4 Still open from §6
+
+| Item | Status at `104abd4` |
+|---|---|
+| §6.2 ingestion crash-safety | Partially done. Transactions, thread joins, staged rename, `maximum(:id)` all landed. **Double-insert not fixed (§7.2).** |
+| §6.3 duplicate state block | Duplicate block deleted; `EventIngestor` extraction **not** done. `event.rb` is 626 lines with **80 `@@` references**. |
+| §6.4 retention | Implemented, but the caller is broken (§7.1). Partitioning still absent. |
+| §6.5 N+1s | Unchanged: `application_helper.rb:107,122` call `System.find`/`Service.find` per group; `system.rb:35` calls `System.find` per row on every dashboard poll. |
+| §6.5 residuals | All still present: `alert.rb:28` compares `criticality == "4"` as a string; `service.rb:8` `has_many :servers` with no `Server` model; `routes.rb:71` `resources :positions`; empty `CreateIndicesOnEventsWords` migration still in `db/migrate/`; `has_right?` still issues two `Right` queries per call. |
+| §6.5 hygiene | Still no LICENSE file. |
+| §1.5 secret rotation | Committed `secret_key_base` moved to ENV, but **never rotated** -- it is still compromised in history. |
+| §4.1 Rails upgrade | Not started; CI security job still `continue-on-error: true` (lines 56, 60). |
+| §2.4 test-env branch | `Rails.env.test?` branch at `event.rb:552` still present, so tests still do not run the production insert path in-process. |
+
+### 7.5 Revised sequence
+
+| Priority | Change | Effort | Payoff |
+|---|---|---|---|
+| 1 | §7.1 missing `require` + `__FILE__ == $0` guard + a test that loads the importer | hours | the importer runs at all; closes the blind spot that hid this |
+| 2 | §7.2 make reclaim idempotent (byte offset) | 1 day | stops the last data-corrupting defect |
+| 3 | §6.3 extract `EventIngestor`; delete the `Rails.env.test?` branch | 1 week | makes #2 and all future ingest work testable in-process |
+| 4 | §6.5 N+1s + residuals + rotate the §1.5 secret | hours | papercuts, one of which is a live credential |
+| 5 | §3.3 partitioning; §4.1 Rails 5→7 | ongoing | bounds growth, removes the EOL liability |
+
+**The lesson to carry forward:** the suite tests units, not the entry point. A
+green build with a dead importer is exactly what a test suite that never loads
+`import_syslog.rb` will produce. Fix #1 is cheap, but the `__FILE__ == $0` guard
+plus one smoke test is the part that stops it happening again.
 
 ---
 
