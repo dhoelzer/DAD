@@ -422,10 +422,18 @@ is now a pure Rails change with no Ruby work in it.**
    wrong turns the ingest path into validation failures, which is the worst place
    in this app to be wrong.
 
-7. **`Rails.application.secrets`** (`initializers/require_secrets.rb:9`) —
-   deprecated 7.1, **removed in 7.2**. Migrate to `credentials` or, since this app
-   only reads `SECRET_KEY_BASE` from the environment, `config_for(:secrets)`.
-   `config/secrets.yml` and `provision.sh`'s `/etc/DAD/environment` both change.
+7. ~~**`Rails.application.secrets`**~~ — **done at the 7.1 step.** Nothing was
+   actually removed at 7.2, so the migration happened now rather than under time
+   pressure. `config/secrets.yml` keeps only the production `ENV["SECRET_KEY_BASE"]`
+   pass-through; the dev/test values moved to `config/environments/{development,
+   test}.rb` as `config.secret_key_base = ENV["SECRET_KEY_BASE"] || '<committed>'`,
+   and `require_secrets.rb` reads `ENV` directly instead of
+   `Rails.application.secrets`. **Verified**: the resolved test key is unchanged
+   (`26dc4b4e…`), `SECRET_KEY_BASE` still overrides it, production still fails
+   closed with the custom message when the variable is unset, and the boot is
+   deprecation-free. `credentials` was not adopted — it would mean shipping a
+   `master.key` alongside the app for a single value that already arrives from
+   `provision.sh`'s `/etc/DAD/environment`.
 
 8. **`to_s(:db)`** — 10 call sites. **Verified deprecated on 7.0.8**
    (`Time#to_s(:db) is deprecated. Please use Time#to_fs(:db)`), and gone by 8.0.
@@ -551,6 +559,16 @@ attributed rather than assumed. Everything below was observed, not predicted.
   index is unchanged; `AUTOINCREMENT` only affects rowid reuse after the largest id
   is deleted, which `events` never does. Worth knowing before §3.2 partitioning,
   though.
+- **`Rails.application.secrets` migrated off, not just silenced.** CI showed a
+  deprecation the local run had masked — `SECRET_KEY_BASE` was leaking into the
+  local shell environment, so Rails took the ENV branch and never touched the
+  deprecated `secrets` path. Fixed by keeping only the production ENV
+  pass-through in `config/secrets.yml`, moving the committed dev/test keys to
+  `config/environments/{development,test}.rb` as `config.secret_key_base`, and
+  having `require_secrets.rb` read `ENV` directly. **Verified** the resolved test
+  key is byte-identical to before, ENV still overrides, and production still
+  refuses to boot without `SECRET_KEY_BASE`. Lesson: run the suite with a clean
+  environment, not just a green one.
 - **Three deprecations silenced rather than ignored.** `show_exceptions = false`
   → `:none` (exact equivalent), `check_pending!` → `check_all_pending!`, and
   `config.active_support.cache_format_version = 7.0` — the last is free here
@@ -638,7 +656,7 @@ moved to 3.3.8 at step 3, and §1.2's advisory security gates become blocking at
 | **1. → 5.2** | 2.7.8 | **Done.** Migration brackets (item 5), `belongs_to` decision (item 6). `load_defaults` deliberately *not* adopted — see the note below the table. |
 | **2. → 6.1** | 2.7.8 | **Done.** Zeitwerk now mandatory (item 9). Sprockets stayed on 3.7.5 (4 is not required at this step). |
 | **3. → 7.1** | **3.3.8** | **Done.** Ruby jumped here rather than at 7.2 — nokogiri and sqlite3 had already dropped 2.7, and Ruby 3.3's `json` 3.x default gem forced a pin. `to_fs(:db)` (item 8), `exec_query` binds (item 1), the precompile-list fix. |
-| **4. → 7.2** | 3.3.8 (no change) | Now a pure Rails step. `Rails.application.secrets` removal (item 7) — the only item that used to be gated on the Ruby jump. `sqlite3` 2.x becomes available. |
+| **4. → 7.2** | 3.3.8 (no change) | Now a pure Rails step. `Rails.application.secrets` (item 7) was already migrated at step 3, so nothing is pre-gated here. `sqlite3` 2.x ceiling lifts. |
 | **5. → 8.1** | 3.3.8 (no change) | Propshaft, Turbo, `dartsass-rails`. Target 8.1, not 8.0: 8.0 gets security fixes only to Nov 2026, 8.1 to Oct 2027. |
 
 **Do §4.3 first.** The suite is 194 runs against 90 views and the ingest path, and

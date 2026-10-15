@@ -1,6 +1,13 @@
 Events::Application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
 
+  # Committed so `rake test`/`cucumber` and a fresh checkout need no setup. ENV
+  # still wins, matching the precedence Rails used when this value lived in
+  # config/secrets.yml. Setting it here rather than there avoids the Rails 7.1
+  # "configured in Rails.application.secrets" deprecation (that path is removed
+  # in 7.2). Not a secret: it signs cookies on a developer's own machine.
+  config.secret_key_base = ENV["SECRET_KEY_BASE"] || '26dc4b4ea181d7e5850533b057b6c0399d5058f1c905c105c9322eb9d00b1d31'
+
   # The test environment is used exclusively to run your application's
   # test suite. You never need to work with it otherwise. Remember that
   # your test database is "scratch space" for the test suite and is wiped

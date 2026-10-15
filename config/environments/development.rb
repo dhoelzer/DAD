@@ -1,6 +1,13 @@
 Events::Application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
 
+  # Committed so a fresh checkout boots with no setup. ENV still wins, matching
+  # the precedence Rails used when this value lived in config/secrets.yml.
+  # Setting it here rather than there avoids the Rails 7.1
+  # "configured in Rails.application.secrets" deprecation (that path is removed
+  # in 7.2). Not a secret: it signs cookies on a developer's own machine.
+  config.secret_key_base = ENV["SECRET_KEY_BASE"] || '7a9d9a89be64f8d24bda2dd4199b44c67911ffa0b5967cf9fe3fe9185c2d1279'
+
   # In the development environment your application's code is reloaded on
   # every request. This slows down response time but is perfect for development
   # since you don't have to restart the web server when you make code changes.

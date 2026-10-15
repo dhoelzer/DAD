@@ -1,12 +1,14 @@
 # Fail closed in production if secrets are missing.
 #
-# Rails 4.2 only emits a deprecation warning when secret_key_base is blank, so
-# an unconfigured host would boot and sign cookies with no key rather than
-# refusing to start. Raising here turns a silent misconfiguration into a boot
-# failure. See config/secrets.yml and provision.sh for how these are supplied.
+# Rails only emits a deprecation warning when secret_key_base is blank, so an
+# unconfigured host would boot and sign cookies with no key rather than refusing
+# to start. Raising here turns a silent misconfiguration into a boot failure.
+# Reads ENV directly rather than Rails.application.secrets, which Rails 7.1
+# deprecates and 7.2 removes; production has no other source for this value.
+# See config/secrets.yml and provision.sh for how it is supplied.
 if Rails.env.production?
   missing = []
-  missing << "SECRET_KEY_BASE" if Rails.application.secrets.secret_key_base.blank?
+  missing << "SECRET_KEY_BASE" if ENV["SECRET_KEY_BASE"].blank?
   # Either a full DATABASE_URL or the individual DAD_DB_* variables are
   # acceptable; a blank password could otherwise fall through to Postgres
   # trust authentication.

@@ -53,6 +53,17 @@ inverted index) → Rails UI (dashboards, search, alerts, jobs, custom RBAC).
   run *after* `config/initializers`, so the subtraction must sit in
   `after_initialize`. Verified: the built `application.js`/`application.css` digests
   are byte-identical to the 6.1 build.
+- `secret_key_base` no longer comes from `config/secrets.yml` for dev/test: Rails
+  7.1 deprecates `Rails.application.secrets` (removed in 7.2). The committed dev/test
+  keys now live in `config/environments/{development,test}.rb` as
+  `config.secret_key_base = ENV["SECRET_KEY_BASE"] || '<key>'`; `config/secrets.yml`
+  keeps only the production `ENV["SECRET_KEY_BASE"]` pass-through, and
+  `config/initializers/require_secrets.rb` reads `ENV` directly. Production still
+  fails closed when `SECRET_KEY_BASE` is unset.
+- When checking for deprecations, unset `SECRET_KEY_BASE` (and other app env vars)
+  first. A leaked `SECRET_KEY_BASE` makes Rails take the ENV branch and hides
+  config-path problems — that is exactly how the `secrets` deprecation stayed
+  invisible locally while CI showed it on every boot.
 - Production serves assets through `config.assets.compile = true` (line 30 of
   `production.rb` is commented out) with `digest = false`, so the layout emits the
   undigested `/assets/application.js` and sprockets compiles it on demand. Verified
