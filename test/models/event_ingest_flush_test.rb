@@ -166,7 +166,9 @@ class EventIngestFlushTest < ActiveSupport::TestCase
     # Rails 6.1 replaced the configurations hash with DatabaseConfigurations;
     # configurations['test']['pool'] now returns nil (the deprecated [] hands back
     # a symbol-keyed hash). configs_for is the API that survives into 7.x.
-    pool = ActiveRecord::Base.configurations.configs_for(env_name: 'test').first.pool
+    # Rails 8.1 renamed the accessor pool -> max_connections and deprecated the
+    # old name (removed in 8.2); database.yml's `pool:` key still feeds it.
+    pool = ActiveRecord::Base.configurations.configs_for(env_name: 'test').first.max_connections
     assert_operator Event::MAX_INSERT_THREADS + 1, :<, pool,
       'insert threads plus the main thread must fit inside the pool'
   end

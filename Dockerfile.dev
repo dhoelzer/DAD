@@ -1,7 +1,7 @@
 # Reproducible dev/test image. The base tag is pinned to a patch release: an
 # unpinned `ruby:3` tag silently breaks the app on a future minor release.
-# Ruby 3.3 is the line Rails 7.1 documents; the app moved off 2.7 because
-# nokogiri/sqlite3 and the json default gem no longer support it.
+# Ruby 3.3 satisfies Rails 8.1 (which needs >= 3.2); the app moved off 2.7
+# because nokogiri/sqlite3 and the json default gem no longer support it.
 FROM ruby:3.3.8
 
 RUN apt-get update -qq && \

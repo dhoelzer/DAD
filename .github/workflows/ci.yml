@@ -48,8 +48,8 @@ jobs:
           ruby-version: '3.3.8'
           bundler-cache: true
 
-      # Rails 7.1 is itself end-of-life (2.5.x/8.x are current), so some
-      # advisories are expected; they are mostly transitive, not framework CVEs.
+      # Rails is on the current stable line, so any framework advisory would be
+      # actionable; remaining hits are mostly transitive dependencies.
       # Reporting stays on and non-blocking so the debt stays visible without
       # gating every PR; clearing it is a dependency-refresh task, not a gate.
       - name: Dependency vulnerabilities

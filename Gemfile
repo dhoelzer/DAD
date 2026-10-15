@@ -1,9 +1,10 @@
 source 'https://rubygems.org'
 
 # Rails 7.1 was the last line that runs on Ruby 2.7; that step also moved Ruby to
-# 3.3 (RECOMMENDATIONS.md 5.2). This step is 7.2 -> 8.0. Keep this in lockstep
+# 3.3 (RECOMMENDATIONS.md 5.2). This step is 8.0 -> 8.1, the current stable line.
+# Rails 8.1 requires Ruby >= 3.2, so 3.3.8 still works. Keep this in lockstep
 # with .ruby-version, .github/workflows/ci.yml and Dockerfile.dev.
-gem 'rails', '~> 8.0.0'
+gem 'rails', '~> 8.1.0'
 
 # Transitive dependency of rails-html-sanitizer, capybara and cucumber-rails.
 # The 1.15 line was pinned only because it was the last one supporting Ruby 2.7;
@@ -11,13 +12,14 @@ gem 'rails', '~> 8.0.0'
 gem 'nokogiri', '~> 1.16'
 
 # Ruby 3.3 ships json 3.x as a default gem, and json 3.0 dropped the
-# quirks_mode option that ActiveSupport's JSON encoder passes
-# (active_support/json/encoding.rb#stringify). Every to_json call then dies with
+# quirks_mode option that ActiveSupport's JSON encoder used to pass
+# (active_support/json/encoding.rb#stringify). Every to_json call then died with
 # "unknown keyword: quirks_mode" -- which takes down all 34 jbuilder views.
-# Verified against the actual sources: 7.1.6, 7.2.3 and 8.0.5 all still pass the
-# option; only 8.1.4 stopped. So this pin stays through the 7.2 and 8.0 steps and
-# can only be dropped at 8.1.
-gem 'json', '~> 2.7'
+# Verified against the actual sources: 7.1.6, 7.2.3 and 8.0.5 all still passed the
+# option; 8.1.4 calls plain JSON.generate(jsonified), so the pin can finally go.
+# Kept as an explicit floor rather than removed, so a future json 4 cannot arrive
+# silently through a transitive dependency.
+gem 'json', '~> 3.1'
 
 group :production do
   # 0.21 predates Ruby 3. Not exercised by CI (BUNDLE_WITHOUT=production), so the
