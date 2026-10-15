@@ -1,7 +1,9 @@
 # DAD — Open Recommendations
 
 Scanned at `b6adf25` (2026-10-14); §2.1 re-verified and closed at the branch
-adding `users_admin_test.rb`. PRs #1–#23 all merged.
+adding `users_admin_test.rb`. Re-verified again at `854f641` (2026-10-15) after
+the post-upgrade cleanup: §1.2 closed, a new §1.3 found and closed, §4.3 gaps
+closed. PRs #1–#23 all merged.
 
 **This document lists only work that is still outstanding.** Everything marked
 closed is verified against the current tree, not against what a PR claimed. The
@@ -17,16 +19,17 @@ than carried forward.
 
 | Area | State |
 |---|---|
-| SQL injection, `eval` sinks, password hashing, hash leakage, XSS, authorization | Closed |
+| SQL injection, `eval` sinks, password hashing, XSS, authorization | Closed |
+| Password hashes in HTML | **Was open — closed at `365c845` (§1.3)** — PR #4 fixed the JSON API leak; the three HTML views were missed |
 | Secrets in the working tree | Closed — **but a production key is still in git history (§1.1)** |
 | Ingestion crash-safety and idempotency | Closed, at-least-once (§2.2) |
 | Search indexing, dashboard SQL portability, timestamp parsing | Closed |
-| Test suite | Green: 194 runs / 542 assertions, 4 cucumber scenarios |
+| Test suite | Green: 218 runs / 624 assertions, 4 cucumber scenarios |
 | Admin screens (sessions, users, jobs) | Closed — now covered by request tests (§2.1) |
 | Poison line / observability | **Open — was mis-marked as fixed (§5.3)** |
 | Rails upgrade | **Closed: 4.2 → 5.2 → 6.1 → 7.1 → 7.2 → 8.0 → 8.1.4 landed** (§5.2, tag `rails-8.1.4`) |
 | Rails EOL | Closed — Rails is on the current stable line (8.1, supported to Oct 2027) |
-| CI security gates | **Now actionable** — bundle-audit is down to 4 advisories, none framework (§1.2) |
+| CI security gates | **Closed — both gates now blocking**, 0 advisories, 0 Brakeman warnings (§1.2) |
 | Partitioning, full-text search | Open (§3) |
 
 ---
@@ -69,7 +72,7 @@ instance still uses that key.
 3. Add a secret-scanning gate so this cannot recur — `gitleaks` or
    `detect-secrets` as a CI step, and as a pre-commit hook.
 
-### 1.2 CI security gates are advisory, not blocking **[security] [operations]**
+### 1.2 ✅ Closed — CI security gates were advisory, not blocking **[security] [operations]**
 
 `.github/workflows/ci.yml` lines 56 and 60 run `bundle-audit` and `brakeman` with
 `continue-on-error: true`. Both are currently informational, so a new vulnerable
@@ -94,11 +97,62 @@ it), and no framework advisory remains. What is left is entirely non-framework:
 | `httparty` | 0.18.1 | CVE-2024-22049 (Med), CVE-2025-68696 (**High**) | Upgrade, or delete — it is referenced nowhere in `app/`, `lib/` or `test/` |
 | `jquery-rails` | 4.3.5 | CVE-2020-11023, CVE-2020-23064 (both Med) | Bump to `~> 4.4` |
 
-**Fix:** the original reason for keeping bundle-audit advisory — that Rails was
-EOL and framework CVEs could not be cleared — no longer applies. Both gates can
-now be made blocking: delete or bump `httparty` (the one High-severity item, and
-it appears to be an unused dependency), bump `jquery-rails` to 4.4, and baseline
-the single pre-existing Brakeman warning with an ignore file.
+**Closed at `bbdd4b4`.** All four advisories cleared and both gates are now
+blocking (`continue-on-error` removed from both steps):
+
+- `httparty` — **deleted**, not bumped. The Gemfile comment claimed it was "For
+  JSON requests for the IP Address blocking service"; no such code exists anywhere
+  in `app/`, `lib/`, `test/`, `features/` or the root scripts. It was dead weight
+  carrying the only High-severity item.
+- `jquery-rails` — bumped to 4.6.1 **and** the manifest switched from
+  `//= require jquery` to `//= require jquery3`. The bump alone would not have
+  cleared either CVE: both are jQuery *core* advisories fixed in jQuery 3.5.0, and
+  jquery-rails still ships 1.12.4 as `jquery.js`. `require jquery` resolved to
+  1.12.4 — confirmed by grepping the built bundle. Switching the manifest is what
+  actually ships 3.7.1. That required patching the vendored `highcharts-custom.js`
+  adapter, which used `.bind()`/`.unbind()` (removed in jQuery 3.0); exactly two
+  call sites, now `.on()`/`.off()`.
+- Brakeman reports **0 warnings**, so no ignore file was needed.
+
+A CI step now greps the compiled `application-*.js` and fails unless it contains a
+jQuery 3 header and does *not* contain 1.12.4 — otherwise a silent revert to
+`require jquery` would re-introduce both CVEs with every other check green.
+
+---
+
+### 1.3 ✅ Closed — bcrypt password hashes were rendered into user-admin HTML **[security]**
+
+PR #4 closed old §1.4, "password hashes leaking through the JSON API", by
+whitelisting attributes in the jbuilder views. The **HTML** views were never
+fixed, and the status snapshot's "hash leakage — Closed" line has been overstating
+the position ever since. Three of the four user views interpolated the `password`
+column, which holds a bcrypt hash:
+
+| View | Code | Effect |
+|---|---|---|
+| `users/index.html.erb` | `<td><%= user.password %></td>` | every account's hash on one page |
+| `users/show.html.erb` | `<%= @user.password %>` | one account's hash |
+| `users/_form.html.erb` | `f.text_field :password` | prefills the hash into a **visible** input on edit |
+
+Admin-gated is not a sufficient answer: the hash leaves the trust boundary once it
+is in HTML — browser history, proxy/CDN logs that capture bodies, error reporters,
+and any XSS on the page (§1.7 exists because event and system text is
+attacker-controlled). For bcrypt the hash *is* the password-equivalent, so
+exposing it enables offline cracking without touching the login endpoint or its
+lockout.
+
+The edit form was also a **functional** bug. A browser submits what the form
+rendered, so opening a user, editing the name, and pressing Save without touching
+the password field submitted the stored hash as the new password; `#update` saw a
+present value and re-hashed it, storing `bcrypt(old hash)`. Reproduced end to end:
+the account could no longer log in with its real password. The pre-existing
+"updating without a password leaves the existing password working" test could not
+catch this — it only covered the field being absent or empty, never prefilled.
+
+**Closed at `365c845`:** Password column and paragraph removed; `text_field` →
+`password_field` (Rails renders password fields with `value: nil`, so the hash is
+never sent to the browser). `credential_exposure_test.rb` pins all of it, including
+the browser round-trip; against the pre-fix views those tests produce 4 failures.
 
 ---
 
@@ -292,14 +346,36 @@ Verified already gone (do not go looking for these): `Event.search2` and
 blocks across 15 controllers, `Service has_many :servers`, `resources :positions`
 and its fixture, and the empty `CreateIndicesOnEventsWords` migration.
 
-### 4.3 The suite is green but shallow on the routes that broke **[maintainability]**
+### 4.3 ✅ Closed — the suite was shallow on the routes that broke **[maintainability]**
 
-194 runs / 534 assertions across 44 test files, plus 4 cucumber scenarios.
+218 runs / 624 assertions, plus 4 cucumber scenarios.
 
-The admin CRUD request specs called for in the previous revision now exist
-(`users_admin_test.rb`, `sessions_admin_test.rb`), which is what closed §2.1.
-Remaining gaps: no coverage of the `roles`/`role_add`/`role_remove` privilege
-escalation path, and no coverage of `alerts` acknowledgement.
+The admin CRUD request specs called for in the previous revision exist
+(`users_admin_test.rb`, `sessions_admin_test.rb`), which is what closed §2.1. The
+two remaining gaps are now closed at `854f641`:
+
+- `role_grant_test.rb` — the `roles`/`role_add`/`role_remove` escalation path,
+  including that granting Admin confers every right, that the endpoint is itself
+  gated against a non-admin, and that re-granting does not duplicate the join row.
+- `alert_acknowledge_test.rb` — `acknowledge` (HTML and JS branches) and `ackall`,
+  plus the index filter that keeps closed alerts out of the open queue.
+
+Writing those tests surfaced one real bug, fixed at `5ab2ca4`: `User#right_names`
+memoised the resolved right list and nothing ever cleared it, so `reload` returned
+a user whose rights read stale (`user.roles << admin_role; user.reload;
+user.has_right?('Admin') # => false`). Latent rather than live — `role_add`
+redirects, so the next request loads a fresh instance — but it sits directly
+underneath the authorisation check every controller funnels through.
+
+**Two things the tests pin down rather than fix, needing a decision:**
+
+1. `acknowledge` and `ackall` are **GET** (`member do get :acknowledge end`,
+   `collection do get 'ackall' end`, called from `link_to`). A state-changing
+   action reachable by an unconfirmed GET: an `<img>` tag or a link prefetch closes
+   alerts, and CSRF protection does not apply because Rails only verifies non-GET
+   verbs. Converting to POST means routes plus three view call sites.
+2. `ackall` is unscoped and unconfirmed — one request closes the entire queue,
+   including alerts another operator was about to work.
 
 One known flake: an intermittent `SQLite3::BusyException` in the threaded-path
 tests. It is the same single-writer constraint as §4.1 and predates all recent
@@ -815,7 +891,8 @@ three processes fit together, and where logs go.
 | Priority | Item | Effort | Why here |
 |---|---|---|---|
 | 1 | §1.1 production secret: rotate + secret scanning | hours | Impersonation risk if any deployment still uses the 2015 key |
-| 2 | §1.2 make brakeman blocking (baselined) | hours | Cheap, stops new sinks landing |
+| 2 | ~~§1.2 make security gates blocking~~ **done** (`bbdd4b4`, 0 advisories / 0 warnings) | — | — |
+| 2b | Decide on §4.3's GET-with-side-effects (`acknowledge`, `ackall`) | hours | CSRF-immune state change; tests now pin the current contract |
 | 3 | §4.1 option A: subprocess coverage of threaded ingest | hours | Nearly free — harness exists |
 | 4 | §5.3 poison-line handling + `Rails.logger` | hours | Stops silent ingestion stalls; compounds §5.1 |
 | 5 | §5.1 systemd units | days | The importer dying silently is the main operational risk |
@@ -867,6 +944,12 @@ Verified closed against the current tree:
 | — | Ingest throughput measured after the queue reset (a regression introduced by #17): the dashboard EPS chart read 0.0 and `@bulk_insert_size` grew +20 per flush with no ceiling | #22 |
 | §3.1 | Statistics helpers re-running the same grouped query per reduction; `system_service_stats` N+1 (4 finds → 0); duplicate `hourly_stats` call in the dashboard template (5 grouped queries → 4 per render) | this branch |
 | §2.1 | Four admin screens: `sessions#index`/`#show` 500'd on removed route helpers; `jobs#test` 500'd on nil `@job`; `Users#destroy` orphaned Session rows and 500'd subsequent requests; `Users#update` locked accounts out on a blank password and could persist plaintext; `Users#create` accepted an empty password. Plus request-spec coverage for all of it | #23 |
+| §1.2 | All four remaining bundle-audit advisories cleared (`httparty` deleted as unused; `jquery-rails` 4.6.1 **plus** `//= require jquery3`, which is what actually ships jQuery 3.7.1 — the gem bump alone ships 1.12.4; vendored Highcharts adapter patched `.bind`/`.unbind` → `.on`/`.off`); both CI security gates made blocking; new `assets` CI job precompiles and boots with a manifest present | `bbdd4b4` |
+| — | **Boot regression introduced by the 8.1 upgrade**: the `json ~> 3.1` pin broke sprockets 3.7.5, which calls `JSON.parse(obj, create_additions: false)` in its manifest reader, so the app could not boot when a compiled manifest already existed. CI missed it because a fresh checkout has no manifest and `rake test` never reads one. `json` restored to `~> 2.7`; sprockets 4 is not an escape hatch (identical call). | `bf1fd80` |
+| §1.3 | bcrypt password hashes rendered into `users/index`, `users/show` and prefilled into the edit form (`text_field :password`) — missed by PR #4, which only fixed the JSON API. Also a functional bug: resubmitting the edit form re-hashed the hash and locked the account out. | `365c845` |
+| — | `User#right_names` memo survived `reload`, so a reloaded user reported stale rights | `5ab2ca4` |
+| §4.3 | Request coverage for `role_add`/`role_remove` escalation and `acknowledge`/`ackall` | `854f641` |
+| — | The cross-version probe harness used to verify the upgrade is now in the repo (`script/probe.rb`, `script/probe_compare.rb`, `rake probe:run` / `probe:compare`). Committing it fixed a coverage hole: plain `:id` resolved to a literal `1`, so every member route 404'd and show/edit/roles were never rendered — the §1.3 leak produced no probe diff at all. | `67566f4` |
 
 The superseded review revisions -- including the misdiagnoses and the reasoning
 that corrected them -- are preserved in git:
