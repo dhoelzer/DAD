@@ -16,8 +16,12 @@
     <%= f.text_field :username %>
   </div>
   <div class="field">
+    <%# password_field, not text_field: Rails renders password fields with
+        value: nil, so the stored bcrypt hash is never sent to the browser.
+        As a text_field this prefilled the hash, and resubmitting the form
+        unchanged re-hashed it -- bcrypt(old hash) -- locking the account. %>
     <%= f.label :password %><br>
-    <%= f.text_field :password %>
+    <%= f.password_field :password, autocomplete: "off" %>
   </div>
   <div class="field">
     <%= f.label :Name %><br>
