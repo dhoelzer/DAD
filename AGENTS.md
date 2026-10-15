@@ -7,17 +7,22 @@ inverted index) → Rails UI (dashboards, search, alerts, jobs, custom RBAC).
 
 ## Build / test (as of the reproducible-build branch)
 - Toolchain: Ruby 3.3.8 + Bundler 2.6.7 (pinned in `.ruby-version` / `Gemfile.lock`
-  "BUNDLED WITH"). Rails is 7.1.6 (`~> 7.1.0`). Ruby jumped at the 7.1 step rather
-  than at 7.2 because nokogiri and sqlite3 had already dropped 2.7. 3.3.8 is above
-  the Rails 7.2 (3.1) and 8.1 (3.2) floors, so the remaining upgrade steps need no
-  Ruby work.
-- Two pins are load-bearing and easy to "clean up" by mistake:
-  `json ~> 2.7` (Ruby 3.3's default gem is json 3.x, which dropped `quirks_mode`,
-  which ActiveSupport 7.1 calls — every `to_json` and all 34 jbuilder views die
-  without the pin) and `minitest ~> 5.25` (minitest 6 changed `after_run`'s
-  signature and the Rails 7.1 test runner breaks; activesupport 7.1 only requires
-  `>= 5.1`, so nothing else holds it down). `sqlite3 '~> 1.7', '< 2'` is a *Rails*
-  ceiling (7.1's adapter predates the 2.x API), not a Ruby one — it lifts at 7.2.
+  "BUNDLED WITH"). Rails is 8.1.4 (`~> 8.1.0`), tagged `rails-8.1.4`; the path was
+  7.1.6 -> 7.2.3.2 -> 8.0.5.1 -> 8.1.4, one commit per minor step. Ruby jumped at
+  the 7.1 step rather than at 7.2 because nokogiri and sqlite3 had already dropped
+  2.7. 3.3.8 sits above the 7.2 (3.1) and 8.1 (3.2) floors, so no step after 7.1
+  needed any Ruby work.
+- `minitest ~> 5.25` is still load-bearing and easy to "clean up" by mistake:
+  minitest 6 narrowed `Minitest::Test.run` to `(reporter, options)` and railties'
+  TestUnit runner still calls it with 3 args, so every test dies with "wrong
+  number of arguments (given 3, expected 1..2)". railties 8.0 dropped minitest
+  from its runtime dependencies entirely, so nothing else holds the 5.x line.
+  `json` moved `~> 2.7` -> `~> 3.1` at the 8.1 step: ActiveSupport <= 8.0 called
+  `JSON.generate(jsonified, quirks_mode: true, max_nesting: false)` and json 3.x
+  removed that keyword, so the 2.7 pin was load-bearing through 7.1/7.2/8.0 (all
+  34 jbuilder views die without it); 8.1.4 calls plain `JSON.generate`. The floor
+  is kept explicit so a future json 4 cannot arrive transitively. `sqlite3` went
+  `~> 1.7, < 2` -> `~> 2.1` at 8.0, whose adapter *requires* >= 2.1.
 - `Gemfile.lock` and `db/schema.rb` are now tracked on purpose — do not re-add them
   to `.gitignore`.
 - Run tests: `bundle install --frozen` (set `BUNDLE_WITHOUT=production` to skip `pg`),
@@ -46,6 +51,10 @@ inverted index) → Rails UI (dashboards, search, alerts, jobs, custom RBAC).
   only mixes `RSpec::Matchers` into `Cucumber::Rails::World` when
   `rspec/rails/matchers` is loadable, and the cucumber steps call `expect`. Dropping
   it fails all 4 scenarios with `undefined method 'expect'`.
+- `cucumber-rails` had to move `~> 2.6` -> `~> 3.1` for Rails 8: 2.6.x caps
+  `railties < 8`, which is what blocked the 8.0/8.1 steps. 3.1.x is the oldest line
+  accepting railties 8 and keeps the `features/support/env.rb` API unchanged;
+  `database_cleaner 1.99` still satisfies it. `rspec-rails 6.1.5` needed no change.
 - `config/initializers/assets_precompile.rb` exists because Rails 7.1's Active
   Storage / Action Cable / Action Text engines append ES6 bundles to
   `config.assets.precompile`, which uglifier 2.7 cannot parse (`assets:precompile`
@@ -60,6 +69,28 @@ inverted index) → Rails UI (dashboards, search, alerts, jobs, custom RBAC).
   keeps only the production `ENV["SECRET_KEY_BASE"]` pass-through, and
   `config/initializers/require_secrets.rb` reads `ENV` directly. Production still
   fails closed when `SECRET_KEY_BASE` is unset.
+- `ActiveSupport`'s `to_time` behaviour changed across these steps and the app
+  never calls `config.load_defaults`, so *no* `load_defaults`-gated default is ever
+  applied here — every behaviour change must be opted into by hand. Sequence: 7.2
+  deprecated leaving `to_time_preserves_timezone` unset; 8.0 deprecated the boolean
+  form in favour of `config.active_support.to_time_preserves_timezone = :zone`;
+  8.1 removed the switch and hardcoded `:zone`. Setting `:zone` at 8.0 made the 8.1
+  step provably neutral. Inert for this app (no `to_time` in app/ or lib/, and both
+  `Time.zone` and the system zone are UTC).
+- 8.1 renamed `DatabaseConfigurations#pool` -> `#max_connections` (old name
+  deprecated, gone in 8.2). `test/models/event_ingest_flush_test.rb` read the old
+  accessor and now uses the new one; `database.yml`'s `pool:` key still feeds it.
+- Rails 8.1 rebuilt `utf8_enforcer_tag` from a raw string literal into a `tag()`
+  call, so every form's utf8 enforcer input now renders `type="hidden"` *before*
+  `name="utf8"`. Attribute order only — same attributes, value and encoding. Any
+  byte-exact HTML comparison across the 8.0/8.1 boundary trips on it; normalise.
+- Comparing behaviour across versions: use `git worktree add` on the previous
+  upgrade commit and run a probe script against both. Freezing the clock is
+  mandatory (`datetime_select` embeds `Date.today`/`Time.now` in option values),
+  fixtures must be loaded before the probe's auth setup (Rails 7.1+ hashes fixture
+  labels, so ids are stable and identical in both trees), and bcrypt hashes, object
+  addresses and now-derived timestamps must be normalised out of the digest. With
+  that in place the 7.1->7.2 and 8.0->8.1 diffs were empty apart from the utf8 tag.
 - When checking for deprecations, unset `SECRET_KEY_BASE` (and other app env vars)
   first. A leaked `SECRET_KEY_BASE` makes Rails take the ENV branch and hides
   config-path problems — that is exactly how the `secrets` deprecation stayed
@@ -72,6 +103,13 @@ inverted index) → Rails UI (dashboards, search, alerts, jobs, custom RBAC).
 ## Facts worth remembering
 - Last upstream commit: 2016-10-01. Before the reproducible-build branch: `rails '> 4'`
   unpinned, no `Gemfile.lock`, no `db/schema.rb`, no CI.
+- `bundle-audit` at 8.1 reports 4 advisories, all unchanged by the framework bump:
+  `httparty 0.18.1` (CVE-2024-22049, CVE-2025-68696 — and httparty is referenced
+  nowhere in app/, lib/ or test/, so it is a candidate for removal) and
+  `jquery-rails 4.3.5` (CVE-2020-11023, CVE-2020-23064, fixed in jquery-rails 4.4.0).
+- `/users` (HTML) renders the bcrypt `password_hash` column into the table body.
+  Confirmed while diffing probe output: the only per-run variation in that page is
+  the hash's random salt. Listing users should not emit hashes.
 - App class is `Events::Application`; DB is Postgres in production, SQLite in dev/test,
   but the code uses PG-only SQL (`pg_stat_user_tables`, `extract()`) → dev/test diverge.
 - Auth is hand-rolled: `users`/`roles`/`rights` + `sessions` table + `cookies[:sessionID]`.

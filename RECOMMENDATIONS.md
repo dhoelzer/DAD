@@ -24,8 +24,9 @@ than carried forward.
 | Test suite | Green: 194 runs / 542 assertions, 4 cucumber scenarios |
 | Admin screens (sessions, users, jobs) | Closed — now covered by request tests (§2.1) |
 | Poison line / observability | **Open — was mis-marked as fixed (§5.3)** |
-| Rails upgrade | **4.2 → 5.2 → 6.1 → 7.1 landed**; 7.1 → 8.1 open (§5.2) |
-| Rails 7.1 EOL, CI security gates | Open (§5.2, §1.2) |
+| Rails upgrade | **Closed: 4.2 → 5.2 → 6.1 → 7.1 → 7.2 → 8.0 → 8.1.4 landed** (§5.2, tag `rails-8.1.4`) |
+| Rails EOL | Closed — Rails is on the current stable line (8.1, supported to Oct 2027) |
+| CI security gates | **Now actionable** — bundle-audit is down to 4 advisories, none framework (§1.2) |
 | Partitioning, full-text search | Open (§3) |
 
 ---
@@ -80,14 +81,24 @@ framework CVEs are gone; what remains is mostly transitive (`rdoc`, `sqlite3`).
 Measured again after the 6.1 → 7.1 step: Brakeman is unchanged at **1 warning**
 (one high-confidence finding, pre-existing), and bundle-audit advisories fall from
 **40 to 25**. The `json 1.8.6`, `rdoc` and 17 `nokogiri` advisories are gone; what
-remains is 10 × `sqlite3` (the dev/test-only gem, capped at 1.7.3 by the
+remained was 10 × `sqlite3` (the dev/test-only gem, capped at 1.7.3 by the
 `< 2.0` ceiling — see §5.2), 6 × `activestorage` (an engine this app does not use
 at all), and `httparty`/`jquery-rails`/`mail`/`actionview`.
 
-**Fix:** split the job. Make **brakeman blocking now** (the 2 warnings are
-pre-existing and can be baselined with an ignore file, so blocking does not stall
-PRs); keep bundle-audit advisory until Rails is on a supported line, since the
-remaining advisories still need dependency work rather than app changes.
+Measured a third time after the 7.1 → 8.1.4 steps: **25 → 4**. The `sqlite3` and
+`activestorage` advisories are gone (sqlite3 moved to 2.10 once Rails 8.0 allowed
+it), and no framework advisory remains. What is left is entirely non-framework:
+
+| Gem | Version | Advisories | Fix |
+|---|---|---|---|
+| `httparty` | 0.18.1 | CVE-2024-22049 (Med), CVE-2025-68696 (**High**) | Upgrade, or delete — it is referenced nowhere in `app/`, `lib/` or `test/` |
+| `jquery-rails` | 4.3.5 | CVE-2020-11023, CVE-2020-23064 (both Med) | Bump to `~> 4.4` |
+
+**Fix:** the original reason for keeping bundle-audit advisory — that Rails was
+EOL and framework CVEs could not be cleared — no longer applies. Both gates can
+now be made blocking: delete or bump `httparty` (the one High-severity item, and
+it appears to be an unused dependency), bump `jquery-rails` to 4.4, and baseline
+the single pre-existing Brakeman warning with an ignore file.
 
 ---
 
@@ -314,15 +325,19 @@ Verified at `b6adf25`:
 `Restart=always`, make `provision.sh` a thin wrapper around them, and use
 `install -m 0644` with a heredoc instead of `sudo cat >`.
 
-### 5.2 Rails is end-of-life — what a Rails 8 upgrade actually requires **[operations]**
+### 5.2 ✅ Closed — the Rails 8 upgrade has landed **[operations]**
 
-`Gemfile` pins `rails '~> 7.1.0'` (resolves 7.1.6). Steps 1 (→ 5.2), 2 (→ 6.1)
-and 3 (→ 7.1) of the sequence at the end of this section have landed; the plan
-below is kept in full because the remaining steps (7.2 → 8.1) still depend on it.
-7.1 has been EOL since October 2024 and has open CVEs with no fix available,
-which is why bundle-audit stays non-blocking (§1.2). Ruby is pinned to 3.3.8 in
-CI — supported, and already past the 7.2/8.1 floors (3.1 / 3.2), so the Ruby jump
-that used to gate step 4 is done.
+`Gemfile` now pins `rails '~> 8.1.0'` (resolves **8.1.4**), tagged `rails-8.1.4`.
+Every step of the sequence at the end of this section has landed: 4.2 → 5.2 → 6.1
+→ 7.1 → 7.2 → 8.0 → 8.1, one commit per minor step. Rails is on the current
+stable line (8.1 gets security fixes to October 2027), so the EOL rationale that
+kept bundle-audit non-blocking (§1.2) is gone. Ruby stayed at 3.3.8 for the whole
+of it — 3.3.8 was already above the 7.2 (3.1) and 8.1 (3.2) floors.
+
+The plan below is kept in full: it is the record of *why* each pin and each
+config change exists, and the remaining sections are still accurate as history.
+The "What the 7.2 → 8.1 steps actually hit" subsection at the end records what
+the last three steps really required.
 
 This is the dependency that gates several other items: Postgres partitioning
 (§3.2) and a Postgres test database (§4.1 option C) both become tractable during
@@ -330,10 +345,11 @@ a Rails upgrade, and the CI security gates can only be made blocking afterwards.
 
 **Baseline at the start of this workstream.** Rails 4.2.11.3 · Ruby 2.7.8 ·
 Bundler 1.17.3 · rack 1.6.13 · sprockets 2.12.5 · SQLite in dev/test, Postgres in
-prod (`pg 0.21.0`). **Current baseline after steps 1–3:** Rails 7.1.6 ·
-Ruby 3.3.8 · Bundler 2.6.7 · rack 2.2 · sprockets 3.7.5 · jbuilder 2.13 ·
-nokogiri 1.19 · pg 1.7 · sqlite3 1.7.3 · json 2.19 (pinned off the 3.x default
-gem) · minitest 5.27 (pinned off 6.x).
+prod (`pg 0.21.0`). **Current baseline after all steps:** Rails **8.1.4** ·
+Ruby 3.3.8 · Bundler 2.6.7 · rack 2.2 · sprockets 3.7.5 · jbuilder 2.15 ·
+nokogiri 1.19 · pg 1.5 (production group, not exercised by CI) · sqlite3 2.10 ·
+json 3.1 (floor raised at the 8.1 step, once Rails stopped passing `quirks_mode`)
+· minitest 5.27 (still pinned off 6.x) · mail 2.9 · cucumber-rails 3.1.
 3,680 LOC of Ruby in `app`/`lib`, 1,735 LOC across 90 views (34 of them
 jbuilder), 2,923 LOC of tests, 29 migrations, 22 models, 19 controllers.
 
@@ -635,18 +651,17 @@ and a sprockets cache miss per request until the cache warms.
 
 #### Test and deployment stack
 
-**Already moved by step 3:** Bundler 2.6.7, `pg 1.7`, `sqlite3 1.7.3`,
-`nokogiri 1.19`, `bcrypt 3.1.20`, `cucumber-rails 2.6`, `rspec-rails 6.1`,
-`rack 2.2`. **Still outstanding for 7.2/8.1:** `capybara` → 3.40,
-`database_cleaner` → 2.x, and `sqlite3` 2.x (which Rails 7.2+ wants and which the
-current `~> 1.7, < 2` ceiling blocks — the ceiling exists because Rails 7.1's
-adapter predates the 2.x API, not because of Ruby). `rack 1.6` → 3.x is low-risk
-here because the app defines
-`ActionController::TestCase`; `test_helper.rb:26` declares `fixtures :all` but
-there are no fixtures. `rack 1.6` → 3.x is low-risk here because the app defines
-**no custom middleware** (verified: zero `middleware` references in `config/`,
-`app/`, `lib/`). CI (`ruby-version`) and `Dockerfile.dev` (`FROM ruby:`) both
-moved to 3.3.8 at step 3, and §1.2's advisory security gates become blocking at the end.
+**Landed across steps 3–6:** Bundler 2.6.7, `pg 1.5` (production group),
+`nokogiri 1.19`, `bcrypt 3.1.20`, `rspec-rails 6.1`, `capybara 3.40`, `rack 2.2`.
+`sqlite3` went 1.7.3 → **2.10** at the 8.0 step (the `< 2` ceiling existed because
+Rails 7.x's adapter predates the 2.x API, not because of Ruby), and
+`cucumber-rails` 2.6 → **3.1** for the same reason. `database_cleaner` stayed on
+**1.99** — cucumber-rails 3.1 still accepts it, so the 2.x split was never forced.
+`rack` stayed on **2.2**: Rails 8.1 supports it, and moving to 3.x is optional.
+`rack 1.6` → 3.x was low-risk here because the app defines **no custom middleware**
+(verified: zero `middleware` references in `config/`, `app/`, `lib/`). CI
+(`ruby-version`) and `Dockerfile.dev` (`FROM ruby:`) both moved to 3.3.8 at step 3
+and needed no further change.
 
 #### Recommended sequence
 
@@ -656,8 +671,9 @@ moved to 3.3.8 at step 3, and §1.2's advisory security gates become blocking at
 | **1. → 5.2** | 2.7.8 | **Done.** Migration brackets (item 5), `belongs_to` decision (item 6). `load_defaults` deliberately *not* adopted — see the note below the table. |
 | **2. → 6.1** | 2.7.8 | **Done.** Zeitwerk now mandatory (item 9). Sprockets stayed on 3.7.5 (4 is not required at this step). |
 | **3. → 7.1** | **3.3.8** | **Done.** Ruby jumped here rather than at 7.2 — nokogiri and sqlite3 had already dropped 2.7, and Ruby 3.3's `json` 3.x default gem forced a pin. `to_fs(:db)` (item 8), `exec_query` binds (item 1), the precompile-list fix. |
-| **4. → 7.2** | 3.3.8 (no change) | Now a pure Rails step. `Rails.application.secrets` (item 7) was already migrated at step 3, so nothing is pre-gated here. `sqlite3` 2.x ceiling lifts. |
-| **5. → 8.1** | 3.3.8 (no change) | Propshaft, Turbo, `dartsass-rails`. Target 8.1, not 8.0: 8.0 gets security fixes only to Nov 2026, 8.1 to Oct 2027. |
+| **4. → 7.2** | 3.3.8 (no change) | **Done.** Was a pure Rails step; `Rails.application.secrets` (item 7) had already migrated at step 3. `mail` had to move off `~> 2.7.0` (actionmailer ≥ 7.2 needs `mail >= 2.8`). `sqlite3` ceiling did *not* lift here — 7.2 still accepts 1.x; it lifted at 8.0. |
+| **5. → 8.0** | 3.3.8 (no change) | **Done** (inserted as its own step rather than jumping 7.2 → 8.1). `sqlite3` → `~> 2.1` (8.0's adapter *requires* ≥ 2.1) and `cucumber-rails` → `~> 3.1` (2.6.x caps `railties < 8`). |
+| **6. → 8.1** | 3.3.8 (no change) | **Done.** `json` → `~> 3.1` — the step every earlier pin was waiting for. Propshaft / Turbo / `dartsass-rails` deliberately **not** adopted: they are opt-in modernisation, not requirements of 8.1, and Sprockets 3.7.5 + uglifier 2.7 still build byte-identical output. |
 
 **Do §4.3 first.** The suite is 194 runs against 90 views and the ingest path, and
 the two most dangerous items above (6 and 8) both fail *silently* — dropped nav
@@ -667,6 +683,77 @@ makes each of the five steps verifiable; without them this is a multi-week chang
 validated by eyeballing a dashboard.
 
 Worth treating as the main long-running workstream rather than a task.
+
+#### What the 7.2 → 8.1 steps actually hit (landed)
+
+The prediction that these would be "pure Rails steps with no Ruby work" held, but
+they were not no-ops. Each step was verified against a `git worktree` pinned at the
+previous upgrade commit, comparing the full test suite, cucumber, the route table,
+a byte-digest of every GET route, ~30 model-layer probes, and `assets:precompile`
+output.
+
+**7.1 → 7.2.3.2**
+- `mail ~> 2.7.0` was the blocker: `actionmailer >= 7.2.0` requires `mail >= 2.8`,
+  so Rails 7.2+ was simply unresolvable. The app has no mailers and never
+  references `Mail`, so relaxing to `~> 2.8` is free.
+- `sqlite3` stayed `< 2` — 7.2's adapter accepts 1.4 or 2.x, so the ceiling was
+  not the constraint anyone expected at this step.
+- New deprecation: leaving `ActiveSupport.to_time_preserves_timezone` unset.
+- Result: routes identical, all 145 GET samples byte-identical, all probes
+  identical, assets byte-identical.
+
+**7.2 → 8.0.5.1**
+- `sqlite3` → `~> 2.1`: the 8.0 adapter *requires* ≥ 2.1 (it uses the 2.x
+  `SQLite3::Statement`/`Database` API). Precompiled x86_64-linux wheels mean no
+  local toolchain is needed.
+- `cucumber-rails ~> 2.6` → `~> 3.1`: 2.6.x caps `railties < 8`. This, not Rails
+  itself, is what blocked 8.0 and 8.1. 3.1.x is the oldest line accepting
+  railties 8 and keeps `features/support/env.rb` unchanged; `database_cleaner
+  1.99` still satisfies it. `rspec-rails 6.1.5` needed no change.
+- `to_time_preserves_timezone = true` became deprecated in favour of
+  `config.active_support.to_time_preserves_timezone = :zone`. Because this app
+  calls **no** `config.load_defaults`, the 8.0 default is not applied on its own —
+  the value has to be set by hand. Setting `:zone` here made the 8.1 step
+  provably neutral.
+- Result: routes identical, all 145 GET samples byte-identical, all probes
+  identical, assets byte-identical. Zero behavioural change.
+
+**8.0 → 8.1.4**
+- `json ~> 2.7` → `~> 3.1`. This is the step the pin existed for: ActiveSupport
+  ≤ 8.0 called `JSON.generate(jsonified, quirks_mode: true, max_nesting: false)`
+  and json 3.x removed the keyword, so the pin was load-bearing through 7.1, 7.2
+  and 8.0 (it would have killed every `to_json` and all 34 jbuilder views). 8.1.4
+  calls plain `JSON.generate(jsonified)`.
+- `config.active_support.to_time_preserves_timezone` removed — 8.1 hardcoded the
+  `:zone` behaviour it was already set to, so the setting became a warning-only
+  no-op.
+- `DatabaseConfigurations#pool` renamed `#max_connections` (old name deprecated,
+  gone in 8.2). `test/models/event_ingest_flush_test.rb` read the deprecated
+  accessor and warned on every run.
+- **The one visible behaviour change:** 8.1 rebuilt `utf8_enforcer_tag` from a raw
+  string literal into a `tag()` call, so every form's utf8 enforcer input now
+  renders `type="hidden"` before `name="utf8"`. 12 of 145 sampled pages changed,
+  each in exactly that one place — same attribute set, same value, same encoding.
+  Verified mechanically by rewriting the 8.0 markup into the 8.1 form and
+  confirming the documents then match byte-for-byte. Cosmetic, but it is the kind
+  of diff that is only provable rather than assumed.
+- Result: routes identical, all model probes identical, 133/145 GET samples
+  byte-identical (the other 12 = the utf8 tag), assets byte-identical.
+
+**Method note (worth repeating for the next upgrade).** A cross-version probe is
+only trustworthy once it is deterministic. Three things had to be pinned down:
+the clock (frozen — `datetime_select` embeds `Date.today`/`Time.now` in option
+values, which otherwise changes every page), fixture loading *before* the probe's
+auth setup (Rails 7.1+ hashes fixture labels, so ids are stable and identical in
+both trees), and normalising bcrypt hashes, object addresses and now-derived
+timestamps out of the digest. Without those, the diff is noise; with them, the
+7.1→7.2 and 8.0→8.1 diffs came back genuinely empty.
+
+**Still open after the upgrade:** §4.3 (request-spec coverage) remains the real
+gap — the probe harness lives in `/tmp` and is not committed, so the next upgrade
+still starts from 194 unit runs against 90 views. And the two non-framework
+advisories in §1.2 (`httparty`, `jquery-rails`) are now the only thing standing
+between this repo and blocking CI security gates.
 
 ### 5.3 One malformed log line still kills the collector **[operations] [correctness]**
 
