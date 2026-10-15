@@ -10,7 +10,10 @@
 // Read Sprockets README (https://github.com/sstephenson/sprockets#sprockets-directives) for details
 	// about supported directives.
 	//
-	//= require jquery
+	// jquery3 (3.7.0), not jquery (1.12.4): CVE-2020-11023 / CVE-2020-23064 are
+	// jQuery core XSS, fixed only in jQuery 3.5.0. The vendored Highcharts 4.0.4
+	// adapter was patched .bind/.unbind -> .on/.off for this (fixed upstream in 4.2).
+	//= require jquery3
 	//= require jquery_ujs
 	//= require turbolinks
 	//= require highcharts-custom.js

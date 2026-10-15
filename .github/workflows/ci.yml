@@ -49,18 +49,34 @@ jobs:
       BUNDLE_WITHOUT: production
     steps:
       - uses: actions/checkout@v4
+
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.3.8'
           bundler-cache: true
+
       - name: Install sqlite dev headers
         run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
+
       - name: Precompile assets
         run: bundle exec rake assets:precompile
+
       # The manifest now exists on disk; booting reads it. Fails loudly if the
       # json gem and sprockets disagree about JSON.parse keyword arguments.
       - name: Boot with a sprockets manifest present
         run: bundle exec rails runner 'puts "boot ok"'
+
+      # Guards the `//= require jquery3` switch: jquery-rails still ships
+      # 1.12.4 as jquery.js, so a silent revert to `require jquery` would
+      # re-introduce CVE-2020-11023 / CVE-2020-23064 with everything else green.
+      - name: Assert the built bundle ships jQuery 3
+        run: |
+          f=$(ls public/assets/application-*.js | head -1)
+          grep -q "jQuery JavaScript Library v3" "$f" \
+            || { echo "built bundle is not jQuery 3:"; grep -aoE "jQuery (JavaScript Library )?v[0-9.]+" "$f" | sort -u; exit 1; }
+          grep -q "jQuery JavaScript Library v1\.12\.4" "$f" \
+            && { echo "jQuery 1.12.4 present in bundle"; exit 1; }
+          echo "built bundle ships jQuery 3"
 
   security:
     runs-on: ubuntu-latest
@@ -74,16 +90,16 @@ jobs:
           ruby-version: '3.3.8'
           bundler-cache: true
 
-      # Rails is on the current stable line, so any framework advisory would be
-      # actionable; remaining hits are mostly transitive dependencies.
-      # Reporting stays on and non-blocking so the debt stays visible without
-      # gating every PR; clearing it is a dependency-refresh task, not a gate.
+      # Both gates are now blocking. They were advisory because Rails 7.1 was
+      # EOL with unfixable framework CVEs; Rails is now on a supported line and
+      # the last four advisories have been cleared (httparty removed as an unused
+      # dependency, jquery-rails bumped plus `//= require jquery3` to actually
+      # ship jQuery >= 3.5). Brakeman reports 0 warnings, so no ignore file is
+      # needed. A new advisory or a new sink now fails the build.
       - name: Dependency vulnerabilities
-        continue-on-error: true
         run: bundle exec bundle-audit check --update
 
       - name: Static analysis
-        continue-on-error: true
         run: bundle exec brakeman -q --no-pager -o brakeman-report.txt
 
       - uses: actions/upload-artifact@v4

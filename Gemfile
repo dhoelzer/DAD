@@ -77,8 +77,12 @@ end
 # API-compatible for everything actionmailer uses.
 gem 'mail', '~> 2.8'
 
-# For JSON requests for the IP Address blocking service.
-gem 'httparty', '~> 0.18.0'
+# Removed: httparty ~> 0.18.0. The comment above it read "For JSON requests for
+# the IP Address blocking service", but no such code exists in this repo -- no
+# HTTParty reference in any .rb/.erb/.yml/.js file, and no IP-blocking/geoip
+# code at all. The 0.18.x line carries CVE-2025-68696 (High) and
+# CVE-2024-22049, and it was the only High-severity advisory left. If that
+# feature is ever built, add a current httparty (0.24.x) then.
 
 # CodeMirror is vendored under vendor/assets (three files added with the Rails 6.1
 # step). The codemirror-rails gem capped railties at < 6.0 and has not been
@@ -101,7 +105,15 @@ gem 'coffee-rails', '~> 4.2.2'
 
 # Use jquery as the JavaScript library. 4.3.x is the oldest line compatible with
 # the rails-dom-testing 2.0 that Rails 5.2 pulls in.
-gem 'jquery-rails', '~> 4.3.5'
+#
+# Raised to 4.6.x for CVE-2020-11023 / CVE-2020-23064 (jQuery core XSS, fixed in
+# jQuery 3.5.0). The gem version alone was not enough: jquery-rails ships three
+# jQuery lines (jquery.js = 1.12.4, jquery2.js = 2.2.4, jquery3.js = 3.7.0) and
+# the manifest's `//= require jquery` selected 1.12.4. application.js now
+# requires jquery3, which is what actually clears the advisories. See the
+# highcharts-custom.js note: the vendored Highcharts 4.0.4 jQuery adapter had to
+# be patched from .bind()/.unbind() (removed in jQuery 3.0) to .on()/.off().
+gem 'jquery-rails', '~> 4.6.0'
 
 # Turbolinks makes following links in your web application faster.
 # Pinned to the 2.x line: the views use `data-no-turbolink`, which Turbolinks 5
