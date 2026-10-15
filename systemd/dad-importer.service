@@ -1,0 +1,49 @@
+[Unit]
+Description=DAD syslog importer (LogsToProcess -> database)
+Documentation=file:///var/DAD/RECOMMENDATIONS.md
+After=network.target postgresql.service
+Wants=postgresql.service
+# In [Unit], not [Service]: systemd >= 229 moved rate-limit keys here and
+# now rejects them under [Service]. 0 means never give up restarting --
+# otherwise five fast failures leave the service permanently down, which is
+# the same failure mode as the old `&`.
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+WorkingDirectory=/var/DAD
+# EnvironmentFile, not ExecStartPre=source: systemd has no shell, and its
+# format is KEY=VALUE with no `export`. provision.sh writes the systemd copy to
+# /etc/DAD/environment.d/dad.conf for exactly this reason -- pointing at the
+# shell file would leave every variable empty and boot Rails with a nil
+# secret_key_base.
+EnvironmentFile=/etc/DAD/environment.d/dad.conf
+Environment=RAILS_ENV=production
+Environment=BUNDLE_GEMFILE=/var/DAD/Gemfile
+ExecStart=/usr/bin/bundle exec ruby import_syslog.rb
+# The whole point of the unit: the old provision.sh backgrounded this with `&`,
+# so it died on reboot and nothing noticed. Restart always, and back off so a
+# permanently broken config cannot spin the CPU.
+Restart=always
+RestartSec=5
+# Same user Passenger runs as, so the importer and the web app agree on the
+# ownership of Logs/ and log/ instead of fighting over them.
+User=www-data
+Group=www-data
+SyslogIdentifier=dad-importer
+StandardOutput=journal
+StandardError=journal
+# Rails.logger already writes log/production.log; journald is the copy an
+# operator actually sees, and the process broadcasts to stdout for it.
+
+# Hardening. No inbound sockets: the importer is a client of Postgres only.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

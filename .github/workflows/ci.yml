@@ -78,6 +78,31 @@ jobs:
             && { echo "jQuery 1.12.4 present in bundle"; exit 1; }
           echo "built bundle ships jQuery 3"
 
+  # Guards the provisioning artifacts, which no other job touches: the test
+  # suite never loads provision.sh or the systemd units, so a syntax error in
+  # either reached master silently before. These are the files that decide
+  # whether the importer survives a reboot, so they are worth a gate.
+  provisioning:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: provision.sh parses
+        run: bash -n provision.sh
+
+      - name: systemd units parse
+        run: |
+          # systemd-analyze verify also checks that ExecStart targets exist, and
+          # /usr/bin/bundle is a Debian path that does not exist on the runner.
+          # Tolerate exactly that class of line; fail on anything structural
+          # (unknown keys, bad sections, malformed values).
+          out=$(systemd-analyze verify systemd/dad-*.service 2>&1 |
+                grep -v 'is not executable' || true)
+          if [ -n "$out" ]; then
+            echo "systemd-analyze reported problems:"; echo "$out"; exit 1
+          fi
+          echo "systemd units parse cleanly"
+
   security:
     runs-on: ubuntu-latest
     env:

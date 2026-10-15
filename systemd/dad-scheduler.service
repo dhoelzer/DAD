@@ -1,0 +1,36 @@
+[Unit]
+Description=DAD job scheduler (runs Jobs whose next_run has passed)
+Documentation=file:///var/DAD/RECOMMENDATIONS.md
+After=network.target postgresql.service
+Wants=postgresql.service
+# In [Unit], not [Service]: systemd >= 229 moved rate-limit keys here and
+# now rejects them under [Service]. 0 means never give up restarting --
+# otherwise five fast failures leave the service permanently down, which is
+# the same failure mode as the old `&`.
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+WorkingDirectory=/var/DAD
+EnvironmentFile=/etc/DAD/environment.d/dad.conf
+Environment=RAILS_ENV=production
+Environment=BUNDLE_GEMFILE=/var/DAD/Gemfile
+ExecStart=/usr/bin/bundle exec ruby scheduler.rb
+Restart=always
+RestartSec=5
+User=www-data
+Group=www-data
+SyslogIdentifier=dad-scheduler
+StandardOutput=journal
+StandardError=journal
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target
