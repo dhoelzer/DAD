@@ -90,4 +90,32 @@ class UserRightLookupTest < ActiveSupport::TestCase
     assert_empty rights_queries,
       "rights must be resolved once per user, got: #{rights_queries.inspect}"
   end
+
+  # The memo must not outlive the DB snapshot. reload refreshes attributes but
+  # not instance variables set outside the attribute API, so without an explicit
+  # reset a reloaded user kept answering from a stale right list.
+  test 'reload re-resolves rights after a grant' do
+    user = build_user(%w[Viewer])
+    refute user.has_right?('Admin')
+
+    admin_role = Role.create!(name: "adm-#{SecureRandom.hex(6)}", description: 'a')
+    # find_or_create_by, not `rights << where(...).first || create!`: << binds
+    # tighter than ||, so the guard would never apply and the nil would reach
+    # the association setter.
+    admin_role.rights << Right.find_or_create_by!(name: 'Admin') { |r| r.description = 'Admin' }
+    user.roles << admin_role
+    user.reload
+
+    assert user.has_right?('Admin'), 'reload must drop the cached right list'
+  end
+
+  test 'reload re-resolves rights after a revoke' do
+    user = build_user(%w[Viewer])
+    assert user.has_right?('Viewer')
+
+    user.roles = []
+    user.reload
+
+    refute user.has_right?('Viewer'), 'reload must drop the cached right list'
+  end
 end

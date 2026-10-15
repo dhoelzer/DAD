@@ -107,11 +107,23 @@ class User < ActiveRecord::Base
     names.include?(right.is_a?(Right) ? right.name : right.to_s)
   end
 
-  # Memoised per instance. Safe because the callers only read authorisation;
-  # the paths that grant or revoke rights act on Role records and take effect
-  # for the next request's user.
+  # Memoised per instance: authorized? calls has_right? once per required right
+  # per request, and each call would otherwise re-run the join query.
+  #
+  # #reload clears the memo. Without that the cache outlives the object's
+  # identity as a DB snapshot: `user.roles << role; user.reload;
+  # user.has_right?('Admin')` returned false forever, because reload refreshes
+  # attributes but not instance variables set outside the attribute API. The
+  # current request flow happens to avoid this (role_add redirects, so the next
+  # request loads a fresh User), but has_right? gates every controller, so a
+  # stale-by-default cache next to the security check is not worth the trap.
   def right_names
     @right_names ||= rights.pluck(:name)
+  end
+
+  def reload(*args)
+    @right_names = nil
+    super
   end
 
   # True if +role+ (a Role record) is assigned to this user.
