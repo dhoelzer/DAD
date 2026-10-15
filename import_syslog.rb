@@ -62,13 +62,13 @@ def process_file(in_flight, processed_dir)
         yield
       rescue StandardError => e
         failures += 1
-        Rails.logger.warn("Skipping unprocessable line at byte #{line_start} "                           "of #{in_flight}: #{e.class}: #{e.message}")
+        Rails.logger.warn("Skipping unprocessable line at byte #{line_start} of #{in_flight}: #{e.class}: #{e.message}")
         Rails.logger.warn("Offending line: #{line}")
         # Keep the batch that did stage, so a bad line costs one record rather
         # than the whole file's work so far.
         Event.flush_and_wait
       rescue Exception => e
-        Rails.logger.error("Fatal error processing #{in_flight} at byte "                            "#{line_start}: #{e.class}: #{e.message}")
+        Rails.logger.error("Fatal error processing #{in_flight} at byte #{line_start}: #{e.class}: #{e.message}")
         Rails.logger.error("Offending line: #{line}")
         # Leave the file claimed and rewind the checkpoint to the start of this
         # line: its rows were never staged, so a restart must retry it rather
@@ -122,7 +122,7 @@ def process_logs(queue_dir = '.', processed_dir = PROCESSED_DIR)
   # bury the non-zero ones on the same chart.
   Statistic.logLineFailures(failures) if failures > 0
   if failures > 0
-    Rails.logger.warn("Skipped #{failures} unprocessable line(s) across "                       "#{logs.count} file(s) this pass")
+    Rails.logger.warn("Skipped #{failures} unprocessable line(s) across #{logs.count} file(s) this pass")
   end
   lines
 end
