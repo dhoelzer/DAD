@@ -36,6 +36,32 @@ jobs:
       - name: Cucumber features
         run: bundle exec cucumber
 
+  # Asset pipeline + boot-with-manifest. This job exists because the test suite
+  # never touches the sprockets manifest: `rake test` boots with no
+  # public/assets, so the manifest *reader* is never exercised. That is how a
+  # json 3.x bump (which removed the create_additions keyword sprockets'
+  # manifest reader passes) reached master while CI stayed green. A fresh CI
+  # checkout has no manifest, so precompile-then-boot is the only way to cover
+  # it -- and it is the production path, not a dev one.
+  assets:
+    runs-on: ubuntu-latest
+    env:
+      BUNDLE_WITHOUT: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3.8'
+          bundler-cache: true
+      - name: Install sqlite dev headers
+        run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
+      - name: Precompile assets
+        run: bundle exec rake assets:precompile
+      # The manifest now exists on disk; booting reads it. Fails loudly if the
+      # json gem and sprockets disagree about JSON.parse keyword arguments.
+      - name: Boot with a sprockets manifest present
+        run: bundle exec rails runner 'puts "boot ok"'
+
   security:
     runs-on: ubuntu-latest
     env:

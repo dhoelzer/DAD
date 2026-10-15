@@ -11,15 +11,27 @@ gem 'rails', '~> 8.1.0'
 # 1.16+ requires Ruby >= 3.0, which this app now satisfies.
 gem 'nokogiri', '~> 1.16'
 
-# Ruby 3.3 ships json 3.x as a default gem, and json 3.0 dropped the
-# quirks_mode option that ActiveSupport's JSON encoder used to pass
-# (active_support/json/encoding.rb#stringify). Every to_json call then died with
-# "unknown keyword: quirks_mode" -- which takes down all 34 jbuilder views.
-# Verified against the actual sources: 7.1.6, 7.2.3 and 8.0.5 all still passed the
-# option; 8.1.4 calls plain JSON.generate(jsonified), so the pin can finally go.
-# Kept as an explicit floor rather than removed, so a future json 4 cannot arrive
-# silently through a transitive dependency.
-gem 'json', '~> 3.1'
+# json must stay on the 2.x line. There are TWO independent reasons, and the
+# second one is easy to miss:
+#
+# 1. quirks_mode. json 3.0 dropped the quirks_mode keyword that ActiveSupport's
+#    JSON encoder passed (active_support/json/encoding.rb#stringify); every
+#    to_json call died with "unknown keyword: quirks_mode", taking down all 34
+#    jbuilder views. 7.1.6, 7.2.3 and 8.0.5 all still passed it. This reason is
+#    gone at 8.1.4, which calls plain JSON.generate(jsonified).
+# 2. create_additions. Sprockets' manifest reader calls
+#    JSON.parse(obj, create_additions: false) -- sprockets 3.7.5 line 319, and
+#    still present in sprockets 4.2.2. json 3.x removed that keyword too, so
+#    booting with an existing public/assets/.sprockets-manifest-*.json raises
+#    "unknown keyword: create_additions" from the sprockets-rails railtie, i.e.
+#    the app cannot boot at all.
+#
+# Reason 2 is not fixed by any Rails upgrade; it is a sprockets constraint, and
+# it only bites when a manifest file already exists -- which is production, not a
+# fresh CI checkout. Verified: json 2.21.2 accepts both keywords, so it satisfies
+# sprockets and Rails 8.1 simultaneously. Do not "clean up" this pin to 3.x
+# without also moving off sprockets' JSON.parse(create_additions:) manifest.
+gem 'json', '~> 2.7'
 
 group :production do
   # 0.21 predates Ruby 3. Not exercised by CI (BUNDLE_WITHOUT=production), so the
