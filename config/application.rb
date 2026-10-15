@@ -48,13 +48,16 @@ module Events
     # format is free here and keeps the boot log clean.
     config.active_support.cache_format_version = 7.0
 
-    # ActiveSupport overrides Date/Time#to_time to convert to *local* system time,
-    # matching pre-Ruby 2.4 behaviour. That override is deprecated in 7.2 and is
-    # gone in 8.0, where to_time always preserves the receiver's offset. Opting in
-    # now makes 7.2 and 8.0 behave identically, so the 8.0 step cannot change
-    # timestamp semantics. Nothing in app/ or lib/ calls to_time, and both
-    # Time.zone and the system zone are UTC, so the two behaviours coincide here.
-    ActiveSupport.to_time_preserves_timezone = true
+    # ActiveSupport overrides Date/Time#to_time. Three generations of behaviour
+    # exist: convert to *local system* time (pre-Ruby 2.4, Rails' old default),
+    # preserve the receiver's *offset*, and preserve the receiver's full *zone*.
+    # Rails 8.1 always does the last one; 8.0 deprecates anything but :zone.
+    # This app never calls config.load_defaults, so the 8.0 default is not
+    # applied automatically and the value has to be set by hand. Nothing in app/
+    # or lib/ calls to_time, and both Time.zone and the system zone are UTC, so
+    # all three behaviours coincide here -- but setting :zone now means the 8.1
+    # step cannot change timestamp semantics.
+    config.active_support.to_time_preserves_timezone = :zone
 
     Dir[Rails.root.to_s + '/app/models/**/*.rb'].each do |file| 
       begin

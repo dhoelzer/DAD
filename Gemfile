@@ -1,9 +1,9 @@
 source 'https://rubygems.org'
 
 # Rails 7.1 was the last line that runs on Ruby 2.7; that step also moved Ruby to
-# 3.3 (RECOMMENDATIONS.md 5.2). This step is 7.1 -> 7.2. Keep this in lockstep
+# 3.3 (RECOMMENDATIONS.md 5.2). This step is 7.2 -> 8.0. Keep this in lockstep
 # with .ruby-version, .github/workflows/ci.yml and Dockerfile.dev.
-gem 'rails', '~> 7.2.0'
+gem 'rails', '~> 8.0.0'
 
 # Transitive dependency of rails-html-sanitizer, capybara and cucumber-rails.
 # The 1.15 line was pinned only because it was the last one supporting Ruby 2.7;
@@ -26,21 +26,26 @@ group :production do
 end
 
 group :development, :test do
-  # The 7.2 sqlite3 adapter accepts >= 1.4 and 2.x. The ceiling keeps the
-  # adapter contract this app already relies on; 2.x only becomes mandatory at
-  # Rails 8.0, whose adapter requires sqlite3 >= 2.1.
-  gem 'sqlite3', '~> 1.7', '< 2'
-  # railties 7.1's TestUnit runner calls Minitest::Test.run(reporter, options,
-  # suite); minitest 6 narrowed that to (reporter, options) and every test dies
-  # with "wrong number of arguments (given 3, expected 1..2)". railties only
-  # declares `minitest >= 5.1`, so the 5.x line must be pinned explicitly.
+  # The 8.0 sqlite3 adapter requires sqlite3 >= 2.1 (it calls into the 2.x
+  # SQLite3::Statement/Database API), so the < 2 ceiling from the 7.x steps has
+  # to go. Precompiled 2.x binaries cover x86_64-linux, so no local toolchain is
+  # needed.
+  gem 'sqlite3', '~> 2.1'
+  # railties' TestUnit runner calls Minitest::Test.run(reporter, options, suite);
+  # minitest 6 narrowed that to (reporter, options) and every test dies with
+  # "wrong number of arguments (given 3, expected 1..2)". railties only declares
+  # `minitest >= 5.1` (8.0 drops it from the runtime deps entirely), so the 5.x
+  # line must be pinned explicitly.
   gem 'minitest', '~> 5.25'
   # There is no spec/ directory and no rspec *example* code, but the cucumber
   # step definitions call rspec-expectations' `expect`, which cucumber-rails only
   # mixes into Cucumber::Rails::World when rspec/rails/matchers is loadable.
   # Removing this gem silently breaks all four cucumber scenarios.
   gem 'rspec-rails', '~> 6.1'
-  gem 'cucumber-rails', '~> 2.6', require: false
+  # 2.6.x caps railties at < 8, so it cannot resolve against Rails 8. 3.1.x is
+  # the oldest line that supports railties 8 (>= 5.2, < 9) while keeping the
+  # cucumber-rails 2.x env.rb API this app's features/support/env.rb uses.
+  gem 'cucumber-rails', '~> 3.1', require: false
   gem 'database_cleaner', '~> 1.7'
 end
 
