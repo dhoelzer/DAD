@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_10_14_000001) do
+ActiveRecord::Schema[7.2].define(version: 2026_10_14_000001) do
   create_table "alerts", force: :cascade do |t|
     t.integer "system_id", limit: 8
     t.integer "service_id", limit: 8
@@ -182,5 +182,4 @@ ActiveRecord::Schema[7.1].define(version: 2026_10_14_000001) do
     t.string "text"
     t.index ["text"], name: "index_words_on_text"
   end
-
 end

@@ -1,10 +1,9 @@
 source 'https://rubygems.org'
 
-# Rails 7.1 is the last line that runs on Ruby 2.7; this step moves Ruby to 3.3 at
-# the same time (RECOMMENDATIONS.md 5.2).
-# The remaining step is 7.1 -> 8.1. Keep this in lockstep with .ruby-version,
-# .github/workflows/ci.yml and Dockerfile.dev.
-gem 'rails', '~> 7.1.0'
+# Rails 7.1 was the last line that runs on Ruby 2.7; that step also moved Ruby to
+# 3.3 (RECOMMENDATIONS.md 5.2). This step is 7.1 -> 7.2. Keep this in lockstep
+# with .ruby-version, .github/workflows/ci.yml and Dockerfile.dev.
+gem 'rails', '~> 7.2.0'
 
 # Transitive dependency of rails-html-sanitizer, capybara and cucumber-rails.
 # The 1.15 line was pinned only because it was the last one supporting Ruby 2.7;
@@ -12,11 +11,12 @@ gem 'rails', '~> 7.1.0'
 gem 'nokogiri', '~> 1.16'
 
 # Ruby 3.3 ships json 3.x as a default gem, and json 3.0 dropped the
-# quirks_mode option that ActiveSupport 7.1's JSON encoder still passes
+# quirks_mode option that ActiveSupport's JSON encoder passes
 # (active_support/json/encoding.rb#stringify). Every to_json call then dies with
 # "unknown keyword: quirks_mode" -- which takes down all 34 jbuilder views.
-# Pinning the 2.x line keeps the option; drop the pin at the Rails 7.2 step,
-# where the encoder no longer passes it.
+# Verified against the actual sources: 7.1.6, 7.2.3 and 8.0.5 all still pass the
+# option; only 8.1.4 stopped. So this pin stays through the 7.2 and 8.0 steps and
+# can only be dropped at 8.1.
 gem 'json', '~> 2.7'
 
 group :production do
@@ -26,8 +26,9 @@ group :production do
 end
 
 group :development, :test do
-  # Rails 7.1's sqlite3 adapter needs >= 1.4; 2.x is only supported by the Rails
-  # 7.2+ adapter, so the ceiling keeps the adapter contract this app relies on.
+  # The 7.2 sqlite3 adapter accepts >= 1.4 and 2.x. The ceiling keeps the
+  # adapter contract this app already relies on; 2.x only becomes mandatory at
+  # Rails 8.0, whose adapter requires sqlite3 >= 2.1.
   gem 'sqlite3', '~> 1.7', '< 2'
   # railties 7.1's TestUnit runner calls Minitest::Test.run(reporter, options,
   # suite); minitest 6 narrowed that to (reporter, options) and every test dies
@@ -50,7 +51,12 @@ group :development do
   gem 'bundler-audit', '~> 0.9'
 end
 
-gem 'mail', '~> 2.7.0'
+# Transitive dependency of actionmailer. The app has no mailers and never
+# references Mail directly, so the only reason this line exists is to keep the
+# version explicit. It used to pin 2.7.x, but actionmailer >= 7.2.0 requires
+# mail >= 2.8.0, so the 2.7 line makes Rails 7.2+ unresolvable. 2.8/2.9 are
+# API-compatible for everything actionmailer uses.
+gem 'mail', '~> 2.8'
 
 # For JSON requests for the IP Address blocking service.
 gem 'httparty', '~> 0.18.0'
