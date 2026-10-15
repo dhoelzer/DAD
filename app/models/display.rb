@@ -37,7 +37,7 @@ class Display < ActiveRecord::Base
         reg = Regexp.new(filter.key)
         return filter unless reg.match(event_string).nil?
       rescue
-        puts "Had to rescue: #{filter.key}"
+        Rails.logger.warn "Had to rescue: #{filter.key}"
         # Likely don't have enough fields.  Don't care to figure it out for now.
       end
     end

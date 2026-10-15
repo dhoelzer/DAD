@@ -47,6 +47,12 @@ class ImportSyslogCrashTest < ActiveSupport::TestCase
   def run_importer(body, build_schema:, env: {})
     boot = "require './config/environment'; " \
            "require './import_syslog.rb'; "
+    # import_syslog.rb only broadcasts Rails.logger to stdout inside its
+    # __FILE__ == $PROGRAM_NAME block, which requiring the file skips. Do it here
+    # so tests can assert on what the importer *logs* -- the same thing an
+    # operator sees in the journal.
+    boot += "Rails.logger = ActiveSupport::BroadcastLogger.new(" \
+            "Rails.logger, ActiveSupport::Logger.new($stdout)); "
     boot += "load 'db/schema.rb'; Event.resetCaches; " if build_schema
     out = IO.popen(
       { 'RAILS_ENV' => 'development',
@@ -160,9 +166,16 @@ class ImportSyslogCrashTest < ActiveSupport::TestCase
     assert_equal 6, all.uniq.size, "a line went missing: #{all.inspect}"
   end
 
-  test 'a bad line rewinds the checkpoint so it is retried, not skipped' do
+  # The old contract: any raise flushed, rewound the checkpoint to the bad line
+  # and exited 1. Because the rewind put the bad line back in front of the next
+  # run, that run re-read it and exited again -- one unparseable line wedged the
+  # pipeline permanently, and nothing restarted the process (RECOMMENDATIONS 5.1
+  # and 5.3).
+  #
+  # The new contract: a StandardError on one line is logged, counted, and skipped.
+  # The rest of the file is ingested and the file leaves the queue.
+  test 'a StandardError on one line is skipped, not fatal' do
     write_log('sample.log', 6)
-    # Line 3 raises; the rescue must rewind the sidecar to that line's start.
     body = <<~'PATCH'
       Event.singleton_class.send(:alias_method, :storeEvent_orig, :storeEvent)
       Event.define_singleton_method(:storeEvent) do |line, position = nil|
@@ -170,10 +183,83 @@ class ImportSyslogCrashTest < ActiveSupport::TestCase
         storeEvent_orig(line, position)
       end;
       Event.instance_variable_set(:@bulk_insert_size, 2);
+      puts "LINES=#{process_logs(ENV['QUEUE_DIR'], ENV['PROCESSED_DEST'])}"
+    PATCH
+    out, status = run_importer(body, build_schema: true)
+
+    assert_equal 0, status, "a bad line must not stop the pass:\n#{out}"
+    assert_includes out, 'LINES=5', 'the other five lines must still be ingested'
+    assert_match(/Skipping unprocessable line/, out, 'the skip must be logged')
+    assert_match(/probe line 3/, out, 'the offending line must be logged')
+    assert_match(/Skipped 1 unprocessable line/, out, 'the pass must report a count')
+
+    # The file is finished, not left claimed in front of the bad line.
+    refute File.exist?(File.join(@queue, 'sample.log.processing')),
+      'the file must not stay claimed behind a line that will always fail'
+    assert File.exist?(File.join(@processed, 'sample.log')),
+      'the file must reach ProcessedLogs'
+    assert_equal 5, hunks.size, 'exactly the five good lines must be stored'
+    refute(hunks.any? { |h| h.include?('probe line 3') },
+      'the skipped line must not be stored')
+  end
+
+  # Skipping is only safe because a failed line leaves nothing staged. If it left
+  # half a row, skipping would corrupt the index rather than lose one record: the
+  # word loop appends to @@events_words before the event row is appended, and
+  # @@nextEventID is not advanced on the way out.
+  test 'a line that fails part-way through staging leaves nothing behind' do
+    body = <<~'PATCH'
+      Word.singleton_class.send(:alias_method, :find_or_add_orig, :find_or_add)
+      Word.define_singleton_method(:find_or_add) do |w|
+        raise 'forced failure mid-staging' if w == 'forced-boom-word'
+        find_or_add_orig(w)
+      end
+      Event.instance_variable_set(:@bulk_insert_size, 1);
+      # The importer's per-line rescue is what normally catches this; call
+      # storeEvent directly here so the test isolates storeEvent's own rollback.
+      begin
+        Event.storeEvent('1.1.1.1 Jun 1 00:00:01 host svc[1]: forced-boom-word ok', 10)
+        puts 'NO_RAISE'
+      rescue RuntimeError => e
+        puts "RAISED=#{e.message}"
+      end
+      Event.storeEvent('1.1.1.1 Jun 1 00:00:02 host svc[1]: good line here', 20)
+      Event.flush_and_wait
+      puts "EVENTS=#{Event.count}"
+      orphans = Event.connection.execute('select count(*) as c from events_words ' +
+        'where event_id not in (select id from events)').first['c']
+      puts "ORPHANS=#{orphans}"
+      puts "IDS=#{Event.order(:id).pluck(:id).join(',')}"
+    PATCH
+    out, status = run_importer(body, build_schema: true)
+
+    assert_equal 0, status, "subprocess failed:\n#{out}"
+    assert_includes out, 'RAISED=forced failure mid-staging',
+      'storeEvent must re-raise after rolling back, so the caller can count the skip'
+    assert_includes out, 'EVENTS=1', 'the failing line must contribute no event row'
+    assert_includes out, 'ORPHANS=0',
+      'a partially staged line must not leave events_words rows for a missing event'
+    assert_includes out, 'IDS=1',
+      'the next line must not collide with an id the failed line consumed'
+  end
+
+  # Non-StandardError still stops the run and rewinds, so a genuinely fatal
+  # condition is not papered over. This is the surviving half of the old test.
+  test 'a non-StandardError still stops the run and rewinds the checkpoint' do
+    write_log('sample.log', 6)
+    body = <<~'PATCH'
+      Event.singleton_class.send(:alias_method, :storeEvent_orig, :storeEvent)
+      Event.define_singleton_method(:storeEvent) do |line, position = nil|
+        raise NotImplementedError, 'forced fatal failure' if line.include?('probe line 3')
+        storeEvent_orig(line, position)
+      end;
+      Event.instance_variable_set(:@bulk_insert_size, 2);
       process_logs(ENV['QUEUE_DIR'], ENV['PROCESSED_DEST'])
     PATCH
-    _out, status = run_importer(body, build_schema: true)
-    assert_equal 1, status, 'a bad line must still stop the importer'
+    out, status = run_importer(body, build_schema: true)
+
+    refute_equal 0, status, "a fatal error must still stop the pass:\n#{out}"
+    assert_match(/Fatal error processing/, out, 'the fatal case must be logged as such')
 
     # The file stays claimed with the offending line still ahead of the offset.
     assert File.exist?(File.join(@queue, 'sample.log.processing'))
@@ -181,6 +267,50 @@ class ImportSyslogCrashTest < ActiveSupport::TestCase
     refute_equal 0, offset, 'the checkpoint should have advanced past line 1'
     remaining = File.binread(File.join(@queue, 'sample.log.processing'))[offset..-1]
     assert_match(/probe line 3/, remaining,
-      'the failing line must still be ahead of the checkpoint')
+      'a fatal line must still be ahead of the checkpoint, so a restart retries it')
+  end
+
+  # The counter is what distinguishes "the importer is healthy" from "the
+  # importer is quietly discarding everything".
+  test 'skipped lines are counted as a Statistic series' do
+    write_log('sample.log', 4)
+    body = <<~'PATCH'
+      Event.singleton_class.send(:alias_method, :storeEvent_orig, :storeEvent)
+      Event.define_singleton_method(:storeEvent) do |line, position = nil|
+        if line.include?('probe line 2') || line.include?('probe line 3')
+          raise 'forced line failure'
+        end
+        storeEvent_orig(line, position)
+      end;
+      Event.instance_variable_set(:@bulk_insert_size, 2);
+      process_logs(ENV['QUEUE_DIR'], ENV['PROCESSED_DEST'])
+    PATCH
+    _out, status = run_importer(body, build_schema: true)
+    assert_equal 0, status
+
+    # Read the subprocess database: ActiveRecord::Base here is the test DB.
+    db = SQLite3::Database.new(@db.path)
+    rows = db.execute('select type_id, stat from statistics order by id').map { |r| [r[0], r[1]] }
+    db.close
+    failures = rows.select { |t, _| t == 2 }.map { |_, v| v }
+    assert_equal [2], failures, 'one failure row for the pass, counting both skips'
+    refute_empty rows.select { |t, _| t == 0 }, 'the lines-processed series is still written'
+  end
+
+  # A clean pass must not write a zero row: the series is a signal that lines are
+  # being lost, and a zero per pass buries the non-zero ones on the same chart.
+  test 'a clean pass writes no failure row' do
+    write_log('sample.log', 4)
+    body = <<~'PATCH'
+      Event.instance_variable_set(:@bulk_insert_size, 2);
+      process_logs(ENV['QUEUE_DIR'], ENV['PROCESSED_DEST'])
+    PATCH
+    _out, status = run_importer(body, build_schema: true)
+    assert_equal 0, status
+
+    db = SQLite3::Database.new(@db.path)
+    count = db.execute('select count(*) from statistics where type_id = 2').first[0]
+    db.close
+    assert_equal 0, count, 'a pass with no skips must not write a zero row'
   end
 end

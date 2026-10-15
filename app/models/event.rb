@@ -405,6 +405,30 @@ class Event < ActiveRecord::Base
   # +eventString+ must begin with the originating host, followed by the timestamp
   # and service, e.g. "host.example.com Jun  1 12:00:00 sshd[123]: ...".
   def self.storeEvent(eventString, position = nil)
+    # Staging is all-or-nothing. The word loop appends to @@events_words before
+    # the event row is appended to @@pendingEventValues, so a raise part-way
+    # through leaves index rows for an event id that never gets an events row
+    # (search hits that 404), and @@nextEventID is not advanced, so the next
+    # line reuses the id and dies on a UNIQUE violation. The importer now skips
+    # bad lines instead of exiting, which makes a partially staged line a
+    # permanent corruption rather than a one-off crash.
+    words_staged = @@events_words.count
+    events_staged = @@pendingEventValues.count
+    begin
+      stage_event(eventString, position)
+    rescue StandardError
+      # A flush inside stage_event resets both arrays, so the captured counts
+      # can be past the end; slice! then no-ops, which is the correct outcome
+      # (those rows are already handed off, not partial).
+      @@events_words.slice!(words_staged..-1)
+      @@pendingEventValues.slice!(events_staged..-1)
+      raise
+    end
+  end
+
+  # Parses one line and appends it to the pending batches. Internal: the body of
+  # storeEvent, split out so storeEvent can roll staging back on failure.
+  def self.stage_event(eventString, position)
     # This next line is to seek and destroy invalid UTF-8 byte sequences.  They seem to show up in some
     # logs, sometimes in URLs.
     eventString = eventString.encode('UTF-8', :invalid => :replace)
@@ -414,7 +438,7 @@ class Event < ActiveRecord::Base
     eventString.gsub!(/([^a-zA-Z0-9 \-_:@\*\/.])/," " )
     split_text = eventString.split(/\s+/)
     if split_text.count < 5 then
-      puts "Invalid for syslog format: Too few fields -> " << eventString
+      Rails.logger.warn "Invalid for syslog format: Too few fields -> #{eventString}"
       return
     end
     # The service follows the timestamp, so its position is whatever the
@@ -434,7 +458,7 @@ class Event < ActiveRecord::Base
     end
     txtservice = split_text[service_offset]
     if txtservice.nil? then
-      puts "Service empty: " << eventString
+      Rails.logger.warn "Service empty: #{eventString}"
       return
     end
     txtservice = txtservice.tr("^a-zA-Z\-_/","")
@@ -537,6 +561,7 @@ class Event < ActiveRecord::Base
     end
   end
   private_class_method :write_batch
+  private_class_method :stage_event
 
   # Joins every outstanding INSERT thread and re-raises the first failure any
   # of them recorded.
@@ -611,7 +636,7 @@ class Event < ActiveRecord::Base
     return if @@pendingEventValues.count < 1
 
     if @@insertThreads.count >= MAX_INSERT_THREADS then
-      puts "Joining previous inserts."
+      Rails.logger.debug "Joining previous inserts."
       join_insert_threads
     end
     ew_sql, ew_binds = insertStatement('events_words', [:event_id, :word_id, :generated], @@events_words)
@@ -681,7 +706,7 @@ class Event < ActiveRecord::Base
     @inserted_last_run = eventsPerSecond
     Statistic.logEventsPerSecond(eventsPerSecond)
     if @@timestamp_parse_failures > 0 then
-      puts "Dropped #{@@timestamp_parse_failures} line(s) with no recognizable timestamp."
+      Rails.logger.warn "Dropped #{@@timestamp_parse_failures} line(s) with no recognizable timestamp."
     end
     @@start_time = Time.now
     @@current_year = "#{Time.new.year}"
@@ -707,16 +732,16 @@ class Event < ActiveRecord::Base
     prune_time = current_time - @@cachelifetime
     @@cached_words = @@cached_words.select{|k,v| v[:last] > prune_time }
     pruned_count = CACHESIZE - @@cached_words.keys.count
-    puts "\t+++ Pruned approximately #{pruned_count}."
+    Rails.logger.info "Pruned approximately #{pruned_count}."
     if pruned_count > (CACHESIZE / 3) then
       @@cachelifetime += 1
-      puts "\t+++ Cache lifetime increased to #{@@cachelifetime}."
+      Rails.logger.info "Cache lifetime increased to #{@@cachelifetime}."
     else 
       @@cachelifetime -= 1
-      puts "\t+++ Cache lifetime decreased to #{@@cachelifetime}."
+      Rails.logger.info "Cache lifetime decreased to #{@@cachelifetime}."
     end
-    puts "\t+++ There have been #{@cache_hits} hits in the word cache."
-    puts "\t>>> Inserted last run EPS: #{@inserted_last_run}"
+    Rails.logger.info "There have been #{@cache_hits} hits in the word cache."
+    Rails.logger.info "Inserted last run EPS: #{@inserted_last_run}"
     @@num_cached = @@cached_words.keys.count
   end
   
