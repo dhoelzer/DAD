@@ -57,9 +57,25 @@ Given(/^an event has been stored previously$/) do
 end
 
 When(/^someone searches for the words in that event$/) do
-  @results = Event.search("This is just a test event", 0)
+  # Explicit window: the stored event is dated Jun 1 of the current year, which
+  # the default one-hour range would not cover. The step previously passed 0,
+  # which the old signature bound as the string "0" and matched everything --
+  # the scenario was not actually testing the time frame its name claims.
+  @results = Event.search("This is just a test event", (Time.now - 1.year)..Time.now)
 end
 
 Then(/^the event will be found$/) do
   expect(@results.count).to eq 1
+end
+
+# The stored event is dated Jun 1 of the current year, so a window four to five
+# years back cannot contain it. This is the counterpart to the in-window search:
+# without it, a search that ignored its time range entirely would still pass --
+# which is exactly what the old step did by passing 0 as the window.
+When(/^someone searches for the words in that event over a window that excludes it$/) do
+  @results = Event.search("This is just a test event", (Time.now - 5.year)..(Time.now - 4.year))
+end
+
+Then(/^the event will not be found$/) do
+  expect(@results.count).to eq 0
 end

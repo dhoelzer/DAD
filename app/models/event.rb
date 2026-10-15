@@ -168,7 +168,7 @@ class Event < ActiveRecord::Base
     @event_fields
   end
   
-  # The original, unmodified log line. Used by export_logs.rb; identical to
+  # The original, unmodified log line. Used by bin/export_logs; identical to
   # #hunks but named for the export use case.
   def reconstitute
     return self.hunks
@@ -293,23 +293,27 @@ class Event < ActiveRecord::Base
   # #to_a gives the page. Returns [] for an empty/whitespace-only query.
   # Terms are matched as literal *prefixes* of indexed words, case-insensitively
   # (input is downcased); +offset+ / +limit+ page the result.
-  # Used by EventsController#search for the relative-time-range form.
-  def self.search(search_string, starting_time=(Time.now - 1.hour), offset=0, limit=100)
+  # Used by EventsController#search for both the relative and absolute forms:
+  # the only difference between them is the window, so there is one method.
+  #
+  # +time_range+ is a Range of Times, e.g. (Time.now - 1.hour)..Time.now for the
+  # relative form and starttime..endtime for the absolute one. The default is the
+  # last hour, matching the relative form's usual call.
+  def self.search(search_string, time_range=(Time.now - 1.hour)..Time.now, offset=0, limit=100)
     terms = search_string.downcase.split(/\s+/)
     return [] if terms.empty?
-    matching_events(terms, starting_time, Time.now, offset, limit)
-  end
-
-  # Same as #search but over an explicit [starting_time, ending_time] window.
-  # Used by EventsController#search when the absolute-time form is submitted.
-  def self.search_period(search_string, starting_time, ending_time, offset=0, limit=100)
-    terms = search_string.downcase.split(/\s+/)
-    return [] if terms.empty?
-    matching_events(terms, starting_time, ending_time, offset, limit)
+    # Guard rather than let #begin raise: a feature step used to pass 0 here,
+    # which the old two-argument form bound as the string '0' and so matched
+    # every event. The test passed for a reason that had nothing to do with the
+    # feature it described.
+    unless time_range.respond_to?(:begin) && time_range.respond_to?(:end)
+      raise ArgumentError, "time_range must be a Range of Times, got #{time_range.inspect}"
+    end
+    matching_events(terms, time_range.begin, time_range.end, offset, limit)
   end
 
   # Builds the relation for a set of already-split +terms+ over a time window.
-  # Shared by #search and #search_period; internal.
+  # Backend for #search; internal.
   def self.matching_events(terms, starting_time, ending_time, offset, limit)
     sql, binds = searchSQL(starting_time, ending_time, terms)
     scoped = sanitize_sql_array(["id in (#{sql})", *binds])

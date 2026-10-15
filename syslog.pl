@@ -9,9 +9,19 @@ use POSIX;
 # Run as a long-lived foreground process. Port 514 is privileged, so this needs root
 # or an equivalent capability. Files rotate into LogsToProcess once a minute, which
 # is what makes them visible to the importer.
-my $buf;
-my $Filename, $RotateTime = 0;
-my $DEBUG = 0;
+# Note the parentheses. The previous line read `my $Filename, $RotateTime = 0;`,
+# which Perl parses as two separate arguments to `my`: it declares $Filename
+# lexically and assigns 0 to a *global* $RotateTime. Under `use strict` that is a
+# compile error; without it RotateLog mutated a package global while the rest of
+# the file believed it had a lexical. Verified: `my $x, $y = 5` leaves $main::y
+# defined.
+my ($buf, $Filename, $RotateTime);
+$RotateTime = 0;
+
+# Debug echo. Set DAD_SYSLOG_DEBUG=1 in the process environment to turn it on.
+# It was previously a hardcoded `my $DEBUG = 0`, so the `if($DEBUG)` branch in
+# logit could never be reached and read as dead code.
+my $DEBUG = defined($ENV{DAD_SYSLOG_DEBUG}) ? 1 : 0;
 
 $LOGSTAGING="/var/DAD/Logs/LogStaging";
 $LOGPROCESSING="/var/DAD/Logs/LogsToProcess";
@@ -58,7 +68,12 @@ sub RotateLog
 		}
 		$RotateTime = mktime(localtime());
 		$Filename = "syslog.$RotateTime";
-		open(LOG, ">$LOGSTAGING/$Filename");
+		# Checked: with an unchecked open, every later `print LOG` went to a closed
+		# handle, so the collector kept accepting UDP packets and quietly discarded
+		# all of them with no error anywhere.
+		unless (open(LOG, ">$LOGSTAGING/$Filename")) {
+			print STDERR "syslog.pl: cannot open $LOGSTAGING/$Filename: $!\n";
+		}
 		$RotateTime += 60;
 	}
 }

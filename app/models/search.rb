@@ -2,7 +2,7 @@
 #
 # Purely a stored bookmark. SearchesController persists the record and the
 # events search form can re-populate itself from it; the actual query is still
-# executed by Event.search / Event.search_period.
+# executed by Event.search.
 class Search < ActiveRecord::Base
   # Show the "Searches" tab only to users holding the Detective right.
   def self.hidden?(current_user = nil)

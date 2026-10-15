@@ -52,16 +52,16 @@ class EventTest < ActiveSupport::TestCase
     end
     Event.performPendingInserts
 
-    assert_equal 1, Event.search('foo_bar', Time.now - 1.year).count,
+    assert_equal 1, Event.search('foo_bar', (Time.now - 1.year)..Time.now).count,
       '_ must not act as a single-character wildcard'
-    assert_equal 1, Event.search('a-b', Time.now - 1.year).count
-    assert_equal 1, Event.search('10.0.1.5', Time.now - 1.year).count
-    assert_equal 0, Event.search('10.0.1.5x', Time.now - 1.year).count
+    assert_equal 1, Event.search('a-b', (Time.now - 1.year)..Time.now).count
+    assert_equal 1, Event.search('10.0.1.5', (Time.now - 1.year)..Time.now).count
+    assert_equal 0, Event.search('10.0.1.5x', (Time.now - 1.year)..Time.now).count
 
     # 'ab' must match the event holding the word 'ab' and not the one holding
     # 'a-b': a range-only prefix filter would wrongly include a-b under a
     # punctuation-insensitive collation such as PostgreSQL's en_US.UTF-8.
-    ab = Event.search('ab', Time.now - 1.year)
+    ab = Event.search('ab', (Time.now - 1.year)..Time.now)
     assert_equal 1, ab.count
     assert_includes ab.first.hunks.split(/\s+/), 'ab'
     refute_includes ab.first.hunks.split(/\s+/), 'a-b'
@@ -72,18 +72,18 @@ class EventTest < ActiveSupport::TestCase
     Event.performPendingInserts
 
     ["'; drop table events; --", "' or 1=1 --", "%' or '1'='1", "needle' --"].each do |payload|
-      assert_equal [], Event.search(payload, Time.now - 1.year), "#{payload} should match nothing"
+      assert_equal [], Event.search(payload, (Time.now - 1.year)..Time.now), "#{payload} should match nothing"
     end
 
     assert Event.table_exists?
     assert Event.connection.table_exists?('events_words')
-    assert_equal 1, Event.search('legitimate needle', Time.now - 1.year).count
+    assert_equal 1, Event.search('legitimate needle', (Time.now - 1.year)..Time.now).count
   end
 
   test 'search escapes LIKE wildcards in the query' do
     Event.storeEvent('1.1.1.1 Jun 1 00:00:00 host svc[1]: uniqueword here')
     Event.performPendingInserts
-    assert_equal [], Event.search('%', Time.now - 1.year)
+    assert_equal [], Event.search('%', (Time.now - 1.year)..Time.now)
   end
 
   test 'storeEvent preserves single quotes instead of rewriting them' do

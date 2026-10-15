@@ -12,8 +12,10 @@ StartLimitIntervalSec=0
 [Service]
 Type=simple
 WorkingDirectory=/var/DAD
-# No EnvironmentFile: syslog.pl reads no environment. It is deliberately not
-# given the database credentials, which it has no use for.
+# No EnvironmentFile: syslog.pl holds no database credentials and needs none.
+# The only variable it reads is DAD_SYSLOG_DEBUG, which is opt-in -- set it in a
+# drop-in (systemctl edit dad-syslog) when you want received messages echoed to
+# the journal.
 ExecStart=/usr/bin/perl /var/DAD/syslog.pl
 Restart=always
 RestartSec=5

@@ -44,8 +44,11 @@ class EventsController < ApplicationController
       endtime = parse_datetime_params righttime, :end
 
     end
-    @events = Event.search(params[:search_terms], Time.now - @timeframe.to_i, 0, @num_results) unless params[:timesearch_enabled]
-    @events = Event.search_period(params[:search_terms], starttime, endtime, 0, @num_results) if params[:timesearch_enabled]
+    if params[:timesearch_enabled]
+      @events = Event.search(params[:search_terms], starttime..endtime, 0, @num_results)
+    else
+      @events = Event.search(params[:search_terms], (Time.now - @timeframe.to_i)..Time.now, 0, @num_results)
+    end
     @previous_search = params[:search_terms]
     @search_time = Time.now - start_time
     respond_to do |format|
@@ -72,7 +75,8 @@ class EventsController < ApplicationController
   #
   # +utc_or_local+ selects the interpretation (:utc or :local). Returns nil when the
   # fields are missing or nonsensical, so callers must handle nil -- note #search
-  # currently passes the result to Event.search_period unchecked.
+  # still passes the result to Event.search unchecked, which raises inside
+  # searchSQL on a nil bound.
   #
   def parse_datetime_params params, label, utc_or_local = :utc
     begin

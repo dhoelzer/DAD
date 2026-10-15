@@ -51,9 +51,11 @@ also means the hardening (`ProtectSystem=full`) is applied to a low-privilege
 account rather than root.
 
 **`dad-syslog` gets `CAP_NET_BIND_SERVICE` instead of root.** It binds port 514
-and needs nothing else. It is also the only unit with no `EnvironmentFile`,
-because `syslog.pl` reads no environment and has no business holding database
-credentials.
+and needs nothing else. It is also the only unit with no `EnvironmentFile`:
+`syslog.pl` has no business holding database credentials. The one variable it
+does read is `DAD_SYSLOG_DEBUG`, which echoes every received message to stdout
+(the journal). Set it in a drop-in when you need to confirm the collector is
+receiving anything at all.
 
 **`Restart=always` plus `StartLimitIntervalSec=0`.** Without the latter, systemd
 gives up after five fast restarts and the service stays down — which is the same

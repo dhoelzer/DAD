@@ -25,3 +25,8 @@ Scenario: Searching for an event that is in the correct time frame
 	Given an event has been stored previously
 	When someone searches for the words in that event
 	Then the event will be found
+
+Scenario: Searching for an event that is outside the time frame
+	Given an event has been stored previously
+	When someone searches for the words in that event over a window that excludes it
+	Then the event will not be found

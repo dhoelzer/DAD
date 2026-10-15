@@ -1,5 +1,8 @@
 #!/usr/bin/env ruby
-require './config/environment.rb'
+# Moved to bin/ from the repo root: it is a CLI tool, not an entry point the
+# operator runs from a fixed working directory. The require is now relative to
+# this file, so it works from anywhere.
+require File.expand_path('../config/environment', __dir__)
 
 # Streams every stored event back out as its original log line, one per stdout line,
 # so the corpus can be replayed into another system. Progress is reported to stderr
