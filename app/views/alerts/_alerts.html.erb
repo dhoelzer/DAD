@@ -14,7 +14,7 @@
         <div id='alert-system'><%= alert.system.display_name unless alert.system.nil? %>&nbsp;</div>
         <div id='alert-system'><%= alert.service.name unless alert.service.nil? %>&nbsp;</div>
         <div id='alert-desc'><%= link_to alert.short_description, alert %>&nbsp;</div>
-        <div id='alert-ack'><%= link_to 'Ack', acknowledge_alert_path(alert), remote: true %>&nbsp;</div>
+        <div id='alert-ack'><%= button_to 'Ack', acknowledge_alert_path(alert), remote: true, method: :post, class: 'ack-button' %></div>
 		<div id='alert-ack'><%= alert.comments.count < 1 ? "" : "*"%>&nbsp;</div>
       </div>
     <% end %>

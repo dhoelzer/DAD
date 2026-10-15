@@ -1,5 +1,5 @@
 <h1>Listing alerts</h1>
-<%= link_to 'Acknowledge all pending alerts', ackall_alerts_path, remote: true  %>
+<%= button_to 'Acknowledge all pending alerts', ackall_alerts_path, remote: true, method: :post, form_class: 'ackall-form' %>
 <div id="alerts_table">
 	
 <%= render partial: "alerts" %>

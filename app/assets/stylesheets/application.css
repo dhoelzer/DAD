@@ -126,6 +126,22 @@ html, body{
 	width:40px;
 }
 
+/* Ack is a POST form (button_to), not a link: acknowledge writes, and a
+   state-changing GET is not covered by protect_from_forgery. The queue is laid
+   out with display:table-column in a 40px cell, so the form's default block box
+   and margins have to be neutralised or the row height changes. */
+#alert-ack form {
+	margin: 0;
+	display: inline;
+}
+#alert-ack input[type=submit] {
+	padding: 0;
+	border: none;
+	background: none;
+	cursor: pointer;
+	font: inherit;
+}
+
 #alerts {
 	padding: 1em;
 	float:right;

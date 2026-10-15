@@ -40,10 +40,13 @@ Events::Application.routes.draw do
 
   resources :alerts do
     collection do
-      get 'ackall'
+      # POST, not GET: both actions write (closed = true). A state-changing GET
+      # is not covered by protect_from_forgery, which only verifies non-GET
+      # verbs, so a prefetched link or an <img src> could close alerts.
+      post 'ackall'
     end
     member do
-      get 'acknowledge'
+      post 'acknowledge'
     end
     resources :comments, shallow: true
   end

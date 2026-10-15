@@ -35,7 +35,7 @@ class AlertAcknowledgeTest < ActionController::TestCase
   def test_acknowledge_closes_the_alert
     alert = open_alert
 
-    get :acknowledge, params: { id: alert.id }
+    post :acknowledge, params: { id: alert.id }
 
     assert alert.reload.closed, 'acknowledge must set closed = true'
   end
@@ -43,7 +43,7 @@ class AlertAcknowledgeTest < ActionController::TestCase
   def test_acknowledge_html_redirects_to_the_queue
     alert = open_alert
 
-    get :acknowledge, params: { id: alert.id }
+    post :acknowledge, params: { id: alert.id }
 
     assert_response :redirect
     assert_redirected_to alerts_url
@@ -53,7 +53,7 @@ class AlertAcknowledgeTest < ActionController::TestCase
   def test_acknowledge_js_rerenders_the_queue
     alert = open_alert
 
-    get :acknowledge, params: { id: alert.id }, xhr: true
+    post :acknowledge, params: { id: alert.id }, xhr: true
 
     assert_response :success
     assert_equal 'text/javascript', response.media_type
@@ -80,7 +80,7 @@ class AlertAcknowledgeTest < ActionController::TestCase
     b = open_alert(criticality: 5)
     already = open_alert(closed: true)
 
-    get :ackall, xhr: true
+    post :ackall, xhr: true
 
     assert_response :success
     assert a.reload.closed
@@ -89,21 +89,20 @@ class AlertAcknowledgeTest < ActionController::TestCase
     assert_equal 0, Alert.where(closed: false).count
   end
 
-  # The link is remote:true, so the JS path is what the UI uses. A plain HTML
-  # GET reaches a respond_to block with no html branch and raises
-  # UnknownFormat -- 406 through the real exception middleware, but it propagates
-  # in a controller test. Pinned so the JS-only contract is explicit.
+  # The UI posts with remote:true, so the JS path is what it uses. A plain HTML
+  # POST reaches a respond_to block with no html branch and raises UnknownFormat
+  # (406 through the real middleware; it propagates in a controller test).
   def test_ackall_only_responds_to_js
     open_alert
 
-    assert_raises(ActionController::UnknownFormat) { get :ackall }
+    assert_raises(ActionController::UnknownFormat) { post :ackall }
   end
 
   def test_acknowledge_leaves_other_alerts_open
     target = open_alert
     other = open_alert
 
-    get :acknowledge, params: { id: target.id }
+    post :acknowledge, params: { id: target.id }
 
     assert target.reload.closed
     refute other.reload.closed, 'acknowledging one alert must not close others'
@@ -111,6 +110,33 @@ class AlertAcknowledgeTest < ActionController::TestCase
 
   # alerts are gated on Viewer/Commentator; a user with neither must not be able
   # to dismiss the queue.
+  # The queue and the alert page must actually render POST forms, otherwise the
+  # UI would be pointing at routes that 404.
+  def test_index_renders_a_post_form_for_ackall
+    open_alert
+
+    get :index
+
+    assert_response :success
+    assert_select 'form[action=?][method=?]', ackall_alerts_path, 'post'
+  end
+
+  def test_queue_renders_a_post_form_per_alert
+    alert = open_alert
+
+    get :index
+
+    assert_select 'form[action=?][method=?]', acknowledge_alert_path(alert), 'post'
+  end
+
+  def test_show_renders_a_post_form_for_acknowledge
+    alert = open_alert
+
+    get :show, params: { id: alert.id }
+
+    assert_select 'form[action=?][method=?]', acknowledge_alert_path(alert), 'post'
+  end
+
   def test_a_user_without_the_viewer_right_cannot_acknowledge
     right = Right.create!(name: "Nope#{SecureRandom.hex(6)}", description: 'n')
     role = Role.create!(name: "Nope#{SecureRandom.hex(6)}", description: 'n')
@@ -122,9 +148,91 @@ class AlertAcknowledgeTest < ActionController::TestCase
                                           session_hash: SecureRandom.hex(16)).session_hash
 
     alert = open_alert
-    get :acknowledge, params: { id: alert.id }
+    post :acknowledge, params: { id: alert.id }
 
     assert_response :redirect
     refute alert.reload.closed, 'an unauthorised user must not close an alert'
+  end
+end
+
+# End-to-end guard on the HTTP verb. These are integration tests rather than
+# assert_routing calls because the point is observable behaviour: a GET must not
+# close an alert. assert_routing reports a miss through Minitest::Assertion,
+# which is not a StandardError, so it cannot be wrapped in assert_raises.
+#
+# The reason these actions are POST: protect_from_forgery only verifies non-GET
+# verbs, so a state-changing GET is CSRF-immune -- an <img src> tag or a browser
+# link prefetch would close alerts. A revert to `get :acknowledge` fails here.
+class AlertAcknowledgeRoutingTest < ActionDispatch::IntegrationTest
+  def sign_in_viewer
+    right = Right.where(name: 'Viewer').first || Right.create!(name: 'Viewer', description: 'v')
+    role = Role.create!(name: "R#{SecureRandom.hex(6)}", description: 'r')
+    role.rights << right
+    user = User.create!(username: "v#{SecureRandom.hex(6)}", attempts: 0)
+    user.store_password('secretsauce')
+    user.roles << role
+    cookies[:sessionID] = SecureRandom.hex(16)
+    Session.create!(user: user, expiry: Time.now + 1.hour, session_hash: cookies[:sessionID])
+    user
+  end
+
+  def open_alert
+    system = System.create!(address: "r#{SecureRandom.hex(6)}.example.com", name: 'r')
+    Alert.create!(system: system, criticality: 3, generated: Time.now, closed: false,
+                  description: 'd', short_description: 's')
+  end
+
+  # show_exceptions = :none in config/environments/test.rb, so an unroutable
+  # request raises rather than rendering 404. Both assertions below are the
+  # production 404 path; what matters is that neither reaches the action.
+  test 'GET /alerts/:id/acknowledge is not routable and closes nothing' do
+    sign_in_viewer
+    alert = open_alert
+
+    assert_raises(ActionController::RoutingError) do
+      get "https://www.example.com/alerts/#{alert.id}/acknowledge"
+    end
+    refute alert.reload.closed, 'a GET must not acknowledge an alert'
+  end
+
+  # /alerts/ackall no longer matches a collection route; it falls through to
+  # alerts#show with id="ackall", which cannot find a record. 404 either way --
+  # the point is that ackall is not executed.
+  test 'GET /alerts/ackall is not routable and closes nothing' do
+    sign_in_viewer
+    alert = open_alert
+
+    assert_raises(ActiveRecord::RecordNotFound) do
+      get 'https://www.example.com/alerts/ackall'
+    end
+    refute alert.reload.closed, 'a GET must not acknowledge alerts'
+  end
+
+  # The payoff of the verb change, checked with forgery protection actually
+  # enabled (config/environments/test.rb turns it off globally). A POST without
+  # a valid token is rejected; as a GET this request was never inspected at all,
+  # because protect_from_forgery only covers non-GET verbs.
+  test 'a cross-site POST without a CSRF token is rejected' do
+    sign_in_viewer
+    alert = open_alert
+    previous = ActionController::Base.allow_forgery_protection
+    ActionController::Base.allow_forgery_protection = true
+    begin
+      assert_raises(ActionController::InvalidAuthenticityToken) do
+        post "https://www.example.com/alerts/#{alert.id}/acknowledge"
+      end
+    ensure
+      ActionController::Base.allow_forgery_protection = previous
+    end
+    refute alert.reload.closed, 'a tokenless POST must not acknowledge an alert'
+  end
+
+  test 'POST /alerts/:id/acknowledge closes the alert' do
+    sign_in_viewer
+    alert = open_alert
+
+    post "https://www.example.com/alerts/#{alert.id}/acknowledge"
+
+    assert alert.reload.closed
   end
 end
