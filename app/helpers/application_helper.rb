@@ -69,7 +69,7 @@ module ApplicationHelper
   def statistics_by_hour(type_id, since, agg = 'sum')
     aggregate = AGGREGATES.fetch(agg)
     sql = "select #{aggregate} as agg_value,substr(cast(timestamp as text),1,13) as bucket from statistics where type_id=? and timestamp>? group by bucket order by bucket asc"
-    ActiveRecord::Base.connection.exec_query sql, "SQL", [[nil, type_id], [nil, since]]
+    ActiveRecord::Base.connection.exec_query sql, "SQL", [type_id, since]
   end
 
   # The bucketed rows behind every chart helper, as [["YYYY-MM-DD HH", value], ...].
@@ -111,7 +111,7 @@ module ApplicationHelper
   # the same display name used to collapse into one entry, silently dropping a
   # count.
   def system_stats(days)
-    counts = Event.where("generated > ?", (Time.now()-(days * 86400)).to_s(:db)).group(:system_id).count
+    counts = Event.where("generated > ?", (Time.now()-(days * 86400)).to_fs(:db)).group(:system_id).count
     systems = System.where(id: counts.keys).index_by(&:id)
     counts.map { |system_id, count| [systems.fetch(system_id).display_name, count] }
   end
@@ -123,7 +123,7 @@ module ApplicationHelper
   # and the service names arrive from syslog. A nil service_id still has no
   # Service row to resolve, so it raises rather than rendering a blank label.
   def service_stats(days)
-    counts = Event.where("generated > ?", (Time.now()-(days*86400)).to_s(:db)).group(:service_id).count
+    counts = Event.where("generated > ?", (Time.now()-(days*86400)).to_fs(:db)).group(:service_id).count
     services = Service.where(id: counts.keys).index_by(&:id)
     counts.map { |service_id, count| [services.fetch(service_id).name, count] }
   end  

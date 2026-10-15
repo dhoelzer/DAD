@@ -1,8 +1,8 @@
-# Reproducible dev/test image. The base tag is pinned to a patch release:
-# this Rails line predates Ruby 3.0's keyword-argument separation and does not
-# boot there, so an unpinned `ruby:2` tag silently breaks the app on a future
-# minor release.
-FROM ruby:2.7.8
+# Reproducible dev/test image. The base tag is pinned to a patch release: an
+# unpinned `ruby:3` tag silently breaks the app on a future minor release.
+# Ruby 3.3 is the line Rails 7.1 documents; the app moved off 2.7 because
+# nokogiri/sqlite3 and the json default gem no longer support it.
+FROM ruby:3.3.8
 
 RUN apt-get update -qq && \
     apt-get install -y --no-install-recommends \
@@ -12,8 +12,7 @@ RUN apt-get update -qq && \
     rm -rf /var/lib/apt/lists/*
 
 # Bundler version is pinned by the "BUNDLED WITH" section of Gemfile.lock.
-# Bundler 2.4.x is the last line that still runs on Ruby 2.7; 2.5+ requires 3.x.
-gem install bundler -v 2.4.22 --no-document
+gem install bundler -v 2.6.7 --no-document
 
 ENV BUNDLE_PATH=/usr/local/bundle \
     BUNDLE_WITHOUT=production

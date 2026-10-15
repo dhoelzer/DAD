@@ -1,38 +1,52 @@
 source 'https://rubygems.org'
 
-# Rails 6.1.7 is the last release of the 6.1 line. The 4.2 -> 8 upgrade is staged
-# (RECOMMENDATIONS.md 5.2); 6.1 is the last step that still runs on Ruby 2.7
-# before the 7.x line, so the Ruby jump stays deferred to the 7.2 step. Keep this
-# in lockstep with .github/workflows/ci.yml and Dockerfile.dev.
-gem 'rails', '~> 6.1.0'
-
-# Ruby 2.7 ships bigdecimal 2.x, which removed BigDecimal.new. Rails 6.1 no
-# longer calls it, but the pin is kept so the resolved graph stays close to what
-# CI has always built; drop it together with the Ruby upgrade.
-gem 'bigdecimal', '~> 1.4.4'
+# Rails 7.1 is the last line that runs on Ruby 2.7; this step moves Ruby to 3.3 at
+# the same time (RECOMMENDATIONS.md 5.2).
+# The remaining step is 7.1 -> 8.1. Keep this in lockstep with .ruby-version,
+# .github/workflows/ci.yml and Dockerfile.dev.
+gem 'rails', '~> 7.1.0'
 
 # Transitive dependency of rails-html-sanitizer, capybara and cucumber-rails.
-# 1.15.7 is the last line that supports Ruby 2.7 (1.16+ requires Ruby >= 3.0), so
-# it is pinned explicitly to stop a `bundle update` pulling an uninstallable
-# version. Raise it together with the Ruby upgrade.
-gem 'nokogiri', '~> 1.15.7'
+# The 1.15 line was pinned only because it was the last one supporting Ruby 2.7;
+# 1.16+ requires Ruby >= 3.0, which this app now satisfies.
+gem 'nokogiri', '~> 1.16'
+
+# Ruby 3.3 ships json 3.x as a default gem, and json 3.0 dropped the
+# quirks_mode option that ActiveSupport 7.1's JSON encoder still passes
+# (active_support/json/encoding.rb#stringify). Every to_json call then dies with
+# "unknown keyword: quirks_mode" -- which takes down all 34 jbuilder views.
+# Pinning the 2.x line keeps the option; drop the pin at the Rails 7.2 step,
+# where the encoder no longer passes it.
+gem 'json', '~> 2.7'
 
 group :production do
-  gem 'pg', '~> 0.21.0'
+  # 0.21 predates Ruby 3. Not exercised by CI (BUNDLE_WITHOUT=production), so the
+  # bump is unverified locally; 1.5 is the last 1.x line and builds on Ruby 3.3.
+  gem 'pg', '~> 1.5'
 end
 
 group :development, :test do
-  # Rails 6.1's sqlite3 adapter requires sqlite3 ~> 1.4 (1.3 is rejected at
-  # boot). 1.7+ requires Ruby >= 3.0, so the ceiling keeps it installable on
-  # Ruby 2.7; raise it together with the Ruby upgrade.
-  gem 'sqlite3', '~> 1.4', '< 1.7'
-  gem 'rspec-rails', '~> 3.9'
-  gem 'cucumber-rails', '~> 2.0', require: false
+  # Rails 7.1's sqlite3 adapter needs >= 1.4; 2.x is only supported by the Rails
+  # 7.2+ adapter, so the ceiling keeps the adapter contract this app relies on.
+  gem 'sqlite3', '~> 1.7', '< 2'
+  # railties 7.1's TestUnit runner calls Minitest::Test.run(reporter, options,
+  # suite); minitest 6 narrowed that to (reporter, options) and every test dies
+  # with "wrong number of arguments (given 3, expected 1..2)". railties only
+  # declares `minitest >= 5.1`, so the 5.x line must be pinned explicitly.
+  gem 'minitest', '~> 5.25'
+  # There is no spec/ directory and no rspec *example* code, but the cucumber
+  # step definitions call rspec-expectations' `expect`, which cucumber-rails only
+  # mixes into Cucumber::Rails::World when rspec/rails/matchers is loadable.
+  # Removing this gem silently breaks all four cucumber scenarios.
+  gem 'rspec-rails', '~> 6.1'
+  gem 'cucumber-rails', '~> 2.6', require: false
   gem 'database_cleaner', '~> 1.7'
 end
 
 group :development do
-  gem 'brakeman', '~> 5.4'
+  # 7.x understands the Rails 7.1 route/callback DSL; 5.4 predates it and
+  # mis-parses the app. Still non-blocking in CI (RECOMMENDATIONS.md 1.2).
+  gem 'brakeman', '~> 7.0'
   gem 'bundler-audit', '~> 0.9'
 end
 
@@ -47,16 +61,17 @@ gem 'httparty', '~> 0.18.0'
 # sprockets-built application.js/application.css are byte-identical to the 5.2
 # build, so the vendored copies are a drop-in replacement.
 
-# Use SCSS for stylesheets. 5.0.x is the last line that still pins sprockets < 4.0,
-# which keeps the existing (sprockets 3.7) asset pipeline intact. It resolves
-# against Rails 6.1; the 6.x line would drag in sprockets 4.
+# Use SCSS for stylesheets. 5.0.x declares railties >= 5.2.0 with no upper bound
+# and still pins sprockets < 4.0, which keeps the existing (sprockets 3.7) asset
+# pipeline intact. The 6.x line would drag in sprockets 4 and sassc.
 gem 'sass-rails', '~> 5.0.7'
 
-# Use Uglifier as compressor for JavaScript assets
+# Use Uglifier as compressor for JavaScript assets. 2.7 is pure Ruby over execjs
+# and needs a JS runtime (node) at precompile time, as it always has.
 gem 'uglifier', '~> 2.7'
 
 # Use CoffeeScript for .js.coffee assets and views. 4.2.x is required: the 4.0.x
-# line caps railties at < 5.0, so it cannot resolve against Rails 5.2.
+# line caps railties at < 5.0.
 gem 'coffee-rails', '~> 4.2.2'
 
 # Use jquery as the JavaScript library. 4.3.x is the oldest line compatible with
@@ -68,11 +83,8 @@ gem 'jquery-rails', '~> 4.3.5'
 # replaced with `data-turbolinks-action`.
 gem 'turbolinks', '~> 2.5'
 
-# Build JSON APIs with ease. jbuilder 1.x cannot run on Rails 5 (its activesupport
-# bound tops out below 5.1). The 34 .jbuilder views use only json.array!,
-# json.extract! and json.url, all unchanged in 2.x, so 2.7 renders them
-# identically -- verified by diffing all 22 JSON endpoint responses against the
-# 4.2 baseline.
+# Build JSON APIs with ease. The 34 .jbuilder views use only json.array!,
+# json.extract! and json.url, all unchanged in 2.x.
 # 2.7.0's JbuilderTemplate handler takes one argument; Rails 6.1's template
 # compiler calls it with two, so every .json.jbuilder view dies with
 # "wrong number of arguments (given 2, expected 1)".
@@ -80,7 +92,9 @@ gem 'jbuilder', '~> 2.11'
 
 group :doc do
   # bundle exec rake doc:rails generates the API under doc/api.
-  gem 'sdoc', '~> 0.4', require: false
+  # 0.4 pins json ~> 1.7 and rdoc ~> 4.0; json 1.8 has no Ruby 3 support and
+  # fails to build its C extension on Ruby 3.3, so the 2.x line is required.
+  gem 'sdoc', '~> 2.6', require: false
 end
 
 # Password hashing for User#store_password / #check_password.

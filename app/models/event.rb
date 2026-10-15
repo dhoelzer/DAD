@@ -264,18 +264,18 @@ class Event < ActiveRecord::Base
     # binds must follow placeholder order: WHERE subqueries, then the range,
     # then the HAVING subqueries, then the expected term count.
     terms.each { |term| binds.concat(word_binds(term)) }
-    binds << [nil, starting_time.to_s(:db)] << [nil, ending_time.to_s(:db)]
+    binds << starting_time.to_fs(:db) << ending_time.to_fs(:db)
     terms.each { |term| binds.concat(word_binds(term)) }
-    binds << [nil, terms.count]
+    binds << terms.count
     [sql, binds]
   end
 
   # Range bounds plus the escaped LIKE pattern for one search term.
   def self.word_binds(term)
     [
-      [nil, term],
-      [nil, term + PREFIX_UPPER],
-      [nil, "#{sanitize_sql_like(term)}%"],
+      term,
+      term + PREFIX_UPPER,
+      "#{sanitize_sql_like(term)}%",
     ]
   end
   private_class_method :word_binds
@@ -312,7 +312,7 @@ class Event < ActiveRecord::Base
   # Shared by #search and #search_period; internal.
   def self.matching_events(terms, starting_time, ending_time, offset, limit)
     sql, binds = searchSQL(starting_time, ending_time, terms)
-    scoped = sanitize_sql_array(["id in (#{sql})", *binds.map(&:last)])
+    scoped = sanitize_sql_array(["id in (#{sql})", *binds])
     Event.where(scoped).order(generated: :asc).limit(limit).offset(offset)
   end
   private_class_method :matching_events
@@ -335,7 +335,7 @@ class Event < ActiveRecord::Base
   # dated lines fell through to format 4 and lost their time of day.
   #
   # +year+ fills in the missing year for format 4. Offsets are normalized to
-  # UTC because the value is stored with to_s(:db), which drops the offset.
+  # UTC because the value is stored with to_fs(:db), which drops the offset.
   def self.parse_timestamp(tokens, year)
     return [nil, 0] if tokens.nil? || tokens.empty?
 
@@ -456,7 +456,7 @@ class Event < ActiveRecord::Base
     end
 
     # Precalculate some needed values and perform necessary conversions.
-    timestamp_s = timestamp.to_s(:db)
+    timestamp_s = timestamp.to_fs(:db)
     time_now = Time.now
 
     # Take all of the words, make them unique and make sure that they are in the DB. Look up their IDs.
@@ -475,7 +475,7 @@ class Event < ActiveRecord::Base
     # Values are staged as-is and bound as parameters at flush time, so log text
     # (which is attacker-controlled) never becomes part of the SQL string.
     @@pendingEventValues << {:id => @@nextEventID, :system_id => system.id, :service_id => service.id,
-                             :generated => timestamp_s, :stored => time_now.to_s(:db), :hunks => hunks}
+                             :generated => timestamp_s, :stored => time_now.to_fs(:db), :hunks => hunks}
 
     @@nextEventID += 1
     # Set before the flush so the batch being handed off carries this line's
@@ -489,11 +489,13 @@ class Event < ActiveRecord::Base
   # and column names (all literals from this file) reach the SQL text; every
   # value is bound. SQLite caps host parameters far above the largest batch
   # this produces, so batching is preserved.
+  # Binds are plain values: Rails 7.1 removed the legacy [type, value] pair form
+  # that exec_query accepted, and type_cast now raises "can't cast Array" on it.
   def self.insertStatement(table, columns, rows)
     row_placeholder = "(#{(['?'] * columns.size).join(', ')})"
     sql = "INSERT INTO #{table} (#{columns.join(', ')}) VALUES " +
       Array.new(rows.size) { row_placeholder }.join(', ')
-    binds = rows.flat_map { |row| columns.map { |c| [nil, row[c]] } }
+    binds = rows.flat_map { |row| columns.map { |c| row[c] } }
     [sql, binds]
   end
 

@@ -21,11 +21,11 @@ than carried forward.
 | Secrets in the working tree | Closed — **but a production key is still in git history (§1.1)** |
 | Ingestion crash-safety and idempotency | Closed, at-least-once (§2.2) |
 | Search indexing, dashboard SQL portability, timestamp parsing | Closed |
-| Test suite | Green: 194 runs / 534 assertions, 4 cucumber scenarios |
+| Test suite | Green: 194 runs / 542 assertions, 4 cucumber scenarios |
 | Admin screens (sessions, users, jobs) | Closed — now covered by request tests (§2.1) |
 | Poison line / observability | **Open — was mis-marked as fixed (§5.3)** |
-| Rails upgrade | **4.2 → 5.2 → 6.1 landed**; 6.1 → 8.1 open (§5.2) |
-| Rails 6.1 EOL, CI security gates | Open (§5.2, §1.2) |
+| Rails upgrade | **4.2 → 5.2 → 6.1 → 7.1 landed**; 7.1 → 8.1 open (§5.2) |
+| Rails 7.1 EOL, CI security gates | Open (§5.2, §1.2) |
 | Partitioning, full-text search | Open (§3) |
 
 ---
@@ -77,6 +77,12 @@ gem or a new injection sink merges green.
 After the 4.2 → 5.2 step, Brakeman reports **2 warnings** (down from 3) and
 bundle-audit advisories drop from **88 to 46** — the Rails/rack/actionpack
 framework CVEs are gone; what remains is mostly transitive (`rdoc`, `sqlite3`).
+Measured again after the 6.1 → 7.1 step: Brakeman is unchanged at **1 warning**
+(one high-confidence finding, pre-existing), and bundle-audit advisories fall from
+**40 to 25**. The `json 1.8.6`, `rdoc` and 17 `nokogiri` advisories are gone; what
+remains is 10 × `sqlite3` (the dev/test-only gem, capped at 1.7.3 by the
+`< 2.0` ceiling — see §5.2), 6 × `activestorage` (an engine this app does not use
+at all), and `httparty`/`jquery-rails`/`mail`/`actionview`.
 
 **Fix:** split the job. Make **brakeman blocking now** (the 2 warnings are
 pre-existing and can be baselined with an ignore file, so blocking does not stall
@@ -310,12 +316,13 @@ Verified at `b6adf25`:
 
 ### 5.2 Rails is end-of-life — what a Rails 8 upgrade actually requires **[operations]**
 
-`Gemfile` pins `rails '~> 6.1.0'` (resolves 6.1.7.10). Steps 1 (→ 5.2) and
-2 (→ 6.1) of the sequence at the end of this section have landed; the plan below
-is kept in full because the remaining steps (7.1 → 7.2 → 8.1) still depend on it.
-6.1 has been EOL since late 2023 and has open CVEs with no fix available, which
-is why bundle-audit stays non-blocking (§1.2). Ruby is pinned to 2.7.8 in CI,
-also EOL.
+`Gemfile` pins `rails '~> 7.1.0'` (resolves 7.1.6). Steps 1 (→ 5.2), 2 (→ 6.1)
+and 3 (→ 7.1) of the sequence at the end of this section have landed; the plan
+below is kept in full because the remaining steps (7.2 → 8.1) still depend on it.
+7.1 has been EOL since October 2024 and has open CVEs with no fix available,
+which is why bundle-audit stays non-blocking (§1.2). Ruby is pinned to 3.3.8 in
+CI — supported, and already past the 7.2/8.1 floors (3.1 / 3.2), so the Ruby jump
+that used to gate step 4 is done.
 
 This is the dependency that gates several other items: Postgres partitioning
 (§3.2) and a Postgres test database (§4.1 option C) both become tractable during
@@ -323,8 +330,10 @@ a Rails upgrade, and the CI security gates can only be made blocking afterwards.
 
 **Baseline at the start of this workstream.** Rails 4.2.11.3 · Ruby 2.7.8 ·
 Bundler 1.17.3 · rack 1.6.13 · sprockets 2.12.5 · SQLite in dev/test, Postgres in
-prod (`pg 0.21.0`). **Current baseline after steps 1–2:** Rails 6.1.7.10 ·
-Ruby 2.7.8 · Bundler 2.4.22 · rack 2.2 · sprockets 3.7.5 · jbuilder 2.13.
+prod (`pg 0.21.0`). **Current baseline after steps 1–3:** Rails 7.1.6 ·
+Ruby 3.3.8 · Bundler 2.6.7 · rack 2.2 · sprockets 3.7.5 · jbuilder 2.13 ·
+nokogiri 1.19 · pg 1.7 · sqlite3 1.7.3 · json 2.19 (pinned off the 3.x default
+gem) · minitest 5.27 (pinned off 6.x).
 3,680 LOC of Ruby in `app`/`lib`, 1,735 LOC across 90 views (34 of them
 jbuilder), 2,923 LOC of tests, 29 migrations, 22 models, 19 controllers.
 
@@ -342,10 +351,15 @@ ActiveSupport 4.2 calls during boot — see `Gemfile:11`).
 So Rails 4.2 is hard-capped at Ruby 2.7, and the two have to be walked up in
 lockstep. The useful part: **Rails 7.1 is the last release that allows Ruby 2.7**
 — **verified** from the gemspecs: 7.0.8 and 7.1.5 are both `>= 2.7.0`, 7.2.2 is
-`>= 3.1.0`, 8.0.0 is `>= 3.2.0`. That means 4.2 → 5 → 6 → 7.1 can all be done
-*without* touching Ruby, and the Ruby jump lands once, at 7.2 — which is also
-exactly where `Rails.application.secrets` disappears (item 7). Splitting the work
-that way is much cheaper than doing both at once.
+`>= 3.1.0`, 8.0.0 is `>= 3.2.0`. That meant 4.2 → 5 → 6 → 7.1 could all be done
+*without* touching Ruby, with the Ruby jump landing once, at 7.2.
+
+**That plan is now overtaken.** Step 3 jumped Ruby to 3.3.8 at the same time as
+Rails 7.1 rather than staying on 2.7, because staying on 2.7 turned out to be the
+expensive option: nokogiri and sqlite3 both dropped Ruby 2.7 support, and Ruby 3.3
+ships `json` 3.x as a default gem, which breaks ActiveSupport 7.1 (see the landed
+notes below). 3.3.8 is already above the 7.2 and 8.1 floors, so **step 4 (→ 7.2)
+is now a pure Rails change with no Ruby work in it.**
 
 #### Hard failures, fixable *now* on 4.2 (do these first — they are free)
 
@@ -483,6 +497,96 @@ Recorded because the same class of failure recurs at 7.1.
   HostAuthorization, both silently. It is a reviewed change of its own, not a
   side effect of a version bump.
 
+#### What the 6.1 → 7.1 step actually hit (landed)
+
+Run against a pristine 6.1.7.10 worktree at `04d6f58` so every difference could be
+attributed rather than assumed. Everything below was observed, not predicted.
+
+- **Ruby 3.3.8 moved with Rails, and it forced three pins.** Ruby 3.3 ships
+  `json` 3.x as a default gem; json 3.0 removed `quirks_mode`, which
+  ActiveSupport 7.1 still calls from `active_support/json/encoding.rb`, so every
+  `to_json` — and therefore all 34 jbuilder views — died with
+  `unknown keyword: quirks_mode`. Pinned `json ~> 2.7` (resolves 2.19.3).
+  Separately, minitest 6 changed `Minitest.after_run` to `(reporter, options)`;
+  the Rails 7.1 test runner still calls it with one argument, and
+  `activesupport 7.1.6` only declares `minitest >= 5.1`, so the 5.x line had to be
+  pinned explicitly (`~> 5.25`, resolves 5.27.0). Nokogiri and sqlite3 both
+  dropped Ruby 2.7, which is the real reason the Ruby jump could not wait for 7.2.
+- **`to_s(:db)` is gone.** Replaced by `to_fs(:db)` in `event.rb`, `system.rb`,
+  `application_helper.rb` and two tests. **Verified** the two produce byte-equal
+  strings, so the SQL is unchanged.
+- **Legacy `[[type, value]]` bind pairs are a hard failure, as item 1 predicted.**
+  Six `exec_query` sites still passed them; on 7.1 that raises `TypeError: can't
+  cast Array`. Now plain values. The `EventTest` bind-shape assertions and the
+  `EXPLAIN QUERY PLAN` fixture were updated to match, so the search-path SQL is
+  still asserted rather than just exercised.
+- **`assets:precompile` broke, and this one was not on the list.** Rails 7.1's
+  Active Storage, Action Cable and Action Text engines each append their own
+  bundles to `config.assets.precompile`; 6.1's engines did not. Those bundles are
+  ES6, and uglifier 2.7 — the compressor this app has always used — cannot parse
+  them, so precompile died with `Unexpected token: name (FileChecksum)`. The app
+  uses none of the three features (no `active_storage_*`/`action_text_*` tables, no
+  ActionCable consumer, no trix in any view), so `config/initializers/assets_precompile.rb`
+  turns Active Storage and Action Cable off through their own `precompile_assets`
+  flags and subtracts the Action Text entries in `after_initialize` (Action Text
+  has no flag, and its engine initializer appends after `config/initializers`
+  runs). **Verified**: precompile then emits `application.js`, `application.css`
+  and `spinner.gif` with digests **byte-identical to the 6.1 build**
+  (`65f30ed2…` / `156e1108…`).
+- **`rspec-rails` is load-bearing even though there is no `spec/` directory.** It
+  was dropped as dead weight during the Gemfile rewrite and all four cucumber
+  scenarios then failed with `undefined method 'expect'`: cucumber-rails only
+  mixes `RSpec::Matchers` into `Cucumber::Rails::World` when
+  `rspec/rails/matchers` is loadable. Restored (`~> 6.1`). Worth remembering —
+  a gem with no obvious consumer is not the same as an unused gem.
+- **Schema dump format changed, and exactly one table's DDL did.** `db/schema.rb`
+  is now `ActiveRecord::Schema[7.1].define` and datetimes carry `precision: nil`.
+  All 29 migrations still apply from scratch. Comparing `sqlite_master` object by
+  object: 32 objects on both sides, same names, same types, and **only `events`
+  differs** — 6.1 emits `"id" integer NOT NULL PRIMARY KEY`, 7.1 emits
+  `"id" integer PRIMARY KEY AUTOINCREMENT NOT NULL`. It is the one table that
+  `20261013000001_fix_generated_column_defaults` rebuilds through
+  `change_column_default` (sqlite has no `ALTER COLUMN`), and the 7.1 adapter
+  rebuilds with `AUTOINCREMENT` while 6.1 did not. Every column, type, default and
+  index is unchanged; `AUTOINCREMENT` only affects rowid reuse after the largest id
+  is deleted, which `events` never does. Worth knowing before §3.2 partitioning,
+  though.
+- **Three deprecations silenced rather than ignored.** `show_exceptions = false`
+  → `:none` (exact equivalent), `check_pending!` → `check_all_pending!`, and
+  `config.active_support.cache_format_version = 7.0` — the last is free here
+  because nothing in the app reads or writes `Rails.cache`. The test run is now
+  deprecation-free.
+- **Two middleware dropped from the production stack, both inert here.** The stack
+  went from 23 entries to 21: `ActionDispatch::HostAuthorization` and
+  `ActiveSupport::Cache::Strategy::LocalCache`. HostAuthorization is now inserted
+  only `unless Array(config.hosts).empty?` (6.1 inserted it unconditionally), so
+  with no `config.load_defaults` it disappears rather than sitting there allowing
+  everything — same net behaviour, and it means §5.2's earlier note is now
+  *stronger*: setting `config.hosts` is what arms the middleware, so adding the
+  real `ServerName` from `provision.sh` is a one-line change with no other
+  coupling. LocalCache was simply removed from the default stack; irrelevant here
+  because `perform_caching` is off in test and nothing touches `Rails.cache`.
+- **Rails 7.1 sets `response_body = ""` on redirects**, so 302s now carry an empty
+  body instead of the 97-byte `<html><body>You are being <a href=…>redirected</a>`
+  stub. Status and `Location` are identical and no test or view reads the body, but
+  anything that scraped the redirect stub would notice.
+- **Assertion count rose 534 → 542 with no test logic changed.** The +8 is
+  framework accounting: ActiveSupport 7.1's `assert_difference` /
+  `assert_no_difference` route their block through minitest's
+  `_assert_nothing_raised_or_warn`, which registers one assertion per call, where
+  6.1's `assert_nothing_raised` registered none. The four affected files contain
+  exactly 8 such calls (displays 2, jobs 2, sessions_admin 1, users_admin 3), and
+  an isolated two-helper probe counts 4 assertions on 7.1 against 2 on 6.1. Runs
+  stayed at 194.
+- **Functional equivalence, verified rather than assumed.** A deterministic probe
+  (fixed seed data, no `SecureRandom`, explicit timestamps) drove every HTML and
+  JSON route plus the search/dashboard endpoints on both versions. All 200/302
+  statuses match; all JSON bodies are byte-identical; HTML pages are identical
+  modulo attribute *ordering* (`<link rel=… media=…>` vs `<link … media=…>`),
+  per-request CSRF/session randomness, and bcrypt salts on `/users`.
+  `rake test` 194 runs green, `cucumber` 4 scenarios / 15 steps green, production
+  boot clean, `assets:precompile` clean.
+
 #### The asset stack is the least pleasant part
 
 `sprockets 2.12.5` / `sprockets-rails 2.3.3` / `sass-rails 4.0.5` /
@@ -498,22 +602,33 @@ transpiler. `turbolinks 2.5` uses `data-no-turbolink` (5 sites) and
 different semantics under Turbo. `jbuilder 1.2` → 2.x across 34 views is a real
 but mechanical sweep.
 
-One thing to check on a real production boot rather than assume:
-`production.rb:31` sets `config.assets.enabled = false` while the layout still
-calls `javascript_include_tag`/`stylesheet_link_tag`, and `public/` contains no
-`assets/` directory. That combination needs confirming on an actual production
-boot — it is adjacent to the upgrade and may already be a latent bug.
+**That `production.rb:31` question is now answered — it is not a bug.** Verified
+on a real production boot at Rails 7.1.6: `config.assets.enabled = false` is
+ignored by sprockets-rails 3.x, `config.assets.digest = false` makes the layout
+emit the **undigested** `/assets/application.js`, and that URL returns **200** with
+the full 432,819-byte bundle. It works because `config.assets.compile` is left at
+its default `true` (line 30 is commented out), so sprockets resolves and serves the
+logical name on demand. The digested path resolves too. Identical behaviour on 6.1
+(`production.rb` is untouched by this step), so nothing regressed — but note that
+production is doing **on-the-fly compilation on every cold boot**, and
+`provision.sh` never runs `assets:precompile`. Setting `compile = false` and
+precompiling at deploy time is the cheap fix; leaving it as-is costs boot latency
+and a sprockets cache miss per request until the cache warms.
 
 #### Test and deployment stack
 
-`cucumber-rails 1.5.0` → 4.1.0 (requires Ruby 3.2), `capybara 2.18` → 3.40,
-`database_cleaner 1.5` → 2.x, `sqlite3 1.3.13` → 2.x (requires Ruby 3.2),
-`pg 0.21` → 1.7, Bundler 1.17.3 → 2.x. Six test files use
+**Already moved by step 3:** Bundler 2.6.7, `pg 1.7`, `sqlite3 1.7.3`,
+`nokogiri 1.19`, `bcrypt 3.1.20`, `cucumber-rails 2.6`, `rspec-rails 6.1`,
+`rack 2.2`. **Still outstanding for 7.2/8.1:** `capybara` → 3.40,
+`database_cleaner` → 2.x, and `sqlite3` 2.x (which Rails 7.2+ wants and which the
+current `~> 1.7, < 2` ceiling blocks — the ceiling exists because Rails 7.1's
+adapter predates the 2.x API, not because of Ruby). `rack 1.6` → 3.x is low-risk
+here because the app defines
 `ActionController::TestCase`; `test_helper.rb:26` declares `fixtures :all` but
 there are no fixtures. `rack 1.6` → 3.x is low-risk here because the app defines
 **no custom middleware** (verified: zero `middleware` references in `config/`,
-`app/`, `lib/`). CI (`ruby-version: 2.7.8`) and `Dockerfile.dev` (`FROM ruby:2.7.8`)
-both move, and §1.2's advisory security gates become blocking at the end.
+`app/`, `lib/`). CI (`ruby-version`) and `Dockerfile.dev` (`FROM ruby:`) both
+moved to 3.3.8 at step 3, and §1.2's advisory security gates become blocking at the end.
 
 #### Recommended sequence
 
@@ -522,9 +637,9 @@ both move, and §1.2's advisory security gates become blocking at the end.
 | **0. Prepare (on 4.2, today)** | 2.7.8 | Items 1–4: `sanitize_sql_array`, `before_action`, delete dead deps, replace the `$_models` boot hack. All back-portable, all reduce later risk. |
 | **1. → 5.2** | 2.7.8 | **Done.** Migration brackets (item 5), `belongs_to` decision (item 6). `load_defaults` deliberately *not* adopted — see the note below the table. |
 | **2. → 6.1** | 2.7.8 | **Done.** Zeitwerk now mandatory (item 9). Sprockets stayed on 3.7.5 (4 is not required at this step). |
-| **3. → 7.1** | 2.7.8 | Last Ruby-2.7-compatible step. `to_s(:db)` (item 8), jbuilder 2.x. |
-| **4. → 7.2** | **3.1+** | Ruby jump. `secrets` removal (item 7). |
-| **5. → 8.1** | **3.2+** | Propshaft, Turbo, `dartsass-rails`. Target 8.1, not 8.0: 8.0 gets security fixes only to Nov 2026, 8.1 to Oct 2027. |
+| **3. → 7.1** | **3.3.8** | **Done.** Ruby jumped here rather than at 7.2 — nokogiri and sqlite3 had already dropped 2.7, and Ruby 3.3's `json` 3.x default gem forced a pin. `to_fs(:db)` (item 8), `exec_query` binds (item 1), the precompile-list fix. |
+| **4. → 7.2** | 3.3.8 (no change) | Now a pure Rails step. `Rails.application.secrets` removal (item 7) — the only item that used to be gated on the Ruby jump. `sqlite3` 2.x becomes available. |
+| **5. → 8.1** | 3.3.8 (no change) | Propshaft, Turbo, `dartsass-rails`. Target 8.1, not 8.0: 8.0 gets security fixes only to Nov 2026, 8.1 to Oct 2027. |
 
 **Do §4.3 first.** The suite is 194 runs against 90 views and the ingest path, and
 the two most dangerous items above (6 and 8) both fail *silently* — dropped nav
@@ -600,7 +715,7 @@ three processes fit together, and where logs go.
 | 4 | §5.3 poison-line handling + `Rails.logger` | hours | Stops silent ingestion stalls; compounds §5.1 |
 | 5 | §5.1 systemd units | days | The importer dying silently is the main operational risk |
 | 5b | ~~§5.2 step 0: back-portable prep~~ **done** | — | Landed with the 5.2 step |
-| 6 | §5.2 Rails **5.2 → 6.1 → 7.1 → 7.2 → 8.1** (see the staged plan there) | months | Gates §3.2, §4.1-C, and blocking security gates |
+| 6 | §5.2 Rails **7.2 → 8.1** (5.2, 6.1 and 7.1 landed; see the staged plan there) | weeks, not months — the Ruby jump is already done | Gates §3.2, §4.1-C, and blocking security gates |
 | 7 | §3.2 partitioning, §3.3 FTS, §4.1-B `EventIngestor` | ongoing | Real work, but bounded by the above |
 | 8 | §5.4 LICENSE, §5.5 README, §4.2 dead code | hours | Hygiene; do opportunistically |
 

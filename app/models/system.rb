@@ -31,7 +31,7 @@ class System < ActiveRecord::Base
   # One grouped query plus one lookup for all ids, instead of a System.find per
   # group: this runs on every dashboard poll.
   def self.with_events_within_hours(hours=1)
-    counts = Event.where("generated > ?", (Time.now()-(hours * 3600)).to_s(:db)).group(:system_id).count
+    counts = Event.where("generated > ?", (Time.now()-(hours * 3600)).to_fs(:db)).group(:system_id).count
     reporting = counts.select { |_id, count| count > 0 }.keys
     System.where(id: reporting).to_a
   end
@@ -44,7 +44,7 @@ class System < ActiveRecord::Base
     connection = ActiveRecord::Base.connection
     events_since = (Time.now - (days * 86400))
     sql = "select system_id,b.name,count(*) as count from events as a join systems as b on  a.system_id=b.id where generated>? group by system_id,b.name order by b.name asc"
-    connection.exec_query(sql, "SQL", [[nil, events_since.to_s(:db)]])
+    connection.exec_query(sql, "SQL", [events_since.to_fs(:db)])
   end
 
   # Label for this host: its +name+ if set, else its +address+ in parentheses.
@@ -79,7 +79,7 @@ class System < ActiveRecord::Base
   # reasoning.
   def self.hourly_counts(system_id, since)
     sql = "select count(*) as count,substr(cast(generated as text),1,13) as bucket from events where events.system_id=? and events.generated>? group by bucket order by bucket asc"
-    ActiveRecord::Base.connection.exec_query sql, "SQL", [[nil, system_id], [nil, since]]
+    ActiveRecord::Base.connection.exec_query sql, "SQL", [system_id, since]
   end
 
   # Number of Systems memoised in this process (diagnostics/monitoring).
@@ -96,7 +96,7 @@ class System < ActiveRecord::Base
   def events_since(since=1.hour.ago)
     connection = ActiveRecord::Base.connection
     sql = "select count(*) as count from events where events.system_id=? and generated>?"
-    results = connection.exec_query sql, "SQL", [[nil, self.id], [nil, since]]
+    results = connection.exec_query sql, "SQL", [self.id, since]
     return results[0]["count"].to_i
   end
 

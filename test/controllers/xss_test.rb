@@ -38,7 +38,7 @@ class XssTest < ActionDispatch::IntegrationTest
       word = Word.create!(text: t)
       ActiveRecord::Base.connection.execute(
         "insert into events_words (event_id, word_id, generated) " \
-        "values (#{event.id}, #{word.id}, '#{event.generated.to_s(:db)}')")
+        "values (#{event.id}, #{word.id}, '#{event.generated.to_fs(:db)}')")
     end
   end
 
@@ -48,7 +48,7 @@ class XssTest < ActionDispatch::IntegrationTest
     w = Word.create!(text: "tokenz")
     ActiveRecord::Base.connection.execute(
       "insert into events_words (event_id, word_id, generated) " \
-      "values (#{e.id}, #{w.id}, '#{e.generated.to_s(:db)}')")
+      "values (#{e.id}, #{w.id}, '#{e.generated.to_fs(:db)}')")
     Event.resetCaches
     search_js("tokenz")
   end

@@ -6,10 +6,18 @@ inverted index) → Rails UI (dashboards, search, alerts, jobs, custom RBAC).
 `scheduler.rb` polls the `jobs` table and `eval`s each `script`.
 
 ## Build / test (as of the reproducible-build branch)
-- Toolchain: Ruby 2.7.8 + Bundler 2.4.22 (pinned in `.ruby-version` / `Gemfile.lock`
-  "BUNDLED WITH"). Rails is 6.1.7.10 (`~> 6.1.0`). Ruby stays on 2.7 because Rails
-  7.2+ is the first release that requires 3.x; Bundler stays on 2.4.x because 2.5+
-  requires Ruby 3.x.
+- Toolchain: Ruby 3.3.8 + Bundler 2.6.7 (pinned in `.ruby-version` / `Gemfile.lock`
+  "BUNDLED WITH"). Rails is 7.1.6 (`~> 7.1.0`). Ruby jumped at the 7.1 step rather
+  than at 7.2 because nokogiri and sqlite3 had already dropped 2.7. 3.3.8 is above
+  the Rails 7.2 (3.1) and 8.1 (3.2) floors, so the remaining upgrade steps need no
+  Ruby work.
+- Two pins are load-bearing and easy to "clean up" by mistake:
+  `json ~> 2.7` (Ruby 3.3's default gem is json 3.x, which dropped `quirks_mode`,
+  which ActiveSupport 7.1 calls — every `to_json` and all 34 jbuilder views die
+  without the pin) and `minitest ~> 5.25` (minitest 6 changed `after_run`'s
+  signature and the Rails 7.1 test runner breaks; activesupport 7.1 only requires
+  `>= 5.1`, so nothing else holds it down). `sqlite3 '~> 1.7', '< 2'` is a *Rails*
+  ceiling (7.1's adapter predates the 2.x API), not a Ruby one — it lifts at 7.2.
 - `Gemfile.lock` and `db/schema.rb` are now tracked on purpose — do not re-add them
   to `.gitignore`.
 - Run tests: `bundle install --frozen` (set `BUNDLE_WITHOUT=production` to skip `pg`),
@@ -34,6 +42,21 @@ inverted index) → Rails UI (dashboards, search, alerts, jobs, custom RBAC).
 - `require 'logger'` lives in `config/boot.rb`, not `application.rb`: concurrent-ruby
   >= 1.3.5 stopped requiring it, Rails 6.1 needs it before activesupport loads, and
   `bin/rails` reaches activesupport before `application.rb` does.
+- `rspec-rails` is required even though there is no `spec/` directory: cucumber-rails
+  only mixes `RSpec::Matchers` into `Cucumber::Rails::World` when
+  `rspec/rails/matchers` is loadable, and the cucumber steps call `expect`. Dropping
+  it fails all 4 scenarios with `undefined method 'expect'`.
+- `config/initializers/assets_precompile.rb` exists because Rails 7.1's Active
+  Storage / Action Cable / Action Text engines append ES6 bundles to
+  `config.assets.precompile`, which uglifier 2.7 cannot parse (`assets:precompile`
+  dies on `FileChecksum`). The app uses none of those features. Engine initializers
+  run *after* `config/initializers`, so the subtraction must sit in
+  `after_initialize`. Verified: the built `application.js`/`application.css` digests
+  are byte-identical to the 6.1 build.
+- Production serves assets through `config.assets.compile = true` (line 30 of
+  `production.rb` is commented out) with `digest = false`, so the layout emits the
+  undigested `/assets/application.js` and sprockets compiles it on demand. Verified
+  200 on a real production boot. `provision.sh` never runs `assets:precompile`.
 
 ## Facts worth remembering
 - Last upstream commit: 2016-10-01. Before the reproducible-build branch: `rails '> 4'`
@@ -46,14 +69,19 @@ inverted index) → Rails UI (dashboards, search, alerts, jobs, custom RBAC).
   `@@nextEventID`, word/system/service caches) and builds raw multi-row INSERTs.
 - Search = `LIKE '%term%'` over `words.text` joined through `events_words`, which has
   **no indexes** (the migration adding them is commented out).
-- All SQL is parameterized (`exec_query` + `[[nil, value]]` binds; Rails 4.2's
-  `sanitize_sql_array` is protected, and `exec_query` normalizes unaliased aggregate
-  column names, so alias them). Brakeman reports 0 SQL Injection warnings.
+- All SQL is parameterized: `exec_query(sql, "SQL", binds)` with **plain-value**
+  binds (Rails 7.1 removed the legacy `[[type, value]]` pair form and raises
+  `TypeError: can't cast Array` on it). `exec_query` normalizes unaliased aggregate
+  column names, so alias them. Brakeman reports 0 SQL Injection warnings.
 - Known landmines: `eval` in `scheduler.rb` and `Event#parsed`; `Math` core module
   reopened in `config/application.rb`;
   hard-coded year window `2014..2019` in `Event.storeEvent`; `Regexp.union([])` in
   `Event.recent_events` rejects every event when there are no exclusions.
-- The suite is green (194 unit runs / 534 assertions, 4 cucumber scenarios). Bulk inserts
+- The suite is green (194 unit runs / 542 assertions, 4 cucumber scenarios). The
+  assertion count rose from 534 at Rails 6.1 with no test logic changed: AS 7.1's
+  `assert_difference`/`assert_no_difference` route their block through minitest's
+  `_assert_nothing_raised_or_warn`, which counts 1 assertion per call. Don't treat
+  that kind of delta as a regression without checking the helper internals. Bulk inserts
   raise `SQLite3::BusyException` under sqlite because the async insert thread opens a
   second connection while the main thread holds a write lock — pre-existing, PG-only path.
 

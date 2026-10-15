@@ -17,9 +17,9 @@ class EventTest < ActiveSupport::TestCase
     refute_includes sql, 'alpha', 'user input must not reach the SQL string'
     refute_includes sql, 'beta'
     assert_equal expected, binds.size
-    assert_equal 2, binds.count { |_, v| v == 'alpha%' }
-    assert_equal 2, binds.count { |_, v| v == 'beta%' }
-    assert_equal terms.size, binds.last.last
+    assert_equal 2, binds.count { |v| v == 'alpha%' }
+    assert_equal 2, binds.count { |v| v == 'beta%' }
+    assert_equal terms.size, binds.last
   end
 
   test 'searchSQL restricts events_words on word_id so the covering index applies' do
@@ -38,7 +38,7 @@ class EventTest < ActiveSupport::TestCase
     skip 'plan check is sqlite-specific' unless Event.connection.adapter_name == 'SQLite'
     sql, binds = Event.searchSQL(Time.now - 1.year, Time.now, %w[failed connection])
     plan = Event.connection.execute('EXPLAIN QUERY PLAN ' +
-      ActiveRecord::Base.send(:sanitize_sql_array, [sql, *binds.map(&:last)])).map { |r| r['detail'] }.join("\n")
+      ActiveRecord::Base.send(:sanitize_sql_array, [sql, *binds])).map { |r| r['detail'] }.join("\n")
     assert_includes plan, 'USING COVERING INDEX index_events_words_on_word_id_and_generated_and_event_id'
     refute_match(/SCAN events_words/, plan)
   end
@@ -107,7 +107,7 @@ class EventTest < ActiveSupport::TestCase
     rows = [{ :a => 1, :b => "x'y" }, { :a => 2, :b => 'z"q' }]
     sql, binds = Event.insertStatement('tablename', %i[a b], rows)
     assert_equal 'INSERT INTO tablename (a, b) VALUES (?, ?), (?, ?)', sql
-    assert_equal [[nil, 1], [nil, "x'y"], [nil, 2], [nil, 'z"q']], binds
+    assert_equal [1, "x'y", 2, 'z"q'], binds
   end
 
   test 'bulk inserts across several flushes all land' do

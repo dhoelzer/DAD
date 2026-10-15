@@ -28,7 +28,9 @@ Events::Application.configure do
   config.action_controller.perform_caching = false
 
   # Raise exceptions instead of rendering exception templates.
-  config.action_dispatch.show_exceptions = false
+  # Rails 7.1 replaced the boolean with :all/:rescuable/:none; false still works
+  # but warns, and :none is the exact equivalent.
+  config.action_dispatch.show_exceptions = :none
 
   # Disable request forgery protection in test environment.
   config.action_controller.allow_forgery_protection = false

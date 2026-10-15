@@ -16,7 +16,7 @@ jobs:
 
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '2.7.8'
+          ruby-version: '3.3.8'
           bundler-cache: true
 
       - name: Install sqlite dev headers
@@ -45,11 +45,11 @@ jobs:
 
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '2.7.8'
+          ruby-version: '3.3.8'
           bundler-cache: true
 
-      # Rails 6.1 is itself end-of-life, so the remaining advisories are expected;
-      # they are mostly transitive (rdoc, sqlite3, nokogiri-era) not framework CVEs.
+      # Rails 7.1 is itself end-of-life (2.5.x/8.x are current), so some
+      # advisories are expected; they are mostly transitive, not framework CVEs.
       # Reporting stays on and non-blocking so the debt stays visible without
       # gating every PR; clearing it is a dependency-refresh task, not a gate.
       - name: Dependency vulnerabilities

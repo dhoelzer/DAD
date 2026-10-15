@@ -10,18 +10,17 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2026_10_14_000001) do
-
+ActiveRecord::Schema[7.1].define(version: 2026_10_14_000001) do
   create_table "alerts", force: :cascade do |t|
     t.integer "system_id", limit: 8
     t.integer "service_id", limit: 8
     t.integer "criticality"
-    t.datetime "generated"
+    t.datetime "generated", precision: nil
     t.boolean "closed"
     t.text "description"
     t.string "short_description"
-    t.datetime "created_at"
-    t.datetime "updated_at"
+    t.datetime "created_at", precision: nil
+    t.datetime "updated_at", precision: nil
   end
 
   create_table "alerts_events", id: false, force: :cascade do |t|
@@ -34,8 +33,8 @@ ActiveRecord::Schema.define(version: 2026_10_14_000001) do
     t.text "message"
     t.integer "user_id", limit: 8
     t.integer "alert_id", limit: 8
-    t.datetime "created_at"
-    t.datetime "updated_at"
+    t.datetime "created_at", precision: nil
+    t.datetime "updated_at", precision: nil
   end
 
   create_table "displays", force: :cascade do |t|
@@ -44,17 +43,17 @@ ActiveRecord::Schema.define(version: 2026_10_14_000001) do
     t.text "description"
     t.text "display_script"
     t.integer "user_id"
-    t.datetime "created_at"
-    t.datetime "updated_at"
+    t.datetime "created_at", precision: nil
+    t.datetime "updated_at", precision: nil
   end
 
   create_table "events", force: :cascade do |t|
     t.integer "system_id", limit: 8
     t.integer "service_id", limit: 8
-    t.datetime "generated", null: false
-    t.datetime "stored"
-    t.datetime "created_at"
-    t.datetime "updated_at"
+    t.datetime "generated", precision: nil, null: false
+    t.datetime "stored", precision: nil
+    t.datetime "created_at", precision: nil
+    t.datetime "updated_at", precision: nil
     t.text "hunks"
     t.index ["generated"], name: "index_events_on_generated"
   end
@@ -62,7 +61,7 @@ ActiveRecord::Schema.define(version: 2026_10_14_000001) do
   create_table "events_words", id: false, force: :cascade do |t|
     t.integer "event_id", limit: 8
     t.integer "word_id", limit: 8
-    t.datetime "generated", null: false
+    t.datetime "generated", precision: nil, null: false
     t.index ["generated"], name: "index_events_words_on_generated"
     t.index ["word_id", "generated", "event_id"], name: "index_events_words_on_word_id_and_generated_and_event_id"
   end
@@ -70,14 +69,14 @@ ActiveRecord::Schema.define(version: 2026_10_14_000001) do
   create_table "exclusions", force: :cascade do |t|
     t.string "pattern"
     t.integer "user_id"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
+    t.datetime "created_at", precision: nil, null: false
+    t.datetime "updated_at", precision: nil, null: false
   end
 
   create_table "hunks", force: :cascade do |t|
     t.string "text", limit: 32
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
+    t.datetime "created_at", precision: nil, null: false
+    t.datetime "updated_at", precision: nil, null: false
     t.index ["text"], name: "index_hunks_on_text"
   end
 
@@ -87,19 +86,19 @@ ActiveRecord::Schema.define(version: 2026_10_14_000001) do
     t.integer "user_id", limit: 8
     t.text "script"
     t.integer "last_event_id", limit: 8
-    t.datetime "last_run"
-    t.datetime "next_run"
+    t.datetime "last_run", precision: nil
+    t.datetime "next_run", precision: nil
     t.integer "frequency"
-    t.datetime "created_at"
-    t.datetime "updated_at"
+    t.datetime "created_at", precision: nil
+    t.datetime "updated_at", precision: nil
   end
 
   create_table "preferences", force: :cascade do |t|
     t.integer "user_id"
     t.integer "liveEventsDisplayed"
     t.string "dashboardElements"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
+    t.datetime "created_at", precision: nil, null: false
+    t.datetime "updated_at", precision: nil, null: false
   end
 
   create_table "rights", force: :cascade do |t|
@@ -127,33 +126,33 @@ ActiveRecord::Schema.define(version: 2026_10_14_000001) do
     t.integer "user_id", limit: 8
     t.text "description"
     t.string "short_description"
-    t.datetime "created_at"
-    t.datetime "updated_at"
+    t.datetime "created_at", precision: nil
+    t.datetime "updated_at", precision: nil
   end
 
   create_table "services", force: :cascade do |t|
     t.string "name"
     t.text "description"
-    t.datetime "created_at"
-    t.datetime "updated_at"
+    t.datetime "created_at", precision: nil
+    t.datetime "updated_at", precision: nil
   end
 
   create_table "sessions", force: :cascade do |t|
     t.string "session_hash"
     t.integer "user_id"
-    t.datetime "expiry"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
+    t.datetime "expiry", precision: nil
+    t.datetime "created_at", precision: nil, null: false
+    t.datetime "updated_at", precision: nil, null: false
   end
 
   create_table "statistics", force: :cascade do |t|
     t.integer "type_id"
-    t.datetime "timestamp"
+    t.datetime "timestamp", precision: nil
     t.integer "system_id", limit: 8
     t.integer "service_id", limit: 8
     t.float "stat"
-    t.datetime "created_at"
-    t.datetime "updated_at"
+    t.datetime "created_at", precision: nil
+    t.datetime "updated_at", precision: nil
   end
 
   create_table "systems", force: :cascade do |t|
@@ -162,8 +161,8 @@ ActiveRecord::Schema.define(version: 2026_10_14_000001) do
     t.text "description"
     t.string "administrator"
     t.string "contact_email"
-    t.datetime "created_at"
-    t.datetime "updated_at"
+    t.datetime "created_at", precision: nil
+    t.datetime "updated_at", precision: nil
     t.boolean "monitor"
   end
 
@@ -173,10 +172,10 @@ ActiveRecord::Schema.define(version: 2026_10_14_000001) do
     t.string "first"
     t.string "last"
     t.integer "attempts"
-    t.datetime "last_attempt"
-    t.datetime "lastlogon"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
+    t.datetime "last_attempt", precision: nil
+    t.datetime "lastlogon", precision: nil
+    t.datetime "created_at", precision: nil, null: false
+    t.datetime "updated_at", precision: nil, null: false
   end
 
   create_table "words", force: :cascade do |t|

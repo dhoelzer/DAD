@@ -42,6 +42,12 @@ module Events
     # The default locale is :en and all translations from config/locales/*.rb,yml are auto loaded.
     # config.i18n.load_path += Dir[Rails.root.join('my', 'locales', '*.{rb,yml}').to_s]
     # config.i18n.default_locale = :de
+    # Rails 7.1 warns that the 6.1 cache serialization format -- the default for
+    # any app that predates 7.1, which this one does -- stops being supported in
+    # 7.2. Nothing in the app reads or writes Rails.cache, so opting into the 7.0
+    # format is free here and keeps the boot log clean.
+    config.active_support.cache_format_version = 7.0
+
     Dir[Rails.root.to_s + '/app/models/**/*.rb'].each do |file| 
       begin
         require file
