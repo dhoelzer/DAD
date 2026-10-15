@@ -329,7 +329,39 @@ Revised options, by value per unit of risk:
 **Recommendation: A now, B only if the `@@` state keeps causing bugs, C folded
 into §5.2.** A is nearly free because the subprocess harness already exists.
 
-### 4.2 Dead and duplicated code **[maintainability]**
+### 4.2 ✅ Closed — dead and duplicated code **[maintainability]**
+
+Closed at `4ee7458`.
+
+- `Event.search` / `Event.search_period` merged into one `search` taking a
+  `Range`. The merge surfaced a test that was passing for the wrong reason: the
+  cucumber step passed `0` as the time bound, `'0'.to_fs(:db)` is the string
+  `"0"`, and the resulting `BETWEEN '0' AND <now>` matched everything. The
+  scenario named "Searching for an event that is in the correct time frame" was
+  not testing a time frame. Fixed, and a negative scenario added (search a window
+  that excludes the event, assert it is not found) — without it, a search that
+  ignored its range entirely would still pass. Mutation-checked.
+- `System#hourly_stats` / `#events_per_hour` and the `ApplicationHelper`
+  statistics methods: already closed by §3.1 (`BucketStats` + shared
+  `hourly_buckets`), verified against the current tree rather than assumed.
+- `export_logs.rb` moved to `bin/export_logs`, and its `require` made relative to
+  `__dir__` so it no longer only works from the repo root.
+- `syslog.pl`: **the original claim was half wrong.** `$Filename` was always
+  declared with `my`. The real defect was the declaration line
+  `my $Filename, $RotateTime = 0;`, which Perl parses as two arguments to `my` —
+  `$Filename` lexical, `$RotateTime` a *global* assigned 0. Fixed to
+  `my ($buf, $Filename, $RotateTime)`. Also: the `open(LOG, ...)` was unchecked,
+  so a failed open meant every later `print LOG` went to a closed handle and the
+  collector silently discarded every packet it received; and `$DEBUG` is now
+  driven by `DAD_SYSLOG_DEBUG` instead of being hardcoded to 0, which makes the
+  `if($DEBUG)` branch reachable rather than dead.
+- 12 empty `.js.coffee` and 14 comment-only `.css.scss` scaffold stubs deleted.
+  Both manifests use `require_tree .`, so this was verified rather than assumed:
+  precompiled with and without the stubs and diffed the bundles. CSS hash
+  byte-identical; the JS difference is only the empty `(function(){}).call(this)`
+  wrappers comment-only CoffeeScript compiles to — 18,772 non-blank code lines on
+  both sides.
+
 
 Verified still present:
 
@@ -369,11 +401,11 @@ underneath the authorisation check every controller funnels through.
 
 **Two things the tests pin down rather than fix, needing a decision:**
 
-1. `acknowledge` and `ackall` are **GET** (`member do get :acknowledge end`,
-   `collection do get 'ackall' end`, called from `link_to`). A state-changing
-   action reachable by an unconfirmed GET: an `<img>` tag or a link prefetch closes
-   alerts, and CSRF protection does not apply because Rails only verifies non-GET
-   verbs. Converting to POST means routes plus three view call sites.
+1. ~~`acknowledge` and `ackall` are **GET**~~ — **resolved at `60aedf6`**: both are
+   now POST (`post 'acknowledge'` / `post 'ackall'` on the routes, `button_to ... method: :post` in the view), so
+   `protect_from_forgery` applies and a prefetched link or injected `<img>` can no
+   longer close alerts. The existing tests were updated rather than replaced, so
+   they still pin the queue-filter and criticality behaviour.
 2. `ackall` is unscoped and unconfirmed — one request closes the entire queue,
    including alerts another operator was about to work.
 
@@ -385,7 +417,26 @@ work. Confirmed by rerun — a failing run passes immediately afterwards.
 
 ## 5. Operations
 
-### 5.1 `provision.sh` is not idempotent and the services do not survive reboot **[operations]**
+### 5.1 ✅ Closed — provisioning is idempotent and the services are under systemd **[operations]**
+
+Closed at `bf547e0`.
+
+`provision.sh` is idempotent: secrets are generated once into `/etc/DAD/environment`
+and reused on re-run (so re-provisioning does not invalidate sessions or rotate the
+DB password out from under the app), `ln -sfn` instead of `ln -s`, and every
+`cat > file` is now guarded. `db/seeds.rb` is idempotent and covered by a
+regression test that runs the seed twice and asserts nothing duplicated; it
+deliberately does not reset an admin password that has been changed.
+
+Three systemd units added (`systemd/dad-{importer,scheduler,syslog}.service`),
+`Restart=always` with `journalctl`-visible output, `dad-syslog` unprivileged via
+`CAP_NET_BIND_SERVICE` rather than root. A CI job now runs `bash -n provision.sh`
+and `systemd-analyze verify` on the units — it was confirmed to catch an invalid
+unit key, so the gate is real rather than decorative.
+
+One placement bug found while writing them: `StartLimitIntervalSec` belongs in
+`[Unit]`, not `[Service]`; in `[Service]` systemd ignores it and warns.
+
 
 Verified at `b6adf25`:
 
@@ -831,7 +882,19 @@ still starts from 194 unit runs against 90 views. And the two non-framework
 advisories in §1.2 (`httparty`, `jquery-rails`) are now the only thing standing
 between this repo and blocking CI security gates.
 
-### 5.3 One malformed log line still kills the collector **[operations] [correctness]**
+### 5.3 ✅ Closed — a malformed line no longer kills the collector **[operations] [correctness]**
+
+Closed at `c5d82ab` (behaviour) and `94654d1` (the subprocess coverage that
+exercises it).
+
+`rescue Exception` + `exit 1` became `rescue StandardError` per line: the bad line
+is logged at `warn` with its text and byte offset, counted, and recorded as a
+`Statistic` series so a rising failure rate is visible instead of silent, and the
+pass continues. Non-`StandardError` still stops the run and rewinds the
+checkpoint, because those errors genuinely invalidate the pass. The `puts` calls
+are `Rails.logger`; both daemons additionally broadcast to stdout so severity and
+timestamps reach the journal.
+
 
 The old review marked "`puts` as the only observability" as fixed. Only a narrow
 slice of it was: the SQL-echoing `puts` in `search`/`search_period`/
@@ -867,13 +930,32 @@ timestamps survive into the Passenger log.
 Higher priority than it looks: this is the most likely way the system silently
 stops collecting, and §5.1 means nothing brings it back.
 
-### 5.4 No LICENSE **[operations]**
+### 5.4 ✅ Closed — MIT LICENSE added **[operations]**
+
+Closed at `68a6c39`. MIT, copyright "2007-2026 David Hoelzer". Chosen to match the
+MIT dependency tree and to impose nothing on operators running it as a service.
+This is a judgement made on the maintainer's behalf and is trivially reversible —
+see the commit message for the reasoning and the caveat about contributor consent.
+
 
 Still no license file. On GitHub that means all rights are reserved by default,
 so downstream use is legally blocked. If DAD is meant to be open source, pick one
 and add it.
 
-### 5.5 The README is a 2014 status note **[operations]**
+### 5.5 ✅ Closed — the README is operator documentation **[operations]**
+
+Closed at `58407e9`. One file kept (`README.md`), `README` and `README.rdoc`
+deleted. Now documents the pipeline diagram, every environment variable and which
+component reads it, where secrets live and why there are two files, install two
+ways, the three different meanings of "logs", and the ingest semantics that
+previously lived only in `event.rb` comments.
+
+Two claims in the draft were checked and found wrong, and the README now states
+the truth: `DATABASE_URL` **takes precedence** over the `DAD_DB_*` variables
+(verified by setting both and reading `connection_db_config.database`), and only
+`import_syslog.rb` handles `Interrupt` — `scheduler.rb` has no interrupt handling
+at all.
+
 
 `README` (11 lines) and `README.rdoc` (12 lines) are near-duplicates describing
 work planned for "January of 2015", with insert rates as the headline metric.
@@ -892,14 +974,14 @@ three processes fit together, and where logs go.
 |---|---|---|---|
 | 1 | §1.1 production secret: rotate + secret scanning | hours | Impersonation risk if any deployment still uses the 2015 key |
 | 2 | ~~§1.2 make security gates blocking~~ **done** (`bbdd4b4`, 0 advisories / 0 warnings) | — | — |
-| 2b | Decide on §4.3's GET-with-side-effects (`acknowledge`, `ackall`) | hours | CSRF-immune state change; tests now pin the current contract |
-| 3 | §4.1 option A: subprocess coverage of threaded ingest | hours | Nearly free — harness exists |
-| 4 | §5.3 poison-line handling + `Rails.logger` | hours | Stops silent ingestion stalls; compounds §5.1 |
-| 5 | §5.1 systemd units | days | The importer dying silently is the main operational risk |
+| 2b | ~~Decide on §4.3's GET-with-side-effects~~ **done** (`60aedf6`, both now POST) | — | — |
+| 3 | ~~§4.1 option A: subprocess coverage of threaded ingest~~ **done** (`94654d1`) | — | — |
+| 4 | ~~§5.3 poison-line handling + `Rails.logger`~~ **done** (`c5d82ab`) | — | — |
+| 5 | ~~§5.1 systemd units~~ **done** (`bf547e0`) | — | — |
 | 5b | ~~§5.2 step 0: back-portable prep~~ **done** | — | Landed with the 5.2 step |
 | 6 | §5.2 Rails **7.2 → 8.1** (5.2, 6.1 and 7.1 landed; see the staged plan there) | weeks, not months — the Ruby jump is already done | Gates §3.2, §4.1-C, and blocking security gates |
 | 7 | §3.2 partitioning, §3.3 FTS, §4.1-B `EventIngestor` | ongoing | Real work, but bounded by the above |
-| 8 | §5.4 LICENSE, §5.5 README, §4.2 dead code | hours | Hygiene; do opportunistically |
+| 8 | ~~§5.4 LICENSE, §5.5 README, §4.2 dead code~~ **done** (`68a6c39`, `58407e9`, `4ee7458`) | — | — |
 
 **The pattern worth acting on.** Three separate findings in this review — the
 importer that died at startup while CI stayed green, the four broken admin
@@ -949,6 +1031,13 @@ Verified closed against the current tree:
 | §1.3 | bcrypt password hashes rendered into `users/index`, `users/show` and prefilled into the edit form (`text_field :password`) — missed by PR #4, which only fixed the JSON API. Also a functional bug: resubmitting the edit form re-hashed the hash and locked the account out. | `365c845` |
 | — | `User#right_names` memo survived `reload`, so a reloaded user reported stale rights | `5ab2ca4` |
 | §4.3 | Request coverage for `role_add`/`role_remove` escalation and `acknowledge`/`ackall` | `854f641` |
+| §4.3 (2b) | `acknowledge`/`ackall` converted from GET to POST, so `protect_from_forgery` covers a state-changing action | `60aedf6` |
+| §4.1-A | Subprocess coverage of the checkpoint/claim/reclaim machinery: crash mid-file, resume at the offset, no duplicate rows, `.processing` reclaimed | `94654d1` |
+| §5.3 | A `StandardError` line is now logged, counted, and skipped instead of `exit 1`-ing the importer; `puts` → `Rails.logger` + stdout broadcast for the journal | `c5d82ab` |
+| §5.1 | `provision.sh` made idempotent, `db/seeds.rb` idempotent (plus a re-seed regression test), three systemd units, CI job validating both | `bf547e0` |
+| §5.4 | MIT `LICENSE` | `68a6c39` |
+| §5.5 | `README.md` rewritten as operator documentation; `README`/`README.rdoc` deleted | `58407e9` |
+| §4.2 | `search`/`search_period` merged; `export_logs.rb` → `bin/`; `syslog.pl` global-scope bug, unchecked `open`, dead `$DEBUG`; 26 scaffold asset stubs deleted. Also a cucumber scenario that was passing for the wrong reason (a `0` time bound became the string `'0'` and matched everything) | `4ee7458` |
 | — | The cross-version probe harness used to verify the upgrade is now in the repo (`script/probe.rb`, `script/probe_compare.rb`, `rake probe:run` / `probe:compare`). Committing it fixed a coverage hole: plain `:id` resolved to a literal `1`, so every member route 404'd and show/edit/roles were never rendered — the §1.3 leak produced no probe diff at all. | `67566f4` |
 
 The superseded review revisions -- including the misdiagnoses and the reasoning
