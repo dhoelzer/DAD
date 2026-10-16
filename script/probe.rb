@@ -196,8 +196,8 @@ begin
   p[:searchSQL] = [sql, binds]
 rescue => e; p[:searchSQL] = "#{e.class}: #{e.message[0, 140]}"; end
 begin
-  p[:word_binds] = Event.send(:word_binds, 'MyString')
-rescue => e; p[:word_binds] = "#{e.class}: #{e.message[0, 140]}"; end
+  p[:word_lookup] = Event.send(:word_lookup, 'MyString')
+rescue => e; p[:word_lookup] = "#{e.class}: #{e.message[0, 140]}"; end
 begin; p[:system_with_events] = System.with_events_within_hours(24).map(&:id).inspect; rescue => e; p[:system_with_events] = e.message; end
 sid = System.order(:id).first&.id
 begin; p[:system_events_since] = System.find(sid).events_since(Time.utc(2000, 1, 1)); rescue => e; p[:system_events_since] = "#{e.class}: #{e.message[0, 140]}"; end

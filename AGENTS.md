@@ -116,10 +116,22 @@ inverted index) → Rails UI (dashboards, search, alerts, jobs, custom RBAC).
   Each controller overrides a public `authorized?` method (also routable as an action).
 - `Event` holds all ingestion state in class variables (`@@pendingEventValues`,
   `@@nextEventID`, word/system/service caches) and builds raw multi-row INSERTs.
-- Search is **prefix** matching, not `LIKE '%term%'`: each term becomes a
-  `[term, term + U+10FFFF)` B-tree range over `words.text` plus a trailing
-  `like 'term%' escape '\'` that pins literal semantics under
-  punctuation-insensitive collations (a range alone would let `a-b` match `ab`).
+- Search is **prefix** matching, not `LIKE '%term%'`. The exact predicate is
+  `like 'term%' escape '\'` (pins `%`/`_` to literals). How it is narrowed to be
+  index-driven is **adapter-specific**, because the two adapters order `text`
+  differently:
+  - SQLite (BINARY collation): a `[term, term + U+10FFFF)` range. Keep the upper
+    bound — without it SQLite estimates the subquery at half the table and
+    re-plans to scan `events_words` through the `generated` index.
+  - Postgres: the `like` alone, served by `index_words_on_text_pattern`
+    (`varchar_pattern_ops`, byte-wise, collation-blind).
+  **Never add a `U+10FFFF` upper bound on Postgres.** Under glibc `en_US.UTF-8`
+  (postgres:17's default, and provision.sh) `strcoll` sorts U+10FFFF *before*
+  ASCII letters, so the bound falls below every longer word and prefix search
+  silently returns nothing — measured 60000 words by `like` vs 0 by that range.
+  No sound upper bound exists there either: `en_US.UTF-8` gives trailing
+  punctuation no primary weight, so the strings above `'foo-'` are unbounded
+  (verified exhaustively over the 94 printable ASCII chars the tokenizer emits).
   `searchSQL` is relational division: a derived table of `(word_id, term_no)`
   joined to `events_words`, `having count(distinct term_no) = n_terms`. Resolve
   each term **once** — duplicating the subquery into `HAVING` doubles the words

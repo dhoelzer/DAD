@@ -30,7 +30,7 @@ than carried forward.
 | Rails upgrade | **Closed: 4.2 → 5.2 → 6.1 → 7.1 → 7.2 → 8.0 → 8.1.4 landed** (§5.2, tag `rails-8.1.4`) |
 | Rails EOL | Closed — Rails is on the current stable line (8.1, supported to Oct 2027) |
 | CI security gates | **Closed — both gates now blocking**, 0 advisories, 0 Brakeman warnings (§1.2) |
-| Partitioning, full-text search | Closed — `events`/`events_words` partitioned by `generated` with drop-based retention (§3.2); search cost cut 25–68% (§3.3) |
+| Partitioning, full-text search | Closed — `events`/`events_words` partitioned by `generated` with drop-based retention (§3.2); search cost cut 25–68% (§3.3); prefix search was returning nothing on Postgres collations, fixed (§3.4) |
 
 ---
 
@@ -295,6 +295,9 @@ punctuation-insensitive collations. Both Postgres and SQLite were already planni
 index scans — on `index_words_on_text` and, for the join, the
 `index_events_words_on_word_id_and_generated_and_event_id` covering index.
 
+*(That range was later found to be wrong on Postgres' default collation; see §3.4.
+The term-resolution fix below stands.)*
+
 Measured on a realistic corpus (280k words, 6M `events_words` rows, syslog-shaped
 vocabulary where one short term fans out to 60k words), the cost was not the words
 lookup at all. It was the join volume, and it grew with the *number of terms*
@@ -324,6 +327,43 @@ measured win. It also cannot express the prefix semantics the current search
 promises (`test` matching `testservice`), so adopting it would be a behaviour
 change, not an optimisation. Left out deliberately; revisit if search ever needs
 relevance ranking or substring matching rather than prefix matching.
+
+### 3.4 ✅ Closed — prefix search returned nothing on Postgres **[bug] [correctness]**
+
+Found while adding Postgres coverage to CI (§6): the Postgres job failed
+`EventTest#test_search_counts_terms,_not_words,_when_one_…`, and the cause was not
+the test. The `[term, term + U+10FFFF)` range §3.3 relied on is only sound where
+`text` is ordered byte-wise. Under glibc `en_US.UTF-8` — `postgres:17`'s default,
+and what `provision.sh` creates — `strcoll` sorts U+10FFFF *before* ASCII letters,
+so the upper bound fell below every word longer than the term:
+
+| term | words matched by `like 'term%'` | by the range |
+|---|---|---|
+| `sshd` | 60000 | **0** |
+| `token` | 200000 | **0** |
+
+Prefix search was therefore dead on production collations while staying green on
+SQLite (BINARY) and on any cluster initialised with `C.UTF-8`.
+
+The bound cannot be repaired, only removed. `en_US.UTF-8` assigns trailing
+punctuation no primary weight, so `'foo-'` and `'foo'` share a primary weight
+sequence and the strings sorting above `'foo-'` are unbounded — no finite upper
+bound exists for a punctuation-terminated prefix. Checked exhaustively over the
+94 printable ASCII characters the tokenizer can emit: incrementing the last
+character is an unsound bound for 35 of them, including every one of
+`- . / : @ * _` that can end a word.
+
+**Fix:** Postgres matches on `like 'term%' escape '\'` alone, served by a new
+`index_words_on_text_pattern` (`varchar_pattern_ops`) — byte-wise, so
+collation-blind. SQLite keeps the range, where it is sound and where dropping it
+measurably regresses the plan (SQLite then drives the join from `events_words`
+through the `generated` index instead of the `(word_id, …)` covering index).
+
+Verified on a partitioned `en_US.utf8` cluster at 540k words / 5.4M
+`events_words`: results go 0 → correct, and a selective term resolves in 0.04 ms
+via `Index Scan using index_words_on_text_pattern`. The equality lookup on the
+ingest hot path (`Word.find_or_add`) also uses the new index, so
+`index_words_on_text` is retained for the SQLite path only.
 
 ---
 

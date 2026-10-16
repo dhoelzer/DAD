@@ -5,15 +5,19 @@ class EventTest < ActiveSupport::TestCase
     Event.resetCaches
   end
 
-  # three binds per term (range lower, range upper, LIKE pattern), plus the time
-  # range and the expected term count. Each term is bound once: the derived table
-  # resolves it a single time, so the count scales with terms, not with terms*2.
-  PLACEHOLDERS_PER_TERM = 3
+  # Binds per term: SQLite narrows the words lookup with a byte-wise range
+  # (lower bound, upper bound, LIKE pattern), Postgres matches on the LIKE alone.
+  # Plus the time range and the expected term count. Each term is bound once: the
+  # derived table resolves it a single time, so the count scales with terms, not
+  # with terms*2.
+  def placeholders_per_term
+    Event.connection.adapter_name == 'SQLite' ? 3 : 1
+  end
 
   test 'searchSQL returns placeholders only, never interpolated values' do
     terms = %w[alpha beta]
     sql, binds = Event.searchSQL(Time.now - 1.hour, Time.now, terms)
-    expected = terms.size * PLACEHOLDERS_PER_TERM + 3
+    expected = terms.size * placeholders_per_term + 3
     assert_equal expected, sql.count('?')
     refute_includes sql, 'alpha', 'user input must not reach the SQL string'
     refute_includes sql, 'beta'
@@ -34,6 +38,42 @@ class EventTest < ActiveSupport::TestCase
   test 'the search covering index exists' do
     assert Event.connection.index_exists?(:events_words, %w[word_id generated event_id],
       name: 'index_events_words_on_word_id_and_generated_and_event_id')
+  end
+
+  # Postgres needs a byte-wise index for the prefix LIKE: a plain index on
+  # words.text is ordered by the database collation, and under en_US.UTF-8 the
+  # planner can only seq scan it.
+  test 'the byte-wise words index exists on Postgres' do
+    skip 'the pattern index is Postgres-only' unless Event.connection.adapter_name == 'PostgreSQL'
+    assert Event.connection.index_exists?(:words, :text, name: 'index_words_on_text_pattern')
+  end
+
+  # The Postgres words lookup must not carry an upper bound. [term, term +
+  # U+10FFFF) is only sound for byte-wise collations: under en_US.UTF-8 strcoll
+  # sorts U+10FFFF before ASCII letters, so the bound sits below every longer
+  # word and prefix search silently returns nothing. See the WORD_IDS_BYTEWISE comment.
+  test 'the Postgres words lookup puts no upper bound on the range' do
+    skip 'SQLite orders text byte-wise, where the range is sound' unless
+      Event.connection.adapter_name == 'PostgreSQL'
+    sql, = Event.searchSQL(Time.now - 1.hour, Time.now, %w[alpha])
+    refute_match(/text\s*</, sql,
+      'no finite upper bound is sound for a punctuation-terminated prefix under a punctuation-insensitive collation')
+  end
+
+  # Direct guard for the collation bug: a term that is a strict prefix of an
+  # indexed word must match it. This passed on SQLite (BINARY) and on a Postgres
+  # cluster initialised with C.UTF-8, and failed on the en_US.UTF-8 that CI and
+  # provisioned production use.
+  test 'prefix search matches words longer than the term' do
+    Event.storeEvent('1.1.1.1 Jun 1 00:00:00 host svc[1]: testservice reports')
+    Event.performPendingInserts
+
+    %w[test testservice testse].each do |term|
+      assert_equal 1, Event.search(term, (Time.now - 1.year)..Time.now).count,
+        "#{term} must match the word testservice"
+    end
+    assert_equal [], Event.search('service', (Time.now - 1.year)..Time.now),
+      'matching is prefix-only, not substring'
   end
 
   test 'search uses the covering index rather than scanning events_words' do

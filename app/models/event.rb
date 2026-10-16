@@ -241,22 +241,57 @@ class Event < ActiveRecord::Base
     resetStats
   end
   
-  # U+10FFFF is the highest Unicode code point, so [term, term + PREFIX_UPPER)
-  # is a B-tree-friendly range that contains every string starting with term.
-  # LIKE 'term%' cannot drive an index scan, which is why the lookup is written
-  # as a range. The range is only a narrowing filter: under a collating sequence
-  # that ignores punctuation (PostgreSQL's en_US.UTF-8, say) it can also admit
-  # strings that do not start with term -- 'a-b' falls inside the range for
-  # 'ab'. The trailing LIKE with an explicit ESCAPE is what pins the semantics
-  # down to a literal prefix on every adapter.
+  # Prefix matching over words.text: find every indexed word that starts with
+  # the search term. The exact predicate is `text like 'term%' escape '\'` --
+  # the ESCAPE pins % and _ to literals so a term like 'foo_bar' cannot match
+  # 'fooXbar'. How the lookup is narrowed to stay index-driven differs per
+  # adapter, because the two adapters order text differently.
+  #
+  # SQLite's default collation is BINARY, so [term, term + U+10FFFF) is a sound
+  # range holding exactly the strings that start with term, and index_words_on_text
+  # serves it. The upper bound is not decoration: without it SQLite estimates the
+  # subquery at half the table and re-plans the outer join to drive from
+  # events_words through the generated index, scanning every join row in the time
+  # window instead of only the matched words'.
+  #
+  # Postgres cannot use that range. Its collation is whatever the cluster was
+  # initialised with -- en_US.UTF-8 for postgres:17 and for provision.sh -- and
+  # under glibc's en_US.UTF-8 strcoll sorts U+10FFFF *before* ASCII letters, so
+  # the bound falls below every longer word and prefix search silently returns
+  # nothing. Measured on 280k words: term 'sshd' matched 60000 words by LIKE and
+  # 0 by that range.
+  #
+  # Nor can the bound be repaired. en_US.UTF-8 gives trailing punctuation no
+  # primary weight, so 'foo-' and 'foo' share a primary weight sequence and the
+  # strings sorting above 'foo-' are unbounded. Exhaustively checked over the 94
+  # printable ASCII characters the tokenizer can emit: incrementing the last
+  # character is an unsound bound for 35 of them, including every one of
+  # - . / : @ * _ that can end a word.
+  #
+  # So Postgres matches on the LIKE alone, served by index_words_on_text_pattern
+  # (varchar_pattern_ops), which indexes raw bytes and is therefore collation-blind.
+  WORD_IDS_BYTEWISE = "select id from words where text >= ? and text < ? and text like ? escape '\\'".freeze
+  WORD_IDS_LIKE = "select id from words where text like ? escape '\\'".freeze
+
+  # U+10FFFF is the highest Unicode code point, so term + PREFIX_UPPER bounds
+  # every string starting with term -- but only where text is ordered byte-wise.
+  # See WORD_IDS_BYTEWISE before using it anywhere else.
   PREFIX_UPPER = "\u{10FFFF}".freeze
 
-  WORD_IDS = "select id from words where text >= ? and text < ? and text like ? escape '\\'".freeze
-
-  # One row per (word_id, term) pair: the words matching term number n get n in
-  # term_no. Wrapping each WORD_IDS lookup keeps the term -> word_id resolution
-  # in a subquery, and the alias gives the derived table a name to join on.
-  WORD_IDS_FOR_TERM = "(#{WORD_IDS})".freeze
+  # The words lookup for one term, as [sql, binds].
+  #
+  # Returned per term rather than as a constant because the placeholder count
+  # differs by adapter: keeping the fragment and its binds together is what stops
+  # the two from drifting apart.
+  def self.word_lookup(term)
+    pattern = "#{sanitize_sql_like(term)}%"
+    if connection.adapter_name == 'SQLite'
+      [WORD_IDS_BYTEWISE, [term, term + PREFIX_UPPER, pattern]]
+    else
+      [WORD_IDS_LIKE, [pattern]]
+    end
+  end
+  private_class_method :word_lookup
 
   # Returns [sql, binds]. Returns the ids of events whose words cover every one
   # of the search terms.
@@ -288,11 +323,9 @@ class Event < ActiveRecord::Base
   # straight from params[:search_terms], so nothing user-supplied may be
   # interpolated into it.
   def self.searchSQL(starting_time, ending_time, terms)
-    terms_per_row = terms.each_with_index.map do |_term, index|
-      "#{WORD_IDS_FOR_TERM} terms#{index + 1}"
-    end
-    derived = terms_per_row.each_with_index.map do |source, index|
-      "select id as word_id, #{index + 1} as term_no from #{source}"
+    lookups = terms.map { |term| word_lookup(term) }
+    derived = lookups.each_with_index.map do |(lookup, _binds), index|
+      "select id as word_id, #{index + 1} as term_no from (#{lookup}) terms#{index + 1}"
     end.join(' union all ')
 
     sql = "select events_words.event_id from events_words " +
@@ -302,21 +335,11 @@ class Event < ActiveRecord::Base
 
     # binds follow placeholder order: the derived table's subqueries, then the
     # time range, then the expected term count.
-    binds = terms.flat_map { |term| word_binds(term) }
+    binds = lookups.flat_map { |_lookup, term_binds| term_binds }
     binds << starting_time.to_fs(:db) << ending_time.to_fs(:db)
     binds << terms.count
     [sql, binds]
   end
-
-  # Range bounds plus the escaped LIKE pattern for one search term.
-  def self.word_binds(term)
-    [
-      term,
-      term + PREFIX_UPPER,
-      "#{sanitize_sql_like(term)}%",
-    ]
-  end
-  private_class_method :word_binds
 
   # Returns a relation over the matching events. The search SQL is embedded as a
   # subquery rather than run first and its ids interpolated into an `id in (?)`
