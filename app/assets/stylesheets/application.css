@@ -161,7 +161,9 @@ html, body{
 	left:0;
 	display: none;
 	opacity: 0.5;
-	background: url("/assets/spinner.gif") no-repeat center center fixed; 
+	       /* Relative on purpose: sprockets rewrites this to the digested filename.
+          A hardcoded /assets/spinner.gif would 404 once digests are enabled. */
+       background: url(spinner.gif) no-repeat center center fixed;
 	  -webkit-background-size: cover;
 	  -moz-background-size: cover;
 	  -o-background-size: cover;

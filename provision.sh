@@ -26,6 +26,11 @@ apt-get install -y ruby
 apt-get install -y ruby-dev
 apt-get install -y g++
 apt-get install -y libsqlite3-dev
+# terser (the JS compressor) runs through ExecJS, which shells out to a JS
+# runtime. Without node, `rake assets:precompile` dies with
+# "Could not find a JavaScript runtime" -- verified by hiding node from PATH.
+# Uglifier needed one too; this was always a requirement, just never installed.
+apt-get install -y nodejs
 apt-get install -y apache2
 # debconf-set-selections <<< 'mariadb-server-10.0 mysql-server/root_password password PASS'
 # debconf-set-selections <<< 'mariadb-server-10.0 mysql-server/root_password_again password PASS'
@@ -202,6 +207,12 @@ export RAILS_ENV=production && cd /var/DAD && bundle exec rake db:migrate
 export RAILS_ENV=production && cd /var/DAD && bundle exec rake db:seed
 # db:seed is idempotent (find_or_create_by), so re-provisioning no longer
 # duplicates every Role and Right.
+
+# config.assets.compile = false means Rails will not compile an asset on demand,
+# so the bundles have to exist before Passenger serves a page. Without this step
+# a freshly provisioned host returns HTML that references /assets/... files that
+# were never written, and the UI arrives unstyled.
+export RAILS_ENV=production && cd /var/DAD && bundle exec rake assets:precompile
 
 echo Redirecting local logs and restarting rsyslog.
 # Guarded: the previous version appended unconditionally, so N re-runs produced

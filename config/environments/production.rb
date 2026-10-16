@@ -33,17 +33,32 @@ Events::Application.configure do
   config.assets.js_compressor = Terser.new
   # config.assets.css_compressor = :sass
 
-  # Do not fallback to assets pipeline if a precompiled asset is missed.
-#  config.assets.compile = false
-    config.assets.enabled = false
-  # Generate digests for assets URLs.
-  # Rails 4.2 read config.assets.enabled = false as "no asset pipeline", which
-  # made the helpers emit undigested /assets/application.* paths served straight
-  # out of public/assets by Apache. Sprockets 3 (sprockets-rails 3.x) ignores
-  # assets.enabled entirely and digests by default, so digest = false is now
-  # what preserves those paths; without it the pages reference fingerprinted
-  # files that are never generated and every stylesheet/script 404s.
-  config.assets.digest = false
+  # Serve only what `rake assets:precompile` wrote; never compile on demand.
+  #
+  # This line used to be commented out, which left compile at its default of
+  # true: sprockets then mounts a /assets route that compiles each bundle on the
+  # first request for it -- ~1.8s for application.js on this app -- and caches it
+  # under tmp/cache/assets. That made the README's precompile step decorative and
+  # turned a broken asset into a runtime 500 instead of a failed deploy. With
+  # compile = false a missing asset fails at precompile time, where CI can see it.
+  config.assets.compile = false
+
+  # Emit fingerprinted paths (/assets/application-<digest>.js) so Apache serves
+  # the files precompile actually wrote, straight out of public/assets.
+  #
+  # This used to be false, on the reasoning that Rails 4.2 read
+  # config.assets.enabled = false as "no asset pipeline" and so emitted
+  # undigested paths. That reasoning no longer holds: sprockets-rails 3.x ignores
+  # assets.enabled entirely and precompile writes *only* digested filenames.
+  # digest = false therefore made the helpers ask for /assets/application.js --
+  # a file precompile never produces -- so nothing on disk could serve it and the
+  # request could only be satisfied by the runtime compile above. The two settings
+  # were coupled; both are corrected here.
+  #
+  # Verified end to end: after a production precompile, every path the app emits
+  # (the layout's stylesheet and script tags, and the url() the compiled CSS
+  # resolves for the spinner) exists on disk under public/assets.
+  config.assets.digest = true
 
   # Version of your assets, change this if you want to expire all your assets.
 #  config.assets.version = '1.0'

@@ -104,6 +104,18 @@ jobs:
             || { echo "bundle looks unminified: $lines lines ($(wc -c < "$f") bytes)"; exit 1; }
           echo "bundle minified: $lines lines, $(wc -c < "$f") bytes"
 
+      # config.assets.compile = false means Apache, not Rails, serves every
+      # asset. So every path the app emits has to exist on disk. This catches the
+      # digest/compile coupling: with digest = false the helpers ask for
+      # /assets/application.js, which precompile never writes, and the pages 404
+      # in production while everything in the suite stays green.
+      - name: Assert every emitted asset path exists on disk
+        env:
+          RAILS_ENV: production
+          SECRET_KEY_BASE: not_a_secret_only_ci_boots
+          DATABASE_URL: sqlite3:db/ci_assets.sqlite3
+        run: bundle exec ruby script/check_asset_paths.rb
+
   # Guards the provisioning artifacts, which no other job touches: the test
   # suite never loads provision.sh or the systemd units, so a syntax error in
   # either reached master silently before. These are the files that decide
