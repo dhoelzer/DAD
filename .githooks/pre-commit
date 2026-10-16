@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+#
+# Opt-in pre-commit hook that scans staged changes for secrets.
+#
+# Not installed automatically. Git hooks are per-clone and are not version
+# controlled, so nothing in this repo can turn them on for you. To install:
+#
+#     cp .githooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+#
+# or for every clone you make from here on:
+#
+#     git config core.hooksPath .githooks
+#
+# The CI gate in .github/workflows/ci.yml is the one that actually enforces
+# this; the hook exists to catch a leaked key before you push it, which is the
+# difference between amending a commit and rotating a production signing key.
+#
+# Requires gitleaks on PATH: https://github.com/gitleaks/gitleaks#installing
+# If it is missing the commit is allowed through with a warning -- a hook that
+# fails on a missing tool stops people committing and gets uninstalled.
+
+set -euo pipefail
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "pre-commit: gitleaks not found on PATH; skipping the secret scan." >&2
+  echo "pre-commit: CI still runs it. Install from https://github.com/gitleaks/gitleaks" >&2
+  exit 0
+fi
+
+# --staged scans what is about to be committed rather than the whole tree, so
+# the hook stays fast and does not fail on pre-existing content it did not
+# touch. Config comes from .gitleaks.toml, picked up automatically.
+gitleaks git --staged --pre-commit --redact --no-banner

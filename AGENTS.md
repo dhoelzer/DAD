@@ -29,8 +29,11 @@ inverted index) → Rails UI (dashboards, search, alerts, jobs, custom RBAC).
   `bundle exec rake db:migrate RAILS_ENV=test`, `bundle exec rake test`,
   `bundle exec cucumber`. Use the cucumber **binary**, not `rake cucumber:ok` — the
   rake task runs cucumber in-process and minitest's autorun then dies on `--profile`.
-- CI: `.github/workflows/ci.yml` (test + informational security job). `Dockerfile.dev`
-  mirrors the same pinned toolchain.
+- CI: `.github/workflows/ci.yml` (test + a `security` job with three **blocking**
+  gates: `bundle-audit`, `brakeman`, and `gitleaks` over the working tree via
+  `.gitleaks.toml`). `Dockerfile.dev` mirrors the same pinned toolchain.
+  `gitleaks` is pinned by version *and* sha256 in the workflow; if you bump it,
+  update `GITLEAKS_SUM` from the release's own `_checksums.txt`.
 - Rails upgrades here keep breaking on **renamed-but-not-raising config keys**:
   `Rails::Railtie::Configuration#method_missing` swallows unknown `config.*` writes
   instead of erroring, so a renamed setting silently stops applying (4.2->5.2 hit
@@ -69,6 +72,19 @@ inverted index) → Rails UI (dashboards, search, alerts, jobs, custom RBAC).
   keeps only the production `ENV["SECRET_KEY_BASE"]` pass-through, and
   `config/initializers/require_secrets.rb` reads `ENV` directly. Production still
   fails closed when `SECRET_KEY_BASE` is unset.
+- **`secret_key_base` does not sign the login cookie.** Login state is
+  `cookies[:sessionID]`, a `SecureRandom.hex(32)` token stored in the `sessions`
+  table and written as a *plain* cookie value; `gatekeeper` resolves it with
+  `Session.find_by(session_hash: ...)`. Nothing in the app uses
+  `cookies.signed`/`cookies.encrypted`/`MessageVerifier`/`MessageEncryptor`. The
+  Rails `cookie_store` session (`_Events_session`) *is* signed by
+  `secret_key_base`, but it carries only the CSRF token and flash — no code
+  reads `session[]` for auth. Consequences worth remembering: leaking
+  `secret_key_base` defeats CSRF protection but does **not** impersonate anyone,
+  and rotating it logs nobody out (sessions are DB rows). An earlier revision of
+  `RECOMMENDATIONS.md` §1.1 got this backwards and claimed account takeover.
+  Rotate with `bin/rotate_secret_key_base`; `provision.sh` only generates the
+  key on first run, so it is not the rotation path.
 - `ActiveSupport`'s `to_time` behaviour changed across these steps and the app
   never calls `config.load_defaults`, so *no* `load_defaults`-gated default is ever
   applied here — every behaviour change must be opted into by hand. Sequence: 7.2

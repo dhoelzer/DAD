@@ -98,6 +98,24 @@ both.
 Re-running `provision.sh` reuses the existing values, so re-provisioning does not
 invalidate sessions or rotate the database password out from under the app.
 
+### Rotating the signing key
+
+Because `provision.sh` only generates secrets on first run, use the separate
+script to change `SECRET_KEY_BASE` on a host that is already provisioned:
+
+```bash
+sudo bin/rotate_secret_key_base
+```
+
+It writes a new key into both env files (keeping every other value), restarts
+apache2 and the three `dad-*` services so Passenger stops holding the old value,
+and leaves the previous env file at `/etc/DAD/environment.pre-rotation.<UTC>`.
+
+Rotating does **not** log anyone out. Sessions are rows in the `sessions` table
+looked up by token, not payloads signed with the key, so they survive a rotation
+untouched. Only the Rails cookie session (`_Events_session`, which carries the
+CSRF token and flash) is invalidated, and it is re-minted on the next request.
+
 ---
 
 ## Install

@@ -1,0 +1,41 @@
+# gitleaks configuration.
+#
+# The default rules are keyword-driven and demonstrably miss this project's
+# actual failure mode: RECOMMENDATIONS 1.1 was a `secret_key_base` committed to
+# config/initializers/secret_token.rb, and the same value written as
+# `config.secret_key_base = ENV["SECRET_KEY_BASE"] || '<hex>'` is not flagged at
+# all by the built-in generic-api-key rule. So the rule below is written against
+# the thing that actually went wrong rather than relying on entropy heuristics.
+#
+# Scope: this gates the working tree, not history. A full-history scan finds six
+# secrets (the production key at de2043a, and the dev/test values at 3f533757 and
+# cd49a6ab). Those are burned and documented; rewriting shared history in a public
+# repo with forks does not un-leak them, so the gate exists to stop the next one.
+
+title = "DAD secret scanning"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "dad-secret-key-base"
+description = "A secret_key_base value is committed rather than read from the environment"
+# Matches a long hex literal anywhere on a line that mentions secret_key_base,
+# not just a direct assignment. The `ENV["SECRET_KEY_BASE"] || '<hex>'` fallback
+# form in config/environments/*.rb is the realistic way a production key gets
+# committed: someone copies that pattern and substitutes a real key. A regex
+# anchored to `= '<hex>'` misses it entirely.
+regex = '''(?i)secret_?key_?base.{0,60}?([0-9a-f]{32,})'''
+keywords = ["secret_key_base", "secretkeybase"]
+
+# The development and test keys are committed on purpose and are not secrets:
+# they sign cookies on a developer's own machine, and config/environments/*.rb
+# prefers ENV["SECRET_KEY_BASE"] when it is set. Production has no committed
+# value and fails closed at boot (config/initializers/require_secrets.rb).
+#
+# Allowlisted by path, so a key added to a *new* file is still caught. If a real
+# production key ever lands in one of these two files it will not be flagged --
+# that is the accepted cost of keeping dev/test zero-config.
+[allowlist]
+description = "Committed development and test signing keys are not secrets"
+paths = '''^config/environments/(development|test)\.rb$'''

@@ -265,6 +265,31 @@ jobs:
       - name: Static analysis
         run: bundle exec brakeman -q --no-pager -o brakeman-report.txt
 
+      # Secret scanning. Blocking, like the two gates above.
+      #
+      # Scans the working tree, not history. A full-history scan finds six
+      # secrets (the production key at de2043a plus the dev/test values at
+      # 3f533757 and cd49a6ab); those are burned and documented in
+      # RECOMMENDATIONS 1.1, and rewriting shared history in a public repo with
+      # forks does not un-leak them. This gate exists to stop the next one.
+      #
+      # The binary is pinned and fetched directly rather than using
+      # gitleaks/gitleaks-action, which needs a GITLEAKS_LICENSE for
+      # organisations. .gitleaks.toml adds a rule for the specific failure that
+      # happened here: the built-in rules do not flag a committed
+      # `secret_key_base` written as an ENV fallback.
+      - name: Secret scanning
+        run: |
+          GITLEAKS_VERSION=v8.30.1
+          curl -sSfL -o /tmp/gl.tar.gz \
+            "https://github.com/gitleaks/gitleaks/releases/download/${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION#v}_linux_x64.tar.gz"
+          echo "$GITLEAKS_SUM" /tmp/gl.tar.gz | sha256sum -c -
+          tar xzf /tmp/gl.tar.gz -C /tmp gitleaks
+          /tmp/gitleaks dir . --no-banner --redact
+        env:
+          # From the release's own gitleaks_8.30.1_checksums.txt.
+          GITLEAKS_SUM: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -21,7 +21,7 @@ than carried forward.
 |---|---|
 | SQL injection, `eval` sinks, password hashing, XSS, authorization | Closed |
 | Password hashes in HTML | **Was open — closed at `365c845` (§1.3)** — PR #4 fixed the JSON API leak; the three HTML views were missed |
-| Secrets in the working tree | Closed — **but a production key is still in git history (§1.1)** |
+| Secrets in the working tree | Closed — clean under `gitleaks`; a production key remains in git history, rotation path now provided (§1.1) |
 | Ingestion crash-safety and idempotency | Closed, at-least-once — documented in the README (§2.2) |
 | Search indexing, dashboard SQL portability, timestamp parsing | Closed |
 | Test suite | Green: 295 runs / 798 assertions on SQLite, and 295 / 853 on partitioned Postgres |
@@ -29,7 +29,7 @@ than carried forward.
 | Poison line / observability | Closed — per-line `rescue StandardError`, failures counted as a `Statistic`, `Rails.logger` broadcast to the journal (§5.3, `c5d82ab` + `94654d1`) |
 | Rails upgrade | **Closed: 4.2 → 5.2 → 6.1 → 7.1 → 7.2 → 8.0 → 8.1.4 landed** (§5.2, tag `rails-8.1.4`) |
 | Rails EOL | Closed — Rails is on the current stable line (8.1, supported to Oct 2027) |
-| CI security gates | **Closed — both gates now blocking**, 0 advisories, 0 Brakeman warnings (§1.2) |
+| CI security gates | **Closed — three gates now blocking**: bundle-audit, Brakeman, and `gitleaks` over the working tree (§1.2, §1.1) |
 | `Event` size and class-variable state | **Was open — closed (§4.1)** — ingestion extracted to `EventIngestor`; model down to 302 lines, 0 ingest class variables |
 | Partitioning, full-text search | Closed — `events`/`events_words` partitioned by `generated` with drop-based retention (§3.2); search cost cut 25–68% (§3.3); prefix search was returning nothing on Postgres collations, fixed (§3.4) |
 
@@ -37,16 +37,17 @@ than carried forward.
 
 ## 1. Security
 
-### 1.1 🔴 A production `secret_key_base` is still recoverable from git history **[security]**
+### 1.1 🟠 Production `secret_key_base` recoverable from git history — repo-side remediation landed, operator rotation outstanding **[security]**
 
 This is the one genuinely open security item, and it had been recorded as closed.
 
 `config/initializers/secret_token.rb` at commit `de2043a` ("Converting to a Rails
-4 application", 2015-01-07) hardcoded:
+4 application", 2015-01-07) hardcoded a 128-character hex `secret_key_base`.
 
-```ruby
-Events::Application.config.secret_key_base = '109a47e9ccc231214dbec0dac1fbd5c0...'
-```
+The value is deliberately not reproduced here. It is recoverable from that commit
+(`git show de2043a:config/initializers/secret_token.rb`), and quoting any part of
+it in this file only re-publishes it: an earlier revision of this document quoted
+the first 32 characters, which `gitleaks` flagged as its own finding.
 
 That value is a **production** key, distinct from the development and test values
 in `config/secrets.yml`. It is gone from the working tree but still present in
@@ -57,21 +58,75 @@ development and test values in `config/secrets.yml`. Those were never secrets �
 they sign cookies on a developer's own machine. The production key above was not
 touched, because it lives in a different file that no longer exists.
 
-**Impact.** Anyone who has ever cloned the repo can recover the key and forge
-signed cookies — which, with this app's hand-rolled `cookies[:sessionID]` scheme,
-means impersonating any user including Admin — for as long as any deployed
-instance still uses that key.
+**Impact — smaller than first recorded.** The original note said recovering the
+key lets an attacker "forge signed cookies, which means impersonating any user
+including Admin." That is not what the code does, and it is worth getting right
+because it changes how urgently a deployment must act:
+
+- Login state is **not** carried in a signed cookie. `gatekeeper`
+  (`app/controllers/application_controller.rb`) reads `cookies[:sessionID]` and
+  looks it up with `Session.find_by(session_hash: ...)`. The token is
+  `SecureRandom.hex(32)` (256 bits, `UsersController#generate_session_id`) and is
+  written as a **plain** cookie value, not signed or encrypted. Knowing
+  `secret_key_base` neither forges nor guesses it, so it does **not** yield
+  impersonation.
+- Nothing in `app/`, `lib/` or `config/` uses `cookies.signed`,
+  `cookies.encrypted`, `MessageVerifier` or `MessageEncryptor`.
+- What the key *does* sign is the Rails `cookie_store` session
+  (`_Events_session`, `config/initializers/session_store.rb`). That session
+  holds only the CSRF token and flash — no code reads `session[]` for auth, and
+  `grep -rn "session\[" app/` returns nothing. So the blast radius is the CSRF
+  token: a forged session cookie lets an attacker know the `authenticity_token`
+  that `protect_from_forgery` checks. That is still worth fixing, though it is
+  largely blunted in practice by the `SameSite=Lax` on the auth cookie, which
+  already stops a cross-site POST from carrying `:sessionID`.
+
+So: a real production secret, exposed in a public repo, that any deployment
+still using it must rotate. Not an account-takeover primitive.
 
 **Fix, in order:**
-1. Confirm whether any live deployment still uses it. If so, set a new
-   `SECRET_KEY_BASE` there (the env-var path already exists via
-   `config/initializers/require_secrets.rb`, which fails closed in production).
-2. Decide whether history needs rewriting. `git filter-repo` over a shared
-   history is disruptive and does not reach existing clones, so it only helps if
-   the repo is private and the key is being retired anyway. Rotating the key is
-   the real fix; rewriting history is hygiene.
-3. Add a secret-scanning gate so this cannot recur — `gitleaks` or
-   `detect-secrets` as a CI step, and as a pre-commit hook.
+1. ~~Confirm whether any live deployment still uses it, and set a new
+   `SECRET_KEY_BASE` there.~~ **Partly done.** The env-var path already existed
+   (`config/initializers/require_secrets.rb` fails closed in production), but
+   there was no way to *change* the value on a host that had already been
+   provisioned — `provision.sh` generates it only when `/etc/DAD/environment`
+   does not exist. That gap is exactly why this item could be marked "rotated"
+   while a deployed instance kept the burned key: there was nothing to run.
+   `bin/rotate_secret_key_base` now provides it. Whether any live deployment
+   still holds the old value is a question for whoever runs them; it cannot be
+   answered from the repo.
+2. ~~Decide whether history needs rewriting.~~ **Decided: no.** The repo is
+   public with forks, so `git filter-repo` would break every fork and clone
+   while not un-leaking the value, which is already distributed. This matches
+   the criteria already written here — rewriting "only helps if the repo is
+   private and the key is being retired anyway." Rotating is the fix; rewriting
+   history is hygiene, and here it costs more than it buys. If the owner still
+   wants it, it is a separate, deliberate operation, not part of this item.
+3. ~~Add a secret-scanning gate so this cannot recur.~~ **Done.** `.gitleaks.toml`
+   plus a blocking `Secret scanning` step in the CI `security` job, and an
+   opt-in `.githooks/pre-commit` that scans staged changes.
+
+**Why a custom rule was needed.** The built-in gitleaks rules do not flag this
+project's actual failure mode. Verified: the same 64-char hex value is invisible
+to the default rules when written as `config.secret_key_base =
+ENV["SECRET_KEY_BASE"] || '<hex>'` — the pattern already in
+`config/environments/*.rb`, and the realistic way a production key gets
+committed by someone copying that line. `.gitleaks.toml` matches a long hex
+literal anywhere on a line mentioning `secret_key_base`, and allowlists
+`config/environments/development.rb` and `test.rb` by path, since those two
+committed values are not secrets. A key added to any *other* file is still
+caught.
+
+**Scope of the gate: working tree, not history.** A full-history scan reports
+six findings — the production key at `de2043a`, and the dev/test values at
+`3f533757` and `cd49a6ab`. Those are burned and, per (2), staying put, so a
+history-scanning gate would fail permanently and get switched off. The gate
+exists to stop the next leak.
+
+**One more leak, in the documentation itself.** Until this revision, this very
+section quoted the first 32 characters of the production key while describing
+the leak — the only finding a working-tree scan reported on an otherwise clean
+tree. Removed above.
 
 ### 1.2 ✅ Closed — CI security gates were advisory, not blocking **[security] [operations]**
 
