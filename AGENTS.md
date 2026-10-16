@@ -134,6 +134,35 @@ inverted index) → Rails UI (dashboards, search, alerts, jobs, custom RBAC).
   raise `SQLite3::BusyException` under sqlite because the async insert thread opens a
   second connection while the main thread holds a write lock — pre-existing, PG-only path.
 
+## Charting / asset pipeline
+- Charts run on **Chart.js 4.4.7** (MIT), vendored at
+  `vendor/assets/javascripts/chartjs/chart.umd.js`. It replaced a vendored
+  Highcharts 4.0.4 build, which was an unlicensed commercial dependency.
+- Chart.js lacks Highcharts' `plotBands`/`plotLines` and gauge series, so those
+  live as plugins in `app/assets/javascripts/dad_charts.js` (`dadBands`,
+  `dadGauge`, `dad_enable_x_zoom`). The five `draw_*` helpers keep their names
+  and positional args: the `.js.erb` templates and dashboard tests call them.
+- Gauge bands must draw in `afterDatasetsDraw`, not `beforeDatasetsDraw` — the
+  doughnut track fill paints over them otherwise.
+- **CI precompiles assets in development, where no JS compressor runs.** The
+  production deploy is the only path that minifies, so it is the only path that
+  exercises the compressor. `RAILS_ENV=production ... rake assets:precompile`
+  is the command that actually catches minifier breakage.
+- Uglifier was replaced by **terser** because UglifyJS 2.x is ES5-only and
+  aborts on Chart.js's ES2015 output. sprockets 3.7 has no `:terser` symbol but
+  `js_compressor=` accepts any object responding to `#compress`, so
+  `Terser.new` is passed directly. Both gems need `execjs` (a JS runtime).
+- Sass interpolates `#{...}` **even inside `/* */` comments** and fails the
+  build. Never put interpolation syntax in a CSS comment.
+- Chart.js sizes to its container; the `.dad-chart` class (applied by
+  `dad_prepare_canvas`) supplies the height Highcharts used to bring itself.
+  A class, not an id rule, because the system page builds ids at render time.
+- To verify chart rendering without a browser: jsdom + `node-canvas` gives a
+  real 2D context with pixel readback. Needs `ctx.canvas === element` identity,
+  a `getBoundingClientRect` stub (jsdom does no layout), and `ResizeObserver`.
+  Assert on the chart object returned by `draw_*`, not on `Chart.getChart`
+  lookups, which go stale after `destroy()`.
+
 ## Credentials (do not commit)
 - A GitHub PAT for `dhoelzer/DAD` is stored at `../.secrets/github_pat` relative to
   this repo (i.e. `<workspace>/.secrets/github_pat`), mode 0600 and outside version

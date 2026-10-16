@@ -97,7 +97,7 @@ gem 'sass-rails', '~> 5.0.7'
 
 # Use Uglifier as compressor for JavaScript assets. 2.7 is pure Ruby over execjs
 # and needs a JS runtime (node) at precompile time, as it always has.
-gem 'uglifier', '~> 2.7'
+gem 'terser', '~> 1.0'
 
 # Use CoffeeScript for .js.coffee assets and views. 4.2.x is required: the 4.0.x
 # line caps railties at < 5.0.
@@ -110,9 +110,10 @@ gem 'coffee-rails', '~> 4.2.2'
 # jQuery 3.5.0). The gem version alone was not enough: jquery-rails ships three
 # jQuery lines (jquery.js = 1.12.4, jquery2.js = 2.2.4, jquery3.js = 3.7.0) and
 # the manifest's `//= require jquery` selected 1.12.4. application.js now
-# requires jquery3, which is what actually clears the advisories. See the
-# highcharts-custom.js note: the vendored Highcharts 4.0.4 jQuery adapter had to
-# be patched from .bind()/.unbind() (removed in jQuery 3.0) to .on()/.off().
+# requires jquery3, which is what actually clears the advisories. The vendored
+# Highcharts build that used to sit in the bundle needed its jQuery adapter
+# patched from .bind()/.unbind() (removed in jQuery 3.0) to .on()/.off();
+# Chart.js attaches no jQuery adapter, so that patch went away with Highcharts.
 gem 'jquery-rails', '~> 4.6.0'
 
 # Turbolinks makes following links in your web application faster.

@@ -209,6 +209,15 @@ html, body{
 	float: left;
 }
 
+/* Chart.js sizes to its container, where Highcharts defaulted to 400px tall.
+   dad_prepare_canvas tags every chart div with this class, which also covers the
+   per-system gauge and graph divs, whose ids are built at render time and so
+   cannot be matched by an id rule. Keep interpolation syntax out of these
+   comments: Sass expands it even inside a comment, which fails the build. */
+.dad-chart {
+	height: 400px;
+}
+
 #navbar	ul {
 		list-style-type: none;
 		margin: 0;
