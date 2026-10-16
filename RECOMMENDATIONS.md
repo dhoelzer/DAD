@@ -24,13 +24,13 @@ than carried forward.
 | Secrets in the working tree | Closed — **but a production key is still in git history (§1.1)** |
 | Ingestion crash-safety and idempotency | Closed, at-least-once (§2.2) |
 | Search indexing, dashboard SQL portability, timestamp parsing | Closed |
-| Test suite | Green: 218 runs / 624 assertions, 4 cucumber scenarios |
+| Test suite | Green: 287 runs / 787 assertions on SQLite, and the same 287 on partitioned Postgres |
 | Admin screens (sessions, users, jobs) | Closed — now covered by request tests (§2.1) |
 | Poison line / observability | **Open — was mis-marked as fixed (§5.3)** |
 | Rails upgrade | **Closed: 4.2 → 5.2 → 6.1 → 7.1 → 7.2 → 8.0 → 8.1.4 landed** (§5.2, tag `rails-8.1.4`) |
 | Rails EOL | Closed — Rails is on the current stable line (8.1, supported to Oct 2027) |
 | CI security gates | **Closed — both gates now blocking**, 0 advisories, 0 Brakeman warnings (§1.2) |
-| Partitioning, full-text search | Open (§3) |
+| Partitioning, full-text search | Closed — `events`/`events_words` partitioned by `generated` with drop-based retention (§3.2); search cost cut 25–68% (§3.3) |
 
 ---
 
@@ -263,30 +263,67 @@ New coverage in `test/helpers/statistics_query_test.rb` (14 tests) asserts both 
 round-trip counts and that the numbers did not move. Negative control: 4 of the 14
 fail against the pre-fix tree.
 
-### 3.2 No partitioning or retention enforcement at the database level **[performance] [operations]**
+### 3.2 ✅ Closed — `events` and `events_words` are partitioned by `generated` **[performance] [operations]**
 
 `LogRetention` (§6.4 in the old numbering) trims processed *log files*, but the
-`events` and `events_words` tables grow without bound. There is no partitioning
+`events` and `events_words` tables grew without bound. There was no partitioning
 and no row-level purge path.
 
 This is the item that bounds everything else: index size, search latency, and
 backup time all degrade with it, and no query-level optimisation stays effective
 under unbounded growth.
 
-**Fix:** monthly range partitioning on `generated`, with retention expressed as
-dropping old partitions rather than deleting rows. Note this is Postgres-specific
-and the app currently runs SQLite in dev/test — so it should land alongside the
-Rails/Postgres work in §5.2, not before it, or dev/test will diverge further.
+**Landed as specified:** monthly range partitioning on `generated`, with retention
+expressed as dropping whole partitions rather than deleting rows. Postgres-only,
+as predicted — the migration is a no-op on SQLite, so dev/test keep the flat
+shape and CI runs a Postgres job that asserts the tables really are partitioned.
 
-### 3.3 Postgres-native full-text search **[performance]**
+`EventPartitioning` owns the lifecycle: create the current and next month, drop
+anything past the retention window, and convert an existing unpartitioned table by
+building a partitioned twin, copying, and swapping names in one transaction.
+Maintenance runs as the `maintain_event_partitions` job (seeded daily), so
+retention is enforced by the running application rather than by an operator
+remembering to cron it.
 
-Search is still `LIKE '%term%'` over `words.text` joined through `events_words`.
-PR #2 added the missing indexes, which made it acceptable rather than pathological,
-but `LIKE '%…%'` cannot use a plain index for the leading wildcard.
+### 3.3 ✅ Closed — search cost was subquery duplication, not the leading wildcard **[performance]**
 
-Longer term, `tsvector`/`GIN` is the better shape. Listed as a lower priority than
-§3.1 and §3.2 because the indexes already landed and the current behaviour is
-correct — this is a scaling improvement, not a fix.
+The original write-up said search was `LIKE '%term%'` and could not use an index
+for the leading wildcard. That premise had gone stale: `searchSQL` already matched
+terms as *prefixes*, via a `[term, term + U+10FFFF)` B-tree range with a trailing
+`like 'term%'` pinned by `ESCAPE` to keep the semantics literal under
+punctuation-insensitive collations. Both Postgres and SQLite were already planning
+index scans — on `index_words_on_text` and, for the join, the
+`index_events_words_on_word_id_and_generated_and_event_id` covering index.
+
+Measured on a realistic corpus (280k words, 6M `events_words` rows, syslog-shaped
+vocabulary where one short term fans out to 60k words), the cost was not the words
+lookup at all. It was the join volume, and it grew with the *number of terms*
+because every term's word set was resolved twice — once to restrict
+`events_words`, again inside `HAVING` as `max(case when word_id in (<same
+subquery>) …)`:
+
+| terms | before | after |
+|---|---|---|
+| 1 (`sshd`) | 524 ms | 391 ms |
+| 2 (`sshd kernel`) | 1278 ms | 496 ms |
+| 3 (`sshd kernel token`) | 5161 ms | 1676 ms |
+
+**Fix:** resolve each term once. The derived table pairs every matching word with
+the term that matched it (`word_id`, `term_no`), and
+`having count(distinct term_no) = n_terms` is relational division. Verified
+equivalent to the old form on all four term sets above — identical matched-event
+counts *and* identical id checksums — and it also halves the placeholder count
+(21 → 12 for three terms), which matters because a search over a busy system
+already runs near Postgres' 65535-parameter statement limit.
+
+**Why not `tsvector`/`GIN`:** measured, and it does not address the bottleneck.
+The expensive step is the `events_words` join fan-out, not finding the words — a
+GIN index over `words.text` resolves the term in well under a millisecond either
+way, so it would add write amplification and storage on the ingest path for no
+measured win. It also cannot express the prefix semantics the current search
+promises (`test` matching `testservice`), so adopting it would be a behaviour
+change, not an optimisation. Left out deliberately; revisit if search ever needs
+relevance ranking or substring matching rather than prefix matching.
 
 ---
 
@@ -980,7 +1017,7 @@ three processes fit together, and where logs go.
 | 5 | ~~§5.1 systemd units~~ **done** (`bf547e0`) | — | — |
 | 5b | ~~§5.2 step 0: back-portable prep~~ **done** | — | Landed with the 5.2 step |
 | 6 | §5.2 Rails **7.2 → 8.1** (5.2, 6.1 and 7.1 landed; see the staged plan there) | weeks, not months — the Ruby jump is already done | Gates §3.2, §4.1-C, and blocking security gates |
-| 7 | §3.2 partitioning, §3.3 FTS, §4.1-B `EventIngestor` | ongoing | Real work, but bounded by the above |
+| 7 | ~~§3.2 partitioning, §3.3 FTS~~ **done**; §4.1-B `EventIngestor` remains | ongoing | Real work, but bounded by the above |
 | 8 | ~~§5.4 LICENSE, §5.5 README, §4.2 dead code~~ **done** (`68a6c39`, `58407e9`, `4ee7458`) | — | — |
 
 **The pattern worth acting on.** Three separate findings in this review — the

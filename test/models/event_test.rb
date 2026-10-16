@@ -5,9 +5,10 @@ class EventTest < ActiveSupport::TestCase
     Event.resetCaches
   end
 
-  # three binds per term (range lower, range upper, LIKE pattern) in both the
-  # WHERE and the HAVING subqueries, plus the range and the expected count
-  PLACEHOLDERS_PER_TERM = 6
+  # three binds per term (range lower, range upper, LIKE pattern), plus the time
+  # range and the expected term count. Each term is bound once: the derived table
+  # resolves it a single time, so the count scales with terms, not with terms*2.
+  PLACEHOLDERS_PER_TERM = 3
 
   test 'searchSQL returns placeholders only, never interpolated values' do
     terms = %w[alpha beta]
@@ -17,16 +18,17 @@ class EventTest < ActiveSupport::TestCase
     refute_includes sql, 'alpha', 'user input must not reach the SQL string'
     refute_includes sql, 'beta'
     assert_equal expected, binds.size
-    assert_equal 2, binds.count { |v| v == 'alpha%' }
-    assert_equal 2, binds.count { |v| v == 'beta%' }
+    assert_equal 1, binds.count { |v| v == 'alpha%' }, 'each term resolves its word set once'
+    assert_equal 1, binds.count { |v| v == 'beta%' }
     assert_equal terms.size, binds.last
   end
 
   test 'searchSQL restricts events_words on word_id so the covering index applies' do
     sql, = Event.searchSQL(Time.now - 1.hour, Time.now, %w[alpha])
-    assert_includes sql, 'events_words.word_id in (select id from words'
-    refute_includes sql, 'inner join words',
-      'joining words forces a full scan of events_words through the generated index'
+    assert_includes sql, 'terms on terms.word_id = events_words.word_id'
+    assert_includes sql, 'select id as word_id, 1 as term_no from (select id from words'
+    refute_includes sql, 'join words',
+      'joining words directly forces a full scan of events_words through the generated index'
   end
 
   test 'the search covering index exists' do
@@ -84,6 +86,50 @@ class EventTest < ActiveSupport::TestCase
     Event.storeEvent('1.1.1.1 Jun 1 00:00:00 host svc[1]: uniqueword here')
     Event.performPendingInserts
     assert_equal [], Event.search('%', (Time.now - 1.year)..Time.now)
+  end
+
+  # The search is relational division: an event matches only when its words cover
+  # every term. These are the cases the shape has to keep getting right, because
+  # a naive count of matching words gets all three wrong.
+  test 'search requires every term on the same event' do
+    Event.storeEvent('1.1.1.1 Jun 1 00:00:00 host svc[1]: alpha only here')
+    Event.storeEvent('1.1.1.1 Jun 1 00:00:10 host svc[1]: beta only here')
+    Event.storeEvent('1.1.1.1 Jun 1 00:00:20 host svc[1]: alpha and beta here')
+    Event.performPendingInserts
+
+    both = Event.search('alpha beta', (Time.now - 1.year)..Time.now)
+    assert_equal 1, both.count, 'an event holding one term must not match a two-term query'
+    assert_includes both.first.hunks, 'alpha and beta'
+  end
+
+  # 'test' is a prefix of 'testservice', so one word satisfies both terms.
+  # Counting matching *words* rather than matching *terms* would report 2 and
+  # hide this event.
+  test 'search counts terms, not words, when one term is a prefix of another' do
+    Event.storeEvent('1.1.1.1 Jun 1 00:00:00 host svc[1]: testservice reports')
+    Event.performPendingInserts
+
+    assert_equal 1, Event.search('test testservice', (Time.now - 1.year)..Time.now).count,
+      'one word covering both terms must still satisfy the query'
+  end
+
+  # A term that matches no word at all must exclude every event, not silently
+  # drop out of the conjunction.
+  test 'search returns nothing when any term matches no word' do
+    Event.storeEvent('1.1.1.1 Jun 1 00:00:00 host svc[1]: alpha present here')
+    Event.performPendingInserts
+
+    assert_equal 1, Event.search('alpha', (Time.now - 1.year)..Time.now).count
+    assert_equal [], Event.search('alpha nosuchwordatall', (Time.now - 1.year)..Time.now)
+  end
+
+  # Repeated words on one event must not inflate the term count.
+  test 'search is not fooled by duplicate words on one event' do
+    Event.storeEvent('1.1.1.1 Jun 1 00:00:00 host svc[1]: alpha alpha beta')
+    Event.performPendingInserts
+
+    assert_equal 1, Event.search('alpha beta', (Time.now - 1.year)..Time.now).count
+    assert_equal 0, Event.search('alpha beta gamma', (Time.now - 1.year)..Time.now).count
   end
 
   test 'storeEvent preserves single quotes instead of rewriting them' do

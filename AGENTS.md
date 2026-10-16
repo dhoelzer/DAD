@@ -116,8 +116,16 @@ inverted index) → Rails UI (dashboards, search, alerts, jobs, custom RBAC).
   Each controller overrides a public `authorized?` method (also routable as an action).
 - `Event` holds all ingestion state in class variables (`@@pendingEventValues`,
   `@@nextEventID`, word/system/service caches) and builds raw multi-row INSERTs.
-- Search = `LIKE '%term%'` over `words.text` joined through `events_words`, which has
-  **no indexes** (the migration adding them is commented out).
+- Search is **prefix** matching, not `LIKE '%term%'`: each term becomes a
+  `[term, term + U+10FFFF)` B-tree range over `words.text` plus a trailing
+  `like 'term%' escape '\'` that pins literal semantics under
+  punctuation-insensitive collations (a range alone would let `a-b` match `ab`).
+  `searchSQL` is relational division: a derived table of `(word_id, term_no)`
+  joined to `events_words`, `having count(distinct term_no) = n_terms`. Resolve
+  each term **once** — duplicating the subquery into `HAVING` doubles the words
+  scans and cost scales with term count. Never join `words` into the
+  `events_words` scan: that forces a full scan through the `generated` index
+  instead of using the `(word_id, generated, event_id)` covering index.
 - All SQL is parameterized: `exec_query(sql, "SQL", binds)` with **plain-value**
   binds (Rails 7.1 removed the legacy `[[type, value]]` pair form and raises
   `TypeError: can't cast Array` on it). `exec_query` normalizes unaliased aggregate
