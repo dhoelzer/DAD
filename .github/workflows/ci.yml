@@ -6,8 +6,14 @@ on:
   pull_request:
 
 jobs:
+  # Runners are pinned to ubuntu-24.04 rather than ubuntu-latest. ubuntu-latest
+  # moves to Ubuntu 26 on 2026-10-19, which would swap glibc, libpq and sqlite3
+  # under every job at once -- the same class of silent environment drift that
+  # put prefix search on a broken collation (§3.4) and let a json gem bump break
+  # the sprockets manifest reader while CI stayed green. Pinning makes the change
+  # opt-in: move the pin deliberately, with the suite to check it against.
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       # pg is production-only and needs libpq-dev; the test suite uses sqlite3.
       BUNDLE_WITHOUT: production
@@ -48,7 +54,7 @@ jobs:
   # Cucumber stays on SQLite: the cucumber env in database.yml is an explicit
   # sqlite entry, and DatabaseCleaner's open-transaction pattern is tuned for it.
   postgres:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     services:
       postgres:
@@ -117,7 +123,7 @@ jobs:
   # checkout has no manifest, so precompile-then-boot is the only way to cover
   # it -- and it is the production path, not a dev one.
   assets:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       BUNDLE_WITHOUT: production
     steps:
@@ -194,7 +200,7 @@ jobs:
   # either reached master silently before. These are the files that decide
   # whether the importer survives a reboot, so they are worth a gate.
   provisioning:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -215,7 +221,7 @@ jobs:
           echo "systemd units parse cleanly"
 
   security:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       BUNDLE_WITHOUT: production
     steps:
