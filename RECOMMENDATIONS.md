@@ -24,7 +24,7 @@ than carried forward.
 | Secrets in the working tree | Closed — clean under `gitleaks`; a production key remains in git history, rotation path now provided (§1.1) |
 | Ingestion crash-safety and idempotency | Closed, at-least-once — documented in the README (§2.2) |
 | Search indexing, dashboard SQL portability, timestamp parsing | Closed |
-| Test suite | Green: 314 runs / 816 assertions on SQLite, and 314 / 904 on partitioned Postgres; cucumber features run on both engines in CI |
+| Test suite | Green: 367 runs / 932 assertions on SQLite, and 370 / 1026 on partitioned Postgres; cucumber features run on both engines in CI |
 | Admin screens (sessions, users, jobs) | Closed — now covered by request tests (§2.1) |
 | Poison line / observability | Closed — per-line `rescue StandardError`, failures counted as a `Statistic`, `Rails.logger` broadcast to the journal (§5.3, `c5d82ab` + `94654d1`) |
 | Rails upgrade | **Closed: 4.2 → 5.2 → 6.1 → 7.1 → 7.2 → 8.0 → 8.1.4 landed** (§5.2, tag `rails-8.1.4`) |
@@ -388,6 +388,25 @@ against the budget. Pruning is off until the floor is set, fails closed when the
 filesystem cannot be measured, and raises a single Critical alert when the floor
 cannot be met even after deleting everything. `bin/prune_event_archives --dry-run`
 shows what would go before it does.
+
+Two corrections to that follow-up, both found by reviewing the shipped code:
+
+- Pruning could select an archive whose partition was still in the database and
+  due to be archived by the same run. Nothing is lost — the partition is still
+  there — but the freed bytes are immediately spent re-writing that archive, so a
+  run could report a successful prune and still leave the floor breached. The
+  scheduled job now passes the partitions it is about to write as a protected set,
+  and `upcoming_archive_bytes` stops charging partitions that already have a
+  complete archive (`backup_partition` returns the existing file untouched).
+- `Event.diskUtilization` grepped `df -m` for `/`, so the `disk_utilization` job
+  reported the **root** filesystem while retention fills the archive partition,
+  which is deliberately allowed to sit on its own mount. An operator could read 40%
+  while the partition that matters sat at 98%. (The dashboard's disk pie is
+  currently commented out in `index.js.erb`, so the job was the live consumer; the
+  helper behind the chart had the same flaw and is fixed with it.) Measurement
+  now lives in `DiskSpace`, keyed on a path rather than on `/`, shared by both
+  callers; it returns nil rather than 0 when unmeasurable, because the old
+  `split(...)[4].to_i` turned a missed grep into "0% used".
 
 ### 3.3 ✅ Closed — search cost was subquery duplication, not the leading wildcard **[performance]**
 
@@ -1147,11 +1166,17 @@ both trees), and normalising bcrypt hashes, object addresses and now-derived
 timestamps out of the digest. Without those, the diff is noise; with them, the
 7.1→7.2 and 8.0→8.1 diffs came back genuinely empty.
 
-**Still open after the upgrade:** §4.3 (request-spec coverage) remains the real
-gap — the probe harness lives in `/tmp` and is not committed, so the next upgrade
-still starts from 194 unit runs against 90 views. And the two non-framework
-advisories in §1.2 (`httparty`, `jquery-rails`) are now the only thing standing
-between this repo and blocking CI security gates.
+**Open at the time of the upgrade:** §4.3 (request-spec coverage) was the real
+gap — the probe harness lived in `/tmp` and was not committed, so the next upgrade
+would start from 194 unit runs against 90 views. The two non-framework advisories
+in §1.2 (`httparty`, `jquery-rails`) were then the only thing standing between this
+repo and blocking CI security gates.
+
+Both have since closed: the security gates are blocking (§1.2), `httparty` was
+removed and `jquery-rails` moved past the affected versions, so `bundle-audit`
+reports 0 advisories, and the suite is now 367 runs on SQLite / 370 on Postgres.
+The counts above are the historical ones, kept because the surrounding narrative
+depends on them.
 
 ### 5.3 ✅ Closed — a malformed line no longer kills the collector **[operations] [correctness]**
 

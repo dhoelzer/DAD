@@ -139,19 +139,56 @@ inverted index) → Rails UI (dashboards, search, alerts, jobs, custom RBAC).
     adapter; build a positional `IN (..., ...)` placeholder list instead.
   * Alert on the unmeetable floor only (deduped by `short_description`, not
     per run). Pruning that succeeds is configured behaviour: log it, don't alert.
+  * `prune_archives` takes a `protected:` list of partitions whose archives must
+    not be deleted. `maintain` passes `expired_names`: this run is about to write
+    an archive for each of them, so pruning one frees bytes the next step spends
+    re-writing it. Without that, a run can report a successful prune and still
+    breach the floor. A manual `bin/prune_event_archives` deliberately passes no
+    protected set — it is not paired with an imminent write.
+  * `upcoming_archive_bytes` skips partitions that already have a complete
+    archive, because `backup_partition` returns the existing file without
+    re-writing it. Charging them prunes history that was never needed.
+- Filesystem measurement lives in `DiskSpace` (`app/models/disk_space.rb`) and is
+  shared by archive pruning and the `disk_utilization` job. Non-obvious rules:
+  * It measures the filesystem holding a **given path**, via `df -Pk`. The old
+    `Event.diskUtilization` grepped `df -m` for `/`, which reported the wrong disk
+    whenever `offline_storage` sits on its own mount — the exact partition
+    retention can fill.
+  * Every failure path returns **nil**, never 0. The old `split(...)[4].to_i`
+    turned a missed grep into "0% used", reading as an empty disk to an operator
+    and, if it ever fed a deletion decision, authorising deleting everything.
+    `disk_utilization` prints "unknown", and the dashboard helper returns nil so
+    the chart is skipped rather than drawn at 0%. (The disk pie is currently
+    commented out in `app/views/events/index.js.erb`, so the job is the live
+    consumer; the helper is fixed with it regardless.)
+  * `df -Pk` field 4 is **available**, not free: part of the filesystem is
+    reserved for root and the app runs as the service user, so available is what
+    bounds whether a write succeeds.
+  * `parse_df_output` is split out from `measure` so malformed-df handling is
+    testable against exact text. Keep it that way: mocking `IO.popen` would test
+    the mock.
 - Last upstream commit: 2016-10-01. Before the reproducible-build branch: `rails '> 4'`
   unpinned, no `Gemfile.lock`, no `db/schema.rb`, no CI.
-- `bundle-audit` at 8.1 reports 4 advisories, all unchanged by the framework bump:
-  `httparty 0.18.1` (CVE-2024-22049, CVE-2025-68696 — and httparty is referenced
-  nowhere in app/, lib/ or test/, so it is a candidate for removal) and
-  `jquery-rails 4.3.5` (CVE-2020-11023, CVE-2020-23064, fixed in jquery-rails 4.4.0).
-- `/users` (HTML) renders the bcrypt `password_hash` column into the table body.
-  Confirmed while diffing probe output: the only per-run variation in that page is
-  the hash's random salt. Listing users should not emit hashes.
-- App class is `Events::Application`; DB is Postgres in production, SQLite in dev/test,
-  but the code uses PG-only SQL (`pg_stat_user_tables`, `extract()`) → dev/test diverge.
+- `bundle exec bundle-audit check` reports **0 advisories**. Both former findings are
+  gone: `httparty` was dropped entirely (nothing in app/, lib/ or test/ used it; the
+  Gemfile keeps a comment saying so), and `jquery-rails` is now `~> 4.6.0` (4.6.1),
+  past the 4.4.0 that fixed CVE-2020-11023/CVE-2020-23064. Re-run the audit rather
+  than trusting any count written here — this bullet asserted "4 advisories" long
+  after both were fixed, which sends the next session hunting a CVE that does not exist.
+- `/users` (HTML) no longer renders the bcrypt `password_hash` column (closed at
+  `365c845`, RECOMMENDATIONS §1.3). PR #4 had fixed only the JSON API; the three HTML
+  views were missed. `grep -rn password_hash app/views/` is empty.
+- App class is `Events::Application`; DB is Postgres in production, SQLite in dev/test.
+  The PG-only-SQL divergence that used to follow from that is now handled: raw SQL is
+  written with SQLite `?` and routed through `SqlPlaceholders.query`, `extract()` was
+  replaced by `substr(cast(...))`, and adapter-specific paths are guarded on
+  `connection.adapter_name`. See "Two databases" below.
 - Auth is hand-rolled: `users`/`roles`/`rights` + `sessions` table + `cookies[:sessionID]`.
-  Each controller overrides a public `authorized?` method (also routable as an action).
+  Access control is now **declared in constants on `ApplicationController`**, not
+  overridden per controller — `def authorized?` exists exactly once, in the base class,
+  and runs as a `before_action :ssl, :gatekeeper, :authorized?`. The old copy-pasted
+  per-controller overrides (and their routable `authorized?` actions) were removed in
+  PR #8 (RECOMMENDATIONS appendix 1.8).
 - Ingestion lives in `EventIngestor` (`app/models/event_ingestor.rb`), split out
   of `Event` (§4.1). `Event` is the model and the read side only: associations,
   search, the dashboard feed. `EventIngestor` holds the write-side state in
@@ -199,17 +236,26 @@ inverted index) → Rails UI (dashboards, search, alerts, jobs, custom RBAC).
   binds (Rails 7.1 removed the legacy `[[type, value]]` pair form and raises
   `TypeError: can't cast Array` on it). `exec_query` normalizes unaliased aggregate
   column names, so alias them. Brakeman reports 0 SQL Injection warnings.
-- Known landmines: `eval` in `scheduler.rb` and `Event#parsed`; `Math` core module
-  reopened in `config/application.rb`;
-  hard-coded year window `2014..2019` in `EventIngestor.storeEvent`; `Regexp.union([])` in
-  `Event.recent_events` rejects every event when there are no exclusions.
-- The suite is green (194 unit runs / 542 assertions, 4 cucumber scenarios). The
-  assertion count rose from 534 at Rails 6.1 with no test logic changed: AS 7.1's
+- Former landmines, all now gone — verified against the tree, do not go looking for them:
+  `eval(job.script)` in `scheduler.rb` is replaced by the `JobHandler::HANDLERS` allowlist
+  (an unknown name raises `UnknownHandler` rather than falling back to `eval`);
+  `Event#parsed` goes through `DisplayRule.apply`, a directive parser, not `eval`; the
+  `Math` core module is no longer reopened anywhere; the hard-coded `2014..2019` timestamp
+  window is gone; and `Event.recent_events` drops blank/nil patterns before `Regexp.union`,
+  so an empty exclusion list no longer empties the feed.
+  Grep for `\beval(` under app/ and lib/ returns nothing.
+- The suite is green: 367 runs / 932 assertions on SQLite (32 skips) and 370 / 1026 on
+  partitioned Postgres (2 skips); cucumber is 5 scenarios / 18 steps on both engines.
+  Counts drift — run the suite rather than trusting this one. The assertion count rose
+  from 534 at Rails 6.1 with no test logic changed: AS 7.1's
   `assert_difference`/`assert_no_difference` route their block through minitest's
   `_assert_nothing_raised_or_warn`, which counts 1 assertion per call. Don't treat
-  that kind of delta as a regression without checking the helper internals. Bulk inserts
-  raise `SQLite3::BusyException` under sqlite because the async insert thread opens a
-  second connection while the main thread holds a write lock — pre-existing, PG-only path.
+  that kind of delta as a regression without checking the helper internals.
+- Ingest tests drain the queue (`flush_and_wait`) between staging steps so exactly one
+  writer is active; that is what makes them deterministic on SQLite instead of racing
+  `SQLite3::BusyException`, which the async insert thread otherwise triggers by opening
+  a second connection while the main thread holds a write lock. The writing thread is
+  still the thing under test.
 
 ## Charting / asset pipeline
 - Charts run on **Chart.js 4.4.7** (MIT), vendored at
