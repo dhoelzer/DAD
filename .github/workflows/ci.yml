@@ -58,7 +58,20 @@ jobs:
       - name: Install sqlite dev headers
         run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
 
-      - name: Precompile assets
+      # Precompile in production, not development. config.assets.js_compressor is
+      # set only in config/environments/production.rb, so a development
+      # precompile runs no compressor at all and a compressor that cannot parse
+      # the bundle -- Uglifier 2.7 is UglifyJS 2.x, which aborts on the first
+      # arrow function -- passed CI while breaking every deploy.
+      #
+      # BUNDLE_WITHOUT: production still applies, so pg is absent; DATABASE_URL
+      # points at sqlite, which takes precedence over the postgresql adapter
+      # entry in database.yml. Nothing here touches the database beyond booting.
+      - name: Precompile assets (production, with the JS compressor)
+        env:
+          RAILS_ENV: production
+          SECRET_KEY_BASE: not_a_secret_only_ci_boots
+          DATABASE_URL: sqlite3:db/ci_assets.sqlite3
         run: bundle exec rake assets:precompile
 
       # The manifest now exists on disk; booting reads it. Fails loudly if the
@@ -77,6 +90,19 @@ jobs:
           grep -q "jQuery JavaScript Library v1\.12\.4" "$f" \
             && { echo "jQuery 1.12.4 present in bundle"; exit 1; }
           echo "built bundle ships jQuery 3"
+
+      # The compressor runs, or the production precompile above is just a
+      # concatenation. Uncompressed, application.js is ~918 KB over ~21,700
+      # lines; Terser brings it to ~480 KB over a handful. Asserting on the
+      # line count rather than the byte size avoids a false failure when a
+      # dependency legitimately changes the payload.
+      - name: Assert the built bundle was minified
+        run: |
+          f=$(ls public/assets/application-*.js | head -1)
+          lines=$(wc -l < "$f")
+          [ "$lines" -lt 200 ] \
+            || { echo "bundle looks unminified: $lines lines ($(wc -c < "$f") bytes)"; exit 1; }
+          echo "bundle minified: $lines lines, $(wc -c < "$f") bytes"
 
   # Guards the provisioning artifacts, which no other job touches: the test
   # suite never loads provision.sh or the systemd units, so a syntax error in
