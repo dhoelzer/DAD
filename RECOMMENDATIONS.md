@@ -39,7 +39,9 @@ than carried forward.
 
 ### 1.1 🟠 Production `secret_key_base` recoverable from git history — repo-side remediation landed, operator rotation outstanding **[security]**
 
-This is the one genuinely open security item, and it had been recorded as closed.
+This was the one genuinely open security item, and it had previously been
+recorded as closed. The repo-side work is now done; what remains is operator-side
+and cannot be completed from the repository.
 
 `config/initializers/secret_token.rb` at commit `de2043a` ("Converting to a Rails
 4 application", 2015-01-07) hardcoded a 128-character hex `secret_key_base`.
