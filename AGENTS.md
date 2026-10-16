@@ -163,6 +163,48 @@ inverted index) → Rails UI (dashboards, search, alerts, jobs, custom RBAC).
   Assert on the chart object returned by `draw_*`, not on `Chart.getChart`
   lookups, which go stale after `destroy()`.
 
+
+## Two databases: SQLite in dev/test, Postgres in production
+
+`config/database.yml` uses sqlite3 for development/test and the postgresql
+adapter for production. This split hides adapter-specific breakage, because the
+suite only ever exercises one engine.
+
+- **Raw SQL must work on both.** Queries are written with SQLite `?` placeholders
+  and routed through `SqlPlaceholders.query` (`app/models/sql_placeholders.rb`),
+  which rewrites them to `$1, $2, ...` when the connection is Postgres. Postgres
+  rejects `?` outright, so calling `exec_query` directly with `?` is a production
+  bug that no SQLite-only run can detect. Verified on both engines: `$N` binds by
+  order of appearance, so left-to-right numbering is correct on each.
+- **`extract()` is Postgres-only; SQLite rejects it.** Dashboard queries bucket
+  hours with `substr(cast(<ts> as text),1,13)` instead.
+- **`Event.approximate_count` is Postgres-only** (reads `pg_stat_user_tables`,
+  assumes `events_p*` partitions) and falls back to `Event.count` elsewhere.
+- **`db/schema.rb` is checked in as the SQLite flavour.** Running
+  `rake db:migrate` against a Postgres database rewrites it with
+  `enable_extension` and `t.bigint` instead of `t.integer limit: 8`, which breaks
+  `db:schema:load` for dev/test. Never commit a Postgres-generated schema.rb.
+- CI has a `postgres` job that runs the whole suite against Postgres 17. It must
+  not set `BUNDLE_WITHOUT=production`, because `pg` lives in the `:production`
+  group. Cucumber stays on SQLite (its `database.yml` entry and DatabaseCleaner's
+  open-transaction pattern are tuned for it).
+
+### Running Postgres locally
+
+A cluster lives at `~/pgdata` on port 5433, socket-only, role `openhands`:
+
+```bash
+PGBIN=/usr/lib/postgresql/17/bin
+$PGBIN/psql -h /tmp -p 5433 -d postgres -c 'CREATE DATABASE dad_pgtest'
+export RAILS_ENV=test SECRET_KEY_BASE=not_a_secret
+export DATABASE_URL="postgres:///dad_pgtest?host=/tmp&port=5433"
+bundle config set --local without ''   # pg is in the :production group
+bundle exec rake db:migrate            # leaves schema.rb Postgres-flavoured: do not commit
+```
+
+`DATABASE_URL` must carry `host=`/`port=`; `DAD_DB_HOST` alone does not set the
+port, and `postgres://user@/db` (empty host) is rejected by URI parsing.
+
 ## Credentials (do not commit)
 - A GitHub PAT for `dhoelzer/DAD` is stored at `../.secrets/github_pat` relative to
   this repo (i.e. `<workspace>/.secrets/github_pat`), mode 0600 and outside version
