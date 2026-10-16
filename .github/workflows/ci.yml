@@ -112,6 +112,27 @@ jobs:
             exit 1
           fi
 
+      # Both CONCURRENTLY migrations can leave an INVALID index behind if a build
+      # fails (lock timeout, deadlock, cancelled statement): Postgres keeps the
+      # husk, it still holds its name, and Rails' index_exists? reports it as
+      # healthy because its query does not filter indisvalid. A husk is invisible
+      # to the planner -- the index it replaces is simply never used -- so search
+      # degrades to a seq scan with the whole suite green.
+      #
+      # AddPatternIndexToWords self-heals its own husk; this catches the class
+      # across every index, including 20261013000002, which is already released
+      # and so cannot be given the same guard in place.
+      - name: Assert no index was left INVALID by a failed CONCURRENTLY build
+        run: |
+          invalid=$(psql "$DATABASE_URL" -tAc \
+            "select c.relname from pg_class c join pg_index i on i.indexrelid = c.oid where not i.indisvalid")
+          if [ -n "$invalid" ]; then
+            echo "INVALID indexes present (a CONCURRENTLY build failed; drop and rebuild):"
+            echo "$invalid"
+            exit 1
+          fi
+          echo "no INVALID indexes"
+
       - name: Unit and controller tests on Postgres
         run: bundle exec rake test
 

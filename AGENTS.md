@@ -208,6 +208,15 @@ suite only ever exercises one engine.
   not set `BUNDLE_WITHOUT=production`, because `pg` lives in the `:production`
   group. Cucumber stays on SQLite (its `database.yml` entry and DatabaseCleaner's
   open-transaction pattern are tuned for it).
+- **`CONCURRENTLY` index builds can leave an INVALID husk, and Rails cannot see
+  it.** A failed build (lock timeout, deadlock, cancel) does not roll back: the
+  index stays, holding its name, marked `indisvalid = false`. `index_exists?` and
+  `index_name_exists?` do not filter `indisvalid`, so they report it healthy, and a
+  retry dies on `relation ... already exists` — wedging `db:migrate` and
+  `provision.sh`. A husk is also invisible to the planner, so queries degrade to a
+  seq scan with the suite green. Check with
+  `select c.relname from pg_class c join pg_index i on i.indexrelid = c.oid where not i.indisvalid`;
+  the CI `postgres` job asserts this. `AddPatternIndexToWords` self-heals its own.
 
 ### Running Postgres locally
 

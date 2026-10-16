@@ -25,6 +25,21 @@ class AddPatternIndexToWords < ActiveRecord::Migration[8.1]
   def up
     return unless connection.adapter_name == 'PostgreSQL'
 
+    # A CONCURRENTLY build that fails -- lock timeout, deadlock, cancelled
+    # statement -- does not roll back. Postgres keeps the half-built index as
+    # INVALID, and it still occupies the name. Re-running this migration then
+    # fails with `relation "index_words_on_text_pattern" already exists`, which
+    # wedges `rake db:migrate` and with it provision.sh, because the deploy
+    # re-runs the same migration. Drop the husk first so the retry rebuilds.
+    #
+    # Scoped deliberately: only an index this migration owns, and only one
+    # Postgres itself reports as unusable. A valid index is never touched.
+    if (name = invalid_index_named(INDEX_NAME))
+      say_with_time "dropping INVALID index #{name} left by a failed CONCURRENTLY build" do
+        remove_index :words, name: name, algorithm: :concurrently
+      end
+    end
+
     # Safe to hard-code CONCURRENTLY here: the guard above means only Postgres
     # reaches this, and it always supports the algorithm.
     add_index :words, :text, name: INDEX_NAME,
@@ -36,5 +51,19 @@ class AddPatternIndexToWords < ActiveRecord::Migration[8.1]
     return unless connection.adapter_name == 'PostgreSQL'
 
     connection.remove_index :words, name: INDEX_NAME
+  end
+
+  # Returns +index_name+ if an index by that name exists and Postgres marks it
+  # invalid, otherwise nil.
+  #
+  # index_exists?/index_name_exists? cannot answer this: their query joins
+  # pg_indexes/pg_class without filtering pg_index.indisvalid, so an INVALID
+  # husk reads as a healthy index.
+  def invalid_index_named(index_name)
+    invalid = connection.select_value(
+      'select not i.indisvalid from pg_class c ' \
+      'join pg_index i on i.indexrelid = c.oid ' \
+      "where c.relname = #{connection.quote(index_name)} and c.relkind = 'i'")
+    invalid ? index_name : nil
   end
 end
