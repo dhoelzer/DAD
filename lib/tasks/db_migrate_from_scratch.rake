@@ -20,10 +20,11 @@ namespace :db do
     connection.tables.each { |table| connection.drop_table(table, force: :cascade) }
     connection.execute('DROP SEQUENCE IF EXISTS events_id_seq CASCADE')
 
-    ActiveRecord::MigrationContext.new(
+    context = ActiveRecord::MigrationContext.new(
       File.expand_path('../../db/migrate', __dir__)
-    ).migrate
+    )
+    context.migrate
 
-    puts "migrated from scratch to #{ActiveRecord::Base.connection.migration_context.current_version}"
+    puts "migrated from scratch to #{context.current_version}"
   end
 end
