@@ -255,16 +255,27 @@ suite only ever exercises one engine.
 
 ### Running Postgres locally
 
-A cluster lives at `~/pgdata` on port 5433, socket-only, role `openhands`:
+The cluster in this sandbox listens on **TCP 127.0.0.1:5432** with role `dad` /
+password `dad` (check `pg_isready -h 127.0.0.1 -p 5432` first; an older revision
+of this file described a socket-only cluster on 5433 under `~/pgdata`, which is
+not running here):
 
 ```bash
-PGBIN=/usr/lib/postgresql/17/bin
-$PGBIN/psql -h /tmp -p 5433 -d postgres -c 'CREATE DATABASE dad_pgtest'
 export RAILS_ENV=test SECRET_KEY_BASE=not_a_secret
-export DATABASE_URL="postgres:///dad_pgtest?host=/tmp&port=5433"
-bundle config set --local without ''   # pg is in the :production group
-bundle exec rake db:migrate            # leaves schema.rb Postgres-flavoured: do not commit
+export DATABASE_URL=postgres://dad:dad@127.0.0.1:5432/dad_test
+psql $DATABASE_URL -c 'select 1'   # or recreate: createdb -O dad dad_test
+bundle exec rake db:migrate_from_scratch
+bundle exec rake test && bundle exec cucumber
 ```
+
+`pg` is already installable here, so no `bundle config` change is needed.
+`db:migrate_from_scratch` (not `db:migrate`) is what builds the partitioned shape
+the Postgres tests need.
+
+**Never run `rake db:seed` against a shared test database.** It leaves an admin
+user and seeded Jobs behind, and `SeedsIdempotencyTest` then fails on the next
+full-suite run for reasons that look like a code regression but are leftover
+state. If it happens, `rake db:migrate_from_scratch` and re-run.
 
 `DATABASE_URL` must carry `host=`/`port=`; `DAD_DB_HOST` alone does not set the
 port, and `postgres://user@/db` (empty host) is rejected by URI parsing.
