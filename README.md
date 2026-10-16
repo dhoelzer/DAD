@@ -180,7 +180,7 @@ running.
 
 ---
 
-## Ingest semantics, in one paragraph
+## Ingest semantics
 
 The importer claims each file by renaming it to `<name>.processing` before
 reading, and checkpoints a byte offset in a sidecar once that batch's rows are
@@ -191,6 +191,20 @@ no longer wedges the pipeline, which it used to, permanently. Anything that is
 not a `StandardError` still stops the run and rewinds the checkpoint, because
 those errors invalidate the whole pass. Skipped lines are recorded as a
 `Statistic` series so a rising failure rate is visible instead of silent.
+
+Ingest is **at-least-once, not exactly-once**. A crash with a batch still in
+flight re-reads that batch, so some events can be duplicated. The guarantee is
+asymmetric: the checkpoint only advances once a batch's rows are durable, so a
+crash never *loses* rows that were already committed, and with at most one writer
+thread in flight it cannot duplicate more than one batch. One batch is not
+necessarily small — in production it starts at 2000 lines and grows with
+throughput, so the duplicate count can reach thousands.
+
+The consequence for anyone reading the numbers: **duplicate events are possible
+after a crash**, so anything that counts events — the dashboards, alert
+thresholds, `Statistic` rates — is approximate across a crash boundary. This is a
+deliberate trade-off, not a bug, and `test/import_syslog_crash_test.rb` pins both
+halves: reclaim re-inserts nothing, and no line goes missing.
 
 ---
 

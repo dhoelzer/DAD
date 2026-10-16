@@ -116,6 +116,16 @@ inverted index) → Rails UI (dashboards, search, alerts, jobs, custom RBAC).
   Each controller overrides a public `authorized?` method (also routable as an action).
 - `Event` holds all ingestion state in class variables (`@@pendingEventValues`,
   `@@nextEventID`, word/system/service caches) and builds raw multi-row INSERTs.
+- Ingest is **at-least-once, not exactly-once** (§2.2, documented under "Ingest
+  semantics" in the README). A crash with a batch in flight re-reads that batch,
+  so up to one batch of events can be duplicated; committed rows are never lost.
+  The bound is `MAX_INSERT_THREADS = 1`, so it cannot widen to several batches —
+  but a production batch starts at 2000 lines and grows +20 per flush while
+  throughput improves, with no cap and reset only by the `reset_caches` job or an
+  importer restart, so the duplicate count can reach thousands. Anything counting
+  events (dashboards, alert thresholds, `Statistic` rates) is approximate across
+  a crash boundary. Do not "fix" this by advancing the checkpoint earlier: that
+  is what makes rows losable. `test/import_syslog_crash_test.rb` pins both halves.
 - Search is **prefix** matching, not `LIKE '%term%'`. The exact predicate is
   `like 'term%' escape '\'` (pins `%`/`_` to literals). How it is narrowed to be
   index-driven is **adapter-specific**, because the two adapters order `text`

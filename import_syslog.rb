@@ -26,7 +26,13 @@ PURGE_INTERVAL = 12.hours
 # already durable, so re-reading from byte 0 would insert them a second time.
 # Event only hands the writer an offset once that batch's rows are committed, so
 # the checkpoint never runs ahead of the database.
-# Reads one claimed file, resuming at the offset a previous run checkpointed.
+#
+# That ordering gives at-least-once, not exactly-once: a crash with a batch in
+# flight re-reads that batch, so up to one batch's rows can be duplicated. A
+# crash cannot *lose* rows that were already committed, and the duplication is
+# bounded to one batch because MAX_INSERT_THREADS is 1 -- the next batch is not
+# queued until the previous one has committed and released its checkpoint. A
+# deliberate trade-off; see "Ingest semantics" in the README and RECOMMENDATIONS 2.2.
 #
 # A line that raises StandardError is logged and skipped; the pass continues.
 # This used to flush and exit 1, which meant one unparseable line stopped

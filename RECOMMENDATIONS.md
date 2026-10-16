@@ -22,9 +22,9 @@ than carried forward.
 | SQL injection, `eval` sinks, password hashing, XSS, authorization | Closed |
 | Password hashes in HTML | **Was open — closed at `365c845` (§1.3)** — PR #4 fixed the JSON API leak; the three HTML views were missed |
 | Secrets in the working tree | Closed — **but a production key is still in git history (§1.1)** |
-| Ingestion crash-safety and idempotency | Closed, at-least-once (§2.2) |
+| Ingestion crash-safety and idempotency | Closed, at-least-once — documented in the README (§2.2) |
 | Search indexing, dashboard SQL portability, timestamp parsing | Closed |
-| Test suite | Green: 287 runs / 787 assertions on SQLite, and the same 287 on partitioned Postgres |
+| Test suite | Green: 294 runs / 791 assertions on SQLite, and 294 / 846 on partitioned Postgres |
 | Admin screens (sessions, users, jobs) | Closed — now covered by request tests (§2.1) |
 | Poison line / observability | Closed — per-line `rescue StandardError`, failures counted as a `Statistic`, `Rails.logger` broadcast to the journal (§5.3, `c5d82ab` + `94654d1`) |
 | Rails upgrade | **Closed: 4.2 → 5.2 → 6.1 → 7.1 → 7.2 → 8.0 → 8.1.4 landed** (§5.2, tag `rails-8.1.4`) |
@@ -200,16 +200,44 @@ Also fixed in the same pass:
 the route. The new tests are request-level, and 12 of the 18 fail against the
 pre-fix tree.
 
-### 2.2 Ingestion is at-least-once, not exactly-once **[correctness]** — accepted, document it
+### 2.2 ✅ Closed — ingestion is at-least-once, not exactly-once **[correctness]**
 
 PR #17 made crash-then-reclaim idempotent **up to one batch**: a crash with a
-batch in flight may re-read that batch, so a small number of rows can be
-duplicated. It cannot lose a line, and it cannot duplicate more than one batch.
+batch in flight may re-read that batch, so some rows can be duplicated. It cannot
+lose a line, and it cannot duplicate more than one batch.
 
-This is a deliberate trade-off, not a bug, and the tests pin it. It is listed
-here because it is a property an operator needs to know: **duplicate events are
-possible after a crash**, so anything counting events (the dashboards, alert
-thresholds, `Statistic` rates) is approximate across a crash boundary.
+The bound is structural, not incidental, and was re-read from the code rather
+than taken from the PR description:
+
+- `MAX_INSERT_THREADS = 1`, so at most one batch is ever in flight; the next is
+  not queued until the previous one has committed and released its checkpoint.
+- The checkpoint is advanced by the writer thread *after* `write_batch` returns
+  (`Event.advance_checkpoint!`), never before, so it cannot run ahead of the
+  database. That asymmetry is why rows can be duplicated but not lost.
+- `LogQueue.write_offset` writes to a `.tmp` and renames, so a crash cannot leave
+  a torn offset that resumes mid-line.
+
+**One correction to the original write-up.** It called the duplicate count "a
+small number". In production `@bulk_insert_size` starts at 2000 lines and grows
++20 per flush whenever throughput improves, with no upper cap — and it is reset
+only by the `reset_caches` job or an importer restart, not per pass. So one batch,
+and therefore the duplicate window, can reach thousands of events on a busy
+importer. "One batch" is the accurate bound; "small" is not.
+
+This is a deliberate trade-off, not a bug, and the tests pin both halves:
+`test/import_syslog_crash_test.rb` asserts reclaim re-inserts nothing
+(`duplicate_count == 0`) *and* that no line goes missing when a batch was in
+flight. It is listed here because it is a property an operator needs to know:
+**duplicate events are possible after a crash**, so anything counting events —
+the dashboards, alert thresholds, `Statistic` rates — is approximate across a
+crash boundary.
+
+**Documented** (the action this item asked for): the README's "Ingest semantics"
+section now states the guarantee, the bound, and the consequence for anyone
+reading the numbers; `process_file` in `import_syslog.rb` carries the same
+reasoning at the point where the ordering is implemented; and `AGENTS.md` records
+it with a warning against the tempting wrong fix — advancing the checkpoint
+earlier is exactly what would make rows losable.
 
 If exactly-once is ever required, the options are a uniqueness constraint on a
 line fingerprint (costly: needs a hash column and an index over a large table) or
