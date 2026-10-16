@@ -10,7 +10,7 @@ class System < ActiveRecord::Base
   has_many :services, :through => :events
 
   # Process-local memo of address -> System row for the ingestion hot path.
-  # Never expired; cleared only by restarting the importer. See Event.resetCaches,
+  # Never expired; cleared only by restarting the importer. See EventIngestor.resetCaches,
   # which must clear this when the database is rolled back, since the cache keys
   # on rows that may no longer exist.
   @@cached_stuff = Hash.new
@@ -55,7 +55,7 @@ class System < ActiveRecord::Base
 
   # Returns the System at address +new_item+, creating it on first sight.
   #
-  # Called from the ingestion hot path (Event.storeEvent) and memoised in
+  # Called from the ingestion hot path (EventIngestor.storeEvent) and memoised in
   # @@cached_stuff. Not thread-safe. Note lookup is by +address+, not +name+:
   # +name+ is an operator-assigned label and is not used for identity.
   def self.find_or_add(new_item)

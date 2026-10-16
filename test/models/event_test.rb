@@ -2,7 +2,7 @@ require 'test_helper'
 
 class EventTest < ActiveSupport::TestCase
   setup do
-    Event.resetCaches
+    EventIngestor.resetCaches
   end
 
   # Binds per term: SQLite narrows the words lookup with a byte-wise range
@@ -65,8 +65,8 @@ class EventTest < ActiveSupport::TestCase
   # cluster initialised with C.UTF-8, and failed on the en_US.UTF-8 that CI and
   # provisioned production use.
   test 'prefix search matches words longer than the term' do
-    Event.storeEvent('1.1.1.1 Jun 1 00:00:00 host svc[1]: testservice reports')
-    Event.performPendingInserts
+    EventIngestor.storeEvent('1.1.1.1 Jun 1 00:00:00 host svc[1]: testservice reports')
+    EventIngestor.performPendingInserts
 
     %w[test testservice testse].each do |term|
       assert_equal 1, Event.search(term, (Time.now - 1.year)..Time.now).count,
@@ -90,9 +90,9 @@ class EventTest < ActiveSupport::TestCase
   # and must be matched literally rather than as LIKE wildcards.
   test 'search matches LIKE wildcards literally in words' do
     %w[foo_bar fooXbar a-b ab 10.0.1.5 10x0x1x5].each do |w|
-      Event.storeEvent("1.1.1.1 Jun 1 00:00:00 host svc[1]: #{w}")
+      EventIngestor.storeEvent("1.1.1.1 Jun 1 00:00:00 host svc[1]: #{w}")
     end
-    Event.performPendingInserts
+    EventIngestor.performPendingInserts
 
     assert_equal 1, Event.search('foo_bar', (Time.now - 1.year)..Time.now).count,
       '_ must not act as a single-character wildcard'
@@ -110,8 +110,8 @@ class EventTest < ActiveSupport::TestCase
   end
 
   test 'search treats SQL metacharacters in the query as literal text' do
-    Event.storeEvent('1.1.1.1 Jun 1 00:00:00 host svc[1]: the legitimate needle here')
-    Event.performPendingInserts
+    EventIngestor.storeEvent('1.1.1.1 Jun 1 00:00:00 host svc[1]: the legitimate needle here')
+    EventIngestor.performPendingInserts
 
     ["'; drop table events; --", "' or 1=1 --", "%' or '1'='1", "needle' --"].each do |payload|
       assert_equal [], Event.search(payload, (Time.now - 1.year)..Time.now), "#{payload} should match nothing"
@@ -123,8 +123,8 @@ class EventTest < ActiveSupport::TestCase
   end
 
   test 'search escapes LIKE wildcards in the query' do
-    Event.storeEvent('1.1.1.1 Jun 1 00:00:00 host svc[1]: uniqueword here')
-    Event.performPendingInserts
+    EventIngestor.storeEvent('1.1.1.1 Jun 1 00:00:00 host svc[1]: uniqueword here')
+    EventIngestor.performPendingInserts
     assert_equal [], Event.search('%', (Time.now - 1.year)..Time.now)
   end
 
@@ -132,10 +132,10 @@ class EventTest < ActiveSupport::TestCase
   # every term. These are the cases the shape has to keep getting right, because
   # a naive count of matching words gets all three wrong.
   test 'search requires every term on the same event' do
-    Event.storeEvent('1.1.1.1 Jun 1 00:00:00 host svc[1]: alpha only here')
-    Event.storeEvent('1.1.1.1 Jun 1 00:00:10 host svc[1]: beta only here')
-    Event.storeEvent('1.1.1.1 Jun 1 00:00:20 host svc[1]: alpha and beta here')
-    Event.performPendingInserts
+    EventIngestor.storeEvent('1.1.1.1 Jun 1 00:00:00 host svc[1]: alpha only here')
+    EventIngestor.storeEvent('1.1.1.1 Jun 1 00:00:10 host svc[1]: beta only here')
+    EventIngestor.storeEvent('1.1.1.1 Jun 1 00:00:20 host svc[1]: alpha and beta here')
+    EventIngestor.performPendingInserts
 
     both = Event.search('alpha beta', (Time.now - 1.year)..Time.now)
     assert_equal 1, both.count, 'an event holding one term must not match a two-term query'
@@ -146,8 +146,8 @@ class EventTest < ActiveSupport::TestCase
   # Counting matching *words* rather than matching *terms* would report 2 and
   # hide this event.
   test 'search counts terms, not words, when one term is a prefix of another' do
-    Event.storeEvent('1.1.1.1 Jun 1 00:00:00 host svc[1]: testservice reports')
-    Event.performPendingInserts
+    EventIngestor.storeEvent('1.1.1.1 Jun 1 00:00:00 host svc[1]: testservice reports')
+    EventIngestor.performPendingInserts
 
     assert_equal 1, Event.search('test testservice', (Time.now - 1.year)..Time.now).count,
       'one word covering both terms must still satisfy the query'
@@ -156,8 +156,8 @@ class EventTest < ActiveSupport::TestCase
   # A term that matches no word at all must exclude every event, not silently
   # drop out of the conjunction.
   test 'search returns nothing when any term matches no word' do
-    Event.storeEvent('1.1.1.1 Jun 1 00:00:00 host svc[1]: alpha present here')
-    Event.performPendingInserts
+    EventIngestor.storeEvent('1.1.1.1 Jun 1 00:00:00 host svc[1]: alpha present here')
+    EventIngestor.performPendingInserts
 
     assert_equal 1, Event.search('alpha', (Time.now - 1.year)..Time.now).count
     assert_equal [], Event.search('alpha nosuchwordatall', (Time.now - 1.year)..Time.now)
@@ -165,24 +165,24 @@ class EventTest < ActiveSupport::TestCase
 
   # Repeated words on one event must not inflate the term count.
   test 'search is not fooled by duplicate words on one event' do
-    Event.storeEvent('1.1.1.1 Jun 1 00:00:00 host svc[1]: alpha alpha beta')
-    Event.performPendingInserts
+    EventIngestor.storeEvent('1.1.1.1 Jun 1 00:00:00 host svc[1]: alpha alpha beta')
+    EventIngestor.performPendingInserts
 
     assert_equal 1, Event.search('alpha beta', (Time.now - 1.year)..Time.now).count
     assert_equal 0, Event.search('alpha beta gamma', (Time.now - 1.year)..Time.now).count
   end
 
   test 'storeEvent preserves single quotes instead of rewriting them' do
-    Event.storeEvent("1.1.1.1 Jun 1 00:00:00 host svc[1]: don't stop believin'")
-    Event.performPendingInserts
+    EventIngestor.storeEvent("1.1.1.1 Jun 1 00:00:00 host svc[1]: don't stop believin'")
+    EventIngestor.performPendingInserts
     assert_equal "1.1.1.1 Jun 1 00:00:00 host svc[1]: don't stop believin'", Event.last.hunks
   end
 
   test 'storeEvent stores hostile log lines verbatim without executing them' do
     before = Event.count
     line = %q{1.1.1.1 Jun 1 00:00:00 host svc[1]: '); drop table events; --}
-    Event.storeEvent(line)
-    Event.performPendingInserts
+    EventIngestor.storeEvent(line)
+    EventIngestor.performPendingInserts
 
     assert_equal before + 1, Event.count
     assert Event.table_exists?
@@ -191,20 +191,20 @@ class EventTest < ActiveSupport::TestCase
 
   test 'insertStatement binds every value and interpolates none' do
     rows = [{ :a => 1, :b => "x'y" }, { :a => 2, :b => 'z"q' }]
-    sql, binds = Event.insertStatement('tablename', %i[a b], rows)
+    sql, binds = EventIngestor.insertStatement('tablename', %i[a b], rows)
     assert_equal 'INSERT INTO tablename (a, b) VALUES (?, ?), (?, ?)', sql
     assert_equal [1, "x'y", 2, 'z"q'], binds
   end
 
   test 'bulk inserts across several flushes all land' do
     before = Event.count
-    Event.instance_variable_set(:@bulk_insert_size, 5)
+    EventIngestor.bulk_insert_size = 5
     12.times do |i|
-      Event.storeEvent("1.1.1.1 Jun 1 00:00:0#{i % 10} host svc[1]: bulk row #{i}")
+      EventIngestor.storeEvent("1.1.1.1 Jun 1 00:00:0#{i % 10} host svc[1]: bulk row #{i}")
     end
-    Event.performPendingInserts
+    EventIngestor.performPendingInserts
     assert_equal before + 12, Event.count
   ensure
-    Event.instance_variable_set(:@bulk_insert_size, 1000)
+    EventIngestor.bulk_insert_size = 1000
   end
 end

@@ -16,9 +16,9 @@ class JobHandler
   # summary for the log. Keep handlers idempotent: the scheduler re-runs a
   # failing Job on the next cycle forever.
   HANDLERS = {
-    'prune_words' => ->(_arg) { Event.prune_words; 'pruned word cache' },
-    'reset_caches' => ->(_arg) { Event.resetCaches; 'reset class-level caches' },
-    'reset_stats' => ->(_arg) { Event.resetStats; 'reset throughput clock' },
+    'prune_words' => ->(_arg) { EventIngestor.prune_words; 'pruned word cache' },
+    'reset_caches' => ->(_arg) { EventIngestor.resetCaches; 'reset class-level caches' },
+    'reset_stats' => ->(_arg) { EventIngestor.resetStats; 'reset throughput clock' },
     'disk_utilization' => ->(_arg) { "disk utilization #{Event.diskUtilization}%" },
     'maintain_event_partitions' => ->(_arg) { EventPartitioning.maintain },
   }.freeze

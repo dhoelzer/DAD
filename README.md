@@ -21,7 +21,7 @@ have a search engine over nothing.
                      ┌──────────────────▼───────────────────────────┐
                      │ import_syslog.rb   (dad-importer)            │
                      │   claims each file (.processing sidecar)     │
-                     │   Event.storeEvent per line → events + words │
+                     │  EventIngestor.storeEvent → events + words   │
                      │   moves the file to Logs/ProcessedLogs       │
                      │   purges ProcessedLogs older than 7 days     │
                      └──────────────────┬───────────────────────────┘

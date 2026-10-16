@@ -1,7 +1,7 @@
 # The search and live-dashboard screens: the primary read path into events.
 #
 # Events are never created or edited here -- ingestion writes them (see
-# Event.storeEvent). This controller only queries and renders.
+# EventIngestor.storeEvent). This controller only queries and renders.
 class EventsController < ApplicationController
   before_action :set_event, only: [:show]
 

@@ -28,7 +28,7 @@ class XssTest < ActionDispatch::IntegrationTest
                            generated: Time.now, stored: Time.now,
                            hunks: "hostz tokenz #{PAYLOAD}")
     index_for_search(@event, %w[hostz tokenz])
-    Event.resetCaches
+    EventIngestor.resetCaches
   end
 
   # Event.search matches through the events_words join table, which ingestion
@@ -49,7 +49,7 @@ class XssTest < ActionDispatch::IntegrationTest
     ActiveRecord::Base.connection.execute(
       "insert into events_words (event_id, word_id, generated) " \
       "values (#{e.id}, #{w.id}, '#{e.generated.to_fs(:db)}')")
-    Event.resetCaches
+    EventIngestor.resetCaches
     search_js("tokenz")
   end
 

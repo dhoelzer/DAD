@@ -1,7 +1,7 @@
 # A single whitespace-delimited token harvested from an event line.
 #
 # Leftover from an earlier normalisation scheme. Events are tokenised into
-# `words` through the `events_words` join table (see Event.storeEvent); nothing
+# `words` through the `events_words` join table (see EventIngestor.storeEvent); nothing
 # in the current app reads or writes `hunks` via this model. The table remains in
 # the schema and HunkController still exposes CRUD screens for it.
 #

@@ -39,8 +39,8 @@ class EventIngestCheckpointTest < ActiveSupport::TestCase
     [out, $?.exitstatus]
   end
 
-  BOOT = "load 'db/schema.rb'; Event.resetCaches; " \
-         "Event.instance_variable_set(:@bulk_insert_size, 1000); "
+  BOOT = "load 'db/schema.rb'; EventIngestor.resetCaches; " \
+         "EventIngestor.bulk_insert_size = 1000; "
 
   # Records every offset the checkpoint writer is handed, as exact "label:offset"
   # tokens. begin_ingest takes the writer as a block, so the offsets are
@@ -76,13 +76,13 @@ class EventIngestCheckpointTest < ActiveSupport::TestCase
   # reclaim then seeks file 2 past lines it never read.
   test 'begin_ingest drains the previous file before installing a new writer' do
     out, status = run_development(BOOT + RECORD + <<~RUBY)
-      Event.begin_ingest(0, &ck('file1'))
-      3.times { |i| Event.storeEvent(#{line(1).inspect}, 10 * (i + 1)) }
+      EventIngestor.begin_ingest(0, &ck('file1'))
+      3.times { |i| EventIngestor.storeEvent(#{line(1).inspect}, 10 * (i + 1)) }
       # Deliberately no flush: a batch from file 1 is still in flight, holding
       # file 1's offsets, when file 2 begins.
-      Event.begin_ingest(0, &ck('file2'))
-      3.times { |i| Event.storeEvent(#{line(4).inspect}, 100 * (i + 1)) }
-      Event.flush_and_wait
+      EventIngestor.begin_ingest(0, &ck('file2'))
+      3.times { |i| EventIngestor.storeEvent(#{line(4).inspect}, 100 * (i + 1)) }
+      EventIngestor.flush_and_wait
       dump('all')
     RUBY
 
@@ -106,17 +106,17 @@ class EventIngestCheckpointTest < ActiveSupport::TestCase
   # break.
   test 'advance_checkpoint! releases only the head of the queue' do
     out, status = run_development(BOOT + RECORD + <<~'RUBY')
-      slow = Event::IngestBatch.new(Thread.new { sleep 0.4 }, 10, false)
-      fast = Event::IngestBatch.new(Thread.new { :done }, 20, true)
-      Event.class_variable_set(:@@insertThreads, [slow, fast])
-      Event.class_variable_set(:@@checkpoint_writer, ck('f'))
+      slow = EventIngestor::IngestBatch.new(Thread.new { sleep 0.4 }, 10, false)
+      fast = EventIngestor::IngestBatch.new(Thread.new { :done }, 20, true)
+      EventIngestor.in_flight_queue = [slow, fast]
+      EventIngestor.checkpoint_writer = ck('f')
 
-      Event.advance_checkpoint!
+      EventIngestor.advance_checkpoint!
       dump('while head unwritten')
 
       slow.thread.join
       slow.finished = true
-      Event.advance_checkpoint!
+      EventIngestor.advance_checkpoint!
       dump('after head lands')
     RUBY
 
@@ -132,12 +132,12 @@ class EventIngestCheckpointTest < ActiveSupport::TestCase
   # would resume past lines that were never stored.
   test 'a failed batch neither advances the checkpoint nor is swallowed' do
     out, status = run_development(BOOT + RECORD + FAIL_ON_SECOND_INSERT + <<~RUBY)
-      Event.begin_ingest(0, &ck('f'))
-      2.times { |i| Event.storeEvent(#{line(1).inspect}, 10) }
-      Event.flush_and_wait
-      2.times { |i| Event.storeEvent(#{line(3).inspect}, 20) }
+      EventIngestor.begin_ingest(0, &ck('f'))
+      2.times { |i| EventIngestor.storeEvent(#{line(1).inspect}, 10) }
+      EventIngestor.flush_and_wait
+      2.times { |i| EventIngestor.storeEvent(#{line(3).inspect}, 20) }
       begin
-        Event.flush_and_wait
+        EventIngestor.flush_and_wait
         puts 'NO_RAISE'
       rescue ActiveRecord::StatementInvalid
         puts 'RAISED'

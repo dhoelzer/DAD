@@ -37,7 +37,7 @@ end
 
 When(/^the event text is sent to the Event model$/) do
   @startingEvents = Event.count
-  Event.storeEvent(eventString)
+  EventIngestor.storeEvent(eventString)
 end
 
 When(/^the event is processed$/) do
@@ -53,7 +53,7 @@ end
 
 
 Given(/^an event has been stored previously$/) do
-  Event.storeEvent("1.1.1.1 Jun 1 00:00:00 this-is-a-test testservice[123]: This is just a test event")
+  EventIngestor.storeEvent("1.1.1.1 Jun 1 00:00:00 this-is-a-test testservice[123]: This is just a test event")
 end
 
 When(/^someone searches for the words in that event$/) do

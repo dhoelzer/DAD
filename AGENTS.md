@@ -114,8 +114,17 @@ inverted index) → Rails UI (dashboards, search, alerts, jobs, custom RBAC).
   but the code uses PG-only SQL (`pg_stat_user_tables`, `extract()`) → dev/test diverge.
 - Auth is hand-rolled: `users`/`roles`/`rights` + `sessions` table + `cookies[:sessionID]`.
   Each controller overrides a public `authorized?` method (also routable as an action).
-- `Event` holds all ingestion state in class variables (`@@pendingEventValues`,
-  `@@nextEventID`, word/system/service caches) and builds raw multi-row INSERTs.
+- Ingestion lives in `EventIngestor` (`app/models/event_ingestor.rb`), split out
+  of `Event` (§4.1). `Event` is the model and the read side only: associations,
+  search, the dashboard feed. `EventIngestor` holds the write-side state in
+  class-level instance variables (`@pendingEventValues`, `@nextEventID`,
+  word/system/service caches, checkpoint bookkeeping) and builds raw multi-row
+  INSERTs. It is process-global and assumes one long-running importer.
+  `resetCaches` is the single place that state is defined and runs once at load.
+  Do not add `class_variable_get`/`instance_variable_get` back into tests: assert
+  through the introspection API (`pending_count`, `pending_ids`,
+  `staged_words_count`, `in_flight_count`, `next_event_id`,
+  `timestamp_parse_failures`, `cached_word_count`).
 - Ingest is **at-least-once, not exactly-once** (§2.2, documented under "Ingest
   semantics" in the README). A crash with a batch in flight re-reads that batch,
   so up to one batch of events can be duplicated; committed rows are never lost.
@@ -154,7 +163,7 @@ inverted index) → Rails UI (dashboards, search, alerts, jobs, custom RBAC).
   column names, so alias them. Brakeman reports 0 SQL Injection warnings.
 - Known landmines: `eval` in `scheduler.rb` and `Event#parsed`; `Math` core module
   reopened in `config/application.rb`;
-  hard-coded year window `2014..2019` in `Event.storeEvent`; `Regexp.union([])` in
+  hard-coded year window `2014..2019` in `EventIngestor.storeEvent`; `Regexp.union([])` in
   `Event.recent_events` rejects every event when there are no exclusions.
 - The suite is green (194 unit runs / 542 assertions, 4 cucumber scenarios). The
   assertion count rose from 534 at Rails 6.1 with no test logic changed: AS 7.1's

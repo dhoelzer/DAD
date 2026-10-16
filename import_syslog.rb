@@ -11,7 +11,7 @@ PROCESSED_DIR = '../ProcessedLogs'
 PURGE_INTERVAL = 12.hours
 
 # One pass over every staged log file: claims each one, feeds its lines to
-# Event.storeEvent, then marks it processed.
+# EventIngestor.storeEvent, then marks it processed.
 #
 # Reports progress every 50 files through Rails.logger, so severity and
 # timestamps survive into the Passenger log. A line that raises StandardError is
@@ -53,7 +53,7 @@ PURGE_INTERVAL = 12.hours
 # no record of what went wrong.
 def process_file(in_flight, processed_dir)
   resume = LogQueue.read_offset(in_flight)
-  Event.begin_ingest(resume) { |offset| LogQueue.write_offset(in_flight, offset) }
+  EventIngestor.begin_ingest(resume) { |offset| LogQueue.write_offset(in_flight, offset) }
 
   failures = 0
   File.open(in_flight, 'r') do |file|
@@ -64,7 +64,7 @@ def process_file(in_flight, processed_dir)
       break if line.nil?
 
       begin
-        Event.storeEvent(line, file.pos)
+        EventIngestor.storeEvent(line, file.pos)
         yield
       rescue StandardError => e
         failures += 1
@@ -72,14 +72,14 @@ def process_file(in_flight, processed_dir)
         Rails.logger.warn("Offending line: #{line}")
         # Keep the batch that did stage, so a bad line costs one record rather
         # than the whole file's work so far.
-        Event.flush_and_wait
+        EventIngestor.flush_and_wait
       rescue Exception => e
         Rails.logger.error("Fatal error processing #{in_flight} at byte #{line_start}: #{e.class}: #{e.message}")
         Rails.logger.error("Offending line: #{line}")
         # Leave the file claimed and rewind the checkpoint to the start of this
         # line: its rows were never staged, so a restart must retry it rather
         # than skip it.
-        Event.flush_and_wait
+        EventIngestor.flush_and_wait
         LogQueue.write_offset(in_flight, line_start)
         raise
       end
@@ -89,7 +89,7 @@ def process_file(in_flight, processed_dir)
   # Durable before the file leaves the queue. Without this the last batch can
   # still be in flight when the file is moved to ProcessedLogs, and a crash then
   # loses rows with no .processing file left to recover them from.
-  Event.flush_and_wait
+  EventIngestor.flush_and_wait
   LogQueue.complete(in_flight, processed_dir)
   failures
 end
@@ -97,7 +97,7 @@ end
 # One pass over every staged log file. Returns the number of lines ingested;
 # skipped lines are counted, logged, and recorded as a Statistic separately.
 def process_logs(queue_dir = '.', processed_dir = PROCESSED_DIR)
-  Event.resetStats # reset event timing counters
+  EventIngestor.resetStats # reset event timing counters
   LogQueue.reclaim(queue_dir).each { |name| Rails.logger.info("Reclaiming abandoned #{name}") }
   logs = LogQueue.pending(queue_dir)
   processed = 0
@@ -118,10 +118,10 @@ def process_logs(queue_dir = '.', processed_dir = PROCESSED_DIR)
     end
   rescue Interrupt
     Rails.logger.info("Halting operations... Emptying memory queues...")
-    Event.flush_and_wait
+    EventIngestor.flush_and_wait
     raise
   end
-  Event.flush_and_wait
+  EventIngestor.flush_and_wait
   Statistic.logLinesProcessed(lines)
   # Only written when something was actually skipped: the series is a signal that
   # lines are being lost, not a per-pass heartbeat, and a zero row per pass would

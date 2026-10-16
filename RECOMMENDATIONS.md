@@ -24,12 +24,13 @@ than carried forward.
 | Secrets in the working tree | Closed — **but a production key is still in git history (§1.1)** |
 | Ingestion crash-safety and idempotency | Closed, at-least-once — documented in the README (§2.2) |
 | Search indexing, dashboard SQL portability, timestamp parsing | Closed |
-| Test suite | Green: 294 runs / 791 assertions on SQLite, and 294 / 846 on partitioned Postgres |
+| Test suite | Green: 295 runs / 798 assertions on SQLite, and 295 / 853 on partitioned Postgres |
 | Admin screens (sessions, users, jobs) | Closed — now covered by request tests (§2.1) |
 | Poison line / observability | Closed — per-line `rescue StandardError`, failures counted as a `Statistic`, `Rails.logger` broadcast to the journal (§5.3, `c5d82ab` + `94654d1`) |
 | Rails upgrade | **Closed: 4.2 → 5.2 → 6.1 → 7.1 → 7.2 → 8.0 → 8.1.4 landed** (§5.2, tag `rails-8.1.4`) |
 | Rails EOL | Closed — Rails is on the current stable line (8.1, supported to Oct 2027) |
 | CI security gates | **Closed — both gates now blocking**, 0 advisories, 0 Brakeman warnings (§1.2) |
+| `Event` size and class-variable state | **Was open — closed (§4.1)** — ingestion extracted to `EventIngestor`; model down to 302 lines, 0 ingest class variables |
 | Partitioning, full-text search | Closed — `events`/`events_words` partitioned by `generated` with drop-based retention (§3.2); search cost cut 25–68% (§3.3); prefix search was returning nothing on Postgres collations, fixed (§3.4) |
 
 ---
@@ -430,7 +431,7 @@ Postgres twice in a row.
 
 ## 4. Maintainability
 
-### 4.1 `Event` is 715 lines with 101 class-variable references **[maintainability]**
+### 4.1 ✅ Closed — `Event` was 812 lines with 120 class-variable references **[maintainability]**
 
 `app/models/event.rb` has grown since the last review (626 lines / 80 `@@`
 references → 715 / 101). Ingestion state — pending rows, next id, word/system/
@@ -466,6 +467,63 @@ Revised options, by value per unit of risk:
 
 **Recommendation: A now, B only if the `@@` state keeps causing bugs, C folded
 into §5.2.** A is nearly free because the subprocess harness already exists.
+
+#### What landed: option B, and it paid for itself
+
+Option B is done. `app/models/event_ingestor.rb` (649 lines) holds the write
+side; `app/models/event.rb` is now 302 lines and holds the model and the read
+side -- associations, search, the dashboard feed.
+
+| | before | after |
+|---|---|---|
+| `event.rb` | 812 lines, 120 `@@` references | 302 lines, 8 `@@` references |
+| `event_ingestor.rb` | -- | 649 lines, **0** class variables |
+| internals reached from tests (`class_variable_get/set`, `instance_variable_get/set` on `Event`) | 43 call sites | 0 |
+
+The remaining 8 `@@` references are all one variable, `@@num_last_events`, which
+is dashboard feed sizing and belongs on the model.
+
+The state moved to class-level instance variables. The old code had mixed `@@`
+and `@` for no reason -- `@bulk_insert_size` sat beside `@@cachelifetime` with
+identical lifetime -- and `@@` is what made the state reachable from outside via
+`class_variable_get`. `resetCaches` is now the single place the ingest state is
+defined, and it runs once at load.
+
+The `class_variable_get` coupling the item named is gone. Tests assert through a
+small introspection API (`pending_count`, `pending_ids`, `staged_words_count`,
+`in_flight_count`, `next_event_id`, `timestamp_parse_failures`,
+`cached_word_count`) that reports counts and ids rather than the arrays
+themselves, so the storage can change without breaking a caller. Two deliberate
+seams remain, both documented at the definition:
+
+- `in_flight_queue=` and `checkpoint_writer=` -- the head-of-queue ordering rule
+  in `advance_checkpoint!` cannot be driven through the real path, because
+  `MAX_INSERT_THREADS` is 1 precisely so SQLite never gets two writers. Raising
+  it to 2 is the obvious throughput change, and the ordering rule is what must
+  not break.
+- `cached_words` returns the cache itself, because verifying `prune_words`
+  requires ageing one entry.
+
+**The item's prediction about the `Rails.env.test?` branch was correct and it is
+preserved.** SQLite permits a single writer, so the threaded path cannot run
+inside a DatabaseCleaner transaction; the branch is load-bearing. What changed is
+that it now calls the same `write_batch` either way, so the inline and threaded
+paths cannot drift.
+
+Two things the extraction surfaced, both fixed:
+
+- `timestamp_parsing_test.rb:11` set `@@bulk_insert_size`, but the real variable
+  was the class-level *instance* variable `@bulk_insert_size`. That line had been
+  a silent no-op since it was written -- the test never controlled the batch size
+  it claimed to. It now uses a real setter.
+- `Event`'s `@added` was write-only: nothing ever read it. `System` and `Service`
+  each have their own `@added` with readers; `Event`'s was dead state and is
+  gone.
+
+Verification: 295 runs / 798 assertions on SQLite (was 294 / 791; the extra run
+is a new test asserting ingest state no longer lives on the model), 295 / 853 on
+partitioned Postgres, 5 cucumber scenarios, Brakeman 0 warnings. No new boot
+warnings under `-w`.
 
 ### 4.2 ✅ Closed — dead and duplicated code **[maintainability]**
 

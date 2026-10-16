@@ -7,7 +7,7 @@
 #   PG::SyntaxError: ERROR:  syntax error at or near ")"
 #
 # The failure is not confined to one query. It reached the ingest path --
-# Event.insertStatement builds the bulk INSERTs for events and events_words --
+# EventIngestor.insertStatement builds the bulk INSERTs for events and events_words --
 # which meant production could not insert a single event while the whole suite
 # stayed green, because dev and test only ever run SQLite.
 #

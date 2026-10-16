@@ -26,8 +26,8 @@ require 'test_helper'
 class EventIngestBackpressureTest < ActiveSupport::TestCase
   RUBY = RbConfig.ruby
 
-  BOOT = "load 'db/schema.rb'; Event.resetCaches; " \
-         "Event.instance_variable_set(:@bulk_insert_size, 1000); "
+  BOOT = "load 'db/schema.rb'; EventIngestor.resetCaches; " \
+         "EventIngestor.bulk_insert_size = 1000; "
 
   # Counts concurrent write_batch calls and how often the drain ran. The
   # concurrency counter is the point: MAX_INSERT_THREADS is the ceiling on
@@ -41,17 +41,17 @@ class EventIngestBackpressureTest < ActiveSupport::TestCase
   INSTRUMENT = <<~'PATCH'
     $active = 0; $max_concurrent = 0; $joins = 0
     $mu = Mutex.new
-    Event.singleton_class.send(:alias_method, :join_orig, :join_insert_threads)
-    Event.define_singleton_method(:join_insert_threads) do
+    EventIngestor.singleton_class.send(:alias_method, :join_orig, :join_insert_threads)
+    EventIngestor.define_singleton_method(:join_insert_threads) do
       $joins += 1
-      Event.send(:join_orig)
+      EventIngestor.send(:join_orig)
     end
-    Event.singleton_class.send(:alias_method, :write_batch_orig, :write_batch)
-    Event.define_singleton_method(:write_batch) do |*args|
+    EventIngestor.singleton_class.send(:alias_method, :write_batch_orig, :write_batch)
+    EventIngestor.define_singleton_method(:write_batch) do |*args|
       $mu.synchronize { $active += 1; $max_concurrent = [$max_concurrent, $active].max }
       begin
         sleep 0.25
-        Event.send(:write_batch_orig, *args)
+        EventIngestor.send(:write_batch_orig, *args)
       ensure
         $mu.synchronize { $active -= 1 }
       end
@@ -85,17 +85,17 @@ class EventIngestBackpressureTest < ActiveSupport::TestCase
   test 'repeated flushes never exceed MAX_INSERT_THREADS concurrent writers' do
     out, status = run_development(BOOT + INSTRUMENT + <<~'RUBY')
       5.times do |round|
-        2.times { |i| Event.storeEvent("1.1.1.1 Jun 1 00:00:0#{round} host svc[1]: backpressure probe #{round}", 10 * (i + 1)) }
-        Event.performPendingInserts
+        2.times { |i| EventIngestor.storeEvent("1.1.1.1 Jun 1 00:00:0#{round} host svc[1]: backpressure probe #{round}", 10 * (i + 1)) }
+        EventIngestor.performPendingInserts
       end
-      Event.flush_and_wait
+      EventIngestor.flush_and_wait
       puts "MAX_CONCURRENT=#{$max_concurrent}"
       puts "JOINS=#{$joins}"
       puts "EVENTS=#{Event.count}"
     RUBY
 
     assert_equal 0, status, "subprocess failed:\n#{out}"
-    assert_includes out, "MAX_CONCURRENT=#{Event::MAX_INSERT_THREADS}",
+    assert_includes out, "MAX_CONCURRENT=#{EventIngestor::MAX_INSERT_THREADS}",
       'in-flight writers must be capped by MAX_INSERT_THREADS'
     assert_operator out[/JOINS=(\d+)/, 1].to_i, :>=, 2,
       'the back-pressure branch must actually be exercised'
@@ -106,12 +106,12 @@ class EventIngestBackpressureTest < ActiveSupport::TestCase
   # would leave events_words rows whose event never got written.
   test 'back-pressure leaves a consistent events/events_words pair' do
     out, status = run_development(BOOT + INSTRUMENT + <<~'RUBY')
-      Event.begin_ingest(0) { |_off| nil }
+      EventIngestor.begin_ingest(0) { |_off| nil }
       4.times do |round|
-        3.times { |i| Event.storeEvent("1.1.1.1 Jun 1 00:00:1#{round} host svc[1]: drain probe #{round}-#{i}", 10 * (i + 1)) }
-        Event.performPendingInserts
+        3.times { |i| EventIngestor.storeEvent("1.1.1.1 Jun 1 00:00:1#{round} host svc[1]: drain probe #{round}-#{i}", 10 * (i + 1)) }
+        EventIngestor.performPendingInserts
       end
-      Event.flush_and_wait
+      EventIngestor.flush_and_wait
       puts "EVENTS=#{Event.count}"
       puts "ORPHANS=#{Event.connection.execute('select count(*) as c from events_words ' \
         'where event_id not in (select id from events)').first['c']}"
@@ -130,18 +130,18 @@ class EventIngestBackpressureTest < ActiveSupport::TestCase
   # word on every line or holds ids forever.
   test 'prune_words drops stale entries and keeps recently used ones' do
     out, status = run_development(BOOT + <<~'RUBY')
-      Event.class_variable_set(:@@cachelifetime, 3600)
-      2.times { |i| Event.storeEvent("1.1.1.1 Jun 1 00:00:0#{i} host svc[1]: prune fresh #{i}", 10) }
-      Event.flush_and_wait
+      EventIngestor.cache_lifetime = 3600
+      2.times { |i| EventIngestor.storeEvent("1.1.1.1 Jun 1 00:00:0#{i} host svc[1]: prune fresh #{i}", 10) }
+      EventIngestor.flush_and_wait
 
-      cache = Event.class_variable_get(:@@cached_words)
+      cache = EventIngestor.cached_words
       # Age exactly one entry out; the rest stay inside the TTL.
       stale_key = cache.keys.first
       cache[stale_key][:last] = Time.now - 7200
       before = cache.keys.count
 
-      Event.prune_words
-      after = Event.class_variable_get(:@@cached_words)
+      EventIngestor.prune_words
+      after = EventIngestor.cached_words
 
       puts "BEFORE=#{before}"
       puts "AFTER=#{after.keys.count}"
@@ -163,15 +163,15 @@ class EventIngestBackpressureTest < ActiveSupport::TestCase
   # flush would re-prune an already-small cache, forever.
   test 'prune_words resets the counter that gates it' do
     out, status = run_development(BOOT + <<~'RUBY')
-      Event.class_variable_set(:@@cachelifetime, 3600)
-      3.times { |i| Event.storeEvent("1.1.1.1 Jun 1 00:00:0#{i} host svc[1]: counter probe #{i}", 10) }
-      Event.flush_and_wait
+      EventIngestor.cache_lifetime = 3600
+      3.times { |i| EventIngestor.storeEvent("1.1.1.1 Jun 1 00:00:0#{i} host svc[1]: counter probe #{i}", 10) }
+      EventIngestor.flush_and_wait
 
-      Event.class_variable_get(:@@cached_words).each_value { |v| v[:last] = Time.now - 7200 }
-      Event.prune_words
+      EventIngestor.cached_words.each_value { |v| v[:last] = Time.now - 7200 }
+      EventIngestor.prune_words
 
-      puts "CACHE=#{Event.class_variable_get(:@@cached_words).keys.count}"
-      puts "NUM_CACHED=#{Event.class_variable_get(:@@num_cached)}"
+      puts "CACHE=#{EventIngestor.cached_words.keys.count}"
+      puts "NUM_CACHED=#{EventIngestor.num_cached}"
     RUBY
 
     assert_equal 0, status, "subprocess failed:\n#{out}"
@@ -186,15 +186,15 @@ class EventIngestBackpressureTest < ActiveSupport::TestCase
   # would silently return nothing.
   test 'words re-resolve to valid ids after a prune' do
     out, status = run_development(BOOT + <<~'RUBY')
-      Event.class_variable_set(:@@cachelifetime, 3600)
-      2.times { |i| Event.storeEvent("1.1.1.1 Jun 1 00:00:0#{i} host svc[1]: revalidate tokenz #{i}", 10) }
-      Event.flush_and_wait
+      EventIngestor.cache_lifetime = 3600
+      2.times { |i| EventIngestor.storeEvent("1.1.1.1 Jun 1 00:00:0#{i} host svc[1]: revalidate tokenz #{i}", 10) }
+      EventIngestor.flush_and_wait
 
-      Event.class_variable_get(:@@cached_words).each_value { |v| v[:last] = Time.now - 7200 }
-      Event.prune_words
+      EventIngestor.cached_words.each_value { |v| v[:last] = Time.now - 7200 }
+      EventIngestor.prune_words
 
-      2.times { |i| Event.storeEvent("1.1.1.1 Jun 1 00:00:1#{i} host svc[1]: revalidate tokenz #{i}", 20) }
-      Event.flush_and_wait
+      2.times { |i| EventIngestor.storeEvent("1.1.1.1 Jun 1 00:00:1#{i} host svc[1]: revalidate tokenz #{i}", 20) }
+      EventIngestor.flush_and_wait
 
       puts "EVENTS=#{Event.count}"
       puts "DANGLING_WORDS=#{Event.connection.execute('select count(*) as c from events_words ' \

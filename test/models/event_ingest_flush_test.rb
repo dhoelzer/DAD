@@ -24,8 +24,8 @@ class EventIngestFlushTest < ActiveSupport::TestCase
   # every single line. Left at 1 these cases race -- a failed batch surfaced at
   # whichever call happened to notice the dead thread, not the one being asserted
   # on. A high value means only the explicit flushes below stage work.
-  BOOT = "load 'db/schema.rb'; Event.resetCaches; " \
-         "Event.instance_variable_set(:@bulk_insert_size, 1000); "
+  BOOT = "load 'db/schema.rb'; EventIngestor.resetCaches; " \
+         "EventIngestor.bulk_insert_size = 1000; "
 
   # Replaces the adapter's exec_query so the events INSERT fails on demand.
   # Patched on the adapter, not ActiveRecord::Base: exec_query is a connection
@@ -71,19 +71,19 @@ class EventIngestFlushTest < ActiveSupport::TestCase
   # counting @@insertThreads: a writer that finishes fast now releases its batch
   # from the queue itself, so the count is 0 or 1 depending on timing.
   RECORD_THREAD = <<~'PATCH'
-    Event.singleton_class.send(:alias_method, :write_batch_orig, :write_batch)
-    Event.define_singleton_method(:write_batch) do |*args|
+    EventIngestor.singleton_class.send(:alias_method, :write_batch_orig, :write_batch)
+    EventIngestor.define_singleton_method(:write_batch) do |*args|
       $off_main = true if Thread.current != Thread.main
       # send: write_batch is private_class_method.
-      Event.send(:write_batch_orig, *args)
+      EventIngestor.send(:write_batch_orig, *args)
     end;
   PATCH
 
   test 'the threaded path writes events and their index rows' do
     out, status = run_development(BOOT + RECORD_THREAD + <<~'RUBY')
-      3.times { |i| Event.storeEvent("1.1.1.1 Jun 1 00:00:0#{i} host svc[1]: threaded probe #{i}") }
-      Event.performPendingInserts
-      Event.flush_and_wait
+      3.times { |i| EventIngestor.storeEvent("1.1.1.1 Jun 1 00:00:0#{i} host svc[1]: threaded probe #{i}") }
+      EventIngestor.performPendingInserts
+      EventIngestor.flush_and_wait
       puts "OFF_MAIN=#{$off_main}"
       puts "EVENTS=#{Event.count}"
       puts "INDEX_ROWS=#{Event.connection.execute('select count(*) as c from events_words').first['c']}"
@@ -97,10 +97,10 @@ class EventIngestFlushTest < ActiveSupport::TestCase
 
   test 'a failed threaded batch is surfaced, not swallowed' do
     out, status = run_development(BOOT + FAIL_ON_EVENTS_INSERT + <<~'RUBY')
-      Event.storeEvent('1.1.1.1 Jun 1 00:00:01 host svc[1]: doomed batch here')
-      Event.performPendingInserts
+      EventIngestor.storeEvent('1.1.1.1 Jun 1 00:00:01 host svc[1]: doomed batch here')
+      EventIngestor.performPendingInserts
       begin
-        Event.flush_and_wait
+        EventIngestor.flush_and_wait
         puts 'NO_RAISE'
       rescue ActiveRecord::StatementInvalid => e
         puts "RAISED=#{e.message}"
@@ -117,10 +117,10 @@ class EventIngestFlushTest < ActiveSupport::TestCase
 
   test 'a failed batch leaves no orphan index rows' do
     out, status = run_development(BOOT + FAIL_ON_EVENTS_INSERT + <<~'RUBY')
-      Event.storeEvent('1.1.1.1 Jun 1 00:00:01 host svc[1]: doomed batch here')
-      Event.performPendingInserts
+      EventIngestor.storeEvent('1.1.1.1 Jun 1 00:00:01 host svc[1]: doomed batch here')
+      EventIngestor.performPendingInserts
       begin
-        Event.flush_and_wait
+        EventIngestor.flush_and_wait
       rescue ActiveRecord::StatementInvalid
       end
       puts "ORPHANS=#{Event.connection.execute('select count(*) as c from events_words ' \
@@ -135,8 +135,8 @@ class EventIngestFlushTest < ActiveSupport::TestCase
 
   test 'a successful batch leaves no orphan index rows either' do
     out, status = run_development(BOOT + <<~'RUBY')
-      5.times { |i| Event.storeEvent("1.1.1.1 Jun 1 00:00:0#{i} host svc[1]: clean batch #{i}") }
-      Event.flush_and_wait
+      5.times { |i| EventIngestor.storeEvent("1.1.1.1 Jun 1 00:00:0#{i} host svc[1]: clean batch #{i}") }
+      EventIngestor.flush_and_wait
       puts "ORPHANS=#{Event.connection.execute('select count(*) as c from events_words ' \
         'where event_id not in (select id from events)').first['c']}"
       puts "EVENTS=#{Event.count}"
@@ -149,9 +149,9 @@ class EventIngestFlushTest < ActiveSupport::TestCase
 
   test 'a multi-row batch writes every staged event' do
     out, status = run_development(BOOT + <<~'RUBY')
-      6.times { |i| Event.storeEvent("1.1.1.1 Jun 1 00:00:0#{i % 10} host svc[1]: batch probe #{i}") }
-      Event.performPendingInserts
-      Event.flush_and_wait
+      6.times { |i| EventIngestor.storeEvent("1.1.1.1 Jun 1 00:00:0#{i % 10} host svc[1]: batch probe #{i}") }
+      EventIngestor.performPendingInserts
+      EventIngestor.flush_and_wait
       puts "WRITTEN=#{Event.count}"
     RUBY
 
@@ -169,7 +169,7 @@ class EventIngestFlushTest < ActiveSupport::TestCase
     # Rails 8.1 renamed the accessor pool -> max_connections and deprecated the
     # old name (removed in 8.2); database.yml's `pool:` key still feeds it.
     pool = ActiveRecord::Base.configurations.configs_for(env_name: 'test').first.max_connections
-    assert_operator Event::MAX_INSERT_THREADS + 1, :<, pool,
+    assert_operator EventIngestor::MAX_INSERT_THREADS + 1, :<, pool,
       'insert threads plus the main thread must fit inside the pool'
   end
 end

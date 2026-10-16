@@ -1,6 +1,6 @@
 # A daemon/process name parsed out of a syslog line (e.g. "sshd", "postfix").
 #
-# Populated during ingestion: Event.storeEvent takes the token at the service
+# Populated during ingestion: EventIngestor.storeEvent takes the token at the service
 # offset and resolves it through Service.find_or_add. Events keep a service_id
 # foreign key, so grouping and filtering by service is a plain join.
 class Service < ActiveRecord::Base
@@ -21,7 +21,7 @@ class Service < ActiveRecord::Base
 
   # Returns the Service named +new_item+, creating it on first sight.
   #
-  # Called from the ingestion hot path (Event.storeEvent). Results are memoised
+  # Called from the ingestion hot path (EventIngestor.storeEvent). Results are memoised
   # in @@cached_stuff, so repeat lookups cost nothing. Not thread-safe: two
   # concurrent callers could both miss the cache and race to create a row.
   def self.find_or_add(new_item)

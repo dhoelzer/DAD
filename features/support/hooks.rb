@@ -2,5 +2,5 @@
 # rolls the DB back between scenarios but cannot reach those caches, so the next
 # scenario would reuse dangling IDs. Clear them before every scenario.
 Before do
-  Event.resetCaches
+  EventIngestor.resetCaches
 end

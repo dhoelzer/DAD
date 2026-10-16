@@ -1,7 +1,7 @@
 Given(/^that there is an event in the databases$/) do
   eventString = "50.16.29.46 Jun  1 14:07:16 ip-10-159-49-236 sshd[26938]: Received disconnect from 173.246.41.99: 11: Bye Bye [preauth]"
   event_count = Event.all.count
-  Event.storeEvent(eventString)
+  EventIngestor.storeEvent(eventString)
   expect(Event.all.count - event_count).to eq 1
 end
 

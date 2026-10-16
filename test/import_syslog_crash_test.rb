@@ -53,7 +53,7 @@ class ImportSyslogCrashTest < ActiveSupport::TestCase
     # operator sees in the journal.
     boot += "Rails.logger = ActiveSupport::BroadcastLogger.new(" \
             "Rails.logger, ActiveSupport::Logger.new($stdout)); "
-    boot += "load 'db/schema.rb'; Event.resetCaches; " if build_schema
+    boot += "load 'db/schema.rb'; EventIngestor.resetCaches; " if build_schema
     out = IO.popen(
       { 'RAILS_ENV' => 'development',
         'DATABASE_URL' => "sqlite3:#{@db.path}",
@@ -75,14 +75,14 @@ class ImportSyslogCrashTest < ActiveSupport::TestCase
     CRASH_AT = ENV['CRASH_AT'].to_i
     DRAIN_AT = ENV['DRAIN_AT'].to_i
     $seen = 0
-    Event.singleton_class.send(:alias_method, :storeEvent_orig, :storeEvent)
-    Event.define_singleton_method(:storeEvent) do |line, position = nil|
+    EventIngestor.singleton_class.send(:alias_method, :storeEvent_orig, :storeEvent)
+    EventIngestor.define_singleton_method(:storeEvent) do |line, position = nil|
       $seen += 1
       storeEvent_orig(line, position)
       # Drain after the line is staged, so DRAIN_AT names the last line whose
       # rows are known committed.
       if DRAIN_AT > 0 && $seen == DRAIN_AT
-        Event.flush_and_wait
+        EventIngestor.flush_and_wait
         $stdout.puts "DRAINED at #{$seen}"
       end
       if $seen > CRASH_AT
@@ -111,7 +111,7 @@ class ImportSyslogCrashTest < ActiveSupport::TestCase
 
     # Run 1: commit lines 1-2 durably, then die before line 3.
     out, status = run_importer(
-      "#{CRASH} Event.instance_variable_set(:@bulk_insert_size, 2); " \
+      "#{CRASH} EventIngestor.bulk_insert_size = 2; " \
       "process_logs(ENV['QUEUE_DIR'], ENV['PROCESSED_DEST'])",
       build_schema: true, env: { 'CRASH_AT' => '2', 'DRAIN_AT' => '2' })
     assert_equal 2, status, "expected the injected crash, got: #{out}"
@@ -129,7 +129,7 @@ class ImportSyslogCrashTest < ActiveSupport::TestCase
 
     # Run 2: same database, no schema reload.
     out, status = run_importer(
-      "Event.instance_variable_set(:@bulk_insert_size, 2); " \
+      "EventIngestor.bulk_insert_size = 2; " \
       "process_logs(ENV['QUEUE_DIR'], ENV['PROCESSED_DEST'])",
       build_schema: false)
     assert_equal 0, status, "run 2 should finish cleanly, got: #{out}"
@@ -150,13 +150,13 @@ class ImportSyslogCrashTest < ActiveSupport::TestCase
     write_log('sample.log', 6)
 
     _out, status = run_importer(
-      "#{CRASH} Event.instance_variable_set(:@bulk_insert_size, 2); " \
+      "#{CRASH} EventIngestor.bulk_insert_size = 2; " \
       "process_logs(ENV['QUEUE_DIR'], ENV['PROCESSED_DEST'])",
       build_schema: true, env: { 'CRASH_AT' => '2', 'DRAIN_AT' => '2' })
     assert_equal 2, status
 
     _out, status = run_importer(
-      "Event.instance_variable_set(:@bulk_insert_size, 2); " \
+      "EventIngestor.bulk_insert_size = 2; " \
       "process_logs(ENV['QUEUE_DIR'], ENV['PROCESSED_DEST'])",
       build_schema: false)
     assert_equal 0, status
@@ -177,12 +177,12 @@ class ImportSyslogCrashTest < ActiveSupport::TestCase
   test 'a StandardError on one line is skipped, not fatal' do
     write_log('sample.log', 6)
     body = <<~'PATCH'
-      Event.singleton_class.send(:alias_method, :storeEvent_orig, :storeEvent)
-      Event.define_singleton_method(:storeEvent) do |line, position = nil|
+      EventIngestor.singleton_class.send(:alias_method, :storeEvent_orig, :storeEvent)
+      EventIngestor.define_singleton_method(:storeEvent) do |line, position = nil|
         raise 'forced line failure' if line.include?('probe line 3')
         storeEvent_orig(line, position)
       end;
-      Event.instance_variable_set(:@bulk_insert_size, 2);
+      EventIngestor.bulk_insert_size = 2;
       puts "LINES=#{process_logs(ENV['QUEUE_DIR'], ENV['PROCESSED_DEST'])}"
     PATCH
     out, status = run_importer(body, build_schema: true)
@@ -214,17 +214,17 @@ class ImportSyslogCrashTest < ActiveSupport::TestCase
         raise 'forced failure mid-staging' if w == 'forced-boom-word'
         find_or_add_orig(w)
       end
-      Event.instance_variable_set(:@bulk_insert_size, 1);
+      EventIngestor.bulk_insert_size = 1;
       # The importer's per-line rescue is what normally catches this; call
       # storeEvent directly here so the test isolates storeEvent's own rollback.
       begin
-        Event.storeEvent('1.1.1.1 Jun 1 00:00:01 host svc[1]: forced-boom-word ok', 10)
+        EventIngestor.storeEvent('1.1.1.1 Jun 1 00:00:01 host svc[1]: forced-boom-word ok', 10)
         puts 'NO_RAISE'
       rescue RuntimeError => e
         puts "RAISED=#{e.message}"
       end
-      Event.storeEvent('1.1.1.1 Jun 1 00:00:02 host svc[1]: good line here', 20)
-      Event.flush_and_wait
+      EventIngestor.storeEvent('1.1.1.1 Jun 1 00:00:02 host svc[1]: good line here', 20)
+      EventIngestor.flush_and_wait
       puts "EVENTS=#{Event.count}"
       orphans = Event.connection.execute('select count(*) as c from events_words ' +
         'where event_id not in (select id from events)').first['c']
@@ -248,12 +248,12 @@ class ImportSyslogCrashTest < ActiveSupport::TestCase
   test 'a non-StandardError still stops the run and rewinds the checkpoint' do
     write_log('sample.log', 6)
     body = <<~'PATCH'
-      Event.singleton_class.send(:alias_method, :storeEvent_orig, :storeEvent)
-      Event.define_singleton_method(:storeEvent) do |line, position = nil|
+      EventIngestor.singleton_class.send(:alias_method, :storeEvent_orig, :storeEvent)
+      EventIngestor.define_singleton_method(:storeEvent) do |line, position = nil|
         raise NotImplementedError, 'forced fatal failure' if line.include?('probe line 3')
         storeEvent_orig(line, position)
       end;
-      Event.instance_variable_set(:@bulk_insert_size, 2);
+      EventIngestor.bulk_insert_size = 2;
       process_logs(ENV['QUEUE_DIR'], ENV['PROCESSED_DEST'])
     PATCH
     out, status = run_importer(body, build_schema: true)
@@ -275,14 +275,14 @@ class ImportSyslogCrashTest < ActiveSupport::TestCase
   test 'skipped lines are counted as a Statistic series' do
     write_log('sample.log', 4)
     body = <<~'PATCH'
-      Event.singleton_class.send(:alias_method, :storeEvent_orig, :storeEvent)
-      Event.define_singleton_method(:storeEvent) do |line, position = nil|
+      EventIngestor.singleton_class.send(:alias_method, :storeEvent_orig, :storeEvent)
+      EventIngestor.define_singleton_method(:storeEvent) do |line, position = nil|
         if line.include?('probe line 2') || line.include?('probe line 3')
           raise 'forced line failure'
         end
         storeEvent_orig(line, position)
       end;
-      Event.instance_variable_set(:@bulk_insert_size, 2);
+      EventIngestor.bulk_insert_size = 2;
       process_logs(ENV['QUEUE_DIR'], ENV['PROCESSED_DEST'])
     PATCH
     _out, status = run_importer(body, build_schema: true)
@@ -302,7 +302,7 @@ class ImportSyslogCrashTest < ActiveSupport::TestCase
   test 'a clean pass writes no failure row' do
     write_log('sample.log', 4)
     body = <<~'PATCH'
-      Event.instance_variable_set(:@bulk_insert_size, 2);
+      EventIngestor.bulk_insert_size = 2;
       process_logs(ENV['QUEUE_DIR'], ENV['PROCESSED_DEST'])
     PATCH
     _out, status = run_importer(body, build_schema: true)

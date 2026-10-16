@@ -18,10 +18,10 @@ class ImportSyslogTest < ActiveSupport::TestCase
   def setup
     @queue = Dir.mktmpdir('LogsToProcess')
     @processed = Dir.mktmpdir('ProcessedLogs')
-    Event.resetCaches
+    EventIngestor.resetCaches
     # Development/test batch size is 1, which flushes per line and makes the
     # Statistic write race the insert thread on SQLite. One batch keeps it sane.
-    Event.instance_variable_set(:@bulk_insert_size, 1000)
+    EventIngestor.bulk_insert_size = 1000
   end
 
   def teardown

@@ -1,14 +1,14 @@
 require 'test_helper'
 
-# Covers Event.parse_timestamp and the service-offset bookkeeping that depends
+# Covers EventIngestor.parse_timestamp and the service-offset bookkeeping that depends
 # on it. Ingestion used to recognize only three timestamp spellings, one of
 # them gated on a hard-coded 2015-2019 year window, and it located the service
 # name at a fixed token index. Both assumptions were wrong for the formats
 # rsyslog emits by default.
 class TimestampParsingTest < ActionDispatch::IntegrationTest
   def setup
-    Event.resetCaches
-    Event.class_variable_set(:@@bulk_insert_size, 1)
+    EventIngestor.resetCaches
+    EventIngestor.bulk_insert_size = 1
     # System/Service/Word memoize rows in process-local class variables that
     # outlive the per-test transaction rollback, so a later test would be
     # handed an id whose row no longer exists.
@@ -18,8 +18,8 @@ class TimestampParsingTest < ActionDispatch::IntegrationTest
 
   # Runs +line+ through the real ingestion path and returns the stored row.
   def ingest(line)
-    Event.storeEvent(line)
-    Event.performPendingInserts
+    EventIngestor.storeEvent(line)
+    EventIngestor.performPendingInserts
     system = System.find_by(address: line.split[0])
     return nil if system.nil?
     event = Event.where(system_id: system.id).last
@@ -104,32 +104,32 @@ class TimestampParsingTest < ActionDispatch::IntegrationTest
   end
 
   test "a line with no recognizable timestamp is counted, not silently dropped" do
-    before = Event.class_variable_get(:@@timestamp_parse_failures)
+    before = EventIngestor.timestamp_parse_failures
     assert_nil ingest('host-k.example.com totally not a timestamp sshd[4242]: login ok')
-    assert_equal before + 1, Event.class_variable_get(:@@timestamp_parse_failures)
+    assert_equal before + 1, EventIngestor.timestamp_parse_failures
   end
 
   test "parse_timestamp reports the tokens it consumed" do
-    timestamp, consumed = Event.parse_timestamp(
+    timestamp, consumed = EventIngestor.parse_timestamp(
       %w[2026-06-01t12:34:56.123z sshd 4242], 2026)
     assert_equal 1, consumed
     assert_equal 2026, timestamp.year
 
-    timestamp, consumed = Event.parse_timestamp(
+    timestamp, consumed = EventIngestor.parse_timestamp(
       %w[2026-06-01t12:34:56 00:00 sshd 4242], 2026)
     assert_equal 2, consumed
     assert_equal Time.utc(2026, 6, 1, 12, 34, 56), timestamp.to_time
 
-    timestamp, consumed = Event.parse_timestamp(
+    timestamp, consumed = EventIngestor.parse_timestamp(
       %w[jun 01 2026 12:34:56 sshd], 2026)
     assert_equal 4, consumed
     assert_equal Time.utc(2026, 6, 1, 12, 34, 56), timestamp.to_time
 
-    timestamp, consumed = Event.parse_timestamp(%w[jun 1 12:34:56 sshd], 2019)
+    timestamp, consumed = EventIngestor.parse_timestamp(%w[jun 1 12:34:56 sshd], 2019)
     assert_equal 3, consumed
     assert_equal Time.utc(2019, 6, 1, 12, 34, 56), timestamp.to_time
 
-    timestamp, consumed = Event.parse_timestamp(%w[not a timestamp], 2026)
+    timestamp, consumed = EventIngestor.parse_timestamp(%w[not a timestamp], 2026)
     assert_nil timestamp
     assert_equal 0, consumed
   end

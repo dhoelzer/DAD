@@ -3,7 +3,7 @@ require 'test_helper'
 # Guards the placeholder translation that lets one hand-written query run on both
 # SQLite (dev/test) and Postgres (production).
 #
-# The bug this covers was total, not subtle: Event.insertStatement emitted SQLite
+# The bug this covers was total, not subtle: EventIngestor.insertStatement emitted SQLite
 # `?` placeholders through exec_query, Postgres rejected them with a syntax error,
 # and production therefore could not insert a single event -- while the whole suite
 # stayed green because it only ever runs SQLite.
@@ -20,7 +20,7 @@ class SqlPlaceholdersTest < ActiveSupport::TestCase
   end
 
   test 'numbers every placeholder in a multi-row insert' do
-    # The shape Event.insertStatement builds: one group per row, cumulative numbering.
+    # The shape EventIngestor.insertStatement builds: one group per row, cumulative numbering.
     assert_equal 'INSERT INTO t (a, b) VALUES ($1, $2), ($3, $4)',
       SqlPlaceholders.number_placeholders('INSERT INTO t (a, b) VALUES (?, ?), (?, ?)')
   end
@@ -121,9 +121,9 @@ class SqlPlaceholdersTest < ActiveSupport::TestCase
   # code production runs for every line it imports. This is the assertion that would
   # have caught the original bug on a Postgres run.
   test 'bulk ingest writes events and their index rows' do
-    Event.resetCaches
-    3.times { |i| Event.storeEvent("10.200.0.6 Jun 1 12:00:0#{i} host svc[1]: placeholder probe #{i}") }
-    Event.flush_and_wait
+    EventIngestor.resetCaches
+    3.times { |i| EventIngestor.storeEvent("10.200.0.6 Jun 1 12:00:0#{i} host svc[1]: placeholder probe #{i}") }
+    EventIngestor.flush_and_wait
 
     system = System.find_by(address: '10.200.0.6')
     refute_nil system, 'ingest must resolve the system from the line'

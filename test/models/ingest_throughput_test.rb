@@ -14,12 +14,12 @@ class IngestThroughputTest < ActiveSupport::TestCase
   LINE = '1.1.1.1 Jun 1 00:00:00 host svc[1]: throughput probe'
 
   def setup
-    Event.resetCaches
+    EventIngestor.resetCaches
     # Above the staged count, so the explicit flush -- not storeEvent's
     # per-line flush at the dev/test default of 1 -- is what writes the batch.
-    Event.instance_variable_set(:@bulk_insert_size, 1000)
-    Event.instance_variable_set(:@inserted_last_run, 100)
-    Event.resetStats
+    EventIngestor.bulk_insert_size = 1000
+    EventIngestor.inserted_last_run = 100
+    EventIngestor.resetStats
   end
 
   def new_rates(since_id)
@@ -28,8 +28,8 @@ class IngestThroughputTest < ActiveSupport::TestCase
 
   test 'the logged rate reflects the batch just written' do
     since = Statistic.where(type_id: 1).maximum(:id) || 0
-    5.times { Event.storeEvent(LINE) }
-    Event.flush_and_wait
+    5.times { EventIngestor.storeEvent(LINE) }
+    EventIngestor.flush_and_wait
 
     logged = new_rates(since)
     assert_equal 1, logged.count, 'one rate is logged per flush'
@@ -38,10 +38,10 @@ class IngestThroughputTest < ActiveSupport::TestCase
   end
 
   test 'the auto-tuner compares against a real rate' do
-    5.times { Event.storeEvent(LINE) }
-    Event.flush_and_wait
+    5.times { EventIngestor.storeEvent(LINE) }
+    EventIngestor.flush_and_wait
 
-    assert_operator Event.instance_variable_get(:@inserted_last_run).to_f, :>, 0,
+    assert_operator EventIngestor.inserted_last_run.to_f, :>, 0,
                     'a zero here makes every later flush take the +20 branch'
   end
 
@@ -50,15 +50,15 @@ class IngestThroughputTest < ActiveSupport::TestCase
   # reset slips back below logEventsPerSecond, a failure there leaves rows
   # staged and the next flush re-inserts them under the same explicit ids.
   test 'a failure in the stats bookkeeping does not leave rows staged' do
-    3.times { Event.storeEvent(LINE) }
+    3.times { EventIngestor.storeEvent(LINE) }
 
     Statistic.singleton_class.send(:alias_method, :log_eps_orig, :logEventsPerSecond)
     Statistic.define_singleton_method(:logEventsPerSecond) { |_rate| raise 'forced failure' }
 
-    assert_raises(RuntimeError) { Event.performPendingInserts }
-    assert_empty Event.class_variable_get(:@@pendingEventValues),
+    assert_raises(RuntimeError) { EventIngestor.performPendingInserts }
+    assert_equal 0, EventIngestor.pending_count,
                  'rows already handed to the writer must not stay staged'
-    assert_empty Event.class_variable_get(:@@events_words)
+    assert_equal 0, EventIngestor.staged_words_count
   ensure
     Statistic.singleton_class.send(:alias_method, :logEventsPerSecond, :log_eps_orig)
   end
@@ -66,13 +66,13 @@ class IngestThroughputTest < ActiveSupport::TestCase
   # End-to-end form of the same hazard: after the forced failure above, a second
   # flush must not duplicate the ids the first one already wrote.
   test 'a flush after a stats failure does not re-insert committed ids' do
-    3.times { Event.storeEvent(LINE) }
-    ids = Event.class_variable_get(:@@pendingEventValues).map { |r| r[:id] }
+    3.times { EventIngestor.storeEvent(LINE) }
+    ids = EventIngestor.pending_ids
 
     Statistic.singleton_class.send(:alias_method, :log_eps_orig, :logEventsPerSecond)
     Statistic.define_singleton_method(:logEventsPerSecond) { |_rate| raise 'forced failure' }
     begin
-      Event.performPendingInserts
+      EventIngestor.performPendingInserts
     rescue RuntimeError
       nil
     end
@@ -80,7 +80,7 @@ class IngestThroughputTest < ActiveSupport::TestCase
 
     assert_equal 3, Event.where(id: ids).count,
                  'the first flush must have written its rows exactly once'
-    Event.flush_and_wait
+    EventIngestor.flush_and_wait
     assert_equal 3, Event.where(id: ids).count,
                  'the second flush must not re-insert them'
   end

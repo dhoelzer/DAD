@@ -25,7 +25,7 @@ class Statistic < ActiveRecord::Base
 
   # Records an insert rate of +eventsPerSecond+ for this flush (type_id 1).
   #
-  # Called by Event.performPendingInserts after each batch. system_id/service_id
+  # Called by EventIngestor.performPendingInserts after each batch. system_id/service_id
   # are -1 because the sample is global, not per-system.
   def self.logEventsPerSecond(eventsPerSecond)
     statistic = Statistic.new
