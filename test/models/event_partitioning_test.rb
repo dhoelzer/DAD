@@ -62,6 +62,14 @@ class EventPartitioningTest < ActiveSupport::TestCase
     with_retention_env('0') { assert_equal 0, EventPartitioning.retention_days }
   end
 
+  # A systemd EnvironmentFile line written as `KEY=` produces an empty string,
+  # not a missing key. Integer('') would raise and take the whole maintenance
+  # job down over a blank line in a config file.
+  test 'an empty retention value falls back to the default' do
+    with_retention_env('') { assert_equal 365, EventPartitioning.retention_days }
+    with_retention_env('  ') { assert_equal 365, EventPartitioning.retention_days }
+  end
+
   test 'a non-numeric retention is rejected rather than silently ignored' do
     # Silently falling back to the default would keep data an operator believed
     # was being purged.
@@ -153,7 +161,7 @@ class EventPartitioningTest < ActiveSupport::TestCase
     insert_scratch(1, Time.new(2026, 10, 3))
     insert_scratch(2, Time.new(2026, 4, 3))
 
-    dropped = EventPartitioning.drop_expired_partitions(tables: [SCRATCH], today: Date.new(2026, 10, 16), keep_days: 120, prefixes: SCRATCH_PREFIXES)
+    dropped = EventPartitioning.drop_expired_partitions(tables: [SCRATCH], today: Date.new(2026, 10, 16), keep_days: 120, prefixes: SCRATCH_PREFIXES, archive: false)
 
     assert_includes dropped, "#{SCRATCH_PREFIX}202604"
     refute_includes dropped, "#{SCRATCH_PREFIX}202610"
@@ -169,7 +177,7 @@ class EventPartitioningTest < ActiveSupport::TestCase
     EventPartitioning.ensure_partitions(tables: [SCRATCH], today: Date.new(2026, 10, 16), prefixes: SCRATCH_PREFIXES)
     insert_scratch(1, Time.new(2026, 10, 1))
 
-    dropped = EventPartitioning.drop_expired_partitions(tables: [SCRATCH], today: Date.new(2026, 10, 31), keep_days: 1, prefixes: SCRATCH_PREFIXES)
+    dropped = EventPartitioning.drop_expired_partitions(tables: [SCRATCH], today: Date.new(2026, 10, 31), keep_days: 1, prefixes: SCRATCH_PREFIXES, archive: false)
     refute_includes dropped, "#{SCRATCH_PREFIX}202610"
     assert_equal 1, scratch_count
   end
@@ -180,7 +188,7 @@ class EventPartitioningTest < ActiveSupport::TestCase
     EventPartitioning.ensure_partitions(tables: [SCRATCH], today: Date.new(2026, 10, 16), prefixes: SCRATCH_PREFIXES)
     insert_scratch(1, Time.new(1899, 1, 1))
 
-    dropped = EventPartitioning.drop_expired_partitions(tables: [SCRATCH], today: Date.new(2026, 10, 16), keep_days: 1, prefixes: SCRATCH_PREFIXES)
+    dropped = EventPartitioning.drop_expired_partitions(tables: [SCRATCH], today: Date.new(2026, 10, 16), keep_days: 1, prefixes: SCRATCH_PREFIXES, archive: false)
     refute_includes dropped, "#{SCRATCH_PREFIX}default"
     assert_equal 1, partition_count("#{SCRATCH_PREFIX}default"),
       'rows the code cannot account for by month must not be deleted'
@@ -192,7 +200,7 @@ class EventPartitioningTest < ActiveSupport::TestCase
     EventPartitioning.ensure_partitions(tables: [SCRATCH], today: Date.new(2026, 10, 16), prefixes: SCRATCH_PREFIXES)
     insert_scratch(1, Time.new(2000, 1, 1))
 
-    assert_equal [], EventPartitioning.drop_expired_partitions(tables: [SCRATCH], today: Date.new(2026, 10, 16), keep_days: 0, prefixes: SCRATCH_PREFIXES)
+    assert_equal [], EventPartitioning.drop_expired_partitions(tables: [SCRATCH], today: Date.new(2026, 10, 16), keep_days: 0, prefixes: SCRATCH_PREFIXES, archive: false)
     assert_equal 1, scratch_count
   end
 

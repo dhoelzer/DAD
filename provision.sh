@@ -72,6 +72,8 @@ export DAD_DB_NAME=events_prod
 export DAD_DB_HOST=127.0.0.1
 export DAD_ADMIN_USER=admin
 export DAD_ADMIN_PASSWORD=$DAD_ADMIN_PASSWORD
+export DAD_EVENT_RETENTION_DAYS=365
+export DAD_OFFLINE_STORAGE_DIR=/var/DAD/offline_storage
 EOF0
 fi
 
@@ -88,6 +90,12 @@ DAD_DB_USER=$DAD_DB_USER
 DAD_DB_PASSWORD=$DAD_DB_PASSWORD
 DAD_DB_NAME=$DAD_DB_NAME
 DAD_DB_HOST=$DAD_DB_HOST
+# ${VAR:-default} because on an existing install $ENV_FILE predates these
+# variables and will not define them. Writing a bare `KEY=` would hand the
+# services an empty value; the defaults here match the code defaults in
+# EventPartitioning and EventPartitionBackup.
+DAD_EVENT_RETENTION_DAYS=${DAD_EVENT_RETENTION_DAYS:-365}
+DAD_OFFLINE_STORAGE_DIR=${DAD_OFFLINE_STORAGE_DIR:-/var/DAD/offline_storage}
 EOF5
 
 echo Configuring Postgresql
@@ -201,6 +209,13 @@ sudo systemctl daemon-reload
 # process, which runs as www-data; the units run as www-data so the two agree on
 # file ownership.
 sudo chown -R www-data:www-data /var/DAD/Logs /var/DAD/log
+# Where retention writes a month's CSV before dropping its partition. Created
+# here rather than left to the app because the archives hold raw log lines --
+# possibly including secrets that made it into logs -- so 0700, owned by the
+# same www-data the units run as. If the directory is missing the archive fails
+# and the partition is kept, so this is an operational expectation, not a
+# correctness requirement.
+sudo install -d -m 0700 -o www-data -g www-data /var/DAD/offline_storage
 sudo systemctl enable dad-syslog dad-importer dad-scheduler
 
 export RAILS_ENV=production && cd /var/DAD && bundle exec rake db:migrate

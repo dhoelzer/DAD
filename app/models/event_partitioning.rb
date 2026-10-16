@@ -41,13 +41,19 @@ module EventPartitioning
   # Rows older than this are dropped, by dropping their partition.
   #
   # Read from the environment so an operator sets it per deployment alongside
-  # DAD_DB_PASSWORD. <= 0 keeps every partition, which is the conservative
-  # default for anyone who has not thought about retention yet.
+  # DAD_DB_PASSWORD. The default is 365 days: a fresh install starts dropping
+  # month-old partitions after about a year of history. Set it to 0 (or any
+  # value <= 0) to keep every partition indefinitely.
+  #
+  # Dropping is gated on a completed archive under offline_storage (see
+  # EventPartitionBackup), so the default does not silently destroy history:
+  # a month is only dropped once its dump exists on disk.
   #
   # This is a floor, not an exact age: a partition is only dropped once its whole
   # month is older than the cutoff, so rows can survive up to a month longer.
   def self.retention_days
-    value = ENV.fetch('DAD_EVENT_RETENTION_DAYS', '365')
+    value = ENV.fetch('DAD_EVENT_RETENTION_DAYS', '').strip
+    value = '365' if value.empty?
     Integer(value)
   rescue ArgumentError
     raise ArgumentError, "DAD_EVENT_RETENTION_DAYS must be an integer number of days, got #{value.inspect}"
@@ -75,11 +81,14 @@ module EventPartitioning
 
   # The scheduled entry point (JobHandler 'maintain_event_partitions').
   #
-  # Creates the partitions the current month needs and drops the expired ones,
-  # then returns a one-line summary for the scheduler log.
+  # Creates the partitions the current month needs, archives the expired ones to
+  # offline_storage, then drops the archived ones, and returns a one-line
+  # summary for the scheduler log.
   #
   # Idempotent, as every handler must be: the scheduler re-runs a failing Job
-  # forever, so a second pass has to be a no-op rather than an error.
+  # forever, so a second pass has to be a no-op rather than an error. An
+  # already-archived partition is not dumped twice, and a partition whose
+  # archive failed is skipped rather than dropped.
   #
   # On SQLite it reports that there is nothing to do instead of raising, so a
   # Job row that exists in a dev database does not raise an Alert every cycle.
@@ -89,11 +98,14 @@ module EventPartitioning
     end
 
     created = ensure_partitions(today: today)
+    expired = expired_partitions(today: today)
     dropped = drop_expired_partitions(today: today)
+    kept = expired.size - dropped.size
     stray = default_partition_rows
     stray_note = stray.values.sum.positive? ? ", #{stray.inspect} in DEFAULT" : ''
+    kept_note = kept.positive? ? ", #{kept} expired partition(s) kept pending archive" : ''
     "partitions: +#{created.size} -#{dropped.size}" \
-      " (retention #{retention_days}d#{stray_note})"
+      " (retention #{retention_days}d#{kept_note}#{stray_note})"
   end
 
   # Partitions that should exist: every month from the retention cutoff through
@@ -185,28 +197,59 @@ module EventPartitioning
     created
   end
 
+  # The month-boundary a partition must predate to be expired. Shared by
+  # #drop_expired_partitions and #expired_partitions so the two cannot drift:
+  # if they did, the "kept pending archive" count in #maintain would be wrong.
+  def self.retention_cutoff(today = Date.today, keep_days: retention_days)
+    (today - keep_days).beginning_of_month
+  end
+
   # Drops monthly partitions whose entire month is older than the retention
   # cutoff. Returns the names dropped.
   #
   # The DEFAULT partition is never dropped: it has no month, and dropping it
   # would delete rows this code cannot account for. Its size is reported by
   # #default_partition_rows so an operator can see whether data is landing there.
+  #
+  # A drop is gated on a completed archive in offline_storage (see
+  # EventPartitionBackup): retention must not destroy the only copy of a month.
+  # When archiving fails, the partition is left in place and reported as skipped,
+  # and the next run retries it. Pass archive: false to drop without archiving.
   def self.drop_expired_partitions(tables: PARTITION_PREFIXES.keys, today: Date.today,
-                                    keep_days: retention_days, prefixes: PARTITION_PREFIXES)
+                                    keep_days: retention_days, prefixes: PARTITION_PREFIXES,
+                                    archive: true, dir: EventPartitionBackup.storage_dir)
     raise ArgumentError, 'partitioning requires PostgreSQL' unless supported?
     return [] unless keep_days > 0
 
-    cutoff = (today - keep_days).beginning_of_month
+    cutoff = retention_cutoff(today, keep_days: keep_days)
     dropped = []
     tables.each do |table|
       prefix = prefixes.fetch(table)
       partitions(table, prefixes).each do |name, month|
         next if month.nil? || month >= cutoff
+        if archive && EventPartitionBackup.backup_partition(table, name, dir: dir).nil?
+          Rails.logger.warn "EventPartitioning: keeping #{name}: archive to #{dir} failed; " \
+                            'refusing to drop an unarchived partition'
+          next
+        end
         execute "DROP TABLE #{quote(name)}"
         dropped << name
       end
     end
     dropped
+  end
+
+  # Names the expired partitions without touching anything, so an operator (or a
+  # test) can see what the next maintain run would archive and drop.
+  def self.expired_partitions(tables: PARTITION_PREFIXES.keys, today: Date.today,
+                               keep_days: retention_days, prefixes: PARTITION_PREFIXES)
+    return [] unless keep_days > 0
+    cutoff = retention_cutoff(today, keep_days: keep_days)
+    tables.flat_map do |table|
+      partitions(table, prefixes).filter_map do |name, month|
+        name unless month.nil? || month >= cutoff
+      end
+    end
   end
 
   # Rows sitting in the DEFAULT partitions. Non-zero means ingestion met a

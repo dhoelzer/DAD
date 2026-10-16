@@ -1,0 +1,71 @@
+#!/usr/bin/env ruby
+#
+# Restores an archived event partition from offline_storage back into the
+# database.
+#
+# Retention drops a month by DROP TABLE-ing its partition, after first archiving
+# it (see EventPartitionBackup). This is the other half: it recreates the
+# partition and loads the CSV back.
+#
+#   bin/restore_event_partition events_p202509
+#   bin/restore_event_partition events_p202509 --archive=/path/to/file.csv
+#   bin/restore_event_partition --list
+#
+# The partition is created with the same FOR VALUES range the maintenance job
+# would have used, so it re-attaches to the partitioned parent cleanly. Rows are
+# loaded by COPY, which is the same path the archive was written by.
+require File.expand_path('../config/environment', __dir__)
+
+def usage(msg = nil)
+  warn msg if msg
+  warn <<~USAGE
+    usage: bin/restore_event_partition <partition_name> [--archive=PATH]
+           bin/restore_event_partition --list
+
+    partition_name is the archive name without .csv, e.g. events_p202509.
+    Archives live in #{EventPartitionBackup.storage_dir}
+    (override with DAD_OFFLINE_STORAGE_DIR).
+  USAGE
+  exit 1
+end
+
+usage unless EventPartitioning.supported?
+
+args = ARGV.reject { |a| a.start_with?('--') }
+list = ARGV.include?('--list')
+archive_opt = ARGV.find { |a| a.start_with?('--archive=') }
+
+if list
+  dir = EventPartitionBackup.storage_dir
+  files = Dir.glob(File.join(dir, "*#{EventPartitionBackup::ARCHIVE_SUFFIX}")).sort
+  if files.empty?
+    warn "no archives in #{dir}"
+    exit 1
+  end
+  files.each { |f| puts "#{File.basename(f, EventPartitionBackup::ARCHIVE_SUFFIX)}\t#{File.size(f)} bytes\t#{f}" }
+  exit 0
+end
+
+partition = args.first
+usage 'a partition name is required' if partition.nil?
+
+parent, prefix = EventPartitioning::PARTITION_PREFIXES.find do |_table, pfx|
+  partition.start_with?(pfx)
+end
+usage "cannot tell which table #{partition.inspect} belongs to" if parent.nil?
+
+month = EventPartitioning.partition_month(partition, prefix)
+usage "cannot read a month out of #{partition.inspect}" if month.nil?
+
+archive = archive_opt ? archive_opt.split('=', 2)[1] : EventPartitionBackup.archive_path(partition)
+abort "no archive at #{archive}" unless File.file?(archive)
+
+table = EventPartitioning.quote(parent)
+if EventPartitioning.partitions(parent).any? { |name, _| name == partition }
+  abort "#{partition} already exists; nothing to restore"
+end
+
+puts "restoring #{archive} into #{parent}.#{partition}"
+EventPartitioning.execute_partition(parent, prefix, month)
+rows = EventPartitionBackup.restore_partition(archive, partition)
+puts "restored #{rows} row(s) into #{partition}"

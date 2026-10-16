@@ -76,6 +76,8 @@ without hand-writing a URL, since `config/database.yml` interpolates them.
 | `DAD_DB_USER` / `DAD_DB_PASSWORD` / `DAD_DB_NAME` / `DAD_DB_HOST` | ↑ | `config/database.yml` | Used only when `DATABASE_URL` is unset. `DAD_DB_NAME` defaults to `events_prod`, `DAD_DB_HOST` to `127.0.0.1`. |
 | `DAD_ADMIN_USER` | no | `db/seeds.rb` | Defaults to `admin`. |
 | `DAD_ADMIN_PASSWORD` | **yes** to seed | `db/seeds.rb` | Seeding raises rather than creating a well-known default account. |
+| `DAD_EVENT_RETENTION_DAYS` | no | `EventPartitioning` | Postgres only. How many days of event history retention keeps. **Default 365.** `0` or negative keeps every partition. A floor, not an exact age: a month is only dropped once the whole month is past the cutoff. |
+| `DAD_OFFLINE_STORAGE_DIR` | no | `EventPartitionBackup` | Where a month's CSV archive is written before its partition is dropped. Absolute, or relative to the app root. Default `offline_storage` under the app root; `provision.sh` sets `/var/DAD/offline_storage`. |
 
 `RAILS_ENV` is set by the units and by `provision.sh`; you rarely set it by hand.
 
@@ -226,6 +228,53 @@ halves: reclaim re-inserts nothing, and no line goes missing.
 
 ---
 
+## Retention and partition archives
+
+On Postgres, `events` and `events_words` are range-partitioned by month, and
+retention drops a month by `DROP TABLE`-ing its partition — metadata-only, so it
+costs the same whether the month holds 10k rows or 100M, where `DELETE` would
+rewrite every index. The `maintain_event_partitions` job (seeded daily) creates
+coming months and drops expired ones.
+
+**A month is only dropped once it has been archived.** Before any drop,
+`EventPartitionBackup` writes the partition to a CSV under
+`DAD_OFFLINE_STORAGE_DIR` (default `offline_storage` under the app root;
+`provision.sh` uses `/var/DAD/offline_storage`, mode `0700`, owned by the service
+user). If the archive does not complete, the partition is **kept** and the next
+run retries. That is the whole safety property: retention cannot destroy the only
+copy of a month's rows.
+
+Retention keeps `DAD_EVENT_RETENTION_DAYS` days of history, **default 365**. It is
+a floor, not an exact age — a partition is dropped only once its whole month is
+past the cutoff, so rows can survive up to a month longer. Set it to `0` to keep
+everything.
+
+Archives are plain CSV with a header row, so they are readable with any tool. To
+put a month back:
+
+```bash
+bin/restore_event_partition --list                    # what is archived
+bin/restore_event_partition events_p202509            # recreate + load
+```
+
+The restore recreates the partition with the same `FOR VALUES` range the
+maintenance job would have used, then loads the CSV by `COPY`. It refuses to run
+if the partition already exists.
+
+Two things to watch:
+
+- **Disk.** The archive directory holds a full copy of every month retention has
+  dropped. If it fills, archiving fails and partitions stop being dropped — the
+  database grows instead of the disk filling. Check the job output: it reports
+  `N expired partition(s) kept pending archive` when this is happening.
+- **Secrets.** Archives are raw log lines. Anything that ever reached a log line
+  is in them, so treat the directory as sensitive: it is `0700` for a reason.
+
+On SQLite there is no partitioning, so none of this applies; the job reports
+`event partitioning is Postgres-only; nothing to do`.
+
+---
+
 ## Development
 
 ```bash
@@ -235,8 +284,23 @@ bundle exec brakeman -q        # static analysis, must report 0 warnings
 bundle exec bundle-audit check # dependency CVEs
 ```
 
-CI runs all four, plus an asset-precompile job and a job that checks
-`provision.sh` parses and the systemd units verify. See `.github/workflows/ci.yml`.
+CI runs the unit tests and cucumber features on **both SQLite and Postgres**,
+plus brakeman, bundle-audit, an asset-precompile job, and a job that checks
+`provision.sh` parses and the systemd units verify. The Postgres job exists
+because the SQLite suite cannot see adapter-specific SQL breakage, and it has
+caught total failures before. See `.github/workflows/ci.yml`.
+
+To run the suite against Postgres locally:
+
+```bash
+createuser dad && createdb -O dad dad_test
+DATABASE_URL=postgres://dad:dad@127.0.0.1:5432/dad_test bundle exec rake db:migrate_from_scratch
+DATABASE_URL=postgres://dad:dad@127.0.0.1:5432/dad_test bundle exec rake test
+DATABASE_URL=postgres://dad:dad@127.0.0.1:5432/dad_test bundle exec cucumber
+```
+
+Without `DATABASE_URL` everything runs on SQLite, and the partitioning and backup
+tests skip rather than fail.
 
 Before deploying a change to the ingest path, read the comments in
 `app/models/event.rb` around `storeEvent` / `flush_and_wait` and

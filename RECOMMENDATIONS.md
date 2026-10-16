@@ -24,7 +24,7 @@ than carried forward.
 | Secrets in the working tree | Closed — clean under `gitleaks`; a production key remains in git history, rotation path now provided (§1.1) |
 | Ingestion crash-safety and idempotency | Closed, at-least-once — documented in the README (§2.2) |
 | Search indexing, dashboard SQL portability, timestamp parsing | Closed |
-| Test suite | Green: 295 runs / 798 assertions on SQLite, and 295 / 853 on partitioned Postgres |
+| Test suite | Green: 314 runs / 816 assertions on SQLite, and 314 / 904 on partitioned Postgres; cucumber features run on both engines in CI |
 | Admin screens (sessions, users, jobs) | Closed — now covered by request tests (§2.1) |
 | Poison line / observability | Closed — per-line `rescue StandardError`, failures counted as a `Statistic`, `Rails.logger` broadcast to the journal (§5.3, `c5d82ab` + `94654d1`) |
 | Rails upgrade | **Closed: 4.2 → 5.2 → 6.1 → 7.1 → 7.2 → 8.0 → 8.1.4 landed** (§5.2, tag `rails-8.1.4`) |
@@ -370,6 +370,12 @@ building a partitioned twin, copying, and swapping names in one transaction.
 Maintenance runs as the `maintain_event_partitions` job (seeded daily), so
 retention is enforced by the running application rather than by an operator
 remembering to cron it.
+
+Retention keeps `DAD_EVENT_RETENTION_DAYS` days, default 365. A drop is gated on a
+completed CSV archive under `offline_storage` (`EventPartitionBackup`): a month is
+never dropped until its dump exists on disk, and an archive failure leaves the
+partition in place for the next run to retry. `bin/restore_event_partition`
+recreates and reloads a dropped month from its archive.
 
 ### 3.3 ✅ Closed — search cost was subquery duplication, not the leading wildcard **[performance]**
 

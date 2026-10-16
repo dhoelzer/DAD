@@ -25,3 +25,7 @@
 /log/*.log
 /tmp
 /Logs/LogsToProcess/sample*
+
+# Partition archives written by retention before it drops a month (see
+# EventPartitionBackup). Raw log lines, never committed.
+/offline_storage
