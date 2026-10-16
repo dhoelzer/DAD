@@ -26,7 +26,7 @@ than carried forward.
 | Search indexing, dashboard SQL portability, timestamp parsing | Closed |
 | Test suite | Green: 287 runs / 787 assertions on SQLite, and the same 287 on partitioned Postgres |
 | Admin screens (sessions, users, jobs) | Closed — now covered by request tests (§2.1) |
-| Poison line / observability | **Open — was mis-marked as fixed (§5.3)** |
+| Poison line / observability | Closed — per-line `rescue StandardError`, failures counted as a `Statistic`, `Rails.logger` broadcast to the journal (§5.3, `c5d82ab` + `94654d1`) |
 | Rails upgrade | **Closed: 4.2 → 5.2 → 6.1 → 7.1 → 7.2 → 8.0 → 8.1.4 landed** (§5.2, tag `rails-8.1.4`) |
 | Rails EOL | Closed — Rails is on the current stable line (8.1, supported to Oct 2027) |
 | CI security gates | **Closed — both gates now blocking**, 0 advisories, 0 Brakeman warnings (§1.2) |
@@ -364,6 +364,39 @@ Verified on a partitioned `en_US.utf8` cluster at 540k words / 5.4M
 via `Index Scan using index_words_on_text_pattern`. The equality lookup on the
 ingest hot path (`Word.find_or_add`) also uses the new index, so
 `index_words_on_text` is retained for the SQLite path only.
+
+**Follow-up: a failed `CONCURRENTLY` build wedges the migration.** Both
+`CONCURRENTLY` migrations can leave an INVALID index behind — lock timeout,
+deadlock, cancelled statement. Postgres does not roll the husk back, it keeps
+occupying the index name, and Rails cannot see the difference: `index_exists?`
+and `index_name_exists?` query `pg_indexes`/`pg_class` without filtering
+`pg_index.indisvalid`, so a husk reads as healthy. Re-running the migration then
+dies on `relation "index_words_on_text_pattern" already exists`, which fails
+`rake db:migrate` and therefore `provision.sh`, since the deploy re-runs the same
+migration. Worse, a husk is invisible to the planner, so search silently degrades
+to a seq scan with the whole suite green.
+
+Reproduced against the real migration: with the migration pending and an INVALID
+husk holding the name, the original `up` exits 1 on `PG::DuplicateTable`.
+
+**Fix:** `AddPatternIndexToWords` now drops an index it owns when Postgres reports
+it INVALID, then rebuilds — verified to recover the wedged state to
+`indisvalid = true`. Scoped to that one index name, and it never touches a valid
+index. `20261013000002` is already released, so it cannot be given the same guard
+in place; the Postgres CI job instead asserts that no index in the database is
+INVALID, which covers the class. `test/models/pattern_index_migration_test.rb`
+guards the detection itself, so it cannot later be "simplified" back to
+`index_exists?` — replacing it with `index_name_exists?` fails that test.
+
+**Incidental: `db:migrate_from_scratch` was not re-runnable.** Two pre-existing
+bugs, unrelated to the collation work but in the task that proves the migration
+chain: it ran `DROP SEQUENCE` unconditionally (SQLite has no `SEQUENCE`, so the
+task aborted on SQLite), and it dropped `connection.tables`, which on Postgres
+includes the monthly partitions — dropping the partitioned parent cascades them
+away, so the loop then failed on an already-dropped partition. It only ever worked
+against a freshly created database, which is all CI does. Now drops top-level
+tables only, and skips the sequence drop off Postgres. Verified on both adapters,
+Postgres twice in a row.
 
 ---
 
@@ -973,9 +1006,9 @@ are `Rails.logger`; both daemons additionally broadcast to stdout so severity an
 timestamps reach the journal.
 
 
-The old review marked "`puts` as the only observability" as fixed. Only a narrow
-slice of it was: the SQL-echoing `puts` in `search`/`search_period`/
-`approximate_count` are gone. The two parts that actually mattered are not:
+The old review had marked "`puts` as the only observability" as fixed. Only a
+narrow slice of it was: the SQL-echoing `puts` in `search`/`search_period`/
+`approximate_count` were gone. The two parts that actually mattered were not:
 
 ```ruby
 rescue Exception => e
@@ -988,15 +1021,15 @@ rescue Exception => e
 end
 ```
 
-`import_syslog.rb:43` still rescues `Exception` rather than `StandardError`, and
-still `exit 1`s. So a single unparseable line terminates the importer. Combined
-with §5.1 -- the process is backgrounded with no restart -- one bad line means
-**ingestion stops silently and stays stopped**. The checkpoint handling around it
-is correct (the offset is rewound so the line is retried, not skipped), but
-retrying the same line on restart means it fails and exits again: a poison
-message wedges the pipeline permanently.
+`import_syslog.rb` rescued `Exception` rather than `StandardError`, and still
+`exit 1`ed. So a single unparseable line terminated the importer. Combined with
+§5.1 -- the process was backgrounded with no restart -- one bad line meant
+**ingestion stopped silently and stayed stopped**. The checkpoint handling around
+it was correct (the offset was rewound so the line was retried, not skipped), but
+retrying the same line on restart meant it failed and exited again: a poison
+message wedged the pipeline permanently.
 
-There are also 25 `puts` calls and **zero** `logger` calls across `app/`, `lib/`,
+There were also 25 `puts` calls and **zero** `logger` calls across `app/`, `lib/`,
 `import_syslog.rb` and `scheduler.rb`.
 
 **Fix:** rescue `StandardError` per line, count failures into a `Statistic`, log
@@ -1004,8 +1037,23 @@ the offending line at `warn`, and continue. Reserve the hard exit for errors tha
 genuinely invalidate the run. Move `puts` to `Rails.logger` so severity and
 timestamps survive into the Passenger log.
 
-Higher priority than it looks: this is the most likely way the system silently
-stops collecting, and §5.1 means nothing brings it back.
+Higher priority than it looked: this was the most likely way the system silently
+stopped collecting, and §5.1 meant nothing brought it back.
+
+**Verified closed.** Re-checked against the tree rather than against the heading:
+`exit 1` appears in `import_syslog.rb` only in the comment explaining why it was
+removed; the per-line `rescue StandardError` logs at `warn` with the byte offset
+and the line text, calls `Event.flush_and_wait` so a bad line costs one record
+rather than the file's work so far, and `Statistic.logLineFailures` records the
+count. `import_syslog.rb` and `scheduler.rb` now have 0 `puts` and 18 `logger`
+calls between them, and both install a `BroadcastLogger` to `$stdout` so a
+supervisor's journal sees severity and timestamps -- a service that only wrote to
+`log/<env>.log` was invisible to systemd. The remaining 7 `puts` in `app/` and
+`lib/` are legitimate: three commented-out debug lines, one `Object#inspect`
+reference in a comment, and three rake tasks writing CLI progress to stdout.
+Covered by `test/import_syslog_crash_test.rb`, which drives the collector as a
+subprocess so an `exit`/`abort` in the rescue path would fail the test rather than
+the host process.
 
 ### 5.4 ✅ Closed — MIT LICENSE added **[operations]**
 
