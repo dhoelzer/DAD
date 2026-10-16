@@ -94,8 +94,8 @@ class DashboardRenderTest < ActionDispatch::IntegrationTest
     assert_valid_javascript body
   end
 
-  # The chart helpers feed Highcharts [["label", n], ...]; assert the shape the
-  # drawing code expects rather than just "it rendered".
+  # The chart helpers take [["label", n], ...]; assert the shape the drawing
+  # code expects rather than just "it rendered".
   def test_hourly_series_labels_are_chart_formatted
     seed_recent_data
     chart_probe.events_per_hour(7.days.ago).each do |label, count|

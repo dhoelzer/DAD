@@ -23,7 +23,14 @@ Events::Application.configure do
   config.public_file_server.enabled = false
 
   # Compress JavaScripts and CSS.
-  config.assets.js_compressor = :uglifier
+  #
+  # Terser, not Uglifier. Uglifier 2.7 wraps UglifyJS 2.x, which predates ES6 and
+  # aborts on the first arrow function; Chart.js 4 ships ES2015+, so the bundle
+  # cannot be built with it. sprockets 3.7 has no :terser symbol (it only knows
+  # :uglifier), and its js_compressor= accepts any object responding to #compress,
+  # so the instance is passed directly. Terser is a pure-Ruby wrapper over the
+  # terser npm package and needs a JS runtime at precompile time, as Uglifier did.
+  config.assets.js_compressor = Terser.new
   # config.assets.css_compressor = :sass
 
   # Do not fallback to assets pipeline if a precompiled asset is missed.

@@ -330,6 +330,8 @@ GEM
     sys-uname (1.5.1)
       ffi (~> 1.1)
       memoist3 (~> 1.0.0)
+    terser (1.2.8)
+      execjs (>= 0.3.0, < 3)
     thor (1.5.0)
     tilt (2.9.0)
     timeout (0.6.1)
@@ -338,9 +340,6 @@ GEM
       coffee-rails
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
-    uglifier (2.7.2)
-      execjs (>= 0.3.0)
-      json (>= 1.8.0)
     uri (1.1.2)
     useragent (0.16.11)
     webrick (1.9.2)
@@ -383,8 +382,8 @@ DEPENDENCIES
   sass-rails (~> 5.0.7)
   sdoc (~> 2.6)
   sqlite3 (~> 2.1)
+  terser (~> 1.0)
   turbolinks (~> 2.5)
-  uglifier (~> 2.7)
 
 BUNDLED WITH
    2.6.7

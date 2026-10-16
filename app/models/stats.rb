@@ -5,7 +5,7 @@
 # process-global, shared with every gem that touches Math. They now live here.
 #
 # Empty input returns 0.0 rather than NaN. NaN reached the .js.erb dashboards as
-# `var stats = [NaN, NaN, NaN]`, which Highcharts turns into gauges with NaN
+# `var stats = [NaN, NaN, NaN]`, which the chart code drew as gauges with NaN
 # axes; 0.0 renders, and draw_longitudinal already treats a zero standard
 # deviation as "derive one from the mean".
 module Stats
