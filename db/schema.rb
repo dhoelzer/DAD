@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_16_000002) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_17_000001) do
   create_table "alerts", force: :cascade do |t|
     t.integer "system_id", limit: 8
     t.integer "service_id", limit: 8
@@ -99,6 +99,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_16_000002) do
     t.string "dashboardElements"
     t.datetime "created_at", precision: nil, null: false
     t.datetime "updated_at", precision: nil, null: false
+    t.integer "archiveFreeSpacePercent"
   end
 
   create_table "rights", force: :cascade do |t|

@@ -117,6 +117,28 @@ inverted index) → Rails UI (dashboards, search, alerts, jobs, custom RBAC).
   200 on a real production boot. `provision.sh` never runs `assets:precompile`.
 
 ## Facts worth remembering
+- Event retention is archive-gated and, since the free-space floor, also
+  destructive in two places. Rules that are not obvious from the code:
+  * A partition is dropped only after `EventPartitionBackup` has written its CSV
+    to `DAD_OFFLINE_STORAGE_DIR`. Never reorder that.
+  * Pruning archives is **unrecoverable** — an archive is usually the only copy
+    of a month the DB already dropped. It is off unless an admin sets
+    `preferences.archiveFreeSpacePercent` (nil/0 = off).
+  * `prune_archives` fails **closed**: if `df` cannot measure the filesystem it
+    deletes nothing. Do not make that path permissive.
+  * Pruning runs *before* archiving in `maintain`, and charges the projected size
+    of the incoming archives against the floor. Moving it after archiving defeats
+    it.
+  * The setter clamps to 0..100. An unclamped 1000 reads as "keep 1000% free",
+    which no filesystem satisfies, so every archive becomes prunable. The clamp
+    is load-bearing, not cosmetic.
+  * `partition_sizes` uses `pg_relation_size` (rows only), not
+    `pg_total_relation_size` — the CSV has no indexes, so counting them
+    over-estimates and deletes more history than needed.
+  * `EventPartitioning.execute` cannot bind a Ruby Array to `ANY($1)` on the pg
+    adapter; build a positional `IN (..., ...)` placeholder list instead.
+  * Alert on the unmeetable floor only (deduped by `short_description`, not
+    per run). Pruning that succeeds is configured behaviour: log it, don't alert.
 - Last upstream commit: 2016-10-01. Before the reproducible-build branch: `rails '> 4'`
   unpinned, no `Gemfile.lock`, no `db/schema.rb`, no CI.
 - `bundle-audit` at 8.1 reports 4 advisories, all unchanged by the framework bump:

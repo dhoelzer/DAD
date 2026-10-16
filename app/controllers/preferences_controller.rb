@@ -77,6 +77,6 @@ class PreferencesController < ApplicationController
     # Attribute whitelist for preference writes; any param not
     # listed here is dropped before it reaches the model.
     def preference_params
-      params.require(:preference).permit(:user_id, :liveEventsDisplayed, :dashboardElements)
+      params.require(:preference).permit(:user_id, :liveEventsDisplayed, :dashboardElements, :archiveFreeSpacePercent)
     end
 end

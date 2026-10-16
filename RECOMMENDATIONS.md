@@ -377,6 +377,18 @@ never dropped until its dump exists on disk, and an archive failure leaves the
 partition in place for the next run to retry. `bin/restore_event_partition`
 recreates and reloads a dropped month from its archive.
 
+That closed the recovery gap but opened a capacity one, which the follow-up
+addresses: nothing reclaimed the archive directory, so on a long-lived install it
+grows until the disk fills, archiving starts failing, and — because drops are
+gated on archives — the *database* starts growing instead. An admin now sets a
+required free-space percentage for the archive partition (Preferences, Admin-only);
+the maintenance job prunes whole months oldest-first to hold that floor, and it
+does so *before* writing, charging the projected size of the incoming archives
+against the budget. Pruning is off until the floor is set, fails closed when the
+filesystem cannot be measured, and raises a single Critical alert when the floor
+cannot be met even after deleting everything. `bin/prune_event_archives --dry-run`
+shows what would go before it does.
+
 ### 3.3 ✅ Closed — search cost was subquery duplication, not the leading wildcard **[performance]**
 
 The original write-up said search was `LIKE '%term%'` and could not use an index

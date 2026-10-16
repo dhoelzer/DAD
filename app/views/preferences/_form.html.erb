@@ -23,6 +23,19 @@
     <%= f.label :dashboardElements %><br>
     <%= f.text_field :dashboardElements %>
   </div>
+  <div class="field">
+    <%= f.label :archiveFreeSpacePercent, 'Archive partition: required free space (%)' %><br>
+    <%= f.number_field :archiveFreeSpacePercent, min: 0, max: 100 %>
+    <br>
+    <small>
+      Percentage of the disk holding the event archives (offline_storage) that must
+      stay free. When the archives would breach that floor, the oldest months are
+      deleted until it fits. Blank or 0 disables pruning.
+      <strong>Warning:</strong> an archive is often the only copy of a month the
+      database has already dropped -- pruning it is unrecoverable. Preview the
+      effect with <code>bin/prune_event_archives --dry-run</code>.
+    </small>
+  </div>
   <div class="actions">
     <%= f.submit %>
   </div>

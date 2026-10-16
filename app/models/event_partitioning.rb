@@ -81,9 +81,14 @@ module EventPartitioning
 
   # The scheduled entry point (JobHandler 'maintain_event_partitions').
   #
-  # Creates the partitions the current month needs, archives the expired ones to
+  # Creates the partitions the current month needs, prunes archives to keep the
+  # archive partition inside its free-space floor, archives the expired ones to
   # offline_storage, then drops the archived ones, and returns a one-line
   # summary for the scheduler log.
+  #
+  # Pruning runs before archiving, not after: the point is to have room for the
+  # archives about to be written, so a run that pruned afterwards would fill the
+  # disk first and fail the very archiving it was meant to protect.
   #
   # Idempotent, as every handler must be: the scheduler re-runs a failing Job
   # forever, so a second pass has to be a no-op rather than an error. An
@@ -99,13 +104,74 @@ module EventPartitioning
 
     created = ensure_partitions(today: today)
     expired = expired_partitions(today: today)
+    pruned = prune_archives_before_archive(expired)
     dropped = drop_expired_partitions(today: today)
     kept = expired.size - dropped.size
     stray = default_partition_rows
     stray_note = stray.values.sum.positive? ? ", #{stray.inspect} in DEFAULT" : ''
     kept_note = kept.positive? ? ", #{kept} expired partition(s) kept pending archive" : ''
+    pruned_note = pruned[:deleted].empty? ? '' : ", pruned #{pruned[:deleted].size} archive(s)"
     "partitions: +#{created.size} -#{dropped.size}" \
-      " (retention #{retention_days}d#{kept_note}#{stray_note})"
+      " (retention #{retention_days}d#{pruned_note}#{kept_note}#{stray_note})"
+  end
+
+  # Makes room for the archives this run is about to write for +expired_names+.
+  #
+  # Returns the prune_archives result, or an empty one when no archives are due
+  # or no floor is configured.
+  #
+  # needed_bytes is measured from the partitions themselves where Postgres can
+  # report their size, and estimated from existing archives when it cannot.
+  #
+  # An Alert is raised only when the floor cannot be met even after deleting
+  # every archive: that is the state where retention is about to fail for lack
+  # of space, and an operator has to act. Pruning that succeeds is configured
+  # behaviour and only goes to the log -- alerting on it every cycle would train
+  # people to ignore alerts.
+  def self.prune_archives_before_archive(expired_names)
+    return { deleted: [], bytes: 0, short: 0 } if expired_names.empty?
+    dir = EventPartitionBackup.storage_dir
+    percent = EventPartitionBackup.free_space_percent
+    return { deleted: [], bytes: 0, short: 0 } if percent.nil?
+
+    needed = EventPartitionBackup.upcoming_archive_bytes(expired_names, dir)
+    result = EventPartitionBackup.prune_archives(dir: dir, percent: percent, needed_bytes: needed)
+
+    if result[:deleted].any?
+      Rails.logger.warn "EventPartitionBackup: pruned #{result[:deleted].size} archive(s) " \
+                        "(#{result[:bytes]} bytes) to hold #{percent}% free on #{dir}; " \
+                        "oldest history no longer recoverable: #{result[:deleted].join(', ')}"
+    end
+    if result[:short].to_i.positive?
+      alert_about_archive_space(result, dir: dir, percent: percent)
+    elsif result[:error]
+      alert_about_archive_space(result, dir: dir, percent: percent)
+    end
+    result
+  end
+
+  # Raises one Critical alert per unmeetable archive-space condition.
+  #
+  # Deduplicated on short_description: maintain runs daily, and a new alert per
+  # day for a condition nobody has acted on yet buries the operator in copies of
+  # the same finding.
+  def self.alert_about_archive_space(result, dir:, percent:)
+    short = "Archive space floor unmeetable (#{dir})"
+    return if Alert.exists?(short_description: short, closed: false)
+
+    detail = result[:error] ||
+             "only #{result[:bytes]} bytes could be freed; still #{result[:short]} bytes short " \
+             "of a #{percent}% floor. Event archives are the only copy of the months retention " \
+             'has dropped, and every archive has already been deleted.'
+    Alert.genericAlert(short_description: short,
+                       description: "EventPartitioning could not hold a #{percent}% free-space " \
+                                    "floor on #{dir}: #{detail} Retention will keep dropping " \
+                                    'partitions only while archiving keeps succeeding.',
+                       criticality: 5)
+  rescue StandardError => e
+    # An alert that cannot be written must not stop retention: the partitions
+    # still need maintaining, and the log line above carries the same detail.
+    Rails.logger.warn "EventPartitioning: archive-space alert not raised: #{e.message}"
   end
 
   # Partitions that should exist: every month from the retention cutoff through

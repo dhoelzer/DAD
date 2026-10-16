@@ -139,6 +139,166 @@ module EventPartitionBackup
     Pathname.new(configured).absolute? ? configured : Rails.root.join(configured).to_s
   end
 
+  # --- archive retention ------------------------------------------------------
+  #
+  # Archives are the last copy of a dropped month, so pruning them destroys
+  # history. It is therefore off unless an operator sets a free-space floor on
+  # the archive partition (Preference.archiveFreeSpacePercent, Admin-gated).
+  #
+  # The failure this prevents: nothing used to reclaim the archive directory, so
+  # on a long-lived install it grows until the disk fills, archiving starts
+  # failing, and -- because a drop is gated on a completed archive -- partitions
+  # stop being dropped. The database then grows instead of the disk filling,
+  # which is the worse of the two outcomes.
+
+  # Free-space floor as a percentage (0-100), or nil when pruning is disabled.
+  def self.free_space_percent
+    percent = Preference.archiveFreeSpacePercent
+    return nil if percent.nil? || percent.to_i <= 0
+    percent.to_i
+  end
+
+  # [total_bytes, free_bytes] for the filesystem holding +dir+, or nil when it
+  # cannot be measured.
+  #
+  # df -Pk is the POSIX form: it fixes the column layout and reports 1024-byte
+  # blocks, so it does not shift between GNU and BSD df the way `df -m` does.
+  # Event.diskUtilization greps the root filesystem and is not usable here --
+  # offline_storage is deliberately allowed to live on a different mount.
+  def self.disk_space(dir)
+    out = IO.popen(['df', '-Pk', dir], err: %i[child out], &:read)
+    return nil unless $?.success?
+    # Header line, then one line per filesystem; -P guarantees a single line.
+    fields = out.lines.last.to_s.split
+    return nil if fields.size < 4
+    total = Integer(fields[1]) * 1024
+    free = Integer(fields[3]) * 1024
+    return nil if total <= 0
+    [total, free]
+  rescue StandardError => e
+    Rails.logger.warn "EventPartitionBackup: cannot measure disk for #{dir}: #{e.message}"
+    nil
+  end
+
+  # Archives on disk, oldest month first, as [path, bytes, month].
+  #
+  # Ordered by the month carried in the partition name, not by mtime: an archive
+  # restored or copied by hand gets a fresh mtime, and pruning by mtime would
+  # then delete the oldest history while keeping a recently-copied one.
+  #
+  # Files that do not parse as one of our archives are left out entirely, so a
+  # stray file in the directory is never deleted by this code.
+  def self.archives(dir = storage_dir)
+    Dir.glob(File.join(dir, "*#{ARCHIVE_SUFFIX}")).filter_map do |path|
+      name = File.basename(path, ARCHIVE_SUFFIX)
+      _table, prefix = EventPartitioning::PARTITION_PREFIXES.find { |_t, pfx| name.start_with?(pfx) }
+      next if prefix.nil?
+      month = EventPartitioning.partition_month(name, prefix)
+      next if month.nil?
+      [path, File.size(path), month]
+    end.sort_by { |path, _bytes, month| [month, path] }
+  end
+
+  # Bytes the next archive is expected to need, estimated from the largest of the
+  # most recent archives. Months are broadly comparable in size, and taking the
+  # largest of several errs towards pruning too early rather than too late.
+  #
+  # Only a fallback: #upcoming_archive_bytes measures the real thing when the
+  # partitions are still in the database.
+  def self.estimated_archive_bytes(dir = storage_dir)
+    archives(dir).last(3).map { |_path, bytes, _month| bytes }.max || 0
+  end
+
+  # Total bytes the named partitions occupy, as a stand-in for the size of the
+  # archives about to be written from them.
+  #
+  # pg_relation_size, not pg_total_relation_size: the CSV holds table rows only,
+  # so indexes are not part of the archive, and counting them would over-estimate
+  # the need and delete more history than the disk actually requires. Under-
+  # estimating is the safe direction here -- an archive that runs out of room
+  # fails, leaves its partition in place, and is retried next run, whereas an
+  # over-estimate destroys months nobody needed to lose.
+  #
+  # Returns nil when the sizes cannot be read, so the caller falls back to the
+  # on-disk estimate rather than treating an error as "zero bytes needed".
+  def self.partition_sizes(names)
+    return 0 if names.empty?
+    # One placeholder per name: the pg adapter cannot bind a Ruby Array to
+    # ANY($1), so the IN list is built positionally rather than as a literal.
+    placeholders = names.each_with_index.map { |_n, i| "$#{i + 1}" }.join(', ')
+    row = EventPartitioning.execute(
+      'SELECT COALESCE(SUM(pg_relation_size(c.oid)), 0) AS bytes FROM pg_class c ' \
+      "WHERE c.relname IN (#{placeholders})", names
+    ).first
+    row['bytes'].to_i
+  rescue StandardError => e
+    Rails.logger.warn "EventPartitionBackup: could not size #{names.join(', ')}: #{e.message}"
+    nil
+  end
+
+  # Bytes the archives for +partition_names+ are expected to need: measured from
+  # the partitions where possible, estimated from existing archives otherwise.
+  def self.upcoming_archive_bytes(partition_names, dir = storage_dir)
+    measured = partition_sizes(partition_names)
+    return measured if measured && measured.positive?
+    estimated_archive_bytes(dir) * partition_names.size
+  end
+
+  # Deletes whole months, oldest first, until the partition keeps the required
+  # free space once +needed_bytes+ more has been written.
+  #
+  # Returns a hash: :deleted (paths), :bytes (freed), :free_bytes /
+  # :required_free_bytes (the measurement it worked to), :short (bytes still
+  # short after everything prunable was deleted), :error (why nothing was done).
+  #
+  # Fails closed. If the filesystem cannot be measured, nothing is deleted: a
+  # bogus reading would delete history for no reason, and the cost of not
+  # pruning is a disk warning, while the cost of pruning on a bad reading is
+  # lost months.
+  #
+  # +disk+ is injectable so the arithmetic can be tested against exact numbers
+  # rather than against whatever the test machine's filesystem happens to hold.
+  def self.prune_archives(dir: storage_dir, percent: free_space_percent,
+                          needed_bytes: 0, dry_run: false, disk: disk_space(dir))
+    return { deleted: [], bytes: 0, short: 0, error: 'pruning disabled: no free-space floor set' } if percent.nil?
+    return { deleted: [], bytes: 0, short: 0 } unless File.directory?(dir)
+
+    total, free = disk
+    if total.nil?
+      msg = "cannot measure the filesystem holding #{dir}; not pruning any archives"
+      Rails.logger.warn "EventPartitionBackup: #{msg}"
+      return { deleted: [], bytes: 0, short: 0, error: msg }
+    end
+
+    required_free = total * percent / 100
+    deficit = required_free - free + needed_bytes.to_i
+    return { deleted: [], bytes: 0, short: 0, free_bytes: free, required_free_bytes: required_free } if deficit <= 0
+
+    list = archives(dir)
+    deleted = []
+    freed = 0
+    list.each do |path, bytes, _month|
+      break if freed >= deficit
+      deleted << path
+      freed += bytes
+    end
+
+    unless dry_run
+      deleted.each do |path|
+        begin
+          File.delete(path)
+        rescue StandardError => e
+          Rails.logger.warn "EventPartitionBackup: could not delete archive #{path}: #{e.message}"
+        end
+      end
+    end
+
+    {
+      deleted: deleted, bytes: freed, free_bytes: free, required_free_bytes: required_free,
+      short: deficit - freed, dry_run: dry_run
+    }
+  end
+
   def self.quote(name)
     EventPartitioning.quote(name)
   end

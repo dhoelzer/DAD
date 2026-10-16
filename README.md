@@ -261,12 +261,44 @@ The restore recreates the partition with the same `FOR VALUES` range the
 maintenance job would have used, then loads the CSV by `COPY`. It refuses to run
 if the partition already exists.
 
+### Archive retention (free-space floor)
+
+Archives are never pruned unless an admin says they may be. Set a **required free
+space percentage** for the partition holding them under **Preferences →
+"Archive partition: required free space (%)"** (Admin-only). Blank or `0` leaves
+pruning off.
+
+With a floor set, the `maintain_event_partitions` job deletes whole months of
+archives — **oldest first** — whenever the archives on disk, plus what the next
+archives are expected to need, would breach it. Pruning happens *before* any new
+archive is written, so the disk never fills mid-dump. The size of the incoming
+archives is measured from the partitions themselves (`pg_relation_size`, rows
+only — indexes are not in the CSV), falling back to the size of the largest
+recent archive when it cannot be.
+
+**Pruning is unrecoverable.** An archive is usually the only copy of a month the
+database has already dropped; deleting it destroys that history for good.
+
+```bash
+bin/prune_event_archives --check      # floor, usage, and what is stored
+bin/prune_event_archives --dry-run    # exactly what would be deleted
+bin/prune_event_archives              # delete it
+```
+
+Two deliberate behaviours:
+
+- **It fails closed.** If the filesystem cannot be measured, nothing is deleted —
+  a bogus reading must not delete history. The job logs and reports it instead.
+- **It alerts when the floor cannot be met.** If every archive has been deleted
+  and the floor still fails, a Critical alert is raised (once, not per run).
+  That is the state where retention is about to stop working for lack of space.
+
 Two things to watch:
 
-- **Disk.** The archive directory holds a full copy of every month retention has
-  dropped. If it fills, archiving fails and partitions stop being dropped — the
-  database grows instead of the disk filling. Check the job output: it reports
-  `N expired partition(s) kept pending archive` when this is happening.
+- **Disk.** If the archive directory fills, archiving fails and partitions stop
+  being dropped — the database grows instead of the disk filling. Set a floor, or
+  check the job output: it reports `N expired partition(s) kept pending archive`
+  when this is happening.
 - **Secrets.** Archives are raw log lines. Anything that ever reached a log line
   is in them, so treat the directory as sensitive: it is `0700` for a reason.
 

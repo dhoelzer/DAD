@@ -15,5 +15,10 @@
   <%= @preference.dashboardElements %>
 </p>
 
+<p>
+  <strong>Archive partition required free space (%):</strong>
+  <%= @preference.archiveFreeSpacePercent.to_i.positive? ? @preference.archiveFreeSpacePercent : 'not set (pruning disabled)' %>
+</p>
+
 <%= link_to 'Edit', edit_preference_path(@preference) %> |
 <%= link_to 'Back', preferences_path %>

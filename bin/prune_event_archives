@@ -1,0 +1,109 @@
+#!/usr/bin/env ruby
+#
+# Reports and (optionally) prunes event partition archives in offline_storage.
+#
+# Retention archives a month before dropping its partition, and those archives
+# are the last copy of that month. This tool enforces the free-space floor an
+# admin configures on the archive partition (Preferences > archiveFreeSpacePercent):
+# when the archives plus what the next ones need would breach the floor, the
+# oldest months are deleted until it fits.
+#
+#   bin/prune_event_archives --check            what the floor is, what is stored
+#   bin/prune_event_archives --dry-run          what would be deleted, deletes nothing
+#   bin/prune_event_archives                    delete it
+#   bin/prune_event_archives --percent=20       override the configured floor
+#   bin/prune_event_archives --needed=1048576   pretend the next archives need this
+#
+# The scheduled maintain_event_partitions job prunes on its own; this exists so
+# an operator can see what that job would delete before it does, and to reclaim
+# space between runs.
+#
+# Deleting an archive is unrecoverable: the partition it came from has already
+# been dropped. Start with --dry-run.
+require File.expand_path('../config/environment', __dir__)
+
+def usage(msg = nil)
+  warn msg if msg
+  warn <<~USAGE
+    usage: bin/prune_event_archives [--check] [--dry-run] [--percent=N] [--needed=BYTES]
+
+    Archives live in #{EventPartitionBackup.storage_dir}
+    (override with DAD_OFFLINE_STORAGE_DIR).
+    Configured free-space floor: #{EventPartitionBackup.free_space_percent.inspect}
+  USAGE
+  exit 1
+end
+
+percent_opt = ARGV.find { |a| a.start_with?('--percent=') }
+needed_opt = ARGV.find { |a| a.start_with?('--needed=') }
+dry_run = ARGV.include?('--dry-run')
+check = ARGV.include?('--check')
+unknown = ARGV.reject { |a| ['--dry-run', '--check'].include?(a) || a == percent_opt || a == needed_opt }
+usage "unrecognised argument(s): #{unknown.join(' ')}" unless unknown.empty?
+
+dir = EventPartitionBackup.storage_dir
+percent = percent_opt ? percent_opt.split('=', 2)[1].to_i : EventPartitionBackup.free_space_percent
+
+unless File.directory?(dir)
+  warn "no archive directory at #{dir}"
+  exit 0
+end
+
+measured = EventPartitionBackup.disk_space(dir)
+if measured.nil?
+  warn "cannot measure the filesystem holding #{dir}"
+  exit 1
+end
+total, free = measured
+
+stored = EventPartitionBackup.archives(dir)
+stored_bytes = stored.sum { |_path, bytes, _month| bytes }
+
+puts "archive dir:      #{dir}"
+puts "filesystem:       #{total} bytes total, #{free} bytes free (#{(free * 100.0 / total).round(1)}%)"
+puts "archives:         #{stored.size} file(s), #{stored_bytes} bytes"
+if percent.nil? || percent <= 0
+  puts 'free-space floor: not set -- pruning is disabled'
+else
+  required = total * percent / 100
+  puts "free-space floor: #{percent}% (#{required} bytes must stay free)"
+  puts "headroom:         #{free - required} bytes"
+end
+
+if stored.empty?
+  puts 'nothing archived'
+  exit 0
+end
+
+puts
+puts 'oldest first (pruning deletes from the top of this list):'
+stored.first(12).each do |path, bytes, month|
+  puts format('  %s  %10d bytes  %s', month.strftime('%Y-%m'), bytes, File.basename(path))
+end
+puts "  ... #{stored.size - 12} more" if stored.size > 12
+
+exit 0 if check
+
+needed = needed_opt ? needed_opt.split('=', 2)[1].to_i : EventPartitionBackup.estimated_archive_bytes(dir)
+result = EventPartitionBackup.prune_archives(dir: dir, percent: percent, needed_bytes: needed, dry_run: dry_run)
+
+if result[:error]
+  warn "\n#{result[:error]}"
+  exit 1
+end
+
+if result[:deleted].empty?
+  puts "\nno pruning needed: the floor holds with #{needed} bytes projected for the next archives"
+  exit 0
+end
+
+verb = dry_run ? 'would delete' : 'deleted'
+puts "\n#{verb} #{result[:deleted].size} archive(s), #{result[:bytes]} bytes:"
+result[:deleted].each { |path| puts "  #{File.basename(path)}" }
+if result[:short].to_i.positive?
+  warn "\nstill #{result[:short]} bytes short after deleting every archive in #{dir}."
+  warn 'the floor cannot be met on this filesystem: free space, lower the floor,'
+  warn 'or move DAD_OFFLINE_STORAGE_DIR to a larger partition.'
+  exit 1
+end
+exit 0
