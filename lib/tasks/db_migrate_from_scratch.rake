@@ -17,8 +17,29 @@ namespace :db do
     end
 
     connection = ActiveRecord::Base.connection
-    connection.tables.each { |table| connection.drop_table(table, force: :cascade) }
-    connection.execute('DROP SEQUENCE IF EXISTS events_id_seq CASCADE')
+    # Drop top-level tables only. On Postgres `tables` also lists the monthly
+    # partitions, and dropping the partitioned parent cascades its partitions
+    # away -- so dropping a listed partition afterwards fails on any database that
+    # already has the partitioned shape, and the task only ever worked on a
+    # freshly created one.
+    top_level =
+      if connection.adapter_name == 'PostgreSQL'
+        connection.select_values(
+          'select c.relname from pg_class c ' \
+          'join pg_namespace n on n.oid = c.relnamespace ' \
+          "where n.nspname = current_schema and c.relkind in ('r', 'p') " \
+          'and not c.relispartition order by c.relname')
+      else
+        connection.tables
+      end
+    top_level.each { |table| connection.drop_table(table, force: :cascade) }
+    # events_id_seq is created by the partitioning migration and outlives the
+    # partitioned table it belongs to, so dropping tables alone leaves it behind
+    # and the next create_sequence fails. Postgres-only: SQLite has no SEQUENCE
+    # statement at all, so running this unconditionally aborts the task.
+    if connection.adapter_name == 'PostgreSQL'
+      connection.execute('DROP SEQUENCE IF EXISTS events_id_seq CASCADE')
+    end
 
     context = ActiveRecord::MigrationContext.new(
       File.expand_path('../../db/migrate', __dir__)
