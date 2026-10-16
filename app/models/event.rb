@@ -45,11 +45,18 @@ class Event < ActiveRecord::Base
 
   # The live dashboard feed: the last N event lines, minus excluded patterns.
   #
-  # Returns an Array of raw event strings (not Event records). N comes from
+  # Returns an Array of raw event strings (not Event records). N starts from
   # Preference.eventsDashboard and is self-tuning: if exclusions remove enough
   # rows that fewer than 50 survive, N grows 10%; if more than 70 survive, N
-  # shrinks 5%. The adjusted value is persisted, so the feed converges on
-  # showing roughly 50-70 lines regardless of how noisy the exclusions are.
+  # shrinks 5%, so the feed converges on roughly 50-70 lines however noisy the
+  # exclusions are.
+  #
+  # READ-ONLY. This runs on GET /events and GET /events.js, polled every 60s by
+  # every open dashboard tab, so it must not write: a page being *looked at*
+  # used to issue an UPDATE per poll per viewer, and GET is not allowed to have
+  # side effects a proxy may replay. The tuned value is kept in memory for this
+  # process and persisted only by the tune_dashboard_feed job. See
+  # #tune_dashboard_feed_size.
   #
   # Patterns are matched literally: Regexp.union escapes metacharacters, so
   # "sshd.*fail" matches those seven characters, not "sshd" followed by
@@ -74,8 +81,29 @@ class Event < ActiveRecord::Base
       @@num_last_events -= configured * 0.05
     end
     @@num_last_events = @@num_last_events.round.clamp(1, DASHBOARD_MAX_EVENTS)
-    Preference.eventsDashboard(@@num_last_events) if @@num_last_events != configured
     return events
+  end
+
+  # Writes the tuned feed size back to the Preference row, iterating until the
+  # value stops moving, and returns a summary for the scheduler log.
+  #
+  # This is the only writer of the self-tuned size. It runs from the
+  # tune_dashboard_feed JobHandler, never from a request: #recent_events is on
+  # the GET path and must stay side-effect free, so convergence happens across
+  # job runs rather than across page polls.
+  #
+  # Bounded by max_steps because the 10%/5% adjustments could otherwise
+  # oscillate around the 50-70 target without settling.
+  def self.tune_dashboard_feed_size(max_steps: 25)
+    applied = 0
+    max_steps.times do
+      recent_events
+      tuned = @@num_last_events
+      break if tuned == Preference.eventsDashboard.to_i
+      Preference.eventsDashboard(tuned)
+      applied += 1
+    end
+    "dashboard feed size #{Preference.eventsDashboard} (#{applied} adjustment#{applied == 1 ? '' : 's'})"
   end
 
   # Cheap total event count for the dashboard.

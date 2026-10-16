@@ -73,6 +73,46 @@ class RecentEventsTest < ActionDispatch::IntegrationTest
     assert_equal @fixture_events + 3, Event.recent_events.count
   end
 
+  # The read path must not write. recent_events backs GET /events and
+  # GET /events.js, polled every 60s by every open dashboard tab, so it used to
+  # issue an UPDATE per poll per viewer -- a GET with side effects a proxy is
+  # entitled to replay. The stored size is written only by the
+  # tune_dashboard_feed job.
+  #
+  # The noisy exclusion matters: it puts the feed under 50 rows, which is the
+  # branch that *wants* to grow N. A stable feed would not have written even
+  # under the old code, so it would not catch a regression.
+  test "recent_events does not write to the preference row" do
+    seed(60, 'keep')
+    seed(200, 'noise')
+    Exclusion.create!(pattern: 'noise', user_id: 1)
+    Preference.where(user_id: 0).update_all(liveEventsDisplayed: 60)
+    before = Preference.where(user_id: 0).first.updated_at
+    20.times { Event.recent_events }
+    row = Preference.where(user_id: 0).first
+    assert_equal before, row.updated_at, 'a dashboard poll must not touch the row'
+    assert_equal 60, row.liveEventsDisplayed
+  end
+
+  # Same guarantee asserted the blunt way: no UPDATE statement at all.
+  test "recent_events issues no writes" do
+    seed(60, 'keep')
+    seed(200, 'noise')
+    Exclusion.create!(pattern: 'noise', user_id: 1)
+    Preference.where(user_id: 0).update_all(liveEventsDisplayed: 60)
+    writes = []
+    subscriber = ActiveSupport::Notifications.subscribe('sql.active_record') do |_, _, _, _, payload|
+      sql = payload[:sql].to_s
+      writes << sql if sql.match?(/\A\s*(UPDATE|INSERT|DELETE)\b/i) && !sql.include?('sqlite_sequence')
+    end
+    begin
+      Event.recent_events
+    ensure
+      ActiveSupport::Notifications.unsubscribe(subscriber)
+    end
+    assert_empty writes, "expected no writes from the read path, saw: #{writes}"
+  end
+
   # A quiet install returns fewer rows than it asked for, so growing N can
   # never help -- but the old code grew it on every poll, compounding past
   # 10% per request with no ceiling.
@@ -80,28 +120,43 @@ class RecentEventsTest < ActionDispatch::IntegrationTest
     seed(5, 'keep')
     10.times { Event.recent_events }
     assert_equal 10, feed_size
+    Event.tune_dashboard_feed_size
+    assert_equal 10, feed_size, 'a quiet install must not climb'
   end
 
   # With exclusions that remove most rows, growth is the intended behaviour --
-  # but it has to stop somewhere. The table has to be larger than the cap,
-  # otherwise the fetch stops being truncated and growth halts on its own
-  # before the ceiling is reached.
+  # but it has to stop somewhere. Starts near the ceiling so the clamp, not the
+  # 10% ramp, is what ends the run.
   test "the feed size is capped when exclusions are noisy" do
     seed(Event::DASHBOARD_MAX_EVENTS, 'noise')
     seed(5, 'keep')
     Exclusion.create!(pattern: 'noise', user_id: 1)
-    60.times { Event.recent_events }
+    @preference.update_column(:liveEventsDisplayed, 500)
+    Event.tune_dashboard_feed_size
     assert_equal Event::DASHBOARD_MAX_EVENTS, feed_size
   end
 
-  # Guards the intended steady state: a feed that is already the right size
-  # must not be nudged. (The old code called save unconditionally, but Rails
-  # skips the UPDATE when nothing changed, so this held before the fix too.)
-  test "the preference row is not rewritten when the size is stable" do
+  # Convergence moved out of the request path and into the job: one call has to
+  # settle the stored size on its own, since nothing re-runs it per poll.
+  test "tune_dashboard_feed_size converges on the target in one run" do
+    seed(10, 'keep')
+    seed(200, 'noise')
+    Exclusion.create!(pattern: 'noise', user_id: 1)
+    @preference.update_column(:liveEventsDisplayed, 50)
+    summary = Event.tune_dashboard_feed_size
+    tuned = feed_size
+    assert_operator tuned, :>, 50, 'noisy exclusions should have grown the feed'
+    # Re-tuning a settled value must be a no-op.
+    Event.tune_dashboard_feed_size
+    assert_equal tuned, feed_size, 'a settled feed size must not keep moving'
+    assert_match(/dashboard feed size #{tuned}/, summary)
+  end
+
+  test "tune_dashboard_feed_size writes nothing when the size is already settled" do
     seed(60, 'keep')
     Preference.where(user_id: 0).update_all(liveEventsDisplayed: 60)
     before = Preference.where(user_id: 0).first.updated_at
-    Event.recent_events
+    Event.tune_dashboard_feed_size
     assert_equal before, Preference.where(user_id: 0).first.updated_at
   end
 

@@ -84,3 +84,25 @@ if EventPartitioning.supported?
     )
   end
 end
+
+# Dashboard feed sizing.
+#
+# recent_events self-tunes how many lines the live dashboard shows, but it runs
+# on GET /events and must not write, so the tuned value only reaches the
+# Preference row through this Job. Without it the feed still works -- it just
+# never adapts to noisy Exclusions -- so this is seeded to keep the feature
+# working rather than to prevent a failure.
+admin = User.find_by(username: admin_user)
+if admin && !Job.exists?(script: 'tune_dashboard_feed')
+  Job.create!(
+    name: 'Tune dashboard feed size',
+    description: 'Converges the live dashboard event feed size on the 50-70 line ' \
+                 'target. The dashboard request path cannot write, so this is what ' \
+                 'persists the tuned size.',
+    user: admin,
+    script: 'tune_dashboard_feed',
+    frequency: 3_600,
+    next_run: Time.now,
+    last_run: nil
+  )
+end

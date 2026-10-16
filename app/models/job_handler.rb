@@ -21,6 +21,7 @@ class JobHandler
     'reset_stats' => ->(_arg) { EventIngestor.resetStats; 'reset throughput clock' },
     'disk_utilization' => ->(_arg) { "disk utilization #{Event.diskUtilization}%" },
     'maintain_event_partitions' => ->(_arg) { EventPartitioning.maintain },
+    'tune_dashboard_feed' => ->(_arg) { Event.tune_dashboard_feed_size },
   }.freeze
 
   # Names an operator may select in the Jobs form.

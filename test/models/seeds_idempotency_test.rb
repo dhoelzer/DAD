@@ -24,18 +24,32 @@ class SeedsIdempotencyTest < ActiveSupport::TestCase
   # about fixtures rather than about seeds.
   test 'seeding twice leaves one of each record' do
     run_seeds
-    first = [User.count, Role.count, Right.count]
+    first = [User.count, Role.count, Right.count, Job.count]
     run_seeds
-    second = [User.count, Role.count, Right.count]
+    second = [User.count, Role.count, Right.count, Job.count]
 
     assert_equal first, second,
-      'a second seed run must not add users, roles or rights'
+      'a second seed run must not add users, roles, rights or jobs'
     %w[Admin Viewer Commentator Taskmaster Detective].each do |name|
       assert_equal 1, Right.where(name: name).count, "#{name} must exist exactly once"
     end
     assert_equal 1, Role.where(name: 'Administrators').count
     assert_equal 1, Role.where(name: 'Analyst').count
     assert_equal 1, User.where(username: 'admin').count
+  end
+
+  # Seeded Jobs are guarded by !Job.exists?(script: ...), so a re-seed must not
+  # stack up duplicate scheduled work. A duplicate Job row would run the handler
+  # twice per cycle forever.
+  test 'seeding twice leaves one of each seeded job' do
+    run_seeds
+    run_seeds
+    %w[tune_dashboard_feed].each do |script|
+      assert_equal 1, Job.where(script: script).count, "#{script} must be seeded exactly once"
+    end
+    if EventPartitioning.supported?
+      assert_equal 1, Job.where(script: 'maintain_event_partitions').count
+    end
   end
 
   # rights_roles has no unique index, so the join table is where duplication

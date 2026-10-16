@@ -51,8 +51,12 @@ jobs:
   # stayed green. Nothing else in CI touches Postgres, because pg sits in the
   # :production group and every other job sets BUNDLE_WITHOUT=production.
   #
-  # Cucumber stays on SQLite: the cucumber env in database.yml is an explicit
-  # sqlite entry, and DatabaseCleaner's open-transaction pattern is tuned for it.
+  # Cucumber runs here as well as on SQLite. The features drive the same ingest
+  # and dashboard paths that broke in 3.2 and 3.4, both of which were
+  # Postgres-specific, so leaving the feature layer on SQLite left the
+  # partitioned path covered only by unit tests. RAILS_ENV stays `test` (what
+  # cucumber-rails defaults to anyway), so DATABASE_URL selects the engine for
+  # both suites and the `cucumber:` entry in database.yml is not consulted.
   postgres:
     runs-on: ubuntu-24.04
 
@@ -135,6 +139,11 @@ jobs:
 
       - name: Unit and controller tests on Postgres
         run: bundle exec rake test
+
+      # Same in-process caveat as the SQLite job: rake cucumber:ok loads
+      # minitest's autorun, which then parses cucumber's own flags.
+      - name: Cucumber features on Postgres
+        run: bundle exec cucumber
 
   # Asset pipeline + boot-with-manifest. This job exists because the test suite
   # never touches the sprockets manifest: `rake test` boots with no
