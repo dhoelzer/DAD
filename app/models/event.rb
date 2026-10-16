@@ -180,11 +180,18 @@ class Event < ActiveRecord::Base
     return string
   end
 
-  # Percentage of the root filesystem in use, by shelling out to df.
-  # Assumes a POSIX df whose 5th column is Use%; raises if that parse fails.
-  # Used by the dashboard's disk gauge.
-  def self.diskUtilization
-    `df -m | egrep "\s+/$"`.split(/\s+/)[4].to_i
+  # Percentage of the filesystem in use, or nil when it cannot be measured.
+  #
+  # Reports the partition holding the event archives, not the root filesystem:
+  # offline_storage is deliberately allowed to live on a separate mount, and that
+  # is the one retention can fill. The previous implementation grepped `df -m`
+  # for `/`, so an operator could read 40% while the archive partition sat at 98%
+  # and pruning was failing.
+  #
+  # nil on failure rather than 0: the old `split(...)[4].to_i` turned a missed
+  # grep into "0% used", which reads as an empty disk.
+  def self.diskUtilization(dir = EventPartitionBackup.storage_dir)
+    DiskSpace.percent_used(dir)
   end
   
   # Prefix matching over words.text: find every indexed word that starts with

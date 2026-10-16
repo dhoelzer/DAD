@@ -158,28 +158,12 @@ module EventPartitionBackup
     percent.to_i
   end
 
-  # [total_bytes, free_bytes] for the filesystem holding +dir+, or nil when it
-  # cannot be measured.
-  #
-  # df -Pk is the POSIX form: it fixes the column layout and reports 1024-byte
-  # blocks, so it does not shift between GNU and BSD df the way `df -m` does.
-  # Event.diskUtilization greps the root filesystem and is not usable here --
-  # offline_storage is deliberately allowed to live on a different mount.
+  # [total_bytes, available_bytes] for the filesystem holding +dir+, or nil when
+  # it cannot be measured. Delegates to DiskSpace so the dashboard and the
+  # pruner measure the same way.
   def self.disk_space(dir)
-    out = IO.popen(['df', '-Pk', dir], err: %i[child out], &:read)
-    return nil unless $?.success?
-    # Header line, then one line per filesystem; -P guarantees a single line.
-    fields = out.lines.last.to_s.split
-    return nil if fields.size < 4
-    total = Integer(fields[1]) * 1024
-    free = Integer(fields[3]) * 1024
-    return nil if total <= 0
-    [total, free]
-  rescue StandardError => e
-    Rails.logger.warn "EventPartitionBackup: cannot measure disk for #{dir}: #{e.message}"
-    nil
+    DiskSpace.measure(dir)
   end
-
   # Archives on disk, oldest month first, as [path, bytes, month].
   #
   # Ordered by the month carried in the partition name, not by mtime: an archive
@@ -238,10 +222,16 @@ module EventPartitionBackup
 
   # Bytes the archives for +partition_names+ are expected to need: measured from
   # the partitions where possible, estimated from existing archives otherwise.
+  #
+  # Partitions that already have a complete archive are excluded: backup_partition
+  # returns the existing file without re-writing it, so those cost nothing to
+  # "write" and charging them would prune history that was never needed.
   def self.upcoming_archive_bytes(partition_names, dir = storage_dir)
-    measured = partition_sizes(partition_names)
+    pending = Array(partition_names).reject { |name| archived?(name, dir: dir) }
+    return 0 if pending.empty?
+    measured = partition_sizes(pending)
     return measured if measured && measured.positive?
-    estimated_archive_bytes(dir) * partition_names.size
+    estimated_archive_bytes(dir) * pending.size
   end
 
   # Deletes whole months, oldest first, until the partition keeps the required
@@ -258,8 +248,15 @@ module EventPartitionBackup
   #
   # +disk+ is injectable so the arithmetic can be tested against exact numbers
   # rather than against whatever the test machine's filesystem happens to hold.
+  #
+  # +protected+ names partitions whose archives must be left alone. The caller
+  # passes the partitions it is about to archive: deleting one of those frees
+  # bytes that the very next step spends again re-writing it, so counting them
+  # as freed makes the deficit arithmetic optimistic and the floor can come out
+  # breached after a run that reported a successful prune.
   def self.prune_archives(dir: storage_dir, percent: free_space_percent,
-                          needed_bytes: 0, dry_run: false, disk: disk_space(dir))
+                          needed_bytes: 0, dry_run: false, disk: disk_space(dir),
+                          protected: [])
     return { deleted: [], bytes: 0, short: 0, error: 'pruning disabled: no free-space floor set' } if percent.nil?
     return { deleted: [], bytes: 0, short: 0 } unless File.directory?(dir)
 
@@ -274,7 +271,10 @@ module EventPartitionBackup
     deficit = required_free - free + needed_bytes.to_i
     return { deleted: [], bytes: 0, short: 0, free_bytes: free, required_free_bytes: required_free } if deficit <= 0
 
-    list = archives(dir)
+    protected = Array(protected).map(&:to_s)
+    list = archives(dir).reject do |path, _bytes, _month|
+      protected.include?(File.basename(path, ARCHIVE_SUFFIX))
+    end
     deleted = []
     freed = 0
     list.each do |path, bytes, _month|

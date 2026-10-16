@@ -134,11 +134,15 @@ module ApplicationHelper
     Event.where("generated > ?",time_frame).count
   end
   
-  # Root-filesystem usage as a two-slice pie chart, [["Used", n], ["Free", 100-n]].
-  # Delegates to Event.diskUtilization, which shells out to df; render the result
-  # through #js_literal.
+  # Usage of the partition holding the event archives, as a two-slice pie chart,
+  # [["Used", n], ["Free", 100-n]]. Delegates to Event.diskUtilization; render
+  # the result through #js_literal.
+  #
+  # Returns nil when the filesystem cannot be measured, so the caller skips the
+  # chart rather than drawing a 0%-used pie for a disk that may be full.
   def disk_utilization()
     used = Event.diskUtilization
+    return nil if used.nil?
     [["Used", used], ["Free", 100 - used]]
   end
   

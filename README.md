@@ -285,10 +285,16 @@ bin/prune_event_archives --dry-run    # exactly what would be deleted
 bin/prune_event_archives              # delete it
 ```
 
-Two deliberate behaviours:
+Three deliberate behaviours:
 
 - **It fails closed.** If the filesystem cannot be measured, nothing is deleted —
   a bogus reading must not delete history. The job logs and reports it instead.
+- **It never prunes an archive it is about to rewrite.** The scheduled job skips
+  archives whose partition is still in the database and due to be archived this
+  run: deleting one would free space that the very next step spends writing it
+  again, so the run would report success and still breach the floor. The manual
+  `bin/prune_event_archives` has no such pending write, so it treats every
+  archive as prunable.
 - **It alerts when the floor cannot be met.** If every archive has been deleted
   and the floor still fails, a Critical alert is raised (once, not per run).
   That is the state where retention is about to stop working for lack of space.
@@ -301,6 +307,11 @@ Two things to watch:
   when this is happening.
 - **Secrets.** Archives are raw log lines. Anything that ever reached a log line
   is in them, so treat the directory as sensitive: it is `0700` for a reason.
+
+The `disk_utilization` job reports the partition holding the archives, not the
+root filesystem, and names the directory it measured. If that partition cannot be
+measured it says `disk utilization unknown` rather than `0%` — a missing reading
+must not look like an empty disk.
 
 On SQLite there is no partitioning, so none of this applies; the job reports
 `event partitioning is Postgres-only; nothing to do`.

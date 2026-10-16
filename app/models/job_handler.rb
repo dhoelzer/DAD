@@ -19,7 +19,14 @@ class JobHandler
     'prune_words' => ->(_arg) { EventIngestor.prune_words; 'pruned word cache' },
     'reset_caches' => ->(_arg) { EventIngestor.resetCaches; 'reset class-level caches' },
     'reset_stats' => ->(_arg) { EventIngestor.resetStats; 'reset throughput clock' },
-    'disk_utilization' => ->(_arg) { "disk utilization #{Event.diskUtilization}%" },
+    'disk_utilization' => lambda do |_arg|
+      used = Event.diskUtilization
+      # nil means df could not measure the archive partition. Reporting "0%"
+      # would claim an empty disk, which is the opposite of the truth and the
+      # reason the old helper was unsafe to act on.
+      used.nil? ? 'disk utilization unknown: cannot measure the archive partition' \
+                : "disk utilization #{used}% of #{EventPartitionBackup.storage_dir}"
+    end,
     'maintain_event_partitions' => ->(_arg) { EventPartitioning.maintain },
     'tune_dashboard_feed' => ->(_arg) { Event.tune_dashboard_feed_size },
   }.freeze

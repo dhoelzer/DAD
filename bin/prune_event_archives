@@ -44,6 +44,17 @@ usage "unrecognised argument(s): #{unknown.join(' ')}" unless unknown.empty?
 dir = EventPartitionBackup.storage_dir
 percent = percent_opt ? percent_opt.split('=', 2)[1].to_i : EventPartitionBackup.free_space_percent
 
+# Same bound the Preference setter enforces. A percent above 100 asks for more
+# free space than any filesystem can provide, which makes every archive look
+# prunable -- so a typo here would delete all of them before reporting the
+# shortfall. Reject it instead of acting on it.
+if percent_opt && (percent < 1 || percent > 100)
+  usage "--percent must be between 1 and 100 (got #{percent_opt.split('=', 2)[1]})"
+end
+if needed_opt && needed_opt.split('=', 2)[1].to_i.negative?
+  usage "--needed cannot be negative"
+end
+
 unless File.directory?(dir)
   warn "no archive directory at #{dir}"
   exit 0

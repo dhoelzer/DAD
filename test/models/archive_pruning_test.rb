@@ -247,6 +247,83 @@ class ArchivePruningTest < ActiveSupport::TestCase
     assert_equal 7 * MB, bytes
   end
 
+  # --- what must NOT be pruned -------------------------------------------------
+
+  # The failure this prevents: pruning frees bytes for an archive the very next
+  # step re-writes, so the run reports a successful prune and the floor is still
+  # breached. Net-zero churn, and it destroys nothing, but the arithmetic lies.
+  test 'archives for partitions about to be archived are not pruned' do
+    about_to_write = archive('events', '202401', 10 * MB)
+    older = archive('events', '202301', 10 * MB)
+
+    result = EventPartitionBackup.prune_archives(percent: 20, disk: [100 * MB, 12 * MB],
+                                                protected: ['events_p202401'])
+    assert_equal [older], result[:deleted],
+      'the archive this run is about to write must not be the one it deletes'
+    assert File.file?(about_to_write)
+  end
+
+  test 'protecting every archive leaves nothing prunable and reports the shortfall' do
+    keep = archive('events', '202401', 10 * MB)
+    result = EventPartitionBackup.prune_archives(percent: 50, disk: [100 * MB, 1 * MB],
+                                                protected: ['events_p202401'])
+    assert_empty result[:deleted]
+    assert File.file?(keep)
+    assert result[:short].to_i > 0, 'must report the floor as unmeetable, not silently succeed'
+  end
+
+  test 'protected accepts names for archives that do not exist' do
+    older = archive('events', '202301', 10 * MB)
+    result = EventPartitionBackup.prune_archives(percent: 20, disk: [100 * MB, 12 * MB],
+                                                protected: ['events_p209901'])
+    assert_equal [older], result[:deleted]
+  end
+
+  # An archive whose partition was restored is regenerable from the live
+  # partition, so deleting it does free real space. It is not in expired_names,
+  # so it must stay prunable.
+  test 'an archive for a restored partition is still prunable' do
+    restored = archive('events', '202401', 10 * MB)
+    result = EventPartitionBackup.prune_archives(percent: 20, disk: [100 * MB, 12 * MB],
+                                                protected: [])
+    assert_equal [restored], result[:deleted]
+  end
+
+  # --- needed_bytes must only charge for writes that will actually happen ------
+
+  test 'already-archived partitions are not charged as incoming bytes' do
+    archive('events', '202401', 7 * MB)
+    # 202401 already has an archive, so backup_partition will not re-write it.
+    assert_equal 0, EventPartitionBackup.upcoming_archive_bytes(['events_p202401'], @dir)
+  end
+
+  test 'only unarchived partitions are charged' do
+    archive('events', '202401', 7 * MB)
+    bytes = EventPartitionBackup.upcoming_archive_bytes(
+      ['events_p202401', 'events_p209901'], @dir
+    )
+    assert_equal 7 * MB, bytes, 'one archived (free) plus one pending (estimated)'
+  end
+
+  # A .part file is an interrupted write, so it is neither a completed archive
+  # (the partition still needs archiving) nor a usable size estimate.
+  test 'a .part file is not an existing archive and not an estimate source' do
+    File.write(File.join(@dir, "events_p202401#{EventPartitionBackup::ARCHIVE_SUFFIX}.part"),
+               'x' * 7 * MB)
+    refute EventPartitionBackup.archived?('events_p202401', dir: @dir)
+    assert_equal 0, EventPartitionBackup.estimated_archive_bytes(@dir)
+    assert_equal 0, EventPartitionBackup.upcoming_archive_bytes(['events_p202401'], @dir)
+  end
+
+  test 'a completed archive still counts when a .part file is also present' do
+    File.write(File.join(@dir, "events_p202401#{EventPartitionBackup::ARCHIVE_SUFFIX}.part"),
+               'x' * 7 * MB)
+    archive('events', '202501', 5 * MB)
+    assert EventPartitionBackup.archived?('events_p202501', dir: @dir)
+    refute EventPartitionBackup.archived?('events_p202401', dir: @dir)
+    assert_equal 5 * MB, EventPartitionBackup.upcoming_archive_bytes(['events_p202401'], @dir)
+  end
+
   test 'partition_sizes returns zero for an empty list' do
     assert_equal 0, EventPartitionBackup.partition_sizes([])
   end

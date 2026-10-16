@@ -135,7 +135,11 @@ module EventPartitioning
     return { deleted: [], bytes: 0, short: 0 } if percent.nil?
 
     needed = EventPartitionBackup.upcoming_archive_bytes(expired_names, dir)
-    result = EventPartitionBackup.prune_archives(dir: dir, percent: percent, needed_bytes: needed)
+    # expired_names is also the protected set: this run is about to write an
+    # archive for each of them, so pruning one would free nothing.
+    result = EventPartitionBackup.prune_archives(dir: dir, percent: percent,
+                                                 needed_bytes: needed,
+                                                 protected: expired_names)
 
     if result[:deleted].any?
       Rails.logger.warn "EventPartitionBackup: pruned #{result[:deleted].size} archive(s) " \
