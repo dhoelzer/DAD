@@ -88,8 +88,23 @@ jobs:
       - name: Verify the lockfile is committed and consistent
         run: bundle install --frozen
 
+      # Not plain `rake db:migrate`: that loads the committed SQLite-flavoured
+      # db/schema.rb into an empty Postgres database and skips db/migrate entirely,
+      # so anything the dump cannot express (partitioned events) would never be
+      # built and this job would test a schema production does not have.
       - name: Prepare test database
-        run: bundle exec rake db:migrate
+        run: bundle exec rake db:migrate_from_scratch
+
+      # The dump cannot express PARTITION BY, so this is the assertion that the
+      # Postgres job is really testing the shape production runs.
+      - name: Assert the Postgres-only schema shape was built
+        run: |
+          not_partitioned=$(psql "$DATABASE_URL" -tAc \
+            "select count(*) from pg_class where relname in ('events','events_words') and relkind <> 'p'")
+          if [ "$not_partitioned" != "0" ]; then
+            echo "events/events_words must be partitioned on Postgres ($not_partitioned are not)"
+            exit 1
+          fi
 
       - name: Unit and controller tests on Postgres
         run: bundle exec rake test

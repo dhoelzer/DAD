@@ -57,9 +57,12 @@ class SqlPlaceholdersTest < ActiveSupport::TestCase
     lo = System.create!(name: 'sqlph_lo', address: '10.200.0.1')
     hi = System.create!(name: 'sqlph_hi', address: '10.200.0.2')
 
+    # Upper bound stays inside int4: the original migrations declare systems.id as
+    # `id: :integer`, so a bigint sentinel binds fine on SQLite but Postgres
+    # rejects it as out of range for the inferred parameter type.
     both = SqlPlaceholders.query(
       'select count(*) as c from systems where id > ? and id < ?',
-      [0, 9_000_000_000_000_000_000]
+      [0, 2_000_000_000]
     )[0]['c'].to_i
     assert_operator both, :>=, 2
 

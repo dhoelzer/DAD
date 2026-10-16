@@ -9,6 +9,23 @@
 # below is process-global and the class is intended to be driven by a single
 # long-running importer process.
 class Event < ActiveRecord::Base
+  # Pinned deliberately. Once events is range-partitioned on +generated+
+  # (migration 20261016000001), Postgres requires the partition key in the
+  # primary key, so the table's constraint becomes PRIMARY KEY (id, generated).
+  # Rails reads that back and would make #id a two-element array, break
+  # Event.find(id), and emit to_param values like "4-2026-07-20+10%3A00%3A00".
+  #
+  # The app's identity for an event has always been its id alone: ids come from a
+  # single counter (Event.nextEventID / maximum(:id) + 1), every association and
+  # controller uses id by itself, and alerts_events references it alone. So the
+  # model keeps id, and the extra column in the database constraint is just what
+  # Postgres requires to partition.
+  #
+  # Trade-off: the database no longer enforces id uniqueness on its own. Ingest
+  # assigns ids from one counter, so uniqueness holds; a second concurrent
+  # importer would already have raced on that counter before partitioning.
+  self.primary_key = 'id'
+
   has_and_belongs_to_many :words
   has_and_belongs_to_many :alerts
   belongs_to :system

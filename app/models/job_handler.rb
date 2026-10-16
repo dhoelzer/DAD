@@ -20,6 +20,7 @@ class JobHandler
     'reset_caches' => ->(_arg) { Event.resetCaches; 'reset class-level caches' },
     'reset_stats' => ->(_arg) { Event.resetStats; 'reset throughput clock' },
     'disk_utilization' => ->(_arg) { "disk utilization #{Event.diskUtilization}%" },
+    'maintain_event_partitions' => ->(_arg) { EventPartitioning.maintain },
   }.freeze
 
   # Names an operator may select in the Jobs form.

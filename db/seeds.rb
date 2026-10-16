@@ -55,3 +55,32 @@ if User.find_by(username: admin_user).nil?
   user.roles << admins unless user.roles.include?(admins)
   user.save!
 end
+
+# Partition maintenance, Postgres only.
+#
+# events and events_words are range-partitioned by month (migration
+# 20261016000001), and that only pays for itself if someone creates the coming
+# months and drops the expired ones. Without this Job, ingestion eventually hits
+# months with no partition and retention never happens.
+#
+# Seeded rather than left to an operator because forgetting it is silent: the
+# DEFAULT partition quietly absorbs the strays.
+#
+# Once a day is plenty -- the horizon is two months wide, so a day or two of
+# missed runs costs nothing. Retention length comes from DAD_EVENT_RETENTION_DAYS
+# (default 365), not from here.
+if EventPartitioning.supported?
+  admin = User.find_by(username: admin_user)
+  unless admin.nil? || Job.exists?(script: 'maintain_event_partitions')
+    Job.create!(
+      name: 'Maintain event partitions',
+      description: 'Creates next month\'s event partitions and drops months older ' \
+                   'than DAD_EVENT_RETENTION_DAYS. Postgres only.',
+      user: admin,
+      script: 'maintain_event_partitions',
+      frequency: 86_400,
+      next_run: Time.now,
+      last_run: nil
+    )
+  end
+end
