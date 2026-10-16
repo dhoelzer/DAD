@@ -5,6 +5,10 @@ adding `users_admin_test.rb`. Re-verified again at `854f641` (2026-10-15) after
 the post-upgrade cleanup: §1.2 closed, a new §1.3 found and closed, §4.3 gaps
 closed. PRs #1–#23 all merged.
 
+Re-verified again at `f566c0f` (2026-10-16): the vendored Highcharts dependency
+found and closed (§5.6), and a new gap found in the `assets` CI job (§5.7).
+PR #25 is open.
+
 **This document lists only work that is still outstanding.** Everything marked
 closed is verified against the current tree, not against what a PR claimed. The
 full review history — the original findings, the misdiagnoses, and the reasoning
@@ -24,12 +28,14 @@ than carried forward.
 | Secrets in the working tree | Closed — **but a production key is still in git history (§1.1)** |
 | Ingestion crash-safety and idempotency | Closed, at-least-once (§2.2) |
 | Search indexing, dashboard SQL portability, timestamp parsing | Closed |
-| Test suite | Green: 218 runs / 624 assertions, 4 cucumber scenarios |
+| Test suite | Green: 237 runs / 696 assertions, 4 cucumber scenarios |
 | Admin screens (sessions, users, jobs) | Closed — now covered by request tests (§2.1) |
-| Poison line / observability | **Open — was mis-marked as fixed (§5.3)** |
+| Poison line / observability | Closed — bad line logged, counted and skipped (§5.3, `c5d82ab`) |
 | Rails upgrade | **Closed: 4.2 → 5.2 → 6.1 → 7.1 → 7.2 → 8.0 → 8.1.4 landed** (§5.2, tag `rails-8.1.4`) |
 | Rails EOL | Closed — Rails is on the current stable line (8.1, supported to Oct 2027) |
 | CI security gates | **Closed — both gates now blocking**, 0 advisories, 0 Brakeman warnings (§1.2) |
+| Charting dependency | **Closed — unlicensed Highcharts replaced by MIT Chart.js (§5.6)** |
+| Asset pipeline coverage | **Open — CI never runs a JS minifier (§5.7)** |
 | Partitioning, full-text search | Open (§3) |
 
 ---
@@ -110,6 +116,8 @@ blocking (`continue-on-error` removed from both steps):
   jquery-rails still ships 1.12.4 as `jquery.js`. `require jquery` resolved to
   1.12.4 — confirmed by grepping the built bundle. Switching the manifest is what
   actually ships 3.7.1. That required patching the vendored `highcharts-custom.js`
+  (since removed — see §5.6; Chart.js attaches no jQuery adapter, so the patch
+  went away with the file)
   adapter, which used `.bind()`/`.unbind()` (removed in jQuery 3.0); exactly two
   call sites, now `.on()`/`.off()`.
 - Brakeman reports **0 warnings**, so no ignore file was needed.
@@ -968,6 +976,98 @@ three processes fit together, and where logs go.
 
 ---
 
+### 5.6 ✅ Closed — the vendored Highcharts build was an unlicensed dependency **[security] [operations]**
+
+Closed at `f566c0f` (PR #25). `app/assets/javascripts/highcharts-custom.js` was a
+Highcharts 4.0.4 build from 2014, vendored into the tree. Highcharts is **not free
+for commercial use**; the repository carries no Highcharts licence, only its own
+MIT one. So the app shipped a dependency it had no right to redistribute, from a
+line unmaintained for a decade.
+
+Replaced with **Chart.js 4.4.7** (MIT, matching the project's own licence),
+vendored at `vendor/assets/javascripts/chartjs/chart.umd.js` with its `LICENSE.md`.
+Provenance checked: the npm tarball shasum matches the registry and the extracted
+`dist/chart.umd.js` is byte-identical to the jsDelivr copy.
+
+Chart.js has nothing equivalent to the two Highcharts features the dashboard leans
+on, so they are implemented as plugins in `app/assets/javascripts/dad_charts.js`:
+`dadBands` (sigma bands + mean rule, replacing `yAxis.plotBands`/`plotLines`),
+`dadGauge` (300° arc, bands, needle and reading over a doughnut track, replacing
+the gauge pane), and `dad_enable_x_zoom` (replacing `chart.zoomType = 'x'`). The
+five `draw_*` helpers keep their names and positional argument lists, so no view
+changed.
+
+**This forced a compressor change.** Uglifier 2.7 wraps UglifyJS 2.x, which
+predates ES6 and aborts on the first arrow function; Chart.js 4 ships ES2015+.
+Terser replaces it. sprockets 3.7 has no `:terser` symbol but `js_compressor=`
+accepts any object responding to `#compress`, so `Terser.new` is passed directly.
+Both gems depend on `execjs`, so no new runtime requirement is introduced.
+
+Two bugs surfaced while verifying it: gauge bands drawn in `beforeDatasetsDraw`
+were painted over by the doughnut track fill (pixel readback: 91,655 track pixels,
+**0** band pixels — fixed by moving them to `afterDatasetsDraw`), and Sass
+interpolates `#{...}` **even inside `/* */` comments**, which broke the build.
+
+Verified by `rake test` (237 runs / 696 assertions, 0 failures), a production
+precompile, and by executing the chart code in jsdom against a real `node-canvas`
+2D context and asserting painted pixels — 29/29 checks, on both the source and the
+terser-minified form.
+
+### 5.7 The `assets` CI job never runs a JS minifier, and production compiles assets at request time **[operations] [maintainability]**
+
+Two related gaps, both verified against the current tree.
+
+**(a) CI never exercises the compressor.** The `assets` job runs
+`bundle exec rake assets:precompile` under `BUNDLE_WITHOUT: production`, so it
+boots in **development**, where `config.assets.js_compressor` is `nil` (confirmed:
+`rails runner` prints `js_compressor=nil`). The compressor is set only in
+`config/environments/production.rb`. A fresh `RAILS_ENV=production
+rake assets:precompile` is therefore the only thing that runs Terser — and it is
+exactly the check that would have caught Uglifier 2.7 choking on Chart.js's ES2015
+output (§5.6). CI was green throughout that breakage.
+
+Fix: add `RAILS_ENV=production` to the precompile step in the `assets` job, or add
+a second step that precompiles in production. It needs no database credentials
+beyond a `SECRET_KEY_BASE` and a `DATABASE_URL` (sqlite is enough — `pg` is not
+installed in CI).
+
+**(b) The documented production precompile writes files nothing references.**
+`config.assets.digest = false` (production.rb:46) makes the helpers emit
+undigested paths — verified: `javascript_include_tag("application")` returns
+`/assets/application.js`. But precompile writes **only** digested names:
+
+```
+public/assets/application-4328919e….js      ← written
+public/assets/application.js                ← does not exist
+```
+
+So the README's `rake assets:precompile RAILS_ENV=production` step produces
+artefacts the app never serves. What actually serves the bundle is the mounted
+Sprockets route (`/assets` is present in `Rails.application.routes` because
+`config.assets.compile` is `true` — the `config.assets.compile = false` line at
+production.rb:37 is commented out), which compiles on demand and caches into
+`tmp/cache/assets`.
+
+The comment above `digest = false` explains it as preserving the paths "served
+straight out of `public/assets` by Apache" — true under Rails 4.2, no longer true
+under sprockets-rails 3.x, where precompile digests regardless. Apache cannot
+serve `/assets/application.js` from `public/assets` because that file is never
+written; only the Rails route can.
+
+Consequences: the first request after each deploy pays the compile-and-minify
+cost, `tmp/cache/assets` must be writable and warm or every restart repeats it,
+and a broken asset surfaces as a runtime 500 rather than a failed deploy.
+
+Pick one, don't leave both half-done:
+- **`config.assets.digest = true`** and let Apache serve the digested files.
+  Precompile becomes meaningful, assets are static, no runtime compilation.
+  Requires the manifest to be readable at boot — see the `json`/sprockets boot
+  regression in the appendix before doing this.
+- Or accept runtime compilation, delete the precompile step from the README, and
+  make `tmp/cache/assets` explicitly part of the deployment contract.
+
+---
+
 ## 6. Recommended sequence
 
 | Priority | Item | Effort | Why here |
@@ -979,9 +1079,11 @@ three processes fit together, and where logs go.
 | 4 | ~~§5.3 poison-line handling + `Rails.logger`~~ **done** (`c5d82ab`) | — | — |
 | 5 | ~~§5.1 systemd units~~ **done** (`bf547e0`) | — | — |
 | 5b | ~~§5.2 step 0: back-portable prep~~ **done** | — | Landed with the 5.2 step |
-| 6 | §5.2 Rails **7.2 → 8.1** (5.2, 6.1 and 7.1 landed; see the staged plan there) | weeks, not months — the Ruby jump is already done | Gates §3.2, §4.1-C, and blocking security gates |
-| 7 | §3.2 partitioning, §3.3 FTS, §4.1-B `EventIngestor` | ongoing | Real work, but bounded by the above |
-| 8 | ~~§5.4 LICENSE, §5.5 README, §4.2 dead code~~ **done** (`68a6c39`, `58407e9`, `4ee7458`) | — | — |
+| 6 | ~~§5.2 Rails **7.2 → 8.1**~~ **done** (`rails-8.1.4`; 4.2→5.2→6.1→7.1→7.2→8.0→8.1 all landed) | — | Unlocked §3.2, §4.1-C and the blocking security gates |
+| 7 | §5.7 production asset path: run the minifier in CI, resolve digest vs runtime compile | **minutes** for (a), an afternoon for (b) | Cheapest item in the list; (a) is one env var, and it is the gate that would have caught §5.6's compressor breakage |
+| 8 | §3.2 partitioning, §3.3 FTS, §4.1-B `EventIngestor` | ongoing | Real work, but bounded by the above |
+| 9 | ~~§5.4 LICENSE, §5.5 README, §4.2 dead code~~ **done** (`68a6c39`, `58407e9`, `4ee7458`) | — | — |
+| 10 | ~~§5.6 unlicensed vendored Highcharts~~ **done** (`f566c0f`, PR #25) | — | — |
 
 **The pattern worth acting on.** Three separate findings in this review — the
 importer that died at startup while CI stayed green, the four broken admin
@@ -1031,6 +1133,7 @@ Verified closed against the current tree:
 | §1.3 | bcrypt password hashes rendered into `users/index`, `users/show` and prefilled into the edit form (`text_field :password`) — missed by PR #4, which only fixed the JSON API. Also a functional bug: resubmitting the edit form re-hashed the hash and locked the account out. | `365c845` |
 | — | `User#right_names` memo survived `reload`, so a reloaded user reported stale rights | `5ab2ca4` |
 | §4.3 | Request coverage for `role_add`/`role_remove` escalation and `acknowledge`/`ackall` | `854f641` |
+| §5.6 | Vendored Highcharts 4.0.4 (unlicensed commercial dependency, 2014 build) replaced by Chart.js 4.4.7 (MIT); `dadBands`/`dadGauge`/`dad_enable_x_zoom` plugins cover `plotBands`/`plotLines`, the gauge pane and `zoomType:'x'`; Uglifier → Terser because UglifyJS 2.x cannot parse ES2015. Two rendering bugs fixed en route (gauge band z-order, Sass interpolation in a CSS comment) | `f566c0f` |
 | §4.3 (2b) | `acknowledge`/`ackall` converted from GET to POST, so `protect_from_forgery` covers a state-changing action | `60aedf6` |
 | §4.1-A | Subprocess coverage of the checkpoint/claim/reclaim machinery: crash mid-file, resume at the offset, no duplicate rows, `.processing` reclaimed | `94654d1` |
 | §5.3 | A `StandardError` line is now logged, counted, and skipped instead of `exit 1`-ing the importer; `puts` → `Rails.logger` + stdout broadcast for the journal | `c5d82ab` |
