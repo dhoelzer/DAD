@@ -41,10 +41,9 @@ class System < ActiveRecord::Base
   # Ordered by display name. Used by the reporting views; returns an
   # ActiveRecord result set rather than records.
   def self.reportingInLastDays(days)
-    connection = ActiveRecord::Base.connection
     events_since = (Time.now - (days * 86400))
     sql = "select system_id,b.name,count(*) as count from events as a join systems as b on  a.system_id=b.id where generated>? group by system_id,b.name order by b.name asc"
-    connection.exec_query(sql, "SQL", [events_since.to_fs(:db)])
+    SqlPlaceholders.query(sql, [events_since.to_fs(:db)])
   end
 
   # Label for this host: its +name+ if set, else its +address+ in parentheses.
@@ -79,7 +78,7 @@ class System < ActiveRecord::Base
   # reasoning.
   def self.hourly_counts(system_id, since)
     sql = "select count(*) as count,substr(cast(generated as text),1,13) as bucket from events where events.system_id=? and events.generated>? group by bucket order by bucket asc"
-    ActiveRecord::Base.connection.exec_query sql, "SQL", [system_id, since]
+    SqlPlaceholders.query sql, [system_id, since]
   end
 
   # Number of Systems memoised in this process (diagnostics/monitoring).
@@ -94,9 +93,8 @@ class System < ActiveRecord::Base
 
   # Count of this system's events at or after +since+ (default: last hour).
   def events_since(since=1.hour.ago)
-    connection = ActiveRecord::Base.connection
     sql = "select count(*) as count from events where events.system_id=? and generated>?"
-    results = connection.exec_query sql, "SQL", [self.id, since]
+    results = SqlPlaceholders.query sql, [self.id, since]
     return results[0]["count"].to_i
   end
 

@@ -559,9 +559,8 @@ class Event < ActiveRecord::Base
   # it. Internal: the only writer of a staged batch.
   def self.write_batch(ew_sql, ew_binds, ev_sql, ev_binds)
     ActiveRecord::Base.transaction do
-      connection = ActiveRecord::Base.connection
-      connection.exec_query ew_sql, "SQL", ew_binds
-      connection.exec_query ev_sql, "SQL", ev_binds
+      SqlPlaceholders.query(ew_sql, ew_binds)
+      SqlPlaceholders.query(ev_sql, ev_binds)
     end
   end
   private_class_method :write_batch

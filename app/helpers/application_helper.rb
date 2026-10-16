@@ -69,7 +69,7 @@ module ApplicationHelper
   def statistics_by_hour(type_id, since, agg = 'sum')
     aggregate = AGGREGATES.fetch(agg)
     sql = "select #{aggregate} as agg_value,substr(cast(timestamp as text),1,13) as bucket from statistics where type_id=? and timestamp>? group by bucket order by bucket asc"
-    ActiveRecord::Base.connection.exec_query sql, "SQL", [type_id, since]
+    SqlPlaceholders.query sql, [type_id, since]
   end
 
   # The bucketed rows behind every chart helper, as [["YYYY-MM-DD HH", value], ...].
