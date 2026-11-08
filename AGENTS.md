@@ -269,9 +269,11 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   window is gone; and `Event.recent_events` drops blank/nil patterns before `Regexp.union`,
   so an empty exclusion list no longer empties the feed.
   Grep for `\beval(` under app/ and lib/ returns nothing.
-- The suite is green: 406 runs / 1018 assertions on SQLite (32 skips). The
-  Postgres figures in RECOMMENDATIONS.md (382 / 1062) predate §2.4–§4.4 and need
-  re-running; cucumber is 5 scenarios / 18 steps on both engines.
+- The suite is green on both engines: 406 runs / 1018 assertions on SQLite
+  (32 skips), 409 / 1110 on Postgres (3 skips). The gap is not a discrepancy:
+  29 tests skip on SQLite and run on Postgres, and 3 more are defined only there,
+  so SQLite executes 374 tests and Postgres 406. cucumber is 5 scenarios / 18
+  steps on both.
   Counts drift — run the suite rather than trusting this one. The assertion count rose
   from 534 at Rails 6.1 with no test logic changed: AS 7.1's
   `assert_difference`/`assert_no_difference` route their block through minitest's

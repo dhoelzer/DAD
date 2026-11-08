@@ -27,7 +27,7 @@ than carried forward.
 | Ingestion crash-safety and idempotency | Closed, at-least-once — documented in the README (§2.2) |
 | Search indexing, dashboard SQL portability, timestamp parsing | Closed |
 | Dashboard search form timeframe toggle | **Closed at `7e0f435` — §2.3**: the relative timeframe dropdown was dead; every form search used an empty now→now window |
-| Test suite | Green on both engines: 406 runs / 1018 assertions on SQLite, 382 / 1062 on partitioned Postgres (the Postgres figure predates §2.4–§4.4 and needs re-running); cucumber 5 scenarios / 18 steps on both |
+| Test suite | Green on both engines: 406 runs / 1018 assertions on SQLite (32 skips), 409 / 1110 on partitioned Postgres (3 skips); cucumber 5 scenarios / 18 steps on both |
 | Scheduler crash loop | **Was open — closed at §2.4**: a blank Frequency field killed the scheduler under `Restart=always`, stopping every Job |
 | Account integrity (duplicate / blank usernames) | **Was open — closed at §2.5**: no uniqueness at any layer, so a second account with a taken name could never sign in |
 | Session lookup and retention | **Was open — closed at §3.5**: per-request cookie lookup was a full table scan, and abandoned rows were never reclaimed |
