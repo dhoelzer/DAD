@@ -7,7 +7,7 @@ class SearchesController < ApplicationController
 
   # Lists all searches records. No pagination or filtering.
   def index
-    @searches = Search.all
+    @searches = paginate(Search.all)
   end
 
   # One search, addressed by id. @search is loaded by the

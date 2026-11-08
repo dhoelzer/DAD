@@ -44,7 +44,7 @@ class SeedsIdempotencyTest < ActiveSupport::TestCase
   test 'seeding twice leaves one of each seeded job' do
     run_seeds
     run_seeds
-    %w[tune_dashboard_feed].each do |script|
+    %w[tune_dashboard_feed prune_sessions].each do |script|
       assert_equal 1, Job.where(script: script).count, "#{script} must be seeded exactly once"
     end
     if EventPartitioning.supported?

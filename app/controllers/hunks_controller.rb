@@ -7,7 +7,7 @@ class HunksController < ApplicationController
 
   # Lists all hunks records. No pagination or filtering.
   def index
-    @hunks = Hunk.all
+    @hunks = paginate(Hunk.all)
   end
 
   # One hunk, addressed by id. @hunk is loaded by the

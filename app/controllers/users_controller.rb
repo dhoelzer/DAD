@@ -7,7 +7,7 @@ class UsersController < ApplicationController
 
   # GET /users (and .json) -- every account.
   def index
-    @users = User.all
+    @users = paginate(User.all)
   end
 
   # GET /users/1 (and .json) -- one account.
@@ -81,6 +81,12 @@ class UsersController < ApplicationController
       redirect_to "/"
       return false
     end
+    # Reclaim abandoned sessions while we are here. gatekeeper only deletes an
+    # expired row when the cookie owning it comes back, so an operator who logs
+    # in and closes the tab leaves the row forever, and the table this lookup
+    # reads grows without bound. Scoped to expiry, not user_id: the per-account
+    # eviction below is deliberate, this is not that.
+    Session.purge_expired
     if (@user.check_password(@password)) then
       @user.attempts = 0
       @user.save

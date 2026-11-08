@@ -3,7 +3,9 @@
 Scanned at `b6adf25` (2026-10-14); §2.1 re-verified and closed at the branch
 adding `users_admin_test.rb`. Re-verified again at `854f641` (2026-10-15) after
 the post-upgrade cleanup: §1.2 closed, a new §1.3 found and closed, §4.3 gaps
-closed. PRs #1–#23 all merged.
+closed. Re-verified a third time at `2ca83b7` (2026-11-08): four new defects
+found and closed (§2.4, §2.5, §3.5, §4.4), each reproduced with a failing test
+before being fixed. PRs #1–#26 all merged.
 
 **This document lists only work that is still outstanding.** Everything marked
 closed is verified against the current tree, not against what a PR claimed. The
@@ -25,7 +27,10 @@ than carried forward.
 | Ingestion crash-safety and idempotency | Closed, at-least-once — documented in the README (§2.2) |
 | Search indexing, dashboard SQL portability, timestamp parsing | Closed |
 | Dashboard search form timeframe toggle | **Closed at `7e0f435` — §2.3**: the relative timeframe dropdown was dead; every form search used an empty now→now window |
-| Test suite | Green on both engines: 379 runs / 968 assertions on SQLite, 382 / 1062 on partitioned Postgres (2026-11-08 CI); cucumber features run on both |
+| Test suite | Green on both engines: 406 runs / 1018 assertions on SQLite, 382 / 1062 on partitioned Postgres (the Postgres figure predates §2.4–§4.4 and needs re-running); cucumber 5 scenarios / 18 steps on both |
+| Scheduler crash loop | **Was open — closed at §2.4**: a blank Frequency field killed the scheduler under `Restart=always`, stopping every Job |
+| Account integrity (duplicate / blank usernames) | **Was open — closed at §2.5**: no uniqueness at any layer, so a second account with a taken name could never sign in |
+| Session lookup and retention | **Was open — closed at §3.5**: per-request cookie lookup was a full table scan, and abandoned rows were never reclaimed |
 | Admin screens (sessions, users, jobs) | Closed — now covered by request tests (§2.1) |
 | Poison line / observability | Closed — per-line `rescue StandardError`, failures counted as a `Statistic`, `Rails.logger` broadcast to the journal (§5.3, `c5d82ab` + `94654d1`) |
 | Rails upgrade | **Closed: 4.2 → 5.2 → 6.1 → 7.1 → 7.2 → 8.0 → 8.1.4 landed** (§5.2, tag `rails-8.1.4`); lock now on the 8.1.4.1 patch release (§1.4) |
@@ -443,6 +448,81 @@ One trap for anyone re-testing this: the ingestor's caches and
 transaction rollback, so a test that calls `storeEvent` must reset them or it will
 index rows against word and system ids from a previous test.
 
+### 2.4 ✅ Closed — a blank "Frequency" field crash-looped the job scheduler **[bug] [correctness] [operations]**
+
+`Job#frequency` had no validation at the model layer and no constraint in the
+database, and `scheduler.rb` used it outside the block that was rescued:
+
+```ruby
+jobs.each do |job|
+  begin
+    Rails.logger.info "job #{job.name} -> #{JobHandler.perform(job.script)}"
+  rescue Exception => e
+    Alert.genericAlert(...)
+  end
+  job.next_run = Time.now + (job.frequency).seconds   # outside the rescue
+  ...
+end
+```
+
+A `Job` with a nil `frequency` therefore raised `NoMethodError: undefined method
+'seconds' for nil` on the reschedule line — past the `rescue`, out of the loop,
+out of the process. `systemd/dad-scheduler.service` sets `Restart=always`, and
+because the crashing row's `next_run` never advanced, it was re-selected
+immediately on the next start. The result is a permanent crash loop in which no
+Job runs at all, including the partition maintenance and cache-pruning ones.
+
+Reaching it needed no malice: the job form renders Frequency as a `number_field`,
+so submitting the form with that field blank arrives as `nil` and saves cleanly.
+
+**Closed.** `Job` now validates `frequency` as a positive integer; the migration
+gives the column a `3600` default, rewrites any existing nil/zero/negative row to
+that value, and adds a `CHECK (frequency IS NULL OR frequency > 0)` on Postgres
+(SQLite supports `CHECK` in `CREATE TABLE` but not `ALTER TABLE ADD CONSTRAINT`,
+so the validation is the only enforcement there).
+
+The loop body moved to `JobScheduler.run_cycle` so it could be tested at all —
+`scheduler.rb` was a bare `while(true)` with no coverage, which is why every
+previous change to that file survived. `reschedule` now handles an unusable
+interval by alerting and setting `next_run = nil`, the same convention the
+`retire_legacy_job_scripts` migration uses: the row stops being selected instead
+of alerting once a minute forever. `save(validate: false)` there is deliberate —
+the row is already invalid, which is the problem being handled, and a validating
+save would silently fail and leave `next_run` in the past.
+
+`test/models/job_frequency_test.rb` and `test/models/job_scheduler_test.rb`:
+12 runs. Against the pre-fix code 11 of the 12 fail — 5 failures in the frequency
+file, and all 6 of the scheduler file as errors, since `JobScheduler` did not
+exist to be called. The single pass is the control test asserting that a positive
+frequency is accepted, which holds before and after. All 12 pass after the fix.
+
+### 2.5 ✅ Closed — duplicate and blank usernames made accounts unreachable **[bug] [correctness] [security]**
+
+Nothing at any layer enforced username uniqueness. `UsersController#do_logon`
+resolves credentials with `find_by(username:)`, so once two accounts shared a
+name the lower id won and the second account could never sign in — silently, with
+no error anywhere, and the users screen showing both as healthy.
+
+A blank username was also accepted. It is reachable without the admin screen:
+`logon` renders a form that posts to `do_logon`, and submitting it with the
+username field left blank looks up `username => ""`.
+
+**Closed** by a unique index on `users.username` plus `validates :username,
+presence: true, uniqueness: { case_sensitive: false }`. The validation is the
+stricter of the two — the index is byte-wise, so `"Jane"` and `"jane"` are
+distinct rows but collide in the form.
+
+The migration repairs existing damage rather than refusing to run, because
+weding `provision.sh` is worse than the problem: blank usernames become
+`disabled-account-<id>`, and duplicates keep the name on the lowest id while
+later rows get an id suffix. Nothing is deleted, so the account that previously
+could not sign in becomes sign-in-able and an administrator can rename it.
+
+`test/models/username_integrity_test.rb`: 4 runs, all 4 failing before the fix.
+The database-level assertion uses `insert!`, not `insert_all` — the non-bang form
+compiles to `ON CONFLICT DO NOTHING` and would have swallowed the violation
+being asserted.
+
 ---
 
 ## 3. Performance
@@ -662,6 +742,38 @@ against a freshly created database, which is all CI does. Now drops top-level
 tables only, and skips the sequence drop off Postgres. Verified on both adapters,
 Postgres twice in a row.
 
+### 3.5 ✅ Closed — `sessions.session_hash` was unindexed, and expired rows were never reclaimed **[performance] [operations]**
+
+`gatekeeper` runs on every authenticated request and resolves the `:sessionID`
+cookie with `Session.find_by(session_hash:)`. There was no index on that column,
+so the plan was a full table `SCAN` — on the one query every page of the
+application makes.
+
+The table it scanned also grew without bound. `gatekeeper` deleted an expired row
+only when the cookie owning *that row* came back:
+
+```ruby
+if @session.expiry < Time.now
+  @session.destroy          # only ever the row this request's cookie names
+```
+
+An operator who logged in and closed the tab never sent that cookie again, so
+their row was permanent. `do_logon` cleared the logging-in user's own sessions,
+which is deliberate re-login eviction and does not help anyone else's rows.
+
+**Closed** three ways: a unique index on `sessions.session_hash` (unique because
+the token is the sole bearer credential — two rows sharing one would mean two
+users sharing a login); `Session.purge_expired`, called from `do_logon` so
+ordinary traffic reclaims abandoned rows; and a `prune_sessions` `JobHandler`,
+seeded hourly like the other maintenance Jobs, so cleanup also happens on an
+instance that sees no logins.
+
+`test/models/session_integrity_test.rb` (4 runs, all failing before the fix) and
+`test/controllers/session_reclaim_test.rb` (2 runs, 1 failing).
+The reclaim tests create the abandoned row under a *different* user, because
+`do_logon`'s existing per-account eviction would otherwise make the assertion
+pass for the wrong reason.
+
 ---
 
 ## 4. Maintainability
@@ -843,6 +955,32 @@ underneath the authorisation check every controller funnels through.
 One known flake: an intermittent `SQLite3::BusyException` in the threaded-path
 tests. It is the same single-writer constraint as §4.1 and predates all recent
 work. Confirmed by rerun — a failing run passes immediately afterwards.
+
+### 4.4 ✅ Closed — twelve admin index actions loaded whole tables **[performance] [maintainability]**
+
+Twelve index actions assigned a bare `Model.all` and rendered every row:
+`sessions`, `statistics`, `comments`, `exclusions`, `searches`, `displays`,
+`jobs`, `rights`, `roles`, `users`, `systems`, `preferences`. Two of those tables
+grow without bound — `statistics` is an append-only series written by the
+ingestion pipeline, `sessions` per §3.5 — so those two admin screens eventually
+stop rendering at all.
+
+**Closed** by `ApplicationController#paginate` plus a `pagination_nav` view
+helper, applied to all twelve actions and views. Hand-rolled rather than a gem:
+the app already pins sprockets 3 and jquery-rails for asset-pipeline reasons
+(see the Gemfile notes), and a dependency is not worth adding to page a table.
+`paginate` is `protected`, not public — `ActionController::Base` advertises every
+public method as an action, so a public helper would have made `/sessions/paginate`
+routable.
+
+`?page` is clamped at both ends: a non-numeric or non-positive value falls back
+to page 1, and a page past the last one is pulled back to it. Without the upper
+clamp `?page=999` on a 3-page table offset past the final row, so the screen
+rendered an empty list while still offering a Prev link.
+
+Covered by `test/controllers/index_pagination_test.rb`: 5 runs, all failing
+before the fix. Assertions go through rendered HTML rather than `assigns`, which
+needs the `rails-controller-testing` gem the project does not carry.
 
 ---
 
@@ -1487,6 +1625,10 @@ Verified closed against the current tree:
 | §3.1 | Statistics helpers re-running the same grouped query per reduction; `system_service_stats` N+1 (4 finds → 0); duplicate `hourly_stats` call in the dashboard template (5 grouped queries → 4 per render) | this branch |
 | §2.1 | Four admin screens: `sessions#index`/`#show` 500'd on removed route helpers; `jobs#test` 500'd on nil `@job`; `Users#destroy` orphaned Session rows and 500'd subsequent requests; `Users#update` locked accounts out on a blank password and could persist plaintext; `Users#create` accepted an empty password. Plus request-spec coverage for all of it | #23 |
 | §2.3 | Dashboard search form: the timeframe toggle branched on the checkbox *key* rather than its value, so every form search used an empty now→now window. Writing the missing request test also surfaced a `nil.to_fs` crash on unparseable date fields (a 500 on HTML, a silently skipped `#stats` update on the remote `.js` path), `@timeframes` vs `@timeframe` in the partial, and a zero `numresults` limit | `7e0f435` |
+| §2.4 | A blank Frequency field in the job form saved a nil `frequency`; `scheduler.rb` then raised on the reschedule line, which sat outside its `rescue`, killing the process under `Restart=always` and crash-looping every Job. Loop body extracted to `JobScheduler` so it could be tested | this branch |
+| §2.5 | No username uniqueness at any layer: `do_logon` uses `find_by`, so a second account with a taken name could never sign in, silently. Blank usernames also accepted and reachable from the login form. Unique index + validation; migration repairs existing dupes/blanks without deleting anything | this branch |
+| §3.5 | `gatekeeper`'s per-request `find_by(session_hash:)` was a full table SCAN, and expired rows were only deleted when the owning cookie returned, so the table grew forever. Unique index, `Session.purge_expired` on login, `prune_sessions` handler | this branch |
+| §4.4 | Twelve index actions assigned a bare `Model.all`; `sessions` and `statistics` grow without bound, so those screens eventually stopped rendering. `ApplicationController#paginate` + `pagination_nav`, no new gem | this branch |
 | §1.4 | 43 bundle-audit advisories cleared by a patch-level `bundle update` (rails 8.1.4 → 8.1.4.1, rack, loofah, rails-html-sanitizer, nokogiri, addressable, sqlite3). No Gemfile constraint changed | `40a7ac8` |
 | §1.2 | All four remaining bundle-audit advisories cleared (`httparty` deleted as unused; `jquery-rails` 4.6.1 **plus** `//= require jquery3`, which is what actually ships jQuery 3.7.1 — the gem bump alone ships 1.12.4; vendored Highcharts adapter patched `.bind`/`.unbind` → `.on`/`.off`); both CI security gates made blocking; new `assets` CI job precompiles and boots with a manifest present | `bbdd4b4` |
 | — | **Boot regression introduced by the 8.1 upgrade**: the `json ~> 3.1` pin broke sprockets 3.7.5, which calls `JSON.parse(obj, create_additions: false)` in its manifest reader, so the app could not boot when a compiled manifest already existed. CI missed it because a fresh checkout has no manifest and `rake test` never reads one. `json` restored to `~> 2.7`; sprockets 4 is not an escape hatch (identical call). | `bf1fd80` |

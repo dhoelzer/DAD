@@ -85,6 +85,27 @@ if EventPartitioning.supported?
   end
 end
 
+# Expired login sessions.
+#
+# gatekeeper only deletes an expired session row when the cookie owning it comes
+# back, so an operator who logs in and closes the tab leaves that row behind
+# permanently. do_logon reclaims them as a side effect of ordinary traffic, but a
+# quiet instance still accumulates rows, and the per-request cookie lookup reads
+# the whole sessions table.
+admin = User.find_by(username: admin_user)
+if admin && !Job.exists?(script: 'prune_sessions')
+  Job.create!(
+    name: 'Prune expired sessions',
+    description: 'Reclaims login sessions whose expiry has passed, including ones ' \
+                 'whose browser was closed and never came back.',
+    user: admin,
+    script: 'prune_sessions',
+    frequency: 3_600,
+    next_run: Time.now,
+    last_run: nil
+  )
+end
+
 # Dashboard feed sizing.
 #
 # recent_events self-tunes how many lines the live dashboard shows, but it runs

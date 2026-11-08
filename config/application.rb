@@ -58,7 +58,12 @@ module Events
     Dir[Rails.root.to_s + '/app/models/**/*.rb'].each do |file| 
       begin
         require file
-      rescue
+      rescue => e
+        # A model that fails to load is missing from $_models, so its nav-bar tab
+        # silently disappears -- which reads like a routing or permissions
+        # problem. Logged rather than raised: one broken model should not stop
+        # the app booting, but it must not be invisible either.
+        warn "DAD: failed to load model #{file}: #{e.class}: #{e.message}"
       end
     end
 

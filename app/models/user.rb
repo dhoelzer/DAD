@@ -15,6 +15,19 @@ class User < ActiveRecord::Base
 
   BCRYPT_COST = 12
 
+  # do_logon resolves credentials with find_by(username:), so a duplicate name
+  # makes the second account permanently unreachable rather than merely
+  # untidy, and an empty username is reachable by submitting the login form with
+  # the field left blank. The unique index added alongside this is the real
+  # guarantee; the validation exists so the form reports it instead of raising.
+  #
+  # case_sensitive: false matches the index's intent, not its mechanism: the
+  # index is byte-wise, so "Jane" and "jane" are distinct rows in the database
+  # but collide here. That asymmetry is deliberate -- the validation is the
+  # stricter of the two, so it can never be bypassed by casing.
+  validates :username, presence: true,
+                       uniqueness: { case_sensitive: false }
+
   # Hashes +password+ with bcrypt and stores the self-describing hash.
   #
   # Call this instead of assigning #password directly (UsersController#create

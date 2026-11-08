@@ -7,7 +7,7 @@ class CommentsController < ApplicationController
 
   # Lists all comments records. No pagination or filtering.
   def index
-    @comments = Comment.all
+    @comments = paginate(Comment.all)
   end
 
   # One comment, addressed by id. @comment is loaded by the

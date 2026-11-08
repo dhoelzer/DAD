@@ -8,7 +8,7 @@ class JobsController < ApplicationController
 
   # Lists all jobs records. No pagination or filtering.
   def index
-    @jobs = Job.all
+    @jobs = paginate(Job.all)
   end
 
   # One job, addressed by id. @job is loaded by the

@@ -11,7 +11,7 @@ class RightsController < ApplicationController
 
   # Lists all rights records. No pagination or filtering.
   def index
-    @rights = Right.all
+    @rights = paginate(Right.all)
   end
 
   # One right, addressed by id. @right is loaded by the
