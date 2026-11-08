@@ -11,7 +11,7 @@ class PreferencesController < ApplicationController
 
   # Lists all preferences records. No pagination or filtering.
   def index
-    @preferences = Preference.all
+    @preferences = paginate(Preference.all)
   end
 
   # One preference, addressed by id. @preference is loaded by the

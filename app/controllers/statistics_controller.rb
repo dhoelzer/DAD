@@ -7,7 +7,7 @@ class StatisticsController < ApplicationController
 
   # Lists all statistics records. No pagination or filtering.
   def index
-    @statistics = Statistic.all
+    @statistics = paginate(Statistic.all)
   end
 
   # One statistic, addressed by id. @statistic is loaded by the

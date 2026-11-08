@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_17_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_08_000001) do
   create_table "alerts", force: :cascade do |t|
     t.integer "system_id", limit: 8
     t.integer "service_id", limit: 8
@@ -88,7 +88,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_17_000001) do
     t.integer "last_event_id", limit: 8
     t.datetime "last_run", precision: nil
     t.datetime "next_run", precision: nil
-    t.integer "frequency"
+    t.integer "frequency", default: 3600
     t.datetime "created_at", precision: nil
     t.datetime "updated_at", precision: nil
   end
@@ -144,6 +144,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_17_000001) do
     t.datetime "expiry", precision: nil
     t.datetime "created_at", precision: nil, null: false
     t.datetime "updated_at", precision: nil, null: false
+    t.index ["session_hash"], name: "index_sessions_on_session_hash", unique: true
   end
 
   create_table "statistics", force: :cascade do |t|
@@ -177,6 +178,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_17_000001) do
     t.datetime "lastlogon", precision: nil
     t.datetime "created_at", precision: nil, null: false
     t.datetime "updated_at", precision: nil, null: false
+    t.index ["username"], name: "index_users_on_username", unique: true
   end
 
   create_table "words", force: :cascade do |t|

@@ -9,7 +9,7 @@ class ExclusionsController < ApplicationController
 
   # Lists all exclusions records. No pagination or filtering.
   def index
-    @exclusions = Exclusion.all
+    @exclusions = paginate(Exclusion.all)
   end
 
   # One exclusion, addressed by id. @exclusion is loaded by the

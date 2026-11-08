@@ -62,6 +62,38 @@ class ApplicationController < ActionController::Base
     CONTROLLER_RIGHTS[controller]
   end
 
+  # Caps an index action's result set at one page.
+  #
+  # Twelve index actions assigned a bare Model.all and rendered every row. Two
+  # of those tables grow without bound, so the screens eventually stopped
+  # rendering. The order is explicit because LIMIT/OFFSET without a stable
+  # ordering can repeat or skip rows between pages. Sets @page/@pages/@total for
+  # the view's pagination_nav.
+  #
+  # protected rather than private: subclass index actions call it on themselves,
+  # and a public method here would be advertised as an action on every
+  # controller (see #action_methods).
+  protected
+
+  def paginate(scope, order: :id)
+    @total = scope.count
+    @pages = (@total.to_f / PaginationHelper::PAGE_SIZE).ceil
+    @page = requested_page(@pages)
+    scope.reorder(order => :asc)
+         .limit(PaginationHelper::PAGE_SIZE)
+         .offset((@page - 1) * PaginationHelper::PAGE_SIZE)
+  end
+
+  # Clamped at both ends. A non-numeric or non-positive page param falls back to
+  # page 1 rather than raising, and a page past the last one is pulled back to it
+  # -- otherwise ?page=999 on a 3-page table renders an empty list and offers a
+  # Prev link to page 998.
+  def requested_page(pages)
+    page = params[:page].to_i
+    page = 1 if page < 1
+    page > pages ? [pages, 1].max : page
+  end
+
   # Everything below is request plumbing, not actions. ActionController::Base
   # treats every public method as a candidate action (see #action_methods), so
   # leaving the filters public advertised #ssl, #gatekeeper, #set_session_cookie

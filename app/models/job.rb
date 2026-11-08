@@ -7,6 +7,16 @@
 class Job < ActiveRecord::Base
   belongs_to :user
 
+  # A nil, zero or negative frequency is not a cosmetic problem: scheduler.rb
+  # computes `next_run = now + frequency.seconds`, so nil raises NoMethodError
+  # and <= 0 parks next_run in the past, re-running the Job every cycle. A blank
+  # number_field in the job form arrives as nil, which is how this was reached
+  # in practice.
+  validates :frequency, numericality: {
+    only_integer: true, greater_than: 0,
+    message: 'must be a positive number of seconds'
+  }
+
   validate :script_names_a_handler
 
   # Rejects a Job whose script is not a registered handler name. This is the

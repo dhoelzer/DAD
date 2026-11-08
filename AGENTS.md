@@ -5,7 +5,11 @@ Log aggregation/monitoring app: `syslog.pl` (UDP/514 collector) → `Logs/LogSta
 inverted index) → Rails UI (dashboards, search, alerts, jobs, custom RBAC).
 `scheduler.rb` polls the `jobs` table and runs each `script` through the
 `JobHandler::HANDLERS` allowlist — it does *not* `eval` it (see "Former
-landmines" below; the `eval` sink is gone).
+landmines" below; the `eval` sink is gone). `scheduler.rb` itself is only the
+`while(true)` loop; the loop body is `JobScheduler.run_cycle`
+(`app/models/job_scheduler.rb`), which is where per-Job fault isolation lives and
+where the tests are. Keep it that way: an untestable inline loop is what let a nil
+`Job#frequency` crash the process past the `rescue` (§2.4).
 
 ## Build / test (as of the reproducible-build branch)
 - Toolchain: Ruby 3.3.8 + Bundler 2.6.7 (pinned in `.ruby-version` / `Gemfile.lock`
@@ -265,9 +269,11 @@ landmines" below; the `eval` sink is gone).
   window is gone; and `Event.recent_events` drops blank/nil patterns before `Regexp.union`,
   so an empty exclusion list no longer empties the feed.
   Grep for `\beval(` under app/ and lib/ returns nothing.
-- The suite is green: 379 runs / 968 assertions on SQLite (32 skips) and 382 /
-  1062 on partitioned Postgres (2 skips); cucumber is 5 scenarios / 18 steps on
-  both engines.
+- The suite is green on both engines: 406 runs / 1018 assertions on SQLite
+  (32 skips), 409 / 1110 on Postgres (3 skips). The gap is not a discrepancy:
+  29 tests skip on SQLite and run on Postgres, and 3 more are defined only there,
+  so SQLite executes 374 tests and Postgres 406. cucumber is 5 scenarios / 18
+  steps on both.
   Counts drift — run the suite rather than trusting this one. The assertion count rose
   from 534 at Rails 6.1 with no test logic changed: AS 7.1's
   `assert_difference`/`assert_no_difference` route their block through minitest's

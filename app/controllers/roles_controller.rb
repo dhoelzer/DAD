@@ -48,7 +48,7 @@ class RolesController < ApplicationController
 
   # Lists all roles records. No pagination or filtering.
   def index
-    @roles = Role.all
+    @roles = paginate(Role.all)
   end
 
   # One role, addressed by id. @role is loaded by the

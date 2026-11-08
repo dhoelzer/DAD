@@ -11,7 +11,7 @@ class SessionsController < ApplicationController
   # GET /sessions (and .json) -- every session row, i.e. who is logged in and when
   # each session expires. No pagination.
   def index
-    @sessions = Session.all
+    @sessions = paginate(Session.all)
   end
 
   # GET /sessions/1 (and .json) -- one session row.

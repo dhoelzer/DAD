@@ -389,6 +389,7 @@ executed anywhere. `JobHandler::HANDLERS` is the whole set:
 | `disk_utilization` | reports usage of the partition holding the event archives |
 | `maintain_event_partitions` | creates next month's partitions, archives and drops expired ones (Postgres only; seeded daily) |
 | `tune_dashboard_feed` | persists the self-tuned live-feed size (seeded hourly) |
+| `prune_sessions` | reclaims login sessions whose expiry has passed (seeded hourly) |
 
 Adding a capability means adding an entry to `JobHandler::HANDLERS` and
 deploying — it is deliberately not something an operator can do from the web UI.
@@ -399,6 +400,14 @@ deploying — it is deliberately not something an operator can do from the web U
 A failing job is rescued, raises a **Critical** alert, and is still rescheduled —
 so a permanently broken Job raises an alert on every cycle forever. Fix or delete
 the Job rather than ignoring the alert.
+
+A Job whose `frequency` is unusable (blank, zero or negative) is treated
+differently, because rescheduling it is what used to crash the scheduler: it
+raises a **Critical** alert and sets `next_run` to NULL, which disables it. It
+will not run again until an operator puts a positive interval in the Jobs form.
+That is deliberate — a row that cannot be scheduled should stop, not restart the
+service every 60 seconds. `frequency` is validated on save and constrained in the
+database, so this mainly catches rows written before the constraint existed.
 
 Migration `20261014000001` cleared the `script` and `next_run` of every Job row
 written under the old `eval` design, because that Ruby cannot be translated into
@@ -431,6 +440,16 @@ its expiry to +1 hour on each request. Consequences worth knowing: leaking
 `SECRET_KEY_BASE` defeats CSRF protection but does **not** impersonate anyone, and
 rotating it logs nobody out (sessions are rows, not payloads) — see
 "Rotating the signing key" above.
+
+A row is deleted when its token is presented after expiry, when the same user
+logs in again, and by `Session.purge_expired`, which runs on logon and through
+the seeded `prune_sessions` Job. The last two matter because a browser that was
+closed never presents its token again, and that lookup is indexed on
+`session_hash` — it runs on every authenticated request.
+
+Admin list screens (users, sessions, jobs, roles, rights, preferences, comments,
+exclusions, searches, displays, systems, statistics) are paginated at 25 rows per
+page; `?page=N` selects one. Nothing in the UI loads a whole table.
 
 ---
 

@@ -29,6 +29,13 @@ class JobHandler
     end,
     'maintain_event_partitions' => ->(_arg) { EventPartitioning.maintain },
     'tune_dashboard_feed' => ->(_arg) { Event.tune_dashboard_feed_size },
+    # Session rows are only deleted by gatekeeper when the cookie owning them
+    # comes back, so an abandoned login leaves its row forever and the table the
+    # per-request cookie lookup reads grows without bound.
+    'prune_sessions' => ->(_arg) {
+      removed = Session.purge_expired
+      "reclaimed #{removed} expired session#{'s' unless removed == 1}"
+    },
   }.freeze
 
   # Names an operator may select in the Jobs form.

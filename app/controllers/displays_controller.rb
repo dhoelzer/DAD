@@ -8,7 +8,7 @@ class DisplaysController < ApplicationController
 
   # Lists all displays records. No pagination or filtering.
   def index
-    @displays = Display.all
+    @displays = paginate(Display.all)
   end
 
   # One display, addressed by id. @display is loaded by the
