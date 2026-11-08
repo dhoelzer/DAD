@@ -10,7 +10,10 @@
 	["1 week", 604800],
 	["All records", 50000000]
 	] %>
-<%= select_tag 'timeframe', options_for_select(timeframes, (@timeframes.nil? ? "600" : @timeframes))%>
+<%# @timeframe, not @timeframes: the controller sets the singular. Reading the
+    plural always yielded nil, so the select snapped back to "10 minutes" after
+    every search whatever the operator had picked. %>
+<%= select_tag 'timeframe', options_for_select(timeframes, (@timeframe.nil? ? "600" : @timeframe))%>
 <% num_results = [50, 100, 200, 500, 1000, 5000, 10000, 50000] %>
 <%= select_tag 'numresults', options_for_select(num_results, (@num_results.nil? ? 100 : @num_results)) %>
 <%= check_box "timesearch_enabled", "enabled" %> Timeframe Search?
