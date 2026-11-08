@@ -3,7 +3,10 @@
 # Events are never created or edited here -- ingestion writes them (see
 # EventIngestor.storeEvent). This controller only queries and renders.
 class EventsController < ApplicationController
-  DEFAULT_TIMEFRAME = 3600
+  # Matches the form's own preselected option, so a request that omits the
+  # parameter (the word links in _event_detail.html.erb do, on the live
+  # dashboard, where @timeframe is nil) searches the window the UI advertises.
+  DEFAULT_TIMEFRAME = 600
   DEFAULT_NUM_RESULTS = 100
 
 
