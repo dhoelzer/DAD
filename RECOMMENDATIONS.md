@@ -30,7 +30,7 @@ than carried forward.
 | Poison line / observability | Closed — per-line `rescue StandardError`, failures counted as a `Statistic`, `Rails.logger` broadcast to the journal (§5.3, `c5d82ab` + `94654d1`) |
 | Rails upgrade | **Closed: 4.2 → 5.2 → 6.1 → 7.1 → 7.2 → 8.0 → 8.1.4 landed** (§5.2, tag `rails-8.1.4`) |
 | Rails EOL | Closed — Rails is on the current stable line (8.1, supported to Oct 2027) |
-| CI security gates | **Closed — three gates now blocking**: bundle-audit, Brakeman, and `gitleaks` over the working tree (§1.2, §1.1) |
+| CI security gates | Gates are wired and blocking (§1.2, §1.1) — but **the dependency gate is currently red: 43 advisories, all cleared by a patch-level `bundle update` (§1.4)** |
 | `Event` size and class-variable state | **Was open — closed (§4.1)** — ingestion extracted to `EventIngestor`; model down to 302 lines, 0 ingest class variables |
 | Partitioning, full-text search | Closed — `events`/`events_words` partitioned by `generated` with drop-based retention (§3.2); search cost cut 25–68% (§3.3); prefix search was returning nothing on Postgres collations, fixed (§3.4) |
 
@@ -212,6 +212,59 @@ catch this — it only covered the field being absent or empty, never prefilled.
 `password_field` (Rails renders password fields with `value: nil`, so the hash is
 never sent to the browser). `credential_exposure_test.rb` pins all of it, including
 the browser round-trip; against the pre-fix views those tests produce 4 failures.
+
+### 1.4 🟠 The blocking dependency gate is red: 43 advisories, all fixed by a patch-level bump **[security] [operations]**
+
+`bundle exec bundle-audit check --update` — the gate §1.2 made blocking — now fails.
+It reports **43 unique (gem, advisory) pairs across 11 gems**, and the `security` CI
+job fails on any branch that runs it today, including documentation-only ones.
+
+This is not a regression in this repository. Rails released **8.1.4.1 on
+2026-11-04**; `Gemfile.lock` is pinned at 8.1.4 (2026-09-24). The advisory database
+updated underneath the lock.
+
+| gem | locked | advisory count | fixed in |
+|---|---|---|---|
+| `actionpack` | 8.1.4 | 7 (2 High) | 8.1.4.1 |
+| `activestorage` | 8.1.4 | 7 (1 **Critical**, 1 High) | 8.1.4.1 |
+| `actionview` | 8.1.4 | 4 | 8.1.4.1 |
+| `activesupport` | 8.1.4 | 2 (1 High) | 8.1.4.1 |
+| `actionmailbox` | 8.1.4 | 1 | 8.1.4.1 |
+| `addressable` | 2.9.0 | 7 | 2.9.1 |
+| `loofah` | 2.25.2 | 6 | 2.25.3 |
+| `rack` | 2.2.24 | 3 (1 High) | ~> 2.2.25 |
+| `nokogiri` | 1.19.4 | 3 | 1.19.5 |
+| `rails-html-sanitizer` | 1.7.1 | 2 | 1.7.2 |
+| `sqlite3` | 2.10.0 | 1 | 2.10.2 |
+
+**The fix is a `bundle update`, not an upgrade.** The Gemfile constrains
+`rails '~> 8.1.0'`, which already permits 8.1.4.1 — the lock is simply older than
+the release. `bundle update rails rails-html-sanitizer loofah nokogiri rack
+sqlite3 addressable` should clear all 43 without touching a constraint. Verify on
+both engines afterwards (§3.2), and note the `minitest ~> 5.25` pin in `AGENTS.md`
+is not affected by a Rails patch bump.
+
+**Exploitability, so this is not over- or under-stated.** The headline Critical —
+`GHSA-f3w6-w445-fwh9`, arbitrary file read and RCE in Active Storage video
+previews/analysis — is **not reachable here**: there is no `has_one_attached` or
+`has_many_attached` anywhere in the app, no `active_storage_*` tables, and
+`config/storage.yml` exists only so production survives eager-loading
+`ActiveStorage::Blob` (see the comment at the top of that file). The same covers the
+other six Active Storage advisories and the Action Mailbox Mailgun ingress one.
+
+The sanitizer chain is also not on a live path: nothing in `app/` or `lib/` calls
+`sanitize` or `strip_tags`, so the loofah / rails-html-sanitizer / nokogiri advisories
+have no caller. `addressable` arrives through `capybara` (test group only) and
+`sqlite3` is dev/test — production uses `pg`.
+
+What **is** on the live path is the Action Pack / Action View set: missing
+SameSite on session cookies, XSS in the `highlight` and `strip_tags` helpers, the
+Strong Parameters `each_key` bypass, Action Dispatch RemoteIp spoofing, and the
+multipart parser DoS. Those are the reason this is 🟠 rather than a note.
+
+**Also stale:** `AGENTS.md` asserts "`bundle exec bundle-audit check` reports **0
+advisories**" — the same file then warns that such counts rot. It has. Correct it
+as part of closing this item, and prefer re-running the audit to quoting a number.
 
 ---
 

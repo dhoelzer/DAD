@@ -171,12 +171,16 @@ landmines" below; the `eval` sink is gone).
     the mock.
 - Last upstream commit: 2016-10-01. Before the reproducible-build branch: `rails '> 4'`
   unpinned, no `Gemfile.lock`, no `db/schema.rb`, no CI.
-- `bundle exec bundle-audit check` reports **0 advisories**. Both former findings are
-  gone: `httparty` was dropped entirely (nothing in app/, lib/ or test/ used it; the
-  Gemfile keeps a comment saying so), and `jquery-rails` is now `~> 4.6.0` (4.6.1),
-  past the 4.4.0 that fixed CVE-2020-11023/CVE-2020-23064. Re-run the audit rather
-  than trusting any count written here — this bullet asserted "4 advisories" long
-  after both were fixed, which sends the next session hunting a CVE that does not exist.
+- **Re-run `bundle exec bundle-audit check` — do not trust a count written here.**
+  This bullet asserted "4 advisories" long after both were fixed, then "0
+  advisories", which is also stale: as of 2026-11-08 it reports 43 across 11 gems,
+  because Rails 8.1.4.1 shipped on 2026-11-04 and `Gemfile.lock` is still pinned at
+  8.1.4. See RECOMMENDATIONS §1.4 — the fix is a `bundle update`, not an upgrade,
+  since the Gemfile already allows `~> 8.1.0`. The two *former* findings this bullet
+  used to describe are genuinely gone: `httparty` was dropped entirely (nothing in
+  app/, lib/ or test/ used it; the Gemfile keeps a comment saying so), and
+  `jquery-rails` is now `~> 4.6.0` (4.6.1), past the 4.4.0 that fixed
+  CVE-2020-11023/CVE-2020-23064. Neither appears in the current audit output.
 - `/users` (HTML) no longer renders the bcrypt `password_hash` column (closed at
   `365c845`, RECOMMENDATIONS §1.3). PR #4 had fixed only the JSON API; the three HTML
   views were missed. `grep -rn password_hash app/views/` is empty.
