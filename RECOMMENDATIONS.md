@@ -1281,17 +1281,21 @@ three processes fit together, and where logs go.
 
 ## 6. Recommended sequence
 
+Everything in this table is now done except §1.1's operator-side step. It is kept
+as the record of the order the work went in, with the stale "why here" wording
+corrected in place.
+
 | Priority | Item | Effort | Why here |
 |---|---|---|---|
-| 1 | §1.1 production secret: rotate + secret scanning | hours | Impersonation risk if any deployment still uses the 2015 key |
+| 1 | §1.1 production secret: rotate + secret scanning — repo side **done** (`bin/rotate_secret_key_base`, `.gitleaks.toml`, blocking CI step); rotation on any live host remains with the operator | hours | CSRF-token exposure if any deployment still uses the 2015 key — **not** impersonation; see §1.1 for why the original wording was wrong |
 | 2 | ~~§1.2 make security gates blocking~~ **done** (`bbdd4b4`, 0 advisories / 0 warnings) | — | — |
 | 2b | ~~Decide on §4.3's GET-with-side-effects~~ **done** (`60aedf6`, both now POST) | — | — |
 | 3 | ~~§4.1 option A: subprocess coverage of threaded ingest~~ **done** (`94654d1`) | — | — |
 | 4 | ~~§5.3 poison-line handling + `Rails.logger`~~ **done** (`c5d82ab`) | — | — |
 | 5 | ~~§5.1 systemd units~~ **done** (`bf547e0`) | — | — |
 | 5b | ~~§5.2 step 0: back-portable prep~~ **done** | — | Landed with the 5.2 step |
-| 6 | §5.2 Rails **7.2 → 8.1** (5.2, 6.1 and 7.1 landed; see the staged plan there) | weeks, not months — the Ruby jump is already done | Gates §3.2, §4.1-C, and blocking security gates |
-| 7 | ~~§3.2 partitioning, §3.3 FTS~~ **done**; §4.1-B `EventIngestor` remains | ongoing | Real work, but bounded by the above |
+| 6 | ~~§5.2 Rails **7.2 → 8.1**~~ **done** (tag `rails-8.1.4`) | — | Gates §3.2, §4.1-C, and blocking security gates |
+| 7 | ~~§3.2 partitioning, §3.3 FTS, §4.1-B `EventIngestor`~~ **done** | — | Real work, but bounded by the above |
 | 8 | ~~§5.4 LICENSE, §5.5 README, §4.2 dead code~~ **done** (`68a6c39`, `58407e9`, `4ee7458`) | — | — |
 
 **The pattern worth acting on.** Three separate findings in this review — the

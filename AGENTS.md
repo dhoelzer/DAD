@@ -3,7 +3,9 @@
 Log aggregation/monitoring app: `syslog.pl` (UDP/514 collector) → `Logs/LogStaging` →
 `Logs/LogsToProcess` → `import_syslog.rb` → Postgres (`events` + `words` + `events_words`
 inverted index) → Rails UI (dashboards, search, alerts, jobs, custom RBAC).
-`scheduler.rb` polls the `jobs` table and `eval`s each `script`.
+`scheduler.rb` polls the `jobs` table and runs each `script` through the
+`JobHandler::HANDLERS` allowlist — it does *not* `eval` it (see "Former
+landmines" below; the `eval` sink is gone).
 
 ## Build / test (as of the reproducible-build branch)
 - Toolchain: Ruby 3.3.8 + Bundler 2.6.7 (pinned in `.ruby-version` / `Gemfile.lock`
