@@ -14,7 +14,7 @@ attach_spinner = function() {
 };
 
 $("#spinner").hide();
-$("#stats").text("Elapsed time: <%= @search_time %> - <%= @events.count%> events match that search:");
+$("#stats").text("Elapsed time: <%= @search_time %> - <%= @events.count%> events match that search<%= " -- #{@search_note}" if @search_note %>");
 $("#events").html("<%=raw escape_javascript render partial: 'search_results' %>");
 attach_spinner();
 document.getElementById('search_terms').value = <%= js_literal @previous_search.to_s %>;

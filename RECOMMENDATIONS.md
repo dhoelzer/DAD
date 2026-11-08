@@ -24,12 +24,13 @@ than carried forward.
 | Secrets in the working tree | Closed — clean under `gitleaks`; a production key remains in git history, rotation path now provided (§1.1) |
 | Ingestion crash-safety and idempotency | Closed, at-least-once — documented in the README (§2.2) |
 | Search indexing, dashboard SQL portability, timestamp parsing | Closed |
-| Test suite | Green: 367 runs / 932 assertions on SQLite, and 370 / 1026 on partitioned Postgres; cucumber features run on both engines in CI |
+| Dashboard search form timeframe toggle | **Closed at `7e0f435` — §2.3**: the relative timeframe dropdown was dead; every form search used an empty now→now window |
+| Test suite | Green on both engines: 379 runs / 968 assertions on SQLite, 382 / 1062 on partitioned Postgres (2026-11-08 CI); cucumber features run on both |
 | Admin screens (sessions, users, jobs) | Closed — now covered by request tests (§2.1) |
 | Poison line / observability | Closed — per-line `rescue StandardError`, failures counted as a `Statistic`, `Rails.logger` broadcast to the journal (§5.3, `c5d82ab` + `94654d1`) |
-| Rails upgrade | **Closed: 4.2 → 5.2 → 6.1 → 7.1 → 7.2 → 8.0 → 8.1.4 landed** (§5.2, tag `rails-8.1.4`) |
+| Rails upgrade | **Closed: 4.2 → 5.2 → 6.1 → 7.1 → 7.2 → 8.0 → 8.1.4 landed** (§5.2, tag `rails-8.1.4`); lock now on the 8.1.4.1 patch release (§1.4) |
 | Rails EOL | Closed — Rails is on the current stable line (8.1, supported to Oct 2027) |
-| CI security gates | **Closed — three gates now blocking**: bundle-audit, Brakeman, and `gitleaks` over the working tree (§1.2, §1.1) |
+| CI security gates | **Closed** — gates wired and blocking (§1.2, §1.1); the 43-advisory regression cleared at `40a7ac8`, audit now clean (§1.4) |
 | `Event` size and class-variable state | **Was open — closed (§4.1)** — ingestion extracted to `EventIngestor`; model down to 302 lines, 0 ingest class variables |
 | Partitioning, full-text search | Closed — `events`/`events_words` partitioned by `generated` with drop-based retention (§3.2); search cost cut 25–68% (§3.3); prefix search was returning nothing on Postgres collations, fixed (§3.4) |
 
@@ -212,6 +213,85 @@ catch this — it only covered the field being absent or empty, never prefilled.
 never sent to the browser). `credential_exposure_test.rb` pins all of it, including
 the browser round-trip; against the pre-fix views those tests produce 4 failures.
 
+### 1.4 ✅ Closed — the dependency gate was red with 43 advisories, all cleared by a patch-level bump **[security] [operations]**
+
+`bundle exec bundle-audit check --update` — the gate §1.2 made blocking — now fails.
+It reports **43 unique (gem, advisory) pairs across 11 gems**, and the `security` CI
+job fails on any branch that runs it today, including documentation-only ones.
+
+This is not a regression in this repository. Rails released **8.1.4.1 on
+2026-11-04**; `Gemfile.lock` is pinned at 8.1.4 (2026-09-24). The advisory database
+updated underneath the lock.
+
+| gem | locked | advisory count | fixed in |
+|---|---|---|---|
+| `actionpack` | 8.1.4 | 7 (2 High) | 8.1.4.1 |
+| `activestorage` | 8.1.4 | 7 (1 **Critical**, 1 High) | 8.1.4.1 |
+| `actionview` | 8.1.4 | 4 | 8.1.4.1 |
+| `activesupport` | 8.1.4 | 2 (1 High) | 8.1.4.1 |
+| `actionmailbox` | 8.1.4 | 1 | 8.1.4.1 |
+| `addressable` | 2.9.0 | 7 | 2.9.1 |
+| `loofah` | 2.25.2 | 6 | 2.25.3 |
+| `rack` | 2.2.24 | 3 (1 High) | ~> 2.2.25 |
+| `nokogiri` | 1.19.4 | 3 | 1.19.5 |
+| `rails-html-sanitizer` | 1.7.1 | 2 | 1.7.2 |
+| `sqlite3` | 2.10.0 | 1 | 2.10.2 |
+
+**The fix is a `bundle update`, not an upgrade.** The Gemfile constrains
+`rails '~> 8.1.0'`, which already permits 8.1.4.1 — the lock is simply older than
+the release. `bundle update rails rails-html-sanitizer loofah nokogiri rack
+sqlite3 addressable` should clear all 43 without touching a constraint. Verify on
+both engines afterwards (§3.2), and note the `minitest ~> 5.25` pin in `AGENTS.md`
+is not affected by a Rails patch bump.
+
+**Exploitability, so this is not over- or under-stated.** The headline Critical —
+`GHSA-f3w6-w445-fwh9`, arbitrary file read and RCE in Active Storage video
+previews/analysis — is **not reachable here**: there is no `has_one_attached` or
+`has_many_attached` anywhere in the app, no `active_storage_*` tables, and
+`config/storage.yml` exists only so production survives eager-loading
+`ActiveStorage::Blob` (see the comment at the top of that file). The same covers the
+other six Active Storage advisories and the Action Mailbox Mailgun ingress one.
+
+The sanitizer chain is also not on a live path: nothing in `app/` or `lib/` calls
+`sanitize` or `strip_tags`, so the loofah / rails-html-sanitizer / nokogiri advisories
+have no caller. `addressable` arrives through `capybara` (test group only) and
+`sqlite3` is dev/test — production uses `pg`.
+
+What **is** on the live path is the Action Pack / Action View set: missing
+SameSite on session cookies, XSS in the `highlight` and `strip_tags` helpers, the
+Strong Parameters `each_key` bypass, Action Dispatch RemoteIp spoofing, and the
+multipart parser DoS. Those are the reason this is 🟠 rather than a note.
+
+**Also stale:** `AGENTS.md` asserted "`bundle exec bundle-audit check` reports **0
+advisories**" — the same file then warns that such counts rot. It had. That bullet
+now says to re-run the audit rather than trust a count written in it.
+
+**Closed at `40a7ac8`** by `bundle update rails rails-html-sanitizer loofah
+nokogiri rack sqlite3 addressable`. No Gemfile constraint changed — `rails
+'~> 8.1.0'` already permitted 8.1.4.1.
+
+```
+rails and all eleven framework gems   8.1.4 -> 8.1.4.1
+rack                    2.2.24 -> 2.2.25     loofah               2.25.2 -> 2.25.3
+rails-html-sanitizer    1.7.1  -> 1.7.2      nokogiri             1.19.4 -> 1.19.7
+addressable             2.9.0  -> 2.9.2      sqlite3              2.10.0 -> 2.10.2
+plus crass, rack-test, irb, io-console, prism as transitive moves
+```
+
+`bundle exec bundle-audit check --update` now reports **No vulnerabilities found**,
+both with and without the `production` group — CI excludes that group via
+`BUNDLE_WITHOUT`, so `pg` was audited separately. `brakeman`: 0 warnings, 0 errors.
+
+Verified locally on the new lock: full suite 379 runs / 0 failures / the same 32
+skips as the pre-bump baseline; `assets:precompile` in production with the JS
+compressor; `rails runner` boots against a sprockets manifest; the built bundle
+still ships jQuery 3.7.1. The Postgres engine is not installed in this
+environment, so that leg is left to the `postgres` CI job.
+
+**The process point stands.** The advisory database moves under a pinned lock
+without any code changing, so a green `security` job is a snapshot, not a
+property. Re-run the audit rather than trusting any count in this file.
+
 ---
 
 ## 2. Correctness
@@ -301,6 +381,67 @@ If exactly-once is ever required, the options are a uniqueness constraint on a
 line fingerprint (costly: needs a hash column and an index over a large table) or
 `INSERT ... ON CONFLICT DO NOTHING` keyed on that fingerprint. Neither is worth
 it unless duplicates are actually causing problems.
+
+### 2.3 ✅ Closed — the dashboard search form always took the absolute-date branch **[bug] [correctness]**
+
+The relative timeframe dropdown on the dashboard is dead: a search submitted from
+the form always runs the absolute-range branch, using the `datetime_select`
+defaults, which are pre-filled to *now → now*. The window is therefore empty and
+the search reports `0 events match` no matter what terms or timeframe were chosen.
+
+`app/views/events/_search.html.erb` renders the toggle with the object-form
+helper:
+
+```erb
+<%= check_box "timesearch_enabled", "enabled" %> Timeframe Search?
+```
+
+Rails emits a hidden `timesearch_enabled[enabled]=0` before it, so an unchecked
+box still submits the parameter — as the Hash `{"enabled"=>"0"}`. In Ruby that
+Hash is truthy, and `EventsController#search` branches on plain truthiness:
+
+```ruby
+if (params[:timesearch_enabled]) then    # truthy even when the box is unchecked
+```
+
+Verified against a running instance: the same terms and window return 100 events
+when `timesearch_enabled` is omitted from the query string, and 0 events when the
+form submits it. Only ticking the box and supplying a real window works today.
+
+The fix is to test the value rather than the presence of the key, and to reject a
+nil range before it reaches `Event.search` — `#search` passed
+`parse_datetime_params` output through unchecked, and the helper's own documented
+contract is that it returns `nil` on nonsensical fields.
+
+**Closed at `7e0f435`.** Writing the missing request test surfaced three further
+defects in the same action, all now pinned:
+
+- **A crash, not just wrong results.** With the box ticked and the date fields
+  unparseable, `parse_datetime_params` returned `nil` and `nil..nil` reached
+  `searchSQL`, which died on `nil.to_fs(:db)`. On the HTML path that is a 500; on
+  the remote `.js` path the dashboard's `#stats` update simply never happened, with
+  no error surfaced to the operator.
+- **`_search.html.erb` read `@timeframes` while the controller sets `@timeframe`.**
+  The plural was always `nil`, so the select snapped back to "10 minutes" after
+  every search whatever the operator had chosen. Invisible while the branch was
+  dead; it would have been the next bug reported once it was fixed.
+- **`numresults` of `0` or garbage** was passed straight through as a zero limit.
+
+`EventsController` now has `timesearch_enabled?` (reads the checkbox *value*),
+`relative_window` and `requested_num_results` (fall back to the form's own
+defaults rather than a zero-length window or a zero limit). An unreadable date
+range is reported in the `#stats` line — chosen over a form-level notice because
+`search.js.erb` replaces `#stats` without re-rendering the form, so a note in the
+partial would have been invisible on the path operators actually use.
+
+`test/controllers/search_form_test.rb` posts the browser's exact parameter shape.
+12 runs: 6 fail against the pre-fix code (3 failures, 3 errors), all 12 pass
+after. Full suite 367 → 379 runs, 0 failures, same 32 skips.
+
+One trap for anyone re-testing this: the ingestor's caches and
+`System`/`Service` `@@cached_stuff` are process-global and survive the per-test
+transaction rollback, so a test that calls `storeEvent` must reset them or it will
+index rows against word and system ids from a previous test.
 
 ---
 
@@ -762,11 +903,14 @@ a Rails upgrade, and the CI security gates can only be made blocking afterwards.
 
 **Baseline at the start of this workstream.** Rails 4.2.11.3 · Ruby 2.7.8 ·
 Bundler 1.17.3 · rack 1.6.13 · sprockets 2.12.5 · SQLite in dev/test, Postgres in
-prod (`pg 0.21.0`). **Current baseline after all steps:** Rails **8.1.4** ·
-Ruby 3.3.8 · Bundler 2.6.7 · rack 2.2 · sprockets 3.7.5 · jbuilder 2.15 ·
-nokogiri 1.19 · pg 1.5 (production group, not exercised by CI) · sqlite3 2.10 ·
-json 3.1 (floor raised at the 8.1 step, once Rails stopped passing `quirks_mode`)
-· minitest 5.27 (still pinned off 6.x) · mail 2.9 · cucumber-rails 3.1.
+prod (`pg 0.21.0`). **Current baseline after all steps** (from `Gemfile.lock`,
+2026-11-08): Rails **8.1.4.1** · Ruby 3.3.8 · Bundler 2.6.7 · rack 2.2.25 ·
+sprockets 3.7.5 · jbuilder 2.15.1 · nokogiri 1.19.7 · pg 1.7 (production group,
+not exercised by the SQLite jobs) · sqlite3 2.10.2 · json 2.21 (pinned to the
+2.x line — see the two reasons in the `Gemfile`; the 8.1 step briefly raised the
+floor to 3.1, which broke sprockets' manifest reader and was reverted at
+`bf1fd80`) · minitest 5.27 (still pinned off 6.x) · mail 2.9 ·
+cucumber-rails 3.1.
 3,680 LOC of Ruby in `app`/`lib`, 1,735 LOC across 90 views (34 of them
 jbuilder), 2,923 LOC of tests, 29 migrations, 22 models, 19 controllers.
 
@@ -1172,11 +1316,12 @@ would start from 194 unit runs against 90 views. The two non-framework advisorie
 in §1.2 (`httparty`, `jquery-rails`) were then the only thing standing between this
 repo and blocking CI security gates.
 
-Both have since closed: the security gates are blocking (§1.2), `httparty` was
-removed and `jquery-rails` moved past the affected versions, so `bundle-audit`
-reports 0 advisories, and the suite is now 367 runs on SQLite / 370 on Postgres.
-The counts above are the historical ones, kept because the surrounding narrative
-depends on them.
+Both have since closed: the security gates are blocking (§1.2), and `httparty`
+was removed and `jquery-rails` moved past the affected versions. The audit has
+since gone red again on its own and been cleared once more (§1.4) — which is the
+point: re-run `bundle-audit` rather than trusting any advisory count written into
+this file. The counts above are the historical ones, kept because the surrounding
+narrative depends on them.
 
 ### 5.3 ✅ Closed — a malformed line no longer kills the collector **[operations] [correctness]**
 
@@ -1281,17 +1426,21 @@ three processes fit together, and where logs go.
 
 ## 6. Recommended sequence
 
+Everything in this table is now done except §1.1's operator-side step. It is kept
+as the record of the order the work went in, with the stale "why here" wording
+corrected in place.
+
 | Priority | Item | Effort | Why here |
 |---|---|---|---|
-| 1 | §1.1 production secret: rotate + secret scanning | hours | Impersonation risk if any deployment still uses the 2015 key |
+| 1 | §1.1 production secret: rotate + secret scanning — repo side **done** (`bin/rotate_secret_key_base`, `.gitleaks.toml`, blocking CI step); rotation on any live host remains with the operator | hours | CSRF-token exposure if any deployment still uses the 2015 key — **not** impersonation; see §1.1 for why the original wording was wrong |
 | 2 | ~~§1.2 make security gates blocking~~ **done** (`bbdd4b4`, 0 advisories / 0 warnings) | — | — |
 | 2b | ~~Decide on §4.3's GET-with-side-effects~~ **done** (`60aedf6`, both now POST) | — | — |
 | 3 | ~~§4.1 option A: subprocess coverage of threaded ingest~~ **done** (`94654d1`) | — | — |
 | 4 | ~~§5.3 poison-line handling + `Rails.logger`~~ **done** (`c5d82ab`) | — | — |
 | 5 | ~~§5.1 systemd units~~ **done** (`bf547e0`) | — | — |
 | 5b | ~~§5.2 step 0: back-portable prep~~ **done** | — | Landed with the 5.2 step |
-| 6 | §5.2 Rails **7.2 → 8.1** (5.2, 6.1 and 7.1 landed; see the staged plan there) | weeks, not months — the Ruby jump is already done | Gates §3.2, §4.1-C, and blocking security gates |
-| 7 | ~~§3.2 partitioning, §3.3 FTS~~ **done**; §4.1-B `EventIngestor` remains | ongoing | Real work, but bounded by the above |
+| 6 | ~~§5.2 Rails **7.2 → 8.1**~~ **done** (tag `rails-8.1.4`) | — | Gates §3.2, §4.1-C, and blocking security gates |
+| 7 | ~~§3.2 partitioning, §3.3 FTS, §4.1-B `EventIngestor`~~ **done** | — | Real work, but bounded by the above |
 | 8 | ~~§5.4 LICENSE, §5.5 README, §4.2 dead code~~ **done** (`68a6c39`, `58407e9`, `4ee7458`) | — | — |
 
 **The pattern worth acting on.** Three separate findings in this review — the
@@ -1337,6 +1486,8 @@ Verified closed against the current tree:
 | — | Ingest throughput measured after the queue reset (a regression introduced by #17): the dashboard EPS chart read 0.0 and `@bulk_insert_size` grew +20 per flush with no ceiling | #22 |
 | §3.1 | Statistics helpers re-running the same grouped query per reduction; `system_service_stats` N+1 (4 finds → 0); duplicate `hourly_stats` call in the dashboard template (5 grouped queries → 4 per render) | this branch |
 | §2.1 | Four admin screens: `sessions#index`/`#show` 500'd on removed route helpers; `jobs#test` 500'd on nil `@job`; `Users#destroy` orphaned Session rows and 500'd subsequent requests; `Users#update` locked accounts out on a blank password and could persist plaintext; `Users#create` accepted an empty password. Plus request-spec coverage for all of it | #23 |
+| §2.3 | Dashboard search form: the timeframe toggle branched on the checkbox *key* rather than its value, so every form search used an empty now→now window. Writing the missing request test also surfaced a `nil.to_fs` crash on unparseable date fields (a 500 on HTML, a silently skipped `#stats` update on the remote `.js` path), `@timeframes` vs `@timeframe` in the partial, and a zero `numresults` limit | `7e0f435` |
+| §1.4 | 43 bundle-audit advisories cleared by a patch-level `bundle update` (rails 8.1.4 → 8.1.4.1, rack, loofah, rails-html-sanitizer, nokogiri, addressable, sqlite3). No Gemfile constraint changed | `40a7ac8` |
 | §1.2 | All four remaining bundle-audit advisories cleared (`httparty` deleted as unused; `jquery-rails` 4.6.1 **plus** `//= require jquery3`, which is what actually ships jQuery 3.7.1 — the gem bump alone ships 1.12.4; vendored Highcharts adapter patched `.bind`/`.unbind` → `.on`/`.off`); both CI security gates made blocking; new `assets` CI job precompiles and boots with a manifest present | `bbdd4b4` |
 | — | **Boot regression introduced by the 8.1 upgrade**: the `json ~> 3.1` pin broke sprockets 3.7.5, which calls `JSON.parse(obj, create_additions: false)` in its manifest reader, so the app could not boot when a compiled manifest already existed. CI missed it because a fresh checkout has no manifest and `rake test` never reads one. `json` restored to `~> 2.7`; sprockets 4 is not an escape hatch (identical call). | `bf1fd80` |
 | §1.3 | bcrypt password hashes rendered into `users/index`, `users/show` and prefilled into the edit form (`text_field :password`) — missed by PR #4, which only fixed the JSON API. Also a functional bug: resubmitting the edit form re-hashed the hash and locked the account out. | `365c845` |

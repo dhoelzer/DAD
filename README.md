@@ -31,7 +31,8 @@ have a search engine over nothing.
                      │   search, alerts, dashboards, users/roles    │
                      │                                              │
                      │ scheduler.rb       (dad-scheduler)           │
-                     │   runs Job rows whose next_run has passed    │
+                     │   runs due Job rows through a fixed handler  │
+                     │   registry — no user-authored code is run    │
                      └──────────────────────────────────────────────┘
 ```
 
@@ -228,6 +229,57 @@ halves: reclaim re-inserts nothing, and no line goes missing.
 
 ---
 
+## Search, displays, and exclusions
+
+**Search is a word index, not a substring index.** Ingest tokenises every line on
+whitespace into `words` and links them to events through `events_words`
+(`EventIngestor.storeEvent`). Before tokenising, the line is downcased and every
+character outside `a-z A-Z 0-9 space - _ : @ * / .` is replaced with a space, so
+indexed words contain only lowercase letters, digits, and `- _ : @ * / .`
+(`events.hunks` still holds the original line, untouched).
+
+`Event.search` splits the query on whitespace, downcases it, and returns events
+that match **every** term, where a term matches if it is a literal **prefix** of an
+indexed word. So `sshd` finds `sshd:` and `sshd2`, but `fail` does not find
+`unfail`. `%` and `_` in a term are escaped to literals. A term containing any other
+punctuation — `=`, `"`, `#`, `,` — can never match, because that character is not
+in any indexed word; it was a word separator on ingest. Word text is also truncated
+at 255 characters, so very long tokens collide on the truncated form.
+
+Results are paged with `offset`/`limit` and ordered oldest-first. The time window
+is required — a search over all history is not a thing the index can answer
+cheaply.
+
+Leaving **Timeframe Search** unticked searches the relative window from the
+*Timeframe* dropdown. Ticking it searches the absolute start/end range instead; if
+those fields cannot be read, the result line says so rather than quietly answering
+a different question.
+
+**Displays** reformat matching events for the event views. A Display is a `key`
+regex plus a `display_script` written in a small line-oriented directive
+language, which is *parsed, never evaluated* — you cannot put Ruby in a display
+filter, and the form says so:
+
+```
+fields 1,2,5        # emit these 1-based positional fields, in this order
+regex PATTERN       # emit PATTERN's capture groups instead of positions
+label 3=proto:      # prefix the 3rd emitted token with "proto:"
+join ,              # join emitted tokens with this separator (default: space)
+```
+
+`#` starts a comment. A malformed spec is rejected on save
+(`DisplayRule.validate`); at render time it degrades to the raw line rather than
+breaking the page.
+
+**Exclusions** only affect the live dashboard feed. `Event.recent_events` drops
+lines matching the union of every Exclusion pattern, and patterns are matched
+**literally** (`Regexp.union` escapes metacharacters), so `sshd.*fail` matches
+those seven characters, not a regex. Blank patterns are ignored — a blank pattern
+would otherwise empty the feed for every user. Exclusions do not affect stored
+data or search results.
+
+---
+
 ## Retention and partition archives
 
 On Postgres, `events` and `events_words` are range-partitioned by month, and
@@ -260,6 +312,10 @@ bin/restore_event_partition events_p202509            # recreate + load
 The restore recreates the partition with the same `FOR VALUES` range the
 maintenance job would have used, then loads the CSV by `COPY`. It refuses to run
 if the partition already exists.
+
+Separately, `bin/export_logs` streams every stored event back out as its original
+log line, one per stdout line, for replaying the corpus into another system. It
+pages by primary key, so it is safe on a table too large to hold in memory.
 
 ### Archive retention (free-space floor)
 
@@ -315,6 +371,66 @@ must not look like an empty disk.
 
 On SQLite there is no partitioning, so none of this applies; the job reports
 `event partitioning is Postgres-only; nothing to do`.
+
+---
+
+## Jobs
+
+A `Job` is a row the scheduler re-runs every `frequency` seconds once `next_run`
+is in the past. Creating one means **choosing an operation from a fixed list** in
+the Jobs form; no Ruby, shell command, or other user-authored code is stored or
+executed anywhere. `JobHandler::HANDLERS` is the whole set:
+
+| operation | what it does |
+|---|---|
+| `prune_words` | trims the importer's in-memory word cache and re-tunes its lifetime |
+| `reset_caches` | clears the importer's class-level caches (needed after a DB rollback) |
+| `reset_stats` | resets the throughput clock behind the EPS chart |
+| `disk_utilization` | reports usage of the partition holding the event archives |
+| `maintain_event_partitions` | creates next month's partitions, archives and drops expired ones (Postgres only; seeded daily) |
+| `tune_dashboard_feed` | persists the self-tuned live-feed size (seeded hourly) |
+
+Adding a capability means adding an entry to `JobHandler::HANDLERS` and
+deploying — it is deliberately not something an operator can do from the web UI.
+`Job` validation rejects a `script` that is not a registered name, and
+`JobHandler.perform` raises `UnknownHandler` rather than falling back to
+`eval`.
+
+A failing job is rescued, raises a **Critical** alert, and is still rescheduled —
+so a permanently broken Job raises an alert on every cycle forever. Fix or delete
+the Job rather than ignoring the alert.
+
+Migration `20261014000001` cleared the `script` and `next_run` of every Job row
+written under the old `eval` design, because that Ruby cannot be translated into
+a handler name and the scheduler would otherwise alert forever. An operator who
+still wants one of those tasks re-creates it by choosing a registered handler.
+
+---
+
+## Access control
+
+Authorization is one fail-closed filter: `ApplicationController::CONTROLLER_RIGHTS`
+maps each controller to the rights that may reach it, and a controller missing
+from that map is unreachable to everyone. The five rights and what they unlock:
+
+| right | grants |
+|---|---|
+| `Admin` | everything, including users, roles, rights, sessions, preferences, services, statistics |
+| `Viewer` | events, alerts, searches, systems |
+| `Commentator` | commenting on alerts, and Exclusions |
+| `Taskmaster` | the Jobs screens |
+| `Detective` | Displays and stored Searches |
+
+Two roles are seeded: **Administrators** (`Admin` only) and **Analyst** (the other
+four). Logon locks an account after 4 failed attempts and resets the counter after
+5 minutes.
+
+Login state is **not** a signed cookie. `gatekeeper` reads `cookies[:sessionID]`,
+a `SecureRandom.hex(32)` token looked up in the `sessions` table, and refreshes
+its expiry to +1 hour on each request. Consequences worth knowing: leaking
+`SECRET_KEY_BASE` defeats CSRF protection but does **not** impersonate anyone, and
+rotating it logs nobody out (sessions are rows, not payloads) — see
+"Rotating the signing key" above.
 
 ---
 

@@ -3,12 +3,15 @@
 Log aggregation/monitoring app: `syslog.pl` (UDP/514 collector) → `Logs/LogStaging` →
 `Logs/LogsToProcess` → `import_syslog.rb` → Postgres (`events` + `words` + `events_words`
 inverted index) → Rails UI (dashboards, search, alerts, jobs, custom RBAC).
-`scheduler.rb` polls the `jobs` table and `eval`s each `script`.
+`scheduler.rb` polls the `jobs` table and runs each `script` through the
+`JobHandler::HANDLERS` allowlist — it does *not* `eval` it (see "Former
+landmines" below; the `eval` sink is gone).
 
 ## Build / test (as of the reproducible-build branch)
 - Toolchain: Ruby 3.3.8 + Bundler 2.6.7 (pinned in `.ruby-version` / `Gemfile.lock`
-  "BUNDLED WITH"). Rails is 8.1.4 (`~> 8.1.0`), tagged `rails-8.1.4`; the path was
-  7.1.6 -> 7.2.3.2 -> 8.0.5.1 -> 8.1.4, one commit per minor step. Ruby jumped at
+  "BUNDLED WITH"). Rails is 8.1.4.1 (`~> 8.1.0`), upgraded through 8.1.4 (tag
+  `rails-8.1.4`) and now on the 8.1.4.1 patch release; the path was 7.1.6 ->
+  7.2.3.2 -> 8.0.5.1 -> 8.1.4, one commit per minor step. Ruby jumped at
   the 7.1 step rather than at 7.2 because nokogiri and sqlite3 had already dropped
   2.7. 3.3.8 sits above the 7.2 (3.1) and 8.1 (3.2) floors, so no step after 7.1
   needed any Ruby work.
@@ -169,12 +172,17 @@ inverted index) → Rails UI (dashboards, search, alerts, jobs, custom RBAC).
     the mock.
 - Last upstream commit: 2016-10-01. Before the reproducible-build branch: `rails '> 4'`
   unpinned, no `Gemfile.lock`, no `db/schema.rb`, no CI.
-- `bundle exec bundle-audit check` reports **0 advisories**. Both former findings are
-  gone: `httparty` was dropped entirely (nothing in app/, lib/ or test/ used it; the
-  Gemfile keeps a comment saying so), and `jquery-rails` is now `~> 4.6.0` (4.6.1),
-  past the 4.4.0 that fixed CVE-2020-11023/CVE-2020-23064. Re-run the audit rather
-  than trusting any count written here — this bullet asserted "4 advisories" long
-  after both were fixed, which sends the next session hunting a CVE that does not exist.
+- **Re-run `bundle exec bundle-audit check` — do not trust a count written here.**
+  This bullet asserted "4 advisories" long after both were fixed, then "0
+  advisories", which was also stale: it reached 43 across 11 gems because Rails
+  8.1.4.1 shipped on 2026-11-04 while `Gemfile.lock` sat on 8.1.4. Cleared at
+  `40a7ac8` by a `bundle update`, not an upgrade — the Gemfile already allows
+  `~> 8.1.0`. The gate goes red on its own whenever ruby-advisory-db moves under a
+  pinned lock, so this bullet will be stale again; that is why it says to re-run. The two *former* findings this bullet
+  used to describe are genuinely gone: `httparty` was dropped entirely (nothing in
+  app/, lib/ or test/ used it; the Gemfile keeps a comment saying so), and
+  `jquery-rails` is now `~> 4.6.0` (4.6.1), past the 4.4.0 that fixed
+  CVE-2020-11023/CVE-2020-23064. Neither appears in the current audit output.
 - `/users` (HTML) no longer renders the bcrypt `password_hash` column (closed at
   `365c845`, RECOMMENDATIONS §1.3). PR #4 had fixed only the JSON API; the three HTML
   views were missed. `grep -rn password_hash app/views/` is empty.
@@ -232,6 +240,19 @@ inverted index) → Rails UI (dashboards, search, alerts, jobs, custom RBAC).
   scans and cost scales with term count. Never join `words` into the
   `events_words` scan: that forces a full scan through the `generated` index
   instead of using the `(word_id, generated, event_id)` covering index.
+- The dashboard **search form** is a parameter-shape trap (fixed at `7e0f435`,
+  RECOMMENDATIONS §2.3). `check_box "timesearch_enabled", "enabled"` always emits
+  the paired hidden field, so an *unticked* box still submits
+  `timesearch_enabled[enabled]=0`. Branch on the checkbox **value**
+  (`EventsController#timesearch_enabled?`), never on the key's presence — a Hash
+  is truthy, which is exactly how every form search once took the absolute-date
+  branch with `datetime_select`'s now→now defaults and reported 0 events. Do not
+  "fix" it by deleting the hidden field: that breaks the ticked case.
+  `parse_datetime_params` returns **nil** on garbage fields, so check for nil
+  before building a Range — `nil..nil` reaches `searchSQL` and dies on
+  `nil.to_fs`. `test/controllers/search_form_test.rb` posts the browser's exact
+  parameter shape; the older tests call `Event.search` directly and cannot see any
+  of this.
 - All SQL is parameterized: `exec_query(sql, "SQL", binds)` with **plain-value**
   binds (Rails 7.1 removed the legacy `[[type, value]]` pair form and raises
   `TypeError: can't cast Array` on it). `exec_query` normalizes unaliased aggregate
@@ -244,8 +265,9 @@ inverted index) → Rails UI (dashboards, search, alerts, jobs, custom RBAC).
   window is gone; and `Event.recent_events` drops blank/nil patterns before `Regexp.union`,
   so an empty exclusion list no longer empties the feed.
   Grep for `\beval(` under app/ and lib/ returns nothing.
-- The suite is green: 367 runs / 932 assertions on SQLite (32 skips) and 370 / 1026 on
-  partitioned Postgres (2 skips); cucumber is 5 scenarios / 18 steps on both engines.
+- The suite is green: 379 runs / 968 assertions on SQLite (32 skips) and 382 /
+  1062 on partitioned Postgres (2 skips); cucumber is 5 scenarios / 18 steps on
+  both engines.
   Counts drift — run the suite rather than trusting this one. The assertion count rose
   from 534 at Rails 6.1 with no test logic changed: AS 7.1's
   `assert_difference`/`assert_no_difference` route their block through minitest's

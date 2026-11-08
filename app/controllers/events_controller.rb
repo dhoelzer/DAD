@@ -3,6 +3,13 @@
 # Events are never created or edited here -- ingestion writes them (see
 # EventIngestor.storeEvent). This controller only queries and renders.
 class EventsController < ApplicationController
+  # Matches the form's own preselected option, so a request that omits the
+  # parameter (the word links in _event_detail.html.erb do, on the live
+  # dashboard, where @timeframe is nil) searches the window the UI advertises.
+  DEFAULT_TIMEFRAME = 600
+  DEFAULT_NUM_RESULTS = 100
+
+
   before_action :set_event, only: [:show]
 
   # GET /events (and .json) -- the live dashboard page. No records are loaded here;
@@ -29,25 +36,32 @@ class EventsController < ApplicationController
   # :search_terms        whitespace-separated terms, all of which must match
   # :timeframe           seconds to look back (relative-range form)
   # :numresults          maximum events to return (also the page size)
-  # :timesearch_enabled  when present, use an absolute range instead, reading the
+  # :timesearch_enabled  when *ticked*, use an absolute range instead, reading the
   # :lefttime(1i..6i) / :righttime(1i..6i) datetime_select fields
-  # Sets @events (a relation), @previous_search and @search_time for the view.
+  # Sets @events (a relation), @previous_search, @search_time and @search_note.
   def search
     @remote = true
     start_time = Time.now
-    @num_results = params[:numresults].to_i
+    @num_results = requested_num_results
     @timeframe = params[:timeframe]
-    if (params[:timesearch_enabled]) then
-      lefttime = params[:lefttime]
-      righttime = params[:righttime]
-      starttime = parse_datetime_params lefttime, :start
-      endtime = parse_datetime_params righttime, :end
+    @search_note = nil
 
-    end
-    if params[:timesearch_enabled]
-      @events = Event.search(params[:search_terms], starttime..endtime, 0, @num_results)
+    if timesearch_enabled?
+      starttime = parse_datetime_params params[:lefttime], :start
+      endtime = parse_datetime_params params[:righttime], :end
+      if starttime.nil? || endtime.nil?
+        # The box was ticked but the date fields were missing or unparseable.
+        # Answering with a different window than the operator asked for would be
+        # a silent lie, so report the problem and return nothing.
+        @search_note = 'The date range could not be read from the form; ' \
+                       'untick Timeframe Search to search a relative window.'
+        @events = Event.none
+      else
+        @search_note = 'The search window is empty: its end precedes its start.' if endtime < starttime
+        @events = Event.search(params[:search_terms], starttime..endtime, 0, @num_results)
+      end
     else
-      @events = Event.search(params[:search_terms], (Time.now - @timeframe.to_i)..Time.now, 0, @num_results)
+      @events = Event.search(params[:search_terms], relative_window, 0, @num_results)
     end
     @previous_search = params[:search_terms]
     @search_time = Time.now - start_time
@@ -70,13 +84,40 @@ class EventsController < ApplicationController
       @event = Event.find(params[:id])
     end
 
+  # True only when the "Timeframe Search" box is actually ticked.
+  #
+  # The view uses check_box, which always emits a paired hidden field, so an
+  # *unticked* box still submits timesearch_enabled as {"enabled"=>"0"}. Testing
+  # the presence of the key -- as this action used to -- took the absolute-date
+  # branch on every form submission, using datetime_select's now->now defaults
+  # and reporting 0 matches for any search.
+  def timesearch_enabled?
+    value = params.dig(:timesearch_enabled, :enabled)
+    %w[1 true on yes].include?(value.to_s.downcase)
+  end
+
+  # The relative window, in seconds, from +timeframe+. The select always sends a
+  # known value; a hand-edited or missing one must not collapse to a zero-length
+  # range, which would report "0 events match" for data that is there.
+  def relative_window
+    seconds = params[:timeframe].to_i
+    seconds = DEFAULT_TIMEFRAME if seconds <= 0
+    (Time.now - seconds)..Time.now
+  end
+
+  # The select offers 50..50000; anything else (0, negative, garbage) would make
+  # Event.search return nothing or an unbounded page.
+  def requested_num_results
+    n = params[:numresults].to_i
+    n <= 0 ? DEFAULT_NUM_RESULTS : n
+  end
+
   # Extracts a DateTime from the six Rails datetime_select fields named
   # "<label>(1i)" .. "<label>(6i)" (year, month, day, hour, minute, second).
   #
-  # +utc_or_local+ selects the interpretation (:utc or :local). Returns nil when the
-  # fields are missing or nonsensical, so callers must handle nil -- note #search
-  # still passes the result to Event.search unchecked, which raises inside
-  # searchSQL on a nil bound.
+  # +utc_or_local+ selects the interpretation (:utc or :local). Returns nil when
+  # the fields are missing or nonsensical; #search reports that to the operator
+  # rather than passing a nil bound into searchSQL.
   #
   def parse_datetime_params params, label, utc_or_local = :utc
     begin
