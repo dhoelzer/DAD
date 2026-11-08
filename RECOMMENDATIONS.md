@@ -25,10 +25,10 @@ than carried forward.
 | Ingestion crash-safety and idempotency | Closed, at-least-once — documented in the README (§2.2) |
 | Search indexing, dashboard SQL portability, timestamp parsing | Closed |
 | Dashboard search form timeframe toggle | **Closed at `7e0f435` — §2.3**: the relative timeframe dropdown was dead; every form search used an empty now→now window |
-| Test suite | Green: 367 runs / 932 assertions on SQLite, and 370 / 1026 on partitioned Postgres; cucumber features run on both engines in CI |
+| Test suite | Green on both engines: 379 runs / 968 assertions on SQLite, 382 / 1062 on partitioned Postgres (2026-11-08 CI); cucumber features run on both |
 | Admin screens (sessions, users, jobs) | Closed — now covered by request tests (§2.1) |
 | Poison line / observability | Closed — per-line `rescue StandardError`, failures counted as a `Statistic`, `Rails.logger` broadcast to the journal (§5.3, `c5d82ab` + `94654d1`) |
-| Rails upgrade | **Closed: 4.2 → 5.2 → 6.1 → 7.1 → 7.2 → 8.0 → 8.1.4 landed** (§5.2, tag `rails-8.1.4`) |
+| Rails upgrade | **Closed: 4.2 → 5.2 → 6.1 → 7.1 → 7.2 → 8.0 → 8.1.4 landed** (§5.2, tag `rails-8.1.4`); lock now on the 8.1.4.1 patch release (§1.4) |
 | Rails EOL | Closed — Rails is on the current stable line (8.1, supported to Oct 2027) |
 | CI security gates | **Closed** — gates wired and blocking (§1.2, §1.1); the 43-advisory regression cleared at `40a7ac8`, audit now clean (§1.4) |
 | `Event` size and class-variable state | **Was open — closed (§4.1)** — ingestion extracted to `EventIngestor`; model down to 302 lines, 0 ingest class variables |
@@ -903,11 +903,14 @@ a Rails upgrade, and the CI security gates can only be made blocking afterwards.
 
 **Baseline at the start of this workstream.** Rails 4.2.11.3 · Ruby 2.7.8 ·
 Bundler 1.17.3 · rack 1.6.13 · sprockets 2.12.5 · SQLite in dev/test, Postgres in
-prod (`pg 0.21.0`). **Current baseline after all steps:** Rails **8.1.4** ·
-Ruby 3.3.8 · Bundler 2.6.7 · rack 2.2 · sprockets 3.7.5 · jbuilder 2.15 ·
-nokogiri 1.19 · pg 1.5 (production group, not exercised by CI) · sqlite3 2.10 ·
-json 3.1 (floor raised at the 8.1 step, once Rails stopped passing `quirks_mode`)
-· minitest 5.27 (still pinned off 6.x) · mail 2.9 · cucumber-rails 3.1.
+prod (`pg 0.21.0`). **Current baseline after all steps** (from `Gemfile.lock`,
+2026-11-08): Rails **8.1.4.1** · Ruby 3.3.8 · Bundler 2.6.7 · rack 2.2.25 ·
+sprockets 3.7.5 · jbuilder 2.15.1 · nokogiri 1.19.7 · pg 1.7 (production group,
+not exercised by the SQLite jobs) · sqlite3 2.10.2 · json 2.21 (pinned to the
+2.x line — see the two reasons in the `Gemfile`; the 8.1 step briefly raised the
+floor to 3.1, which broke sprockets' manifest reader and was reverted at
+`bf1fd80`) · minitest 5.27 (still pinned off 6.x) · mail 2.9 ·
+cucumber-rails 3.1.
 3,680 LOC of Ruby in `app`/`lib`, 1,735 LOC across 90 views (34 of them
 jbuilder), 2,923 LOC of tests, 29 migrations, 22 models, 19 controllers.
 
@@ -1313,11 +1316,12 @@ would start from 194 unit runs against 90 views. The two non-framework advisorie
 in §1.2 (`httparty`, `jquery-rails`) were then the only thing standing between this
 repo and blocking CI security gates.
 
-Both have since closed: the security gates are blocking (§1.2), `httparty` was
-removed and `jquery-rails` moved past the affected versions, so `bundle-audit`
-reports 0 advisories, and the suite is now 367 runs on SQLite / 370 on Postgres.
-The counts above are the historical ones, kept because the surrounding narrative
-depends on them.
+Both have since closed: the security gates are blocking (§1.2), and `httparty`
+was removed and `jquery-rails` moved past the affected versions. The audit has
+since gone red again on its own and been cleared once more (§1.4) — which is the
+point: re-run `bundle-audit` rather than trusting any advisory count written into
+this file. The counts above are the historical ones, kept because the surrounding
+narrative depends on them.
 
 ### 5.3 ✅ Closed — a malformed line no longer kills the collector **[operations] [correctness]**
 

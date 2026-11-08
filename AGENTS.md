@@ -9,8 +9,9 @@ landmines" below; the `eval` sink is gone).
 
 ## Build / test (as of the reproducible-build branch)
 - Toolchain: Ruby 3.3.8 + Bundler 2.6.7 (pinned in `.ruby-version` / `Gemfile.lock`
-  "BUNDLED WITH"). Rails is 8.1.4 (`~> 8.1.0`), tagged `rails-8.1.4`; the path was
-  7.1.6 -> 7.2.3.2 -> 8.0.5.1 -> 8.1.4, one commit per minor step. Ruby jumped at
+  "BUNDLED WITH"). Rails is 8.1.4.1 (`~> 8.1.0`), upgraded through 8.1.4 (tag
+  `rails-8.1.4`) and now on the 8.1.4.1 patch release; the path was 7.1.6 ->
+  7.2.3.2 -> 8.0.5.1 -> 8.1.4, one commit per minor step. Ruby jumped at
   the 7.1 step rather than at 7.2 because nokogiri and sqlite3 had already dropped
   2.7. 3.3.8 sits above the 7.2 (3.1) and 8.1 (3.2) floors, so no step after 7.1
   needed any Ruby work.
@@ -173,10 +174,11 @@ landmines" below; the `eval` sink is gone).
   unpinned, no `Gemfile.lock`, no `db/schema.rb`, no CI.
 - **Re-run `bundle exec bundle-audit check` — do not trust a count written here.**
   This bullet asserted "4 advisories" long after both were fixed, then "0
-  advisories", which is also stale: as of 2026-11-08 it reports 43 across 11 gems,
-  because Rails 8.1.4.1 shipped on 2026-11-04 and `Gemfile.lock` is still pinned at
-  8.1.4. See RECOMMENDATIONS §1.4 — the fix is a `bundle update`, not an upgrade,
-  since the Gemfile already allows `~> 8.1.0`. The two *former* findings this bullet
+  advisories", which was also stale: it reached 43 across 11 gems because Rails
+  8.1.4.1 shipped on 2026-11-04 while `Gemfile.lock` sat on 8.1.4. Cleared at
+  `40a7ac8` by a `bundle update`, not an upgrade — the Gemfile already allows
+  `~> 8.1.0`. The gate goes red on its own whenever ruby-advisory-db moves under a
+  pinned lock, so this bullet will be stale again; that is why it says to re-run. The two *former* findings this bullet
   used to describe are genuinely gone: `httparty` was dropped entirely (nothing in
   app/, lib/ or test/ used it; the Gemfile keeps a comment saying so), and
   `jquery-rails` is now `~> 4.6.0` (4.6.1), past the 4.4.0 that fixed
@@ -263,8 +265,9 @@ landmines" below; the `eval` sink is gone).
   window is gone; and `Event.recent_events` drops blank/nil patterns before `Regexp.union`,
   so an empty exclusion list no longer empties the feed.
   Grep for `\beval(` under app/ and lib/ returns nothing.
-- The suite is green: 367 runs / 932 assertions on SQLite (32 skips) and 370 / 1026 on
-  partitioned Postgres (2 skips); cucumber is 5 scenarios / 18 steps on both engines.
+- The suite is green: 379 runs / 968 assertions on SQLite (32 skips) and 382 /
+  1062 on partitioned Postgres (2 skips); cucumber is 5 scenarios / 18 steps on
+  both engines.
   Counts drift — run the suite rather than trusting this one. The assertion count rose
   from 534 at Rails 6.1 with no test logic changed: AS 7.1's
   `assert_difference`/`assert_no_difference` route their block through minitest's
