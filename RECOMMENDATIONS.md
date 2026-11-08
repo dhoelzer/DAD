@@ -24,6 +24,7 @@ than carried forward.
 | Secrets in the working tree | Closed — clean under `gitleaks`; a production key remains in git history, rotation path now provided (§1.1) |
 | Ingestion crash-safety and idempotency | Closed, at-least-once — documented in the README (§2.2) |
 | Search indexing, dashboard SQL portability, timestamp parsing | Closed |
+| Dashboard search form timeframe toggle | **Open — §2.3**: the relative timeframe dropdown is dead, every form search uses an empty now→now window |
 | Test suite | Green: 367 runs / 932 assertions on SQLite, and 370 / 1026 on partitioned Postgres; cucumber features run on both engines in CI |
 | Admin screens (sessions, users, jobs) | Closed — now covered by request tests (§2.1) |
 | Poison line / observability | Closed — per-line `rescue StandardError`, failures counted as a `Statistic`, `Rails.logger` broadcast to the journal (§5.3, `c5d82ab` + `94654d1`) |
@@ -301,6 +302,42 @@ If exactly-once is ever required, the options are a uniqueness constraint on a
 line fingerprint (costly: needs a hash column and an index over a large table) or
 `INSERT ... ON CONFLICT DO NOTHING` keyed on that fingerprint. Neither is worth
 it unless duplicates are actually causing problems.
+
+### 2.3 🟠 The dashboard search form always takes the absolute-date branch **[bug] [correctness]**
+
+The relative timeframe dropdown on the dashboard is dead: a search submitted from
+the form always runs the absolute-range branch, using the `datetime_select`
+defaults, which are pre-filled to *now → now*. The window is therefore empty and
+the search reports `0 events match` no matter what terms or timeframe were chosen.
+
+`app/views/events/_search.html.erb` renders the toggle with the object-form
+helper:
+
+```erb
+<%= check_box "timesearch_enabled", "enabled" %> Timeframe Search?
+```
+
+Rails emits a hidden `timesearch_enabled[enabled]=0` before it, so an unchecked
+box still submits the parameter — as the Hash `{"enabled"=>"0"}`. In Ruby that
+Hash is truthy, and `EventsController#search` branches on plain truthiness:
+
+```ruby
+if (params[:timesearch_enabled]) then    # truthy even when the box is unchecked
+```
+
+Verified against a running instance: the same terms and window return 100 events
+when `timesearch_enabled` is omitted from the query string, and 0 events when the
+form submits it. Only ticking the box and supplying a real window works today.
+
+The fix is to test the value rather than the presence of the key, e.g.
+`ActiveModel::Type::Boolean.new.cast(params.dig(:timesearch_enabled, :enabled))`,
+and to reject a nil range before it reaches `Event.search` — `#search` already
+passes `parse_datetime_params` output through unchecked, and the helper's own
+documented contract is that it returns `nil` on nonsensical fields.
+
+A request test that posts the form exactly as the browser does (hidden `0`
+included) would have caught this; the existing search tests drive
+`Event.search` directly and never exercise the form's parameter shape.
 
 ---
 

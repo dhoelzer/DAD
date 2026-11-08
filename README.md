@@ -250,6 +250,15 @@ Results are paged with `offset`/`limit` and ordered oldest-first. The time windo
 is required — a search over all history is not a thing the index can answer
 cheaply.
 
+> **Known bug (RECOMMENDATIONS §2.3).** The *Timeframe* dropdown on the dashboard
+> search form is currently dead. The "Timeframe Search?" checkbox is a Rails
+> `check_box`, which always submits `timesearch_enabled[enabled]=0` when unticked,
+> and `EventsController#search` branches on the *presence* of that key. So every
+> search from the form takes the absolute-date branch with the `datetime_select`
+> defaults — a now→now window — and reports `0 events match`. Tick the box and set
+> a real start/end to search today; the fix is to cast the value instead of
+> testing the key.
+
 **Displays** reformat matching events for the event views. A Display is a `key`
 regex plus a `display_script` written in a small line-oriented directive
 language, which is *parsed, never evaluated* — you cannot put Ruby in a display

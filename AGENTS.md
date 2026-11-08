@@ -234,6 +234,17 @@ landmines" below; the `eval` sink is gone).
   scans and cost scales with term count. Never join `words` into the
   `events_words` scan: that forces a full scan through the `generated` index
   instead of using the `(word_id, generated, event_id)` covering index.
+- The dashboard **search form** has an open bug (RECOMMENDATIONS §2.3): the
+  "Timeframe Search?" toggle is `check_box "timesearch_enabled", "enabled"`, and
+  Rails always emits the paired hidden field, so an unticked box still submits
+  `timesearch_enabled[enabled]=0`. `EventsController#search` branches on
+  `if params[:timesearch_enabled]` — presence, not value — and a Hash is truthy,
+  so *every* form search takes the absolute-date branch with `datetime_select`
+  defaults (now→now) and returns 0 events. The relative `timeframe` dropdown is
+  therefore dead from the UI, though `Event.search` and the route are fine. Fix by
+  casting the value (`ActiveModel::Type::Boolean`) and guarding the nil range;
+  cover it with a request test that posts the browser's exact parameter shape.
+  Do not "fix" it by deleting the hidden field — that breaks the ticked case.
 - All SQL is parameterized: `exec_query(sql, "SQL", binds)` with **plain-value**
   binds (Rails 7.1 removed the legacy `[[type, value]]` pair form and raises
   `TypeError: can't cast Array` on it). `exec_query` normalizes unaliased aggregate
