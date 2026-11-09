@@ -91,6 +91,9 @@ class EventIngestor
     @system_cache = Hash.new
     @service_cache = Hash.new
     @events_words = Array.new
+    # Tokens whose word id is not known yet, held until the batch is flushed so
+    # they can be resolved in bulk. See resolve_staged_words.
+    @staged_tokens = Array.new
     # Array() rather than a bare each: resetCaches runs once at load, before
     # @insertThreads has ever been assigned.
     Array(@insertThreads).each { |batch| batch.thread.join }
@@ -138,8 +141,17 @@ class EventIngestor
   end
 
   # events_words rows staged but not yet handed to a writer.
+  #
+  # Excludes tokens still awaiting resolution, so it is only complete once
+  # resolve_staged_words has run for the batch. #pending_token_count is the
+  # other half.
   def self.staged_words_count
     events_words.count
+  end
+
+  # Tokens staged but not yet resolved to word ids.
+  def self.pending_token_count
+    staged_tokens.sum { |_event_id, _generated, list| list.size }
   end
 
   # Batches handed to a writer thread and not yet joined.
@@ -222,22 +234,24 @@ class EventIngestor
   # +eventString+ must begin with the originating host, followed by the timestamp
   # and service, e.g. "host.example.com Jun  1 12:00:00 sshd[123]: ...".
   def self.storeEvent(eventString, position = nil)
-    # Staging is all-or-nothing. The word loop appends to @events_words before
-    # the event row is appended to @pendingEventValues, so a raise part-way
-    # through leaves index rows for an event id that never gets an events row
-    # (search hits that 404), and @nextEventID is not advanced, so the next
-    # line reuses the id and dies on a UNIQUE violation. The importer now skips
-    # bad lines instead of exiting, which makes a partially staged line a
-    # permanent corruption rather than a one-off crash.
+    # Staging is all-or-nothing. The word loop appends to @events_words and
+    # @staged_tokens before the event row is appended to @pendingEventValues, so
+    # a raise part-way through leaves index rows for an event id that never gets
+    # an events row (search hits that 404), and @nextEventID is not advanced, so
+    # the next line reuses the id and dies on a UNIQUE violation. The importer
+    # now skips bad lines instead of exiting, which makes a partially staged
+    # line a permanent corruption rather than a one-off crash.
     words_staged = events_words.count
+    tokens_staged = staged_tokens.count
     events_staged = pending_event_values.count
     begin
       stage_event(eventString, position)
     rescue StandardError
-      # A flush inside stage_event resets both arrays, so the captured counts
-      # can be past the end; slice! then no-ops, which is the correct outcome
-      # (those rows are already handed off, not partial).
+      # A flush inside stage_event resets all three, so the captured counts can
+      # be past the end; slice! then no-ops, which is the correct outcome (those
+      # rows are already handed off, not partial).
       events_words.slice!(words_staged..-1)
+      staged_tokens.slice!(tokens_staged..-1)
       pending_event_values.slice!(events_staged..-1)
       raise
     end
@@ -479,6 +493,7 @@ class EventIngestor
       Rails.logger.debug "Joining previous inserts."
       join_insert_threads
     end
+    resolve_staged_words
     ew_statements = insert_statements('events_words', [:event_id, :word_id, :generated], events_words)
     ev_statements = insert_statements('events', [:id, :system_id, :service_id, :generated, :stored, :hunks],
                                       pending_event_values)
@@ -610,19 +625,25 @@ class EventIngestor
     timestamp_s = timestamp.to_fs(:db)
     time_now = Time.now
 
-    # Take all of the words, make them unique and make sure that they are in the DB. Look up their IDs.
+    # Take all of the words, make them unique. Cached ones are stamped and
+    # indexed immediately; uncached ones are held with the event they came from
+    # until the batch is flushed, so the words table is hit once per batch
+    # rather than once per token. See resolve_staged_words.
+    deferred = nil
     split_text.to_set.to_a.each do |word|
+      word = Word.truncate_for_column(word)
       if word_cache.key?(word) then
         word_cache[word][:last] = time_now
         @cache_hits = cache_hits + 1
-        dbWord = word_cache[word][:id]
+        events_words << { :event_id => @nextEventID, :word_id => word_cache[word][:id],
+                          :generated => timestamp_s }
       else
-        dbWord = Word.find_or_add(word)
-        @num_cached = num_cached + 1
-        word_cache[word] = { :id => dbWord, :last => time_now }
+        (deferred ||= []) << word
       end
-      events_words << { :event_id => @nextEventID, :word_id => dbWord, :generated => timestamp_s }
     end
+    # One entry per event, and only when that event has something to resolve:
+    # the token strings are shared across the batch instead of copied per row.
+    staged_tokens << [@nextEventID, timestamp_s, deferred] if deferred
     # Values are staged as-is and bound as parameters at flush time, so log text
     # (which is attacker-controlled) never becomes part of the SQL string.
     pending_event_values << { :id => @nextEventID, :system_id => system.id, :service_id => service.id,
@@ -636,6 +657,59 @@ class EventIngestor
     performPendingInserts if pending_event_values.count >= bulk_insert_size
   end
   private_class_method :stage_event
+
+  # Turns the tokens staged since the last flush into events_words rows.
+  #
+  # The reason ingest is not dominated by the words table. stage_event cannot
+  # resolve a token it has not seen before without a round-trip, so it defers
+  # it; this resolves the whole batch at once -- one indexed IN lookup and one
+  # multi-row INSERT per Word::RESOLVE_CHUNK tokens, instead of one lookup plus
+  # one autocommit INSERT per token. On a cold word cache that is the difference
+  # between tens of thousands of statements and a handful.
+  #
+  # Runs on the main thread, before the batch is handed to a writer: the words
+  # table is read and written here, and SQLite allows a single writer, so doing
+  # it inside the writer thread would contend with the batch it is preparing.
+  #
+  # A token that turns out to be new is added to the word cache, which is what
+  # keeps the next batch off the database entirely.
+  #
+  # All-or-nothing, like stage_event: the rows are built in a local array and
+  # appended only once every token has an id. A failure part-way through
+  # therefore leaves the batch exactly as it was, which matters because the
+  # importer's line-level rescue calls flush_and_wait -- if this had already
+  # appended some rows, the retry would append them a second time and search
+  # would return the same event twice. Word.resolve_ids is itself idempotent
+  # against rows it inserted on the failed attempt, since they are found by the
+  # lookup rather than re-inserted.
+  def self.resolve_staged_words
+    return if staged_tokens.empty?
+
+    tokens = staged_tokens.flat_map { |_event_id, _generated, list| list }
+    ids = Word.resolve_ids(tokens)
+
+    rows = Array.new
+    staged_tokens.each do |event_id, generated, list|
+      list.each do |token|
+        word_id = ids[token]
+        # A nil here would write a NULL word_id: an index row no search can
+        # ever match. Word.resolve_ids re-plucks when RETURNING comes back
+        # short, so reaching this means the row genuinely is not there.
+        raise "word #{token.inspect} staged but not resolved" if word_id.nil?
+
+        rows << { :event_id => event_id, :word_id => word_id, :generated => generated }
+      end
+    end
+    events_words.concat(rows)
+
+    time_now = Time.now
+    new_words = ids.keys - word_cache.keys
+    new_words.each { |token| word_cache[token] = { :id => ids[token], :last => time_now } }
+    @num_cached = num_cached + new_words.count
+
+    @staged_tokens = Array.new
+  end
+  private_class_method :resolve_staged_words
 
   # Writes one staged batch. Everything in the batch shares a transaction:
   # events_words is written first, so a crash between the two left index rows
@@ -685,6 +759,10 @@ class EventIngestor
     @events_words
   end
 
+  def self.staged_tokens
+    @staged_tokens
+  end
+
   def self.word_cache
     @cached_words
   end
@@ -709,7 +787,7 @@ class EventIngestor
     @start_time
   end
 
-  private_class_method :pending_event_values, :events_words, :word_cache,
+  private_class_method :pending_event_values, :events_words, :staged_tokens, :word_cache,
                        :system_cache,
                        :service_cache, :insert_threads, :checkpoint_mutex,
                        :start_time

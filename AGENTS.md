@@ -215,8 +215,35 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   `resetCaches`.
   Do not add `class_variable_get`/`instance_variable_get` back into tests: assert
   through the introspection API (`pending_count`, `pending_ids`,
-  `staged_words_count`, `in_flight_count`, `next_event_id`,
+  `staged_words_count`, `pending_token_count`, `in_flight_count`, `next_event_id`,
   `timestamp_parse_failures`, `cached_word_count`).
+  Note `staged_words_count` alone is not the whole staged index: uncached tokens
+  are held separately until the flush resolves them, so read it together with
+  `pending_token_count`.
+- Uncached words are resolved **in bulk at flush time**, not per token during
+  staging (RECOMMENDATIONS §3.6). `stage_event` appends `(event_id, generated,
+  [tokens])` to `@staged_tokens`; `performPendingInserts` calls
+  `resolve_staged_words`, which resolves the batch through `Word.resolve_ids` —
+  one indexed `IN` lookup plus one `insert_all … RETURNING` per
+  `Word::RESOLVE_CHUNK` tokens. This is the dominant ingest cost: 186,089 → 360
+  statements and 46,515 → 67 transactions per 20k lines, 6.4× cold / 2.36× warm.
+  Batch-size tuning alone cannot recover it (§2.6 exhausted that). Three things
+  the shape is protecting, and which any change must keep:
+  - `@staged_tokens` carries the **event id per event**, not per batch — a token
+    attributed to the wrong event is a wrong search hit, and neither dropping a
+    token nor misattributing one raises.
+  - `resolve_staged_words` builds rows locally and appends them only once every
+    token has an id, and `storeEvent`'s rollback unwinds `@staged_tokens` too.
+    The importer's per-line `rescue` calls `flush_and_wait` (§5.3), so a partial
+    append plus a retry duplicates index rows and search returns the event twice.
+  - `words.text` has **no unique index**, so a text can have several rows.
+    `resolve_ids` keeps the **lowest** id, matching the old `find_by`; a
+    `pluck().to_h` keeps the highest and silently re-points ingest at a different
+    row than existing `events_words` rows use.
+  Truncation lives in `Word.truncate_for_column` and must be applied by both
+  `stage_event` and `resolve_ids` — if lookup and storage disagree, every token
+  over 255 chars re-inserts on every pass. `Word.find_or_add` is the single-token
+  form of `resolve_ids`; do not re-implement it.
 - A bulk INSERT is **chunked to the adapter's host-parameter ceiling**
   (RECOMMENDATIONS §2.6). `insertStatement` builds one statement; `insert_statements`
   slices a staged batch and `write_batch` runs the slices in a single transaction.
@@ -285,9 +312,9 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   window is gone; and `Event.recent_events` drops blank/nil patterns before `Regexp.union`,
   so an empty exclusion list no longer empties the feed.
   Grep for `\beval(` under app/ and lib/ returns nothing.
-- The suite is green on both engines: 417 runs / 1073 assertions on SQLite
-  (32 skips, so 385 executed), 420 / 1165 on Postgres (3 skips, so 417 executed).
-  The Postgres figures were read out of the CI job log rather than guessed —
+- The suite is green on both engines: 432 runs / 1131 assertions on SQLite
+  (32 skips, so 400 executed), 435 / 1223 on Postgres (3 skips, so 432 executed).
+  Both figures read out of the CI job log rather than guessed —
   `gh run view <id> --log` prints both totals. The gap is not a discrepancy: 29
   tests skip on SQLite and run on Postgres, and 3 more are defined only there.
   cucumber is 5 scenarios / 18 steps on both.

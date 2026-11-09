@@ -207,14 +207,32 @@ class ImportSyslogCrashTest < ActiveSupport::TestCase
   # half a row, skipping would corrupt the index rather than lose one record: the
   # word loop appends to @@events_words before the event row is appended, and
   # @@nextEventID is not advanced on the way out.
+  #
+  # The failure is injected through Word.truncate_for_column, which stage_event
+  # calls for every token. It used to hook Word.find_or_add; that no longer runs
+  # during staging, because uncached tokens are deferred to the flush rather than
+  # resolved one at a time (see EventIngestor.resolve_staged_words).
+  #
+  # A warm-up line is staged first so the failing line has already appended
+  # cached-word rows for its own id before it raises: rolling back an empty
+  # staging state would pass without the rollback existing.
   test 'a line that fails part-way through staging leaves nothing behind' do
     body = <<~'PATCH'
-      Word.singleton_class.send(:alias_method, :find_or_add_orig, :find_or_add)
-      Word.define_singleton_method(:find_or_add) do |w|
+      Word.singleton_class.send(:alias_method, :truncate_orig, :truncate_for_column)
+      Word.define_singleton_method(:truncate_for_column) do |w|
         raise 'forced failure mid-staging' if w == 'forced-boom-word'
-        find_or_add_orig(w)
+        truncate_orig(w)
       end
-      EventIngestor.bulk_insert_size = 1;
+      # Large so nothing flushes mid-staging and the rollback is what has to
+      # clean up, not a handoff.
+      EventIngestor.bulk_insert_size = 100;
+      # Warm the word cache first: a cold cache defers every token, so the
+      # failing line would append nothing and the rollback would be asserted
+      # against an empty state.
+      EventIngestor.storeEvent('1.1.1.1 Jun 1 00:00:00 host svc[1]: warm up ok', 0)
+      EventIngestor.flush_and_wait
+      EventIngestor.storeEvent('1.1.1.1 Jun 1 00:00:05 host svc[1]: warm up again', 5)
+      puts "PRE_WORDS=#{EventIngestor.staged_words_count} PRE_TOKENS=#{EventIngestor.pending_token_count}"
       # The importer's per-line rescue is what normally catches this; call
       # storeEvent directly here so the test isolates storeEvent's own rollback.
       begin
@@ -223,6 +241,7 @@ class ImportSyslogCrashTest < ActiveSupport::TestCase
       rescue RuntimeError => e
         puts "RAISED=#{e.message}"
       end
+      puts "POST_WORDS=#{EventIngestor.staged_words_count} POST_TOKENS=#{EventIngestor.pending_token_count}"
       EventIngestor.storeEvent('1.1.1.1 Jun 1 00:00:02 host svc[1]: good line here', 20)
       EventIngestor.flush_and_wait
       puts "EVENTS=#{Event.count}"
@@ -230,17 +249,28 @@ class ImportSyslogCrashTest < ActiveSupport::TestCase
         'where event_id not in (select id from events)').first['c']
       puts "ORPHANS=#{orphans}"
       puts "IDS=#{Event.order(:id).pluck(:id).join(',')}"
+      boom = Word.where(text: 'forced-boom-word').count
+      puts "BOOM_WORDS=#{boom}"
     PATCH
     out, status = run_importer(body, build_schema: true)
 
     assert_equal 0, status, "subprocess failed:\n#{out}"
+    # Precondition: the failing line must have had rows to roll back, otherwise
+    # the equality below passes without the rollback existing.
+    assert_operator out[/PRE_WORDS=(\d+)/, 1].to_i, :>, 0,
+      'the staged line must have produced index rows to roll back'
     assert_includes out, 'RAISED=forced failure mid-staging',
       'storeEvent must re-raise after rolling back, so the caller can count the skip'
-    assert_includes out, 'EVENTS=1', 'the failing line must contribute no event row'
+    assert_equal [out[/PRE_WORDS=(\d+)/, 1], out[/PRE_TOKENS=(\d+)/, 1]],
+                 [out[/POST_WORDS=(\d+)/, 1], out[/POST_TOKENS=(\d+)/, 1]],
+      'the failing line must leave no index rows and no deferred tokens staged'
+    assert_includes out, 'EVENTS=3', 'the failing line must contribute no event row'
     assert_includes out, 'ORPHANS=0',
       'a partially staged line must not leave events_words rows for a missing event'
-    assert_includes out, 'IDS=1',
+    assert_includes out, 'IDS=1,2,3',
       'the next line must not collide with an id the failed line consumed'
+    assert_includes out, 'BOOM_WORDS=0',
+      'a token staged by the failing line must not reach the words table'
   end
 
   # Non-StandardError still stops the run and rewinds, so a genuinely fatal

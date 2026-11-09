@@ -7,7 +7,9 @@ closed. Re-verified a third time at `2ca83b7` (2026-11-08): four new defects
 found and closed (§2.4, §2.5, §3.5, §4.4), each reproduced with a failing test
 before being fixed. Re-verified a fourth time at `94a697b` (2026-11-09): two more
 ingest defects found and closed (§2.6, §2.7), again each reproduced with failing
-tests first. PRs #1–#27 all merged.
+tests first. Re-verified a fifth time at `fd3d23b` (2026-11-08): ingest
+throughput profiled end to end and the dominant cost closed (§3.6), measured
+before and after on a fixed harness rather than asserted. PRs #1–#28 all merged.
 
 **This document lists only work that is still outstanding.** Everything marked
 closed is verified against the current tree, not against what a PR claimed. The
@@ -29,9 +31,11 @@ than carried forward.
 | Ingestion crash-safety and idempotency | Closed, at-least-once — documented in the README (§2.2) |
 | Bulk INSERT size vs adapter parameter ceiling | **Was open — closed at §2.6**: the production default batch of 2000 events needs ~96k bind parameters against ceilings of 32766 (SQLite) / 65535 (Postgres); batches are now chunked inside one transaction |
 | Word-cache TTL | **Was open — closed at §2.7**: `@cachelifetime` was never initialised, so the first `prune_words` on a long ingest raised `TypeError` and killed the importer |
+| Ingest throughput | **Was open — closed at §3.6**: every uncached token cost a `SELECT` + an autocommit `INSERT` against `words`. Now resolved in bulk per batch: 186,089 → 360 statements per 20k lines, **6.4×** cold / **2.36×** warm, with the `events_words` rows written unchanged |
+| Ingest batch-size tuning | Exhausted past ~2000 events/batch — measured, and §2.6 is what made larger batches legal at all. Next measurable target is the per-batch fsync, not the words table |
 | Search indexing, dashboard SQL portability, timestamp parsing | Closed |
 | Dashboard search form timeframe toggle | **Closed at `7e0f435` — §2.3**: the relative timeframe dropdown was dead; every form search used an empty now→now window |
-| Test suite | Green on both engines: 417 runs / 1073 assertions on SQLite (32 skips), 420 / 1165 on Postgres (3 skips); cucumber 5 scenarios / 18 steps on both |
+| Test suite | Green on both engines, CI-verified: 432 runs / 1131 assertions on SQLite (32 skips), 435 / 1223 on Postgres (3 skips); cucumber 5 scenarios / 18 steps on both |
 | Scheduler crash loop | **Was open — closed at §2.4**: a blank Frequency field killed the scheduler under `Restart=always`, stopping every Job |
 | Account integrity (duplicate / blank usernames) | **Was open — closed at §2.5**: no uniqueness at any layer, so a second account with a taken name could never sign in |
 | Session lookup and retention | **Was open — closed at §3.5**: per-request cookie lookup was a full table scan, and abandoned rows were never reclaimed |
@@ -880,6 +884,132 @@ instance that sees no logins.
 The reclaim tests create the abandoned row under a *different* user, because
 `do_logon`'s existing per-account eviction would otherwise make the assertion
 pass for the wrong reason.
+
+### 3.6 ✅ Closed — ingest resolved every token against the words table one at a time **[performance]**
+
+After §2.6 removed the parameter-ceiling cliff, batch-size tuning was measured and
+found to be exhausted: past ~2000 events per batch, EPS stops improving. The
+remaining cost was not batching, and it was not staging CPU (staging is small
+relative to total ingest). It was the words table.
+
+`stage_event` resolved each uncached token through `Word.find_or_add`, which is a
+`find_by` followed by a `create`:
+
+```ruby
+word = Word.find_by text: new_word
+word = Word.create(:text => new_word) if word.nil?
+```
+
+So every token not already in the word cache cost one `SELECT` plus, for a new
+word, one `INSERT` — and because `create` runs in autocommit, one transaction.
+Measured over 20,000 realistic syslog lines (46,450 distinct words) at the
+production batch size of 2000, cold cache, counting every statement the run
+issues:
+
+| statement kind | before | after |
+|---|---|---|
+| `SELECT` against `words` | 46,450 | 30 |
+| `INSERT` against `words` | 46,450 | 30 |
+| `BEGIN` / `COMMIT` pairs | 46,515 | 67 |
+| `INSERT` into `events_words` | 29 | 31 |
+| `INSERT` into `events` | 10 | 11 |
+| `systems` / `services` lookups + inserts | 90 | 90 |
+| **total** | **186,089** | **360** |
+
+The `events` and `events_words` statement counts barely move — that is the point.
+Everything that changed is the words table: 92,900 statements and 46,450
+transactions became 60 and 30. Word-table traffic was ~55% of total ingest time,
+and removing it is most of the difference. The same corpus, same harness, same
+machine, best of three:
+
+| scenario | before | after | speedup |
+|---|---|---|---|
+| cold (`words` empty) | 23.15 s, 864 ev/s | 3.62 s, 5,518 ev/s | **6.4×** |
+| warm (`words` already populated) | 8.43 s, 2,373 ev/s | 3.57 s, 5,602 ev/s | **2.36×** |
+
+The warm figure matters: a steady-state collector has a populated `words` table,
+so the 2.36× is the floor, not the headline. The 6.4× is what a backfill or a
+first run sees.
+
+**Fix: defer and batch.** `stage_event` no longer touches the database for an
+uncached token. It appends `(event_id, generated, [tokens])` to `@staged_tokens`;
+`performPendingInserts` calls `resolve_staged_words` before building the
+statements, which resolves the whole batch through `Word.resolve_ids` — one
+indexed `IN` lookup for the existing rows and one `insert_all … RETURNING` for the
+rest, chunked at `Word::RESOLVE_CHUNK` (2000) so neither the `IN` list nor the
+`INSERT` approaches the §2.6 ceilings. Two round-trips per chunk instead of two
+per token.
+
+Three properties the change had to preserve, and how:
+
+- **Index completeness.** A token dropped during deferral produces an event no
+  search can find, and a token attributed to the wrong event produces a hit on the
+  wrong event. Neither raises. `@staged_tokens` therefore carries the event id and
+  `generated` value per event, not just per batch, and the tests assert the
+  resulting `(event_id, word_id)` multiset.
+- **All-or-nothing staging.** `storeEvent`'s rollback now also unwinds
+  `@staged_tokens`, and `resolve_staged_words` builds its rows in a local array
+  and appends them only once every token has an id. This is not theoretical: the
+  importer's per-line `rescue` calls `flush_and_wait` (§5.3), so a failure part-way
+  through resolution followed by a retry would otherwise append some rows twice and
+  return the same event twice from search.
+- **Word-cache semantics.** A token resolved at flush time is added to the cache,
+  so the next batch never touches `words` for it — that is the steady-state win,
+  and `num_cached` counts distinct words resolved, not occurrences, so the
+  `prune_words` trigger from §2.7 still fires at the right threshold.
+
+Two details that would otherwise be silent behaviour changes:
+
+- `words.text` carries **no unique index**, so a text can already have several
+  rows. `pluck().to_h` keeps the *highest* id; the old `find_by` returned the
+  *lowest*. `resolve_ids` orders by id and keeps the first, so ingest continues to
+  index against the same row the existing `events_words` rows point at. Otherwise
+  searches for that token stop matching the older events.
+- Truncation moved into `Word.truncate_for_column`, called by both `stage_event`
+  and `resolve_ids`. If lookup used the untruncated text while storage used the
+  truncated form, every token over 255 characters would miss on every pass, insert
+  a fresh row each time, and never be searchable.
+
+`Word.find_or_add` is kept as the single-token form of `resolve_ids` rather than
+deleted, so the two cannot drift apart.
+
+**Search is unaffected**, which was the constraint on the whole change: the
+`events_words` rows written are byte-identical to before (1,153,964 rows and
+46,450 words for the 80,000-event corpus, both before and after; 0 orphans, 0 NULL
+`word_id`s), and the plan is unchanged — `index_words_on_text` for the term, then
+`index_events_words_on_word_id_and_generated_and_event_id` as a covering index for
+the join. Timings on 1.15M index rows: 0.34–9.84 ms per query.
+
+`test/models/word_test.rb` (8 runs: bulk create, input dedup, truncation
+stability across calls, the chunk boundary, `find_or_add` parity, lowest-id
+selection on duplicate texts, and the `RETURNING`-short fallback) and
+`test/models/event_ingest_word_resolution_test.rb` (7 runs: index completeness,
+per-event attribution, cache population, `num_cached`, search end-to-end, and that
+a fully cached batch issues **no** statement against `words`). Both new suites were
+mutation-checked: attributing every deferred token to the batch's first event, and
+dropping the cache population, each produce failures rather than passing.
+
+`test/import_syslog_crash_test.rb` injected its mid-staging failure through
+`Word.find_or_add`, which staging no longer calls; the injection moved to
+`Word.truncate_for_column`, which staging calls for every token. The test was also
+weakened in a way worth noting: it warmed nothing, so the failing line had no
+cached-word rows to roll back and the rollback was being asserted against an empty
+state. It now warms the cache first and asserts the pre/post staged counts.
+
+Both new suites are engine-agnostic — no skips, no adapter guards — so the
+Postgres CI job exercises `insert_all(returning:)` on that adapter rather than
+just on SQLite. It passed there: 435 runs / 1223 assertions / 3 skips, against 432
+/ 1131 / 32 on SQLite. The re-pluck fallback is therefore a safety net for an
+adapter that does not support `RETURNING`, not a path this codebase currently
+depends on.
+
+**Not done, and deliberately:** the remaining ingest cost is now spread across
+timestamp parsing (measured earlier at ~45% of warm staging CPU), the per-batch
+`BEGIN immediate`/`COMMIT` fsync, and the `systems`/`services` lookups — one
+`SELECT`+`INSERT` pair per distinct host, so 80 of the 362 remaining statements for
+a 40-host corpus. That last one is bounded by host count rather than line count and
+is not worth chasing. Batch-size tuning is exhausted. If ingest ever needs to go
+faster again, the fsync is the next measurable target, not the words table.
 
 ---
 
@@ -1735,6 +1865,7 @@ Verified closed against the current tree:
 | §2.4 | A blank Frequency field in the job form saved a nil `frequency`; `scheduler.rb` then raised on the reschedule line, which sat outside its `rescue`, killing the process under `Restart=always` and crash-looping every Job. Loop body extracted to `JobScheduler` so it could be tested | this branch |
 | §2.6 | `insertStatement` emitted one unbounded multi-row INSERT per table, so a production-sized batch (default 2000 events, ~16 `events_words` rows each) blew the adapter's host-parameter ceiling: `too many SQL variables`. `insert_statements` now chunks at the adapter ceiling and `write_batch` keeps the chunks in one transaction. Invisible to the suite because `DEFAULT_BULK_INSERT_SIZE` is 1 in dev/test | this branch |
 | §2.7 | `@cachelifetime` was never assigned anywhere — `resetCaches` set every other ingest variable but not this one, and `00e3fc3` dropped the pre-extraction `@@cachelifetime = 320`. First `prune_words` on a long ingest raised `TypeError: can't convert NilClass into an exact number`, killing the importer mid-file; the cache also could never be pruned | this branch |
+| §3.6 | Ingest resolved every uncached token through `Word.find_or_add` — one `SELECT` plus one autocommit `INSERT` per token, ~55% of ingest time. `stage_event` now defers uncached tokens and `resolve_staged_words` resolves the batch through `Word.resolve_ids` (one `IN` lookup + one `insert_all … RETURNING` per chunk). 186,089 → 360 statements per 20k lines; 6.4× cold, 2.36× warm; `events_words` rows written byte-identical, search plan unchanged | this branch |
 | §2.5 | No username uniqueness at any layer: `do_logon` uses `find_by`, so a second account with a taken name could never sign in, silently. Blank usernames also accepted and reachable from the login form. Unique index + validation; migration repairs existing dupes/blanks without deleting anything | this branch |
 | §3.5 | `gatekeeper`'s per-request `find_by(session_hash:)` was a full table SCAN, and expired rows were only deleted when the owning cookie returned, so the table grew forever. Unique index, `Session.purge_expired` on login, `prune_sessions` handler | this branch |
 | §4.4 | Twelve index actions assigned a bare `Model.all`; `sessions` and `statistics` grow without bound, so those screens eventually stopped rendering. `ApplicationController#paginate` + `pagination_nav`, no new gem | this branch |
