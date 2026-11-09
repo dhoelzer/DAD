@@ -207,11 +207,27 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   class-level instance variables (`@pendingEventValues`, `@nextEventID`,
   word/system/service caches, checkpoint bookkeeping) and builds raw multi-row
   INSERTs. It is process-global and assumes one long-running importer.
-  `resetCaches` is the single place that state is defined and runs once at load.
+  `resetCaches` is the single place that state is defined and runs once at load —
+  and it must stay that way. Two defects came from state that `resetCaches` did
+  not initialise: `@cachelifetime` (nil, so the first `prune_words` on a long
+  ingest raised `TypeError` and killed the importer — RECOMMENDATIONS §2.7) and
+  the statement-parameter ceiling. If you add ingest state, add it to
+  `resetCaches`.
   Do not add `class_variable_get`/`instance_variable_get` back into tests: assert
   through the introspection API (`pending_count`, `pending_ids`,
   `staged_words_count`, `in_flight_count`, `next_event_id`,
   `timestamp_parse_failures`, `cached_word_count`).
+- A bulk INSERT is **chunked to the adapter's host-parameter ceiling**
+  (RECOMMENDATIONS §2.6). `insertStatement` builds one statement; `insert_statements`
+  slices a staged batch and `write_batch` runs the slices in a single transaction.
+  Do not call `insertStatement` directly for a staged batch — a production-sized
+  batch (default 2000 events, ~16 `events_words` rows each) needs ~96k parameters
+  against ceilings of 32766 (SQLite, measured) and 65535 (Postgres), and past the
+  ceiling the adapter raises `too many SQL variables` rather than degrading.
+  `bulk_insert_size` therefore means rows per *transaction*, not per *statement*,
+  and can be raised freely. The suite cannot see this limit:
+  `DEFAULT_BULK_INSERT_SIZE` is 1 in dev/test, so only the subprocess tests in
+  `test/models/event_ingest_limits_test.rb` (RAILS_ENV=development) cross it.
 - Ingest is **at-least-once, not exactly-once** (§2.2, documented under "Ingest
   semantics" in the README). A crash with a batch in flight re-reads that batch,
   so up to one batch of events can be duplicated; committed rows are never lost.
@@ -269,11 +285,14 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   window is gone; and `Event.recent_events` drops blank/nil patterns before `Regexp.union`,
   so an empty exclusion list no longer empties the feed.
   Grep for `\beval(` under app/ and lib/ returns nothing.
-- The suite is green on both engines: 406 runs / 1018 assertions on SQLite
-  (32 skips), 409 / 1110 on Postgres (3 skips). The gap is not a discrepancy:
-  29 tests skip on SQLite and run on Postgres, and 3 more are defined only there,
-  so SQLite executes 374 tests and Postgres 406. cucumber is 5 scenarios / 18
-  steps on both.
+- The suite is green on SQLite: 416 runs / 1068 assertions (32 skips), so 384
+  executed. The Postgres totals below were measured before `event_ingest_limits_test.rb`
+  added 10 runs; the new file is engine-neutral, so Postgres is expected to be
+  419 runs / 3 skips / 416 executed, but it has not been re-run to confirm it.
+  Pre-change Postgres: 409 runs / 1110 assertions (3 skips), 406 executed. The gap
+  between engines is not a discrepancy: 29 tests skip on SQLite and run on
+  Postgres, and 3 more are defined only there. cucumber is 5 scenarios / 18 steps
+  on both.
   Counts drift — run the suite rather than trusting this one. The assertion count rose
   from 534 at Rails 6.1 with no test logic changed: AS 7.1's
   `assert_difference`/`assert_no_difference` route their block through minitest's
