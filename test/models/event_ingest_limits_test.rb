@@ -103,6 +103,27 @@ class EventIngestLimitsTest < ActiveSupport::TestCase
     assert_equal expected, EventIngestor.max_statement_params
   end
 
+  # The subprocess bodies below pin SQLite, so CI's Postgres job never drives a
+  # chunked write through the Postgres adapter. This pins the Postgres arithmetic
+  # directly instead: the ceiling it is assigned, and that a batch sized for it
+  # splits rather than overflowing.
+  test 'a batch sized for the Postgres ceiling splits at that ceiling' do
+    columns = %i[event_id word_id generated]
+    pg_ceiling = EventIngestor::MAX_STATEMENT_PARAMS.fetch('PostgreSQL')
+    assert_equal 65_535, pg_ceiling, 'Postgres caps a statement at Int16 parameters'
+
+    # ~16 events_words rows per event, so this is a production-default batch.
+    rows = Array.new(2000 * 16) { |i| { event_id: i, word_id: i, generated: '2026-01-01 00:00:00' } }
+    statements = EventIngestor.insert_statements('events_words', columns, rows, max_params: pg_ceiling)
+
+    assert_operator statements.size, :>, 1,
+      'a 2000-event batch is over the Postgres ceiling and must be split'
+    statements.each do |_sql, binds|
+      assert_operator binds.size, :<=, pg_ceiling
+    end
+    assert_equal rows.size, statements.sum { |_sql, binds| binds.size / columns.size }
+  end
+
   # An adapter this app does not know about must chunk to the lowest supported
   # ceiling rather than assume an unlimited one.
   test 'an unknown adapter falls back to the lowest supported ceiling' do

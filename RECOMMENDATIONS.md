@@ -31,7 +31,7 @@ than carried forward.
 | Word-cache TTL | **Was open — closed at §2.7**: `@cachelifetime` was never initialised, so the first `prune_words` on a long ingest raised `TypeError` and killed the importer |
 | Search indexing, dashboard SQL portability, timestamp parsing | Closed |
 | Dashboard search form timeframe toggle | **Closed at `7e0f435` — §2.3**: the relative timeframe dropdown was dead; every form search used an empty now→now window |
-| Test suite | Green on SQLite: 416 runs / 1068 assertions (32 skips), 384 executed. Postgres re-run pending for this change; per-engine breakdown in AGENTS.md |
+| Test suite | Green on both engines: 417 runs / 1073 assertions on SQLite (32 skips), 420 / 1165 on Postgres (3 skips); cucumber 5 scenarios / 18 steps on both |
 | Scheduler crash loop | **Was open — closed at §2.4**: a blank Frequency field killed the scheduler under `Restart=always`, stopping every Job |
 | Account integrity (duplicate / blank usernames) | **Was open — closed at §2.5**: no uniqueness at any layer, so a second account with a taken name could never sign in |
 | Session lookup and retention | **Was open — closed at §3.5**: per-request cookie lookup was a full table scan, and abandoned rows were never reclaimed |
@@ -574,11 +574,20 @@ transaction", not "rows per statement". Measured on 6,000 realistic lines,
 SQLite: batch 2000 and 5000 both previously died and now write cleanly, with
 12,000 events and 198,444 index rows at **0 orphans**.
 
-`test/models/event_ingest_limits_test.rb`: 10 runs. All 10 fail against the
-pre-fix code — 4 failures and 6 errors, including the two real signatures
-(`too many SQL variables` on a 1000-event batch, and `insert_statements` not
-existing). The test asserts the probe batch *actually* exceeds the ceiling, so it
-cannot pass vacuously if the fixture lines ever stop producing enough index rows.
+`test/models/event_ingest_limits_test.rb`: 11 runs. All 10 that test the new
+behaviour fail against the pre-fix code — 4 failures and 6 errors, including the
+two real signatures (`too many SQL variables` on a 1000-event batch, and
+`insert_statements` not existing). The batch test asserts the probe batch
+*actually* exceeds the ceiling, so it cannot pass vacuously if the fixture lines
+ever stop producing enough index rows.
+
+One caveat about the coverage: the subprocess harness pins
+`DATABASE_URL=sqlite3:...`, matching the existing ingest subprocess suites, so CI
+never drives a chunked write through the **Postgres** adapter. The Postgres
+ceiling is therefore pinned arithmetically rather than end-to-end. Making it
+end-to-end means letting those subprocesses inherit `DATABASE_URL`, which is a
+separate change worth making deliberately — the SQLite pinning is there for a
+reason (deterministic single-writer behaviour).
 
 ### 2.7 ✅ Closed — `prune_words` crashed the importer on its first call **[bug] [correctness]**
 
