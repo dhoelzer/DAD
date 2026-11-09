@@ -242,6 +242,31 @@ parameter limit and the flush failed outright with `too many SQL variables`.
 Batch size is now bounded by memory and by how much you are willing to duplicate
 after a crash, not by the database.
 
+### Word resolution
+
+New words are resolved in bulk, once per batch, rather than one at a time as each
+line is parsed. A token already in the ingest word cache is stamped and indexed
+immediately; a token that is not is held until the batch is flushed, at which
+point the whole batch's unknown tokens are resolved together — one indexed lookup
+for the words that already exist and one bulk insert for the rest.
+
+This is the single largest factor in ingest throughput. On 20,000 realistic syslog
+lines containing 46,450 distinct words, the old per-token path issued 186,089
+statements and 46,450 separate transactions; the batched path issues 360 and 67.
+Measured end to end: **6.4×** faster on a cold `words` table (a first run or a
+backfill) and **2.36×** faster once `words` is already populated, which is the
+steady state for a running collector.
+
+Two things follow from this that are worth knowing. First, the `events_words` rows
+written are identical either way — the change is invisible to search, and the
+index is not a trade-off being made for speed. Second, a word that appears for the
+first time is only written to the `words` table when its batch is flushed, so on a
+crash it is re-read with the rest of that batch rather than lost; this is the same
+at-least-once boundary described above, not a new one.
+
+If you are sizing a backfill, the cold-cache figure is the relevant one; if you are
+sizing steady-state collection, use the warm figure.
+
 ---
 
 ## Search, displays, and exclusions
