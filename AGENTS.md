@@ -312,12 +312,9 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   window is gone; and `Event.recent_events` drops blank/nil patterns before `Regexp.union`,
   so an empty exclusion list no longer empties the feed.
   Grep for `\beval(` under app/ and lib/ returns nothing.
-- The suite is green on SQLite: 432 runs / 1131 assertions (32 skips, so 400
-  executed). The Postgres figures below predate §3.6, which adds 15 runs that are
-  engine-agnostic (no skips, no adapter guards) — expect ~435 there. Read the real
-  number out of the job log rather than trusting this one.
-  Postgres at §2.6: 420 runs / 1165 assertions (3 skips, so 417 executed).
-  The Postgres figures were read out of the CI job log rather than guessed —
+- The suite is green on both engines: 432 runs / 1131 assertions on SQLite
+  (32 skips, so 400 executed), 435 / 1223 on Postgres (3 skips, so 432 executed).
+  Both figures read out of the CI job log rather than guessed —
   `gh run view <id> --log` prints both totals. The gap is not a discrepancy: 29
   tests skip on SQLite and run on Postgres, and 3 more are defined only there.
   cucumber is 5 scenarios / 18 steps on both.

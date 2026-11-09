@@ -35,7 +35,7 @@ than carried forward.
 | Ingest batch-size tuning | Exhausted past ~2000 events/batch — measured, and §2.6 is what made larger batches legal at all. Next measurable target is the per-batch fsync, not the words table |
 | Search indexing, dashboard SQL portability, timestamp parsing | Closed |
 | Dashboard search form timeframe toggle | **Closed at `7e0f435` — §2.3**: the relative timeframe dropdown was dead; every form search used an empty now→now window |
-| Test suite | Green: 432 runs / 1131 assertions on SQLite (32 skips); 420 / 1165 on Postgres at §2.6, ~435 after §3.6 added 15 engine-agnostic runs; cucumber 5 scenarios / 18 steps on both |
+| Test suite | Green on both engines, CI-verified: 432 runs / 1131 assertions on SQLite (32 skips), 435 / 1223 on Postgres (3 skips); cucumber 5 scenarios / 18 steps on both |
 | Scheduler crash loop | **Was open — closed at §2.4**: a blank Frequency field killed the scheduler under `Restart=always`, stopping every Job |
 | Account integrity (duplicate / blank usernames) | **Was open — closed at §2.5**: no uniqueness at any layer, so a second account with a taken name could never sign in |
 | Session lookup and retention | **Was open — closed at §3.5**: per-request cookie lookup was a full table scan, and abandoned rows were never reclaimed |
@@ -995,6 +995,13 @@ dropping the cache population, each produce failures rather than passing.
 weakened in a way worth noting: it warmed nothing, so the failing line had no
 cached-word rows to roll back and the rollback was being asserted against an empty
 state. It now warms the cache first and asserts the pre/post staged counts.
+
+Both new suites are engine-agnostic — no skips, no adapter guards — so the
+Postgres CI job exercises `insert_all(returning:)` on that adapter rather than
+just on SQLite. It passed there: 435 runs / 1223 assertions / 3 skips, against 432
+/ 1131 / 32 on SQLite. The re-pluck fallback is therefore a safety net for an
+adapter that does not support `RETURNING`, not a path this codebase currently
+depends on.
 
 **Not done, and deliberately:** the remaining ingest cost is now spread across
 timestamp parsing (measured earlier at ~45% of warm staging CPU), the per-batch
