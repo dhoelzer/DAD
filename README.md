@@ -227,6 +227,21 @@ thresholds, `Statistic` rates — is approximate across a crash boundary. This i
 deliberate trade-off, not a bug, and `test/import_syslog_crash_test.rb` pins both
 halves: reclaim re-inserts nothing, and no line goes missing.
 
+### Batching
+
+Each flush writes one batch as a multi-row `INSERT`. A batch is chunked into as
+many statements as the database's limit on bind parameters per statement requires
+(32,766 on SQLite, 65,535 on Postgres), and the chunks commit in a single
+transaction — so a batch is still all-or-nothing, and a failed batch leaves no
+index rows behind pointing at events that were never written.
+
+That chunking is what makes the batch size safe to raise. The importer starts at
+2000 lines in production and adjusts upward while throughput improves, with no
+upper bound; before chunking, a batch that large produced a statement over the
+parameter limit and the flush failed outright with `too many SQL variables`.
+Batch size is now bounded by memory and by how much you are willing to duplicate
+after a crash, not by the database.
+
 ---
 
 ## Search, displays, and exclusions

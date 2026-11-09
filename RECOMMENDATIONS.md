@@ -5,7 +5,9 @@ adding `users_admin_test.rb`. Re-verified again at `854f641` (2026-10-15) after
 the post-upgrade cleanup: §1.2 closed, a new §1.3 found and closed, §4.3 gaps
 closed. Re-verified a third time at `2ca83b7` (2026-11-08): four new defects
 found and closed (§2.4, §2.5, §3.5, §4.4), each reproduced with a failing test
-before being fixed. PRs #1–#26 all merged.
+before being fixed. Re-verified a fourth time at `94a697b` (2026-11-09): two more
+ingest defects found and closed (§2.6, §2.7), again each reproduced with failing
+tests first. PRs #1–#27 all merged.
 
 **This document lists only work that is still outstanding.** Everything marked
 closed is verified against the current tree, not against what a PR claimed. The
@@ -25,9 +27,11 @@ than carried forward.
 | Password hashes in HTML | **Was open — closed at `365c845` (§1.3)** — PR #4 fixed the JSON API leak; the three HTML views were missed |
 | Secrets in the working tree | Closed — clean under `gitleaks`; a production key remains in git history, rotation path now provided (§1.1) |
 | Ingestion crash-safety and idempotency | Closed, at-least-once — documented in the README (§2.2) |
+| Bulk INSERT size vs adapter parameter ceiling | **Was open — closed at §2.6**: the production default batch of 2000 events needs ~96k bind parameters against ceilings of 32766 (SQLite) / 65535 (Postgres); batches are now chunked inside one transaction |
+| Word-cache TTL | **Was open — closed at §2.7**: `@cachelifetime` was never initialised, so the first `prune_words` on a long ingest raised `TypeError` and killed the importer |
 | Search indexing, dashboard SQL portability, timestamp parsing | Closed |
 | Dashboard search form timeframe toggle | **Closed at `7e0f435` — §2.3**: the relative timeframe dropdown was dead; every form search used an empty now→now window |
-| Test suite | Green on both engines: 406 runs / 1018 assertions on SQLite (32 skips), 409 / 1110 on partitioned Postgres (3 skips); cucumber 5 scenarios / 18 steps on both |
+| Test suite | Green on both engines: 417 runs / 1073 assertions on SQLite (32 skips), 420 / 1165 on Postgres (3 skips); cucumber 5 scenarios / 18 steps on both |
 | Scheduler crash loop | **Was open — closed at §2.4**: a blank Frequency field killed the scheduler under `Restart=always`, stopping every Job |
 | Account integrity (duplicate / blank usernames) | **Was open — closed at §2.5**: no uniqueness at any layer, so a second account with a taken name could never sign in |
 | Session lookup and retention | **Was open — closed at §3.5**: per-request cookie lookup was a full table scan, and abandoned rows were never reclaimed |
@@ -522,6 +526,109 @@ could not sign in becomes sign-in-able and an administrator can rename it.
 The database-level assertion uses `insert!`, not `insert_all` — the non-bang form
 compiles to `ON CONFLICT DO NOTHING` and would have swallowed the violation
 being asserted.
+
+### 2.6 ✅ Closed — a production-sized batch exceeded the adapter's parameter ceiling **[bug] [correctness] [performance]**
+
+`insertStatement` emitted exactly one multi-row `INSERT` per table per batch, with
+no cap on rows. A statement with `C` columns and `R` rows uses `C*R` host
+parameters, and both adapters reject the statement outright past their ceiling —
+this is a hard error, not a slowdown:
+
+```
+SQLite3::SQLException: too many SQL variables
+```
+
+`events_words` is the binding constraint: 3 columns, and the tokenizer produces
+**~16 index rows per event** (measured: 99,222 rows for 6,000 realistic syslog
+lines). Measured ceilings, found by binary search over real `events_words`
+INSERTs rather than from documentation:
+
+| Adapter | Max parameters | Max `events_words` rows | Max events per batch |
+|---|---|---|---|
+| SQLite 3.54.1 (this build) | 32,766 | 10,922 | ~689 |
+| Postgres 17 | 65,535 (Int16) | 21,845 | ~1,377 |
+
+`DEFAULT_BULK_INSERT_SIZE` is **2000** in production, and the throughput tuner
+adds +20 per flush while EPS improves with **no upper bound**. A 2000-event batch
+needs ~96k parameters — over both ceilings. So the default configuration was
+already past the cliff, and the tuner walks further past it every run.
+
+Why the suite never caught it: `DEFAULT_BULK_INSERT_SIZE` is **1** in test, so
+every in-process test flushes one event at a time. The ceiling is only reachable
+from a development-environment run with a production-sized batch. Same
+prod-only/suite-green shape as the original `SqlPlaceholders` bug that §4.1 and
+`test/models/sql_placeholders_test.rb` exist to pin.
+
+**Closed.** `insert_statements` splits a staged batch at the adapter's ceiling
+(`MAX_STATEMENT_PARAMS`, keyed on `connection.adapter_name`, falling back to the
+lowest supported value for an unknown adapter) and `write_batch` issues the
+resulting statements inside **one** transaction, so chunking does not weaken the
+all-or-nothing property: a failure part-way through still rolls the whole batch
+back, leaving no `events_words` row pointing at an event that was never written.
+The ceiling is resolved on the calling thread before a batch is handed to a
+writer, so the chunking decision does not depend on which thread holds the
+connection.
+
+This is also what unblocks batch tuning: `bulk_insert_size` now means "rows per
+transaction", not "rows per statement". Measured on 6,000 realistic lines,
+SQLite: batch 2000 and 5000 both previously died and now write cleanly, with
+12,000 events and 198,444 index rows at **0 orphans**.
+
+`test/models/event_ingest_limits_test.rb`: 11 runs. All 10 that test the new
+behaviour fail against the pre-fix code — 4 failures and 6 errors, including the
+two real signatures (`too many SQL variables` on a 1000-event batch, and
+`insert_statements` not existing). The batch test asserts the probe batch
+*actually* exceeds the ceiling, so it cannot pass vacuously if the fixture lines
+ever stop producing enough index rows.
+
+One caveat about the coverage: the subprocess harness pins
+`DATABASE_URL=sqlite3:...`, matching the existing ingest subprocess suites, so CI
+never drives a chunked write through the **Postgres** adapter. The Postgres
+ceiling is therefore pinned arithmetically rather than end-to-end. Making it
+end-to-end means letting those subprocesses inherit `DATABASE_URL`, which is a
+separate change worth making deliberately — the SQLite pinning is there for a
+reason (deterministic single-writer behaviour).
+
+### 2.7 ✅ Closed — `prune_words` crashed the importer on its first call **[bug] [correctness]**
+
+`prune_words` reads `cache_lifetime` before it ever writes it:
+
+```ruby
+prune_time = current_time - cache_lifetime      # nil on a fresh process
+```
+
+`@cachelifetime` was never assigned anywhere in the app. `resetCaches` — the
+documented single place ingest state is defined — initialises
+`@bulk_insert_size`, `@inserted_last_run`, `@cache_hits` and the rest, but not
+this one. The only assignments in the tree were inside `prune_words` itself and in
+three tests that set it by hand, which is exactly why the suite was green.
+
+The pre-extraction `Event` model had `@@cachelifetime = 320`. Commit `00e3fc3`
+("Extract the ingest pipeline into `EventIngestor` (§4.1)") moved the reader and
+the writer across but dropped the assignment.
+
+`performPendingInserts` calls `prune_words` once `num_cached > CACHESIZE`
+(100,000), so this fires mid-run on a long ingest rather than at a call site
+anyone would think to test:
+
+```
+TypeError: can't convert NilClass into an exact number
+```
+
+Reproduced end-to-end: ingesting 15,000 lines with 120k distinct tokens killed the
+run at `event_ingestor.rb:333`. Secondary effect while it went unnoticed — with no
+TTL the word cache can never be pruned, so importer memory grows with distinct
+word count for the life of the process.
+
+**Closed.** `DEFAULT_CACHE_LIFETIME = 320` restores the pre-extraction value, and
+`resetCaches` assigns it. `resetCaches` also clears the §2.6 ceiling override, so
+all ingest state is again defined in one place.
+
+`test/models/event_ingest_limits_test.rb` covers three layers: `resetCaches`
+restores the TTL; `prune_words` runs on a fresh process; and a *flush that trips
+the prune threshold* does not kill ingest — the last one stubs `num_cached` past
+`CACHESIZE` and asserts `TRIPPED=true`, since staging 100k words in a test is not
+practical and the path from a flush into `prune_words` is what was broken.
 
 ---
 
@@ -1626,6 +1733,8 @@ Verified closed against the current tree:
 | §2.1 | Four admin screens: `sessions#index`/`#show` 500'd on removed route helpers; `jobs#test` 500'd on nil `@job`; `Users#destroy` orphaned Session rows and 500'd subsequent requests; `Users#update` locked accounts out on a blank password and could persist plaintext; `Users#create` accepted an empty password. Plus request-spec coverage for all of it | #23 |
 | §2.3 | Dashboard search form: the timeframe toggle branched on the checkbox *key* rather than its value, so every form search used an empty now→now window. Writing the missing request test also surfaced a `nil.to_fs` crash on unparseable date fields (a 500 on HTML, a silently skipped `#stats` update on the remote `.js` path), `@timeframes` vs `@timeframe` in the partial, and a zero `numresults` limit | `7e0f435` |
 | §2.4 | A blank Frequency field in the job form saved a nil `frequency`; `scheduler.rb` then raised on the reschedule line, which sat outside its `rescue`, killing the process under `Restart=always` and crash-looping every Job. Loop body extracted to `JobScheduler` so it could be tested | this branch |
+| §2.6 | `insertStatement` emitted one unbounded multi-row INSERT per table, so a production-sized batch (default 2000 events, ~16 `events_words` rows each) blew the adapter's host-parameter ceiling: `too many SQL variables`. `insert_statements` now chunks at the adapter ceiling and `write_batch` keeps the chunks in one transaction. Invisible to the suite because `DEFAULT_BULK_INSERT_SIZE` is 1 in dev/test | this branch |
+| §2.7 | `@cachelifetime` was never assigned anywhere — `resetCaches` set every other ingest variable but not this one, and `00e3fc3` dropped the pre-extraction `@@cachelifetime = 320`. First `prune_words` on a long ingest raised `TypeError: can't convert NilClass into an exact number`, killing the importer mid-file; the cache also could never be pruned | this branch |
 | §2.5 | No username uniqueness at any layer: `do_logon` uses `find_by`, so a second account with a taken name could never sign in, silently. Blank usernames also accepted and reachable from the login form. Unique index + validation; migration repairs existing dupes/blanks without deleting anything | this branch |
 | §3.5 | `gatekeeper`'s per-request `find_by(session_hash:)` was a full table SCAN, and expired rows were only deleted when the owning cookie returned, so the table grew forever. Unique index, `Session.purge_expired` on login, `prune_sessions` handler | this branch |
 | §4.4 | Twelve index actions assigned a bare `Model.all`; `sessions` and `statistics` grow without bound, so those screens eventually stopped rendering. `ApplicationController#paginate` + `pagination_nav`, no new gem | this branch |

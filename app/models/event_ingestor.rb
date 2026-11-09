@@ -37,9 +37,35 @@ class EventIngestor
   # suite use, which fails them with SQLite3::BusyException.
   MAX_INSERT_THREADS = 1
 
-  # Word-cache size that triggers a prune, and the current TTL in seconds.
+  # Word-cache size that triggers a prune, and the TTL it starts at in seconds.
   # prune_words grows/shrinks the TTL to keep the cache near CACHESIZE.
   CACHESIZE = 100000
+
+  # Starting TTL. 320 is the value the pre-extraction Event model used
+  # (@@cachelifetime=320); the extraction moved the reader and writer but dropped
+  # the assignment, leaving @cachelifetime nil, so the first prune_words raised
+  # "can't convert NilClass into an exact number" and took the importer down.
+  DEFAULT_CACHE_LIFETIME = 320
+
+  # Host-parameter ceilings per statement, per adapter. A multi-row INSERT with C
+  # columns and R rows uses C*R parameters, and exceeding the ceiling is a hard
+  # error, not a slowdown:
+  #
+  #   SQLite3::SQLException: too many SQL variables
+  #
+  # Measured on the real insert path (binary search over events_words INSERTs):
+  # SQLite 3.54.1 accepts 32766 parameters, i.e. 10922 three-column rows.
+  # Postgres caps a statement at 65535 parameters (Int16). At the ~16 index rows
+  # per event this tokenizer produces, the production default batch of 2000
+  # events needs ~96k parameters -- over both ceilings.
+  MAX_STATEMENT_PARAMS = {
+    'PostgreSQL' => 65_535,
+    'SQLite' => 32_766
+  }.freeze
+
+  # Used for adapters not listed above: the lowest ceiling this app supports, so
+  # an unknown adapter chunks conservatively rather than dying mid-batch.
+  DEFAULT_MAX_STATEMENT_PARAMS = 32_766
 
   # Year assumed for syslog lines that carry a timestamp without a year
   # (the classic "Jun  1 12:00:00" form). Refreshed on each flush so a long
@@ -77,6 +103,10 @@ class EventIngestor
     # @bulk_insert_size grows adaptively with throughput; without a reset, a
     # single storeEvent can sit in the pending set indefinitely.
     @bulk_insert_size = DEFAULT_BULK_INSERT_SIZE
+    # Must be set here, not only by prune_words: prune_words reads it before it
+    # writes it, so a process that never set it dies on its first prune.
+    @cachelifetime = DEFAULT_CACHE_LIFETIME
+    @max_statement_params = nil
     @inserted_last_run = 100
     @cache_hits = 0
     resetStats
@@ -310,8 +340,11 @@ class EventIngestor
 
   # Builds a single multi-row INSERT plus its bind parameters. Only the table
   # and column names (all literals from this file) reach the SQL text; every
-  # value is bound. SQLite caps host parameters far above the largest batch
-  # this produces, so batching is preserved.
+  # value is bound.
+  #
+  # Callers that write a whole staged batch want insert_statements, which caps
+  # the result at the adapter's parameter ceiling; this is the per-statement
+  # builder underneath it.
   # Binds are plain values: Rails 7.1 removed the legacy [type, value] pair form
   # that exec_query accepted, and type_cast now raises "can't cast Array" on it.
   def self.insertStatement(table, columns, rows)
@@ -320,6 +353,40 @@ class EventIngestor
       Array.new(rows.size) { row_placeholder }.join(', ')
     binds = rows.flat_map { |row| columns.map { |c| row[c] } }
     [sql, binds]
+  end
+
+  # The staged rows as one or more INSERTs, each within the adapter's host
+  # parameter ceiling.
+  #
+  # A single multi-row INSERT for a whole batch is not always legal: R rows over
+  # C columns uses C*R parameters, and both adapters reject the statement outright
+  # once the ceiling is passed. events_words is the binding constraint at three
+  # columns and ~16 rows per event, so a 2000-event batch -- the production
+  # default -- needs ~96k parameters against ceilings of 32766 (SQLite) and
+  # 65535 (Postgres). Chunking is what lets bulk_insert_size mean "rows per
+  # transaction" rather than "rows per statement".
+  #
+  # Empty input yields no statements rather than an INSERT with no VALUES, which
+  # is a syntax error.
+  def self.insert_statements(table, columns, rows, max_params: max_statement_params)
+    return [] if rows.empty?
+    rows_per_statement = [max_params / columns.size, 1].max
+    rows.each_slice(rows_per_statement).map { |slice| insertStatement(table, columns, slice) }
+  end
+
+  # Parameter ceiling for the connection in use. Computed on the calling thread
+  # before a batch is handed to a writer, so the chunking decision does not
+  # depend on which thread happens to hold the connection.
+  def self.max_statement_params
+    @max_statement_params ||
+      MAX_STATEMENT_PARAMS.fetch(ActiveRecord::Base.connection.adapter_name,
+                                 DEFAULT_MAX_STATEMENT_PARAMS)
+  end
+
+  # Overrides the ceiling. Tests use it to force chunking at a batch size the
+  # suite can actually stage; leaving it nil restores adapter lookup.
+  def self.max_statement_params=(limit)
+    @max_statement_params = limit
   end
 
   # Drops word-cache entries not used within cache_lifetime seconds, then
@@ -412,8 +479,9 @@ class EventIngestor
       Rails.logger.debug "Joining previous inserts."
       join_insert_threads
     end
-    ew_sql, ew_binds = insertStatement('events_words', [:event_id, :word_id, :generated], events_words)
-    ev_sql, ev_binds = insertStatement('events', [:id, :system_id, :service_id, :generated, :stored, :hunks], pending_event_values)
+    ew_statements = insert_statements('events_words', [:event_id, :word_id, :generated], events_words)
+    ev_statements = insert_statements('events', [:id, :system_id, :service_id, :generated, :stored, :hunks],
+                                      pending_event_values)
 
     # Measured before the queues are cleared: the throughput figure below needs
     # the size of the batch just handed off. Reading @pendingEventValues after
@@ -435,7 +503,7 @@ class EventIngestor
       # Cucumber runs DatabaseCleaner inside an open transaction and SQLite
       # permits a single writer, so a second connection deadlocks the suite.
       # Inline keeps the same write_batch path, just without the thread.
-      write_batch(ew_sql, ew_binds, ev_sql, ev_binds)
+      write_batch(ew_statements, ev_statements)
       # Inline: the rows are durable the moment write_batch returns.
       checkpoint_mutex.synchronize do
         @ingest_checkpoint = @ingest_position
@@ -450,9 +518,9 @@ class EventIngestor
       # would call advance_checkpoint! against a queue that does not yet hold
       # this batch and its checkpoint would never be released.
       checkpoint_mutex.synchronize { @insertThreads << batch }
-      batch.thread = Thread.new(ew_sql, ew_binds, ev_sql, ev_binds, batch) do |ew_sql, ew_binds, ev_sql, ev_binds, batch|
+      batch.thread = Thread.new(ew_statements, ev_statements, batch) do |ew_statements, ev_statements, batch|
         begin
-          write_batch(ew_sql, ew_binds, ev_sql, ev_binds)
+          write_batch(ew_statements, ev_statements)
           # Rows are durable: this batch may now release the checkpoint, but
           # only if every earlier batch has already finished.
           batch.finished = true
@@ -569,17 +637,19 @@ class EventIngestor
   end
   private_class_method :stage_event
 
-  # Writes one staged batch. Both INSERTs share a transaction: events_words is
-  # written first, so a crash between the two left index rows pointing at
-  # events that do not exist -- search hits that 404.
+  # Writes one staged batch. Everything in the batch shares a transaction:
+  # events_words is written first, so a crash between the two left index rows
+  # pointing at events that do not exist -- search hits that 404. Chunking a
+  # batch into several statements (insert_statements) must not break that, so the
+  # transaction wraps the whole set, not each statement.
   #
-  # Takes the rows as arguments instead of reading the class-level queues, so a
-  # caller can hand a batch to a thread without the queues changing underneath
-  # it. Internal: the only writer of a staged batch.
-  def self.write_batch(ew_sql, ew_binds, ev_sql, ev_binds)
+  # Takes the statements as arguments instead of reading the class-level queues,
+  # so a caller can hand a batch to a thread without the queues changing
+  # underneath it. Internal: the only writer of a staged batch.
+  def self.write_batch(ew_statements, ev_statements)
     ActiveRecord::Base.transaction do
-      SqlPlaceholders.query(ew_sql, ew_binds)
-      SqlPlaceholders.query(ev_sql, ev_binds)
+      ew_statements.each { |sql, binds| SqlPlaceholders.query(sql, binds) }
+      ev_statements.each { |sql, binds| SqlPlaceholders.query(sql, binds) }
     end
   end
   private_class_method :write_batch
