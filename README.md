@@ -168,9 +168,16 @@ The whole stack — the app in its own containers, PostgreSQL in a separate one:
 docker compose up --build
 ```
 
-Then browse to <http://localhost:3000>. `docker compose up` runs a one-shot
-`migrate` service first, which builds the Postgres schema from `db/migrate` on an
-empty database and then does plain `db:migrate` on every later start.
+Then browse to <http://localhost:3000> and sign in as **`admin` /
+`dad_dev_password`**. Override it with `DAD_ADMIN_PASSWORD=... docker compose up`
+if you care; that value exists only so the stack is usable out of the box, and
+production takes its password from `provision.sh`.
+
+`docker compose up` runs a one-shot `migrate` service first. On an empty database
+it builds the Postgres schema from `db/migrate` and seeds the roles, rights and
+admin user; on every later start it does plain `db:migrate` and leaves your data
+alone. Without the seed the stack comes up with zero users, and the login form
+renders fine but can never succeed.
 
 | service | runs | equivalent systemd unit |
 |---|---|---|

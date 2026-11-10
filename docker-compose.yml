@@ -92,6 +92,16 @@ services:
   # db:migrate, because migrate_from_scratch drops and rebuilds everything.
   migrate:
     <<: *app
+    # DAD_ADMIN_PASSWORD seeds the initial admin. db/seeds.rb raises rather than
+    # inventing a well-known account, so without it the stack comes up with zero
+    # users and the web UI is unreachable -- it renders a login form that can
+    # never succeed. This default is a development convenience and is stated in
+    # the README; production gets its password from provision.sh.
+    environment:
+      RAILS_ENV: development
+      DATABASE_URL: postgresql://dad:dad@db:5432/dad_development
+      DAD_ADMIN_USER: admin
+      DAD_ADMIN_PASSWORD: ${DAD_ADMIN_PASSWORD:-dad_dev_password}
     command:
       - bash
       - -c
@@ -103,6 +113,13 @@ services:
           bundle exec rake db:migrate_from_scratch
         else
           bundle exec rake db:migrate
+        fi
+        # Seed only when there is no admin yet. db:seed is idempotent, but it also
+        # seeds the maintenance Jobs, and re-running it on every start would
+        # re-create any Job an operator had deleted.
+        if [ "$$(psql "$$DATABASE_URL" -tAc "select count(*) from users")" = "0" ]; then
+          echo "No users: seeding roles, rights and admin/$${DAD_ADMIN_USER}."
+          bundle exec rake db:seed
         fi
     restart: "no"
 
