@@ -1,9 +1,10 @@
 # gitleaks configuration.
 #
 # The default rules are keyword-driven and demonstrably miss this project's
-# actual failure mode: RECOMMENDATIONS 1.1 was a `secret_key_base` committed to
-# config/initializers/secret_token.rb, and the same value written as
-# `config.secret_key_base = ENV["SECRET_KEY_BASE"] || '<hex>'` is not flagged at
+# actual failure mode: a `secret_key_base` committed to
+# config/initializers/secret_token.rb (RECOMMENDATIONS appendix, formerly §1.1).
+# The same value written as `config.secret_key_base =
+# ENV["SECRET_KEY_BASE"] || '<hex>'` is not flagged at
 # all by the built-in generic-api-key rule. So the rule below is written against
 # the thing that actually went wrong rather than relying on entropy heuristics.
 #

@@ -40,6 +40,17 @@ class EventTest < ActiveSupport::TestCase
       name: 'index_events_words_on_word_id_and_generated_and_event_id')
   end
 
+  # The standalone generated index is the plan searchSQL is written to avoid:
+  # driving events_words through it means reading every join row in the time
+  # window. 20261110000001 dropped it; this keeps it from creeping back, e.g.
+  # through a schema reload that predates the drop. Cost of keeping it measured
+  # at 1.27M events_words rows: 28 bytes/row (~2.8 GB per 100M) and 5.1% of
+  # insert time, with no measurable effect on search either way.
+  test 'events_words has no standalone generated index' do
+    refute Event.connection.index_name_exists?(:events_words, 'index_events_words_on_generated'),
+      'nothing reads events_words by time alone; retention drops whole partitions'
+  end
+
   # Postgres needs a byte-wise index for the prefix LIKE: a plain index on
   # words.text is ordered by the database collation, and under en_US.UTF-8 the
   # planner can only seq scan it.

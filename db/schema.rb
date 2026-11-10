@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_08_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_10_000001) do
   create_table "alerts", force: :cascade do |t|
     t.integer "system_id", limit: 8
     t.integer "service_id", limit: 8
@@ -62,7 +62,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_08_000001) do
     t.integer "event_id", limit: 8
     t.integer "word_id", limit: 8
     t.datetime "generated", precision: nil, null: false
-    t.index ["generated"], name: "index_events_words_on_generated"
     t.index ["word_id", "generated", "event_id"], name: "index_events_words_on_word_id_and_generated_and_event_id"
   end
 
