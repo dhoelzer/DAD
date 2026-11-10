@@ -32,13 +32,48 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   `~> 1.7, < 2` -> `~> 2.1` at 8.0, whose adapter *requires* >= 2.1.
 - `Gemfile.lock` and `db/schema.rb` are now tracked on purpose — do not re-add them
   to `.gitignore`.
-- Run tests: `bundle install --frozen` (set `BUNDLE_WITHOUT=production` to skip `pg`),
-  `bundle exec rake db:migrate RAILS_ENV=test`, `bundle exec rake test`,
-  `bundle exec cucumber`. Use the cucumber **binary**, not `rake cucumber:ok` — the
-  rake task runs cucumber in-process and minitest's autorun then dies on `--profile`.
-- CI: `.github/workflows/ci.yml` (test + a `security` job with three **blocking**
-  gates: `bundle-audit`, `brakeman`, and `gitleaks` over the working tree via
-  `.gitleaks.toml`). `Dockerfile.dev` mirrors the same pinned toolchain.
+- Run tests, preferred: `bin/docker-test` — the whole suite against the Compose
+  Postgres, plus the schema-shape and INVALID-index assertions the CI `postgres`
+  job makes. Extra args replace the container command, so
+  `bin/docker-test bundle exec rails test test/models/event_test.rb` runs one file
+  and `bin/docker-test bash` opens a shell in it.
+- Run tests without Docker: `bundle install --frozen` (set `BUNDLE_WITHOUT=production`
+  to skip `pg`), `bundle exec rake db:migrate RAILS_ENV=test`,
+  `bundle exec rake test`, `bundle exec cucumber`. Use the cucumber **binary**, not
+  `rake cucumber:ok` — the rake task runs cucumber in-process and minitest's
+  autorun then dies on `--profile`.
+- Docker: `Dockerfile` + `docker-compose.yml`. One image, separate containers for
+  `db` (postgres:17), `migrate` (one-shot), `web`, `importer`, `scheduler`,
+  `syslog`, and `test` (behind `--profile test`). `docker-compose.db-port.yml` is
+  an optional override that publishes 5432 for host `psql`. `.dockerignore` keeps
+  the build context off `log/` and `vendor/bundle` (~5.6 GB otherwise).
+  The `Dockerfile` was `Dockerfile.dev` and **could not build**: it had a bare
+  `gem install bundler` line, which is not a Dockerfile instruction. No CI job
+  built the image, so nothing caught it. It also shipped no JS runtime, which
+  breaks every view render through ExecJS (CI hides this: GitHub runners have Node).
+  The `migrate` service seeds `admin` when the `users` table is empty, using
+  `DAD_ADMIN_PASSWORD` (default `dad_dev_password`, development only) — without it
+  the stack comes up with zero users and the login form can never succeed. Do not
+  seed unconditionally: `db:seed` also recreates the maintenance Jobs.
+- CI: `.github/workflows/ci.yml` — six jobs: `test` (SQLite), `postgres`, `assets`,
+  `provisioning`, `docker`, `security` (three **blocking** gates: `bundle-audit`,
+  `brakeman`, `gitleaks` over the working tree via `.gitleaks.toml`).
+  The `docker` job builds the image and boots the compose stack, then asserts the
+  database was migrated+seeded, that a view actually renders, that an emitted asset
+  path returns 200, and that a UDP packet reaches `events`. It exists because
+  nothing used to build the image, which is how a Dockerfile containing a bare
+  `gem install` line reached `master`. Two of its checks are only meaningful
+  against the image, not runner Ruby: the JS runtime (GitHub runners ship Node, a
+  bare `ruby:*` image does not) and `pg` being present (these containers talk to
+  Postgres, so `BUNDLE_WITHOUT=production` would break them).
+  The boot step accepts **any** HTTP status, including 500 — its job is to know
+  Rails finished booting, not that the app is healthy, so a render failure reaches
+  the step that names the cause.
+  **CI steps run `bash -e`, so a bare `x=$(some_command)` aborts the step if the
+  command fails** — the assignment carries its exit status. This bit the boot
+  poll: while Rails is still binding, the first request can be *reset* rather
+  than refused, curl exits 56 with no output, and the step died on attempt one
+  against a perfectly healthy stack. Guard polling commands with `|| fallback`.
   `gitleaks` is pinned by version *and* sha256 in the workflow; if you bump it,
   update `GITLEAKS_SUM` from the release's own `_checksums.txt`.
 - Rails upgrades here keep breaking on **renamed-but-not-raising config keys**:
@@ -314,8 +349,9 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   window is gone; and `Event.recent_events` drops blank/nil patterns before `Regexp.union`,
   so an empty exclusion list no longer empties the feed.
   Grep for `\beval(` under app/ and lib/ returns nothing.
-- The suite is green on both engines: 432 runs / 1131 assertions on SQLite
-  (32 skips, so 400 executed), 435 / 1223 on Postgres (3 skips, so 432 executed).
+- The suite is green on both engines: 433 runs / 1132 assertions on SQLite
+  (32 skips, so 401 executed), 436 / 1224 on Postgres (3 skips, so 433 executed).
+  cucumber is 5 scenarios / 18 steps on both, and on both engines via Docker.
   Both figures read out of the CI job log rather than guessed —
   `gh run view <id> --log` prints both totals. The gap is not a discrepancy: 29
   tests skip on SQLite and run on Postgres, and 3 more are defined only there.
@@ -365,7 +401,9 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
 
 `config/database.yml` uses sqlite3 for development/test and the postgresql
 adapter for production. This split hides adapter-specific breakage, because the
-suite only ever exercises one engine.
+suite only ever exercises one engine. `bin/docker-test` is the fix for that on a
+developer machine: it runs the suite against the engine production actually uses,
+with no local cluster to install.
 
 - **Raw SQL must work on both.** Queries are written with SQLite `?` placeholders
   and routed through `SqlPlaceholders.query` (`app/models/sql_placeholders.rb`),
@@ -389,8 +427,10 @@ suite only ever exercises one engine.
     `schema.rb` stale, which looks like a clean diff and is not one.
 - CI has a `postgres` job that runs the whole suite against Postgres 17. It must
   not set `BUNDLE_WITHOUT=production`, because `pg` lives in the `:production`
-  group. Cucumber stays on SQLite (its `database.yml` entry and DatabaseCleaner's
-  open-transaction pattern are tuned for it).
+  group. Cucumber runs on both engines. `features/support/env.rb` whitelists the
+  Compose URL in `DatabaseCleaner.url_whitelist` **before** setting
+  `strategy = :transaction` — DatabaseCleaner refuses a remote URL at strategy
+  assignment time, so whitelisting after it raises instead of cleaning.
 - **`CONCURRENTLY` index builds can leave an INVALID husk, and Rails cannot see
   it.** A failed build (lock timeout, deadlock, cancel) does not roll back: the
   index stays, holding its name, marked `indisvalid = false`. `index_exists?` and
@@ -401,12 +441,30 @@ suite only ever exercises one engine.
   `select c.relname from pg_class c join pg_index i on i.indexrelid = c.oid where not i.indisvalid`;
   the CI `postgres` job asserts this. `AddPatternIndexToWords` self-heals its own.
 
+### The path coupling between the collector and the importer
+
+`syslog.pl` hardcodes `$LOGSTAGING="/var/DAD/Logs/LogStaging"` and
+`$LOGPROCESSING="/var/DAD/Logs/LogsToProcess"`. `import_syslog.rb` uses paths
+**relative to its own working directory**: `Dir.chdir('Logs/LogsToProcess')`, then
+`PROCESSED_DIR = '../ProcessedLogs'`. The two agree only because every systemd unit
+sets `WorkingDirectory=/var/DAD`. Nothing validates that they line up, so change
+the working directory (or the image `WORKDIR`) and the collector keeps accepting
+UDP packets and writing into a tree the importer never reads — silently, with no
+error anywhere. `Dockerfile` therefore uses `WORKDIR /var/DAD`, not `/app`.
+
+Rotation is **traffic-driven**, not timer-driven: `RotateLog` runs from `logit`,
+so with no inbound traffic the open staging file is never moved into
+`LogsToProcess` and the importer sees nothing. A quiet system looks like a broken
+importer. Perl also block-buffers `print LOG`, so the staging file reads as 0
+bytes until the rotation `close(LOG)` flushes it — that is not data loss.
+
 ### Running Postgres locally
 
-The cluster in this sandbox listens on **TCP 127.0.0.1:5432** with role `dad` /
-password `dad` (check `pg_isready -h 127.0.0.1 -p 5432` first; an older revision
-of this file described a socket-only cluster on 5433 under `~/pgdata`, which is
-not running here):
+Prefer Docker: `bin/docker-test` (suite) or `docker compose up` (stack). For a
+local cluster, the one in this sandbox listens on **TCP 127.0.0.1:5432** with role
+`dad` / password `dad` (check `pg_isready -h 127.0.0.1 -p 5432` first; an older
+revision of this file described a socket-only cluster on 5433 under `~/pgdata`,
+which is not running here):
 
 ```bash
 export RAILS_ENV=test SECRET_KEY_BASE=not_a_secret

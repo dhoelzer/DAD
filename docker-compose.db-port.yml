@@ -1,0 +1,12 @@
+# Optional override: publish the database on the host so psql, pgAdmin, or an IDE
+# can reach it. Not part of the default stack -- see the note on the db service
+# in docker-compose.yml about colliding with a local Postgres.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.db-port.yml up
+#
+# Bound to 127.0.0.1, not 0.0.0.0: the credentials are dad/dad.
+
+services:
+  db:
+    ports:
+      - "127.0.0.1:5432:5432"

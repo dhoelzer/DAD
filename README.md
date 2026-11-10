@@ -52,9 +52,12 @@ should touch it.
 
 - Ruby **3.3.8** (`.ruby-version`)
 - Rails **8.1** (installed via Bundler)
-- **PostgreSQL** for production. Development and test use SQLite, so the test
-  suite needs no database server.
+- **PostgreSQL** for production. Development and test can use SQLite, in which
+  case the test suite needs no database server.
 - Apache + Phusion Passenger for the web UI (what `provision.sh` configures).
+- **Docker + Compose** if you want the whole stack, or the test suite against
+  Postgres, without installing any of the above. See
+  [The Docker Compose way](#the-docker-compose-way).
 
 ---
 
@@ -156,6 +159,66 @@ bundle exec rake assets:precompile RAILS_ENV=production
 `db:seed` is idempotent — it creates the five rights, the two roles, and the
 admin user, and re-running it changes nothing. It deliberately does **not** reset
 an admin password that has been changed since.
+
+### The Docker Compose way
+
+The whole stack — the app in its own containers, PostgreSQL in a separate one:
+
+```bash
+docker compose up --build
+```
+
+Then browse to <http://localhost:3000> and sign in as **`admin` /
+`dad_dev_password`**. Override it with `DAD_ADMIN_PASSWORD=... docker compose up`
+if you care; that value exists only so the stack is usable out of the box, and
+production takes its password from `provision.sh`.
+
+`docker compose up` runs a one-shot `migrate` service first. On an empty database
+it builds the Postgres schema from `db/migrate` and seeds the roles, rights and
+admin user; on every later start it does plain `db:migrate` and leaves your data
+alone. Without the seed the stack comes up with zero users, and the login form
+renders fine but can never succeed.
+
+| service | runs | equivalent systemd unit |
+|---|---|---|
+| `db` | PostgreSQL 17, data in the `pgdata` volume | — |
+| `migrate` | `rake db:create` + migrate, then exits | `provision.sh` |
+| `web` | `rails server` on :3000 | Apache + Passenger |
+| `importer` | `import_syslog.rb` | `dad-importer` |
+| `scheduler` | `scheduler.rb` | `dad-scheduler` |
+| `syslog` | `syslog.pl`, UDP :514 | `dad-syslog` |
+| `test` | the suite, on Postgres (`--profile test`) | the CI `postgres` job |
+
+The service split mirrors production deliberately: these are independent
+long-lived processes with different failure modes, and the repo already ships a
+unit for each. One container running all three under a supervisor would hide
+exactly the coupling those units exist to fix.
+
+```bash
+docker compose logs -f importer
+docker compose exec db psql -U dad dad_development
+docker compose down          # keep the volumes
+docker compose down -v       # discard the database too
+```
+
+Two things worth knowing before you reach for it:
+
+- **The database port is not published.** The app containers reach `db` over the
+  Compose network by service name, and publishing 5432 by default collides with a
+  Postgres already running on your machine. For host access, use the override:
+  `docker compose -f docker-compose.yml -f docker-compose.db-port.yml up`
+- **Code is baked into the image, not bind-mounted.** The image runs as uid 1000;
+  mounting a checkout owned by a different uid makes Rails' `log/` and `tmp/`
+  writes fail with `EACCES` in a way that reads like an app bug. The gem layer is
+  cached, so after an edit `docker compose up --build` only re-runs `COPY . .`.
+
+The image's `WORKDIR` is `/var/DAD`, not `/app`, because `syslog.pl` hardcodes
+absolute paths under `/var/DAD/Logs` and every systemd unit sets
+`WorkingDirectory=/var/DAD`. Any other `WORKDIR` and the collector writes into a
+directory the importer never reads.
+
+This is the development and test path. Production still deploys through
+`provision.sh` + systemd + Apache/Passenger.
 
 ### Running the three processes by hand
 
@@ -496,29 +559,60 @@ page; `?page=N` selects one. Nothing in the UI loads a whole table.
 ## Development
 
 ```bash
-bundle exec rake test          # unit + controller tests (SQLite, no server needed)
-bundle exec cucumber           # feature tests
-bundle exec brakeman -q        # static analysis, must report 0 warnings
+bin/docker-test              # the suite on Postgres, in Docker -- preferred
+bundle exec rake test        # unit + controller tests on SQLite, no server needed
+bundle exec cucumber         # feature tests on SQLite
+bundle exec brakeman -q      # static analysis, must report 0 warnings
 bundle exec bundle-audit check # dependency CVEs
 ```
 
-CI runs the unit tests and cucumber features on **both SQLite and Postgres**,
-plus brakeman, bundle-audit, an asset-precompile job, and a job that checks
-`provision.sh` parses and the systemd units verify. The Postgres job exists
-because the SQLite suite cannot see adapter-specific SQL breakage, and it has
-caught total failures before. See `.github/workflows/ci.yml`.
+**Test on Postgres.** SQLite is still supported for a fast local loop, but it is
+not the engine production runs, and the difference has shipped breakage before:
+`Event.insertStatement` once emitted SQLite `?` placeholders through
+`exec_query`, Postgres rejected them outright, and production could not insert a
+single event while every SQLite job stayed green (RECOMMENDATIONS 3.2).
+`events` and `events_words` are partitioned on Postgres and are not partitionable
+on SQLite at all, so the SQLite suite never exercises the shape production
+queries; the composite covering index on `events_words` is Postgres-only too.
 
-To run the suite against Postgres locally:
+`bin/docker-test` runs both suites against the Compose `db` service and then makes
+the same two assertions the CI `postgres` job makes — that `events` and
+`events_words` really are partitioned, and that no index was left `INVALID` by a
+failed `CONCURRENTLY` build. It passes extra arguments through to the container,
+so `bin/docker-test bundle exec rails test test/models/event_test.rb` runs one
+file, and `bin/docker-test bash` drops you into it.
+
+CI runs six jobs (`.github/workflows/ci.yml`): the unit tests and cucumber
+features on **both SQLite and Postgres**, an asset-precompile job, a job that
+checks `provision.sh` parses and the systemd units verify, a `security` job
+(brakeman, bundle-audit, gitleaks), and a **`docker` job that builds this image
+and boots the stack**.
+
+The `docker` job is the one that would have caught the broken `Dockerfile.dev`.
+Beyond building, it drives the running stack: it asserts the `migrate` service
+left a partitioned `events`/`events_words` and at least one user, that the login
+page actually renders (checking the body for "Could not find a JavaScript
+runtime", so a missing runtime names itself instead of showing as a bare 500),
+that an asset path the page emitted returns 200, and that a UDP packet sent to
+`syslog`:514 ends up as a row in `events`. That last check is the only automated
+test of the Perl collector — no Ruby-level job would notice it failing to start.
+
+To run against Postgres without Docker, point `DATABASE_URL` at a local cluster.
+Use `db:migrate_from_scratch`, not `db:migrate`: the committed `db/schema.rb` is
+SQLite-flavoured, and `db:migrate` loads that dump into an empty Postgres database
+and skips `db/migrate` entirely, so the partitioned shape is never built.
 
 ```bash
 createuser dad && createdb -O dad dad_test
-DATABASE_URL=postgres://dad:dad@127.0.0.1:5432/dad_test bundle exec rake db:migrate_from_scratch
-DATABASE_URL=postgres://dad:dad@127.0.0.1:5432/dad_test bundle exec rake test
-DATABASE_URL=postgres://dad:dad@127.0.0.1:5432/dad_test bundle exec cucumber
+export DATABASE_URL=postgres://dad:dad@127.0.0.1:5432/dad_test
+bundle exec rake db:migrate_from_scratch
+bundle exec rake test
+bundle exec cucumber
 ```
 
-Without `DATABASE_URL` everything runs on SQLite, and the partitioning and backup
-tests skip rather than fail.
+Without `DATABASE_URL` everything runs on SQLite, and the Postgres-only
+partitioning, backup and index tests skip rather than fail — which is the trap:
+a green SQLite run says nothing about the partitioned path.
 
 Before deploying a change to the ingest path, read the comments in
 `app/models/event.rb` around `storeEvent` / `flush_and_wait` and
