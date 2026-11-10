@@ -9,13 +9,26 @@ before being fixed. Re-verified a fourth time at `94a697b` (2026-11-09): two mor
 ingest defects found and closed (§2.6, §2.7), again each reproduced with failing
 tests first. Re-verified a fifth time at `fd3d23b` (2026-11-08): ingest
 throughput profiled end to end and the dominant cost closed (§3.6), measured
-before and after on a fixed harness rather than asserted. PRs #1–#28 all merged.
+before and after on a fixed harness rather than asserted. Re-verified a sixth
+time at `ac7076f` (2026-11-10): §1.1's operator-side question answered (no live
+deployment holds the burned key) and the item closed; one dead index dropped
+after measuring it on both engines. PRs #1–#29 all merged.
 
-**This document lists only work that is still outstanding.** Everything marked
-closed is verified against the current tree, not against what a PR claimed. The
-full review history — the original findings, the misdiagnoses, and the reasoning
-behind each fix — lives in the git history of this file (see the appendix for
-where to find it).
+Two claims from earlier revisions of this file did **not** survive re-measurement
+and have been corrected rather than carried forward: the dead
+`index_events_words_on_generated` was recorded as making search 2.3–185× faster,
+which was true before the §3.3 search rewrite and false after it; and the
+"~6%" insert cost was re-measured at 5.1% at production-ish scale. Both are
+recorded in the appendix with the numbers that hold.
+
+**This document lists only work that is still outstanding.** As of this
+revision that list is empty: every item found across six review passes is
+closed, and the sections below are kept as the record of what was wrong and why
+each fix was chosen. Read the status snapshot first; the body is history.
+Everything marked closed is verified against the current tree, not against what
+a PR claimed. The full review history — the original findings, the misdiagnoses,
+and the reasoning behind each fix — lives in the git history of this file (see
+the appendix for where to find it).
 
 Every item below was re-checked by reading the code at `b6adf25`. Where a claim
 from an earlier revision turned out to be stale, it is corrected here rather
@@ -27,15 +40,16 @@ than carried forward.
 |---|---|
 | SQL injection, `eval` sinks, password hashing, XSS, authorization | Closed |
 | Password hashes in HTML | **Was open — closed at `365c845` (§1.3)** — PR #4 fixed the JSON API leak; the three HTML views were missed |
-| Secrets in the working tree | Closed — clean under `gitleaks`; a production key remains in git history, rotation path now provided (§1.1) |
+| Secrets | **Closed (§1.1)** — working tree clean under `gitleaks`; the production key in git history is confirmed to be held by no live deployment, so rotation is moot and history rewriting stays declined |
 | Ingestion crash-safety and idempotency | Closed, at-least-once — documented in the README (§2.2) |
 | Bulk INSERT size vs adapter parameter ceiling | **Was open — closed at §2.6**: the production default batch of 2000 events needs ~96k bind parameters against ceilings of 32766 (SQLite) / 65535 (Postgres); batches are now chunked inside one transaction |
 | Word-cache TTL | **Was open — closed at §2.7**: `@cachelifetime` was never initialised, so the first `prune_words` on a long ingest raised `TypeError` and killed the importer |
 | Ingest throughput | **Was open — closed at §3.6**: every uncached token cost a `SELECT` + an autocommit `INSERT` against `words`. Now resolved in bulk per batch: 186,089 → 360 statements per 20k lines, **6.4×** cold / **2.36×** warm, with the `events_words` rows written unchanged |
-| Ingest batch-size tuning | Exhausted past ~2000 events/batch — measured, and §2.6 is what made larger batches legal at all. Next measurable target is the per-batch fsync, not the words table |
+| Ingest batch-size tuning | Exhausted past ~2000 events/batch — measured, and §2.6 is what made larger batches legal at all (500→20,000 buys only 5,389→6,085 ev/s) |
+| Ingest write path | **Was open — closed**: ingest is now write-bound, not word-bound (`write_batch` 2.59s of a 3.52s run; main thread blocked in `join_insert_threads` 1.13s). The dead `events_words` index that taxed every insert is dropped; the remaining headroom is `MAX_INSERT_THREADS = 1`, which is a checkpoint-ordering problem, not an indexing one |
 | Search indexing, dashboard SQL portability, timestamp parsing | Closed |
 | Dashboard search form timeframe toggle | **Closed at `7e0f435` — §2.3**: the relative timeframe dropdown was dead; every form search used an empty now→now window |
-| Test suite | Green on both engines, CI-verified: 432 runs / 1131 assertions on SQLite (32 skips), 435 / 1223 on Postgres (3 skips); cucumber 5 scenarios / 18 steps on both |
+| Test suite | Green on both engines, CI-verified: 433 runs / 1132 assertions on SQLite (32 skips), 436 / 1224 on Postgres (3 skips); cucumber 5 scenarios / 18 steps on both |
 | Scheduler crash loop | **Was open — closed at §2.4**: a blank Frequency field killed the scheduler under `Restart=always`, stopping every Job |
 | Account integrity (duplicate / blank usernames) | **Was open — closed at §2.5**: no uniqueness at any layer, so a second account with a taken name could never sign in |
 | Session lookup and retention | **Was open — closed at §3.5**: per-request cookie lookup was a full table scan, and abandoned rows were never reclaimed |
@@ -43,7 +57,7 @@ than carried forward.
 | Poison line / observability | Closed — per-line `rescue StandardError`, failures counted as a `Statistic`, `Rails.logger` broadcast to the journal (§5.3, `c5d82ab` + `94654d1`) |
 | Rails upgrade | **Closed: 4.2 → 5.2 → 6.1 → 7.1 → 7.2 → 8.0 → 8.1.4 landed** (§5.2, tag `rails-8.1.4`); lock now on the 8.1.4.1 patch release (§1.4) |
 | Rails EOL | Closed — Rails is on the current stable line (8.1, supported to Oct 2027) |
-| CI security gates | **Closed** — gates wired and blocking (§1.2, §1.1); the 43-advisory regression cleared at `40a7ac8`, audit now clean (§1.4) |
+| CI security gates | **Closed** — gates wired and blocking (§1.2); the 43-advisory regression cleared at `40a7ac8`, audit now clean (§1.4) |
 | `Event` size and class-variable state | **Was open — closed (§4.1)** — ingestion extracted to `EventIngestor`; model down to 302 lines, 0 ingest class variables |
 | Partitioning, full-text search | Closed — `events`/`events_words` partitioned by `generated` with drop-based retention (§3.2); search cost cut 25–68% (§3.3); prefix search was returning nothing on Postgres collations, fixed (§3.4) |
 
@@ -51,98 +65,9 @@ than carried forward.
 
 ## 1. Security
 
-### 1.1 🟠 Production `secret_key_base` recoverable from git history — repo-side remediation landed, operator rotation outstanding **[security]**
-
-This was the one genuinely open security item, and it had previously been
-recorded as closed. The repo-side work is now done; what remains is operator-side
-and cannot be completed from the repository.
-
-`config/initializers/secret_token.rb` at commit `de2043a` ("Converting to a Rails
-4 application", 2015-01-07) hardcoded a 128-character hex `secret_key_base`.
-
-The value is deliberately not reproduced here. It is recoverable from that commit
-(`git show de2043a:config/initializers/secret_token.rb`), and quoting any part of
-it in this file only re-publishes it: an earlier revision of this document quoted
-the first 32 characters, which `gitleaks` flagged as its own finding.
-
-That value is a **production** key, distinct from the development and test values
-in `config/secrets.yml`. It is gone from the working tree but still present in
-every clone's history.
-
-**Why the earlier "rotated" note was insufficient.** PR #18 rotated the
-development and test values in `config/secrets.yml`. Those were never secrets —
-they sign cookies on a developer's own machine. The production key above was not
-touched, because it lives in a different file that no longer exists.
-
-**Impact — smaller than first recorded.** The original note said recovering the
-key lets an attacker "forge signed cookies, which means impersonating any user
-including Admin." That is not what the code does, and it is worth getting right
-because it changes how urgently a deployment must act:
-
-- Login state is **not** carried in a signed cookie. `gatekeeper`
-  (`app/controllers/application_controller.rb`) reads `cookies[:sessionID]` and
-  looks it up with `Session.find_by(session_hash: ...)`. The token is
-  `SecureRandom.hex(32)` (256 bits, `UsersController#generate_session_id`) and is
-  written as a **plain** cookie value, not signed or encrypted. Knowing
-  `secret_key_base` neither forges nor guesses it, so it does **not** yield
-  impersonation.
-- Nothing in `app/`, `lib/` or `config/` uses `cookies.signed`,
-  `cookies.encrypted`, `MessageVerifier` or `MessageEncryptor`.
-- What the key *does* sign is the Rails `cookie_store` session
-  (`_Events_session`, `config/initializers/session_store.rb`). That session
-  holds only the CSRF token and flash — no code reads `session[]` for auth, and
-  `grep -rn "session\[" app/` returns nothing. So the blast radius is the CSRF
-  token: a forged session cookie lets an attacker know the `authenticity_token`
-  that `protect_from_forgery` checks. That is still worth fixing, though it is
-  largely blunted in practice by the `SameSite=Lax` on the auth cookie, which
-  already stops a cross-site POST from carrying `:sessionID`.
-
-So: a real production secret, exposed in a public repo, that any deployment
-still using it must rotate. Not an account-takeover primitive.
-
-**Fix, in order:**
-1. ~~Confirm whether any live deployment still uses it, and set a new
-   `SECRET_KEY_BASE` there.~~ **Partly done.** The env-var path already existed
-   (`config/initializers/require_secrets.rb` fails closed in production), but
-   there was no way to *change* the value on a host that had already been
-   provisioned — `provision.sh` generates it only when `/etc/DAD/environment`
-   does not exist. That gap is exactly why this item could be marked "rotated"
-   while a deployed instance kept the burned key: there was nothing to run.
-   `bin/rotate_secret_key_base` now provides it. Whether any live deployment
-   still holds the old value is a question for whoever runs them; it cannot be
-   answered from the repo.
-2. ~~Decide whether history needs rewriting.~~ **Decided: no.** The repo is
-   public with forks, so `git filter-repo` would break every fork and clone
-   while not un-leaking the value, which is already distributed. This matches
-   the criteria already written here — rewriting "only helps if the repo is
-   private and the key is being retired anyway." Rotating is the fix; rewriting
-   history is hygiene, and here it costs more than it buys. If the owner still
-   wants it, it is a separate, deliberate operation, not part of this item.
-3. ~~Add a secret-scanning gate so this cannot recur.~~ **Done.** `.gitleaks.toml`
-   plus a blocking `Secret scanning` step in the CI `security` job, and an
-   opt-in `.githooks/pre-commit` that scans staged changes.
-
-**Why a custom rule was needed.** The built-in gitleaks rules do not flag this
-project's actual failure mode. Verified: the same 64-char hex value is invisible
-to the default rules when written as `config.secret_key_base =
-ENV["SECRET_KEY_BASE"] || '<hex>'` — the pattern already in
-`config/environments/*.rb`, and the realistic way a production key gets
-committed by someone copying that line. `.gitleaks.toml` matches a long hex
-literal anywhere on a line mentioning `secret_key_base`, and allowlists
-`config/environments/development.rb` and `test.rb` by path, since those two
-committed values are not secrets. A key added to any *other* file is still
-caught.
-
-**Scope of the gate: working tree, not history.** A full-history scan reports
-six findings — the production key at `de2043a`, and the dev/test values at
-`3f533757` and `cd49a6ab`. Those are burned and, per (2), staying put, so a
-history-scanning gate would fail permanently and get switched off. The gate
-exists to stop the next leak.
-
-**One more leak, in the documentation itself.** Until this revision, this very
-section quoted the first 32 characters of the production key while describing
-the leak — the only finding a working-tree scan reported on an otherwise clean
-tree. Removed above.
+§1.1 (the production `secret_key_base` in git history) is closed and moved to
+the appendix; its numbering is left vacant rather than renumbered, because the
+appendix and the CI workflow refer to these items by their original numbers.
 
 ### 1.2 ✅ Closed — CI security gates were advisory, not blocking **[security] [operations]**
 
@@ -1011,6 +936,68 @@ a 40-host corpus. That last one is bounded by host count rather than line count 
 is not worth chasing. Batch-size tuning is exhausted. If ingest ever needs to go
 faster again, the fsync is the next measurable target, not the words table.
 
+### 3.7 ✅ Closed — `events_words` carried an index no query could use **[performance]**
+
+Profiled ingest after §3.6 landed, on a fixed harness (100k log lines,
+`bulk_insert_size` swept 500→20,000), and the shape of the cost had moved:
+
+- Word resolution is no longer the bottleneck. `write_batch` is now the
+  dominant write cost, and the main thread spends 1.13s of a 3.52s run blocked
+  in `join_insert_threads` — waiting on writers, not on lookups.
+- Staging is the critical path at ~93.5% of ingest time.
+- Batch size is nearly exhausted: 500→20,000 buys 5,389→6,085 ev/s. That is
+  13% for a 40× larger batch, and §2.6 is what made the larger batch legal.
+- `MAX_INSERT_THREADS = 1` serialises the writers, which is what the join wait
+  measures. Raising it is a checkpoint-ordering problem, not an indexing one,
+  and is left open deliberately.
+
+One indexing item did fall out of the profile. `index_events_words_on_generated`
+(added by `20150204125423`) is unreachable from every query in the app, on both
+engines:
+
+- SQLite: `EXPLAIN QUERY PLAN` selects it for none of the four search shapes.
+- Postgres: partition pruning works, and the planner uses the composite
+  covering index — the partition child's composite index recorded `idx_scan=2`
+  while this one recorded `idx_scan=0`.
+
+Nothing reads `events_words` by time alone. `Event.searchSQL` restricts on
+`word_id`; retention is drop-based (`EventPartitioning` drops whole partitions,
+there is no `DELETE` by `generated`); `WordsController` never touches the join
+table.
+
+**What it cost:** 28 bytes per row — 70% the size of the composite index and 80%
+the size of the table heap itself, measured at 1.27M rows (34.11 MB). Scaled to
+the 100M-row install this document already assumes, ~2.8 GB of dead index. It
+also had to be extended by every insert: 5.1% of insert time (17.86s → 17.00s
+per 100k lines).
+
+**Two claims in this file did not survive re-measurement, and were corrected
+rather than carried forward.** Earlier revisions said the index made search
+2.3–185× faster. That was true when it was written, before the §3.3 search
+rewrite; after it, search is identical with and without the index (5.94ms vs
+5.95ms). The "~6%" insert cost re-measures at 5.1% at production-ish scale. The
+lesson is worth keeping: a performance claim measured against one query shape
+stops being true the moment that shape is rewritten, and nobody re-checks it.
+
+**Dropping it on Postgres is not the usual drop.** `algorithm: :concurrently`
+is refused for a partitioned index:
+
+    ERROR:  cannot drop partitioned index "index_events_words_on_generated" concurrently
+
+A plain `DROP INDEX` cascades to every partition and leaves no orphaned child
+indexes (verified: after the drop, all 17 `events_words` partitions carry only
+the composite index). It does take `ACCESS EXCLUSIVE` on the parent, so the
+migration sets `SET LOCAL lock_timeout = '5s'` — reproduced by holding an open
+`INSERT` on `events_words` in one session and dropping in another: the drop
+fails at 5s instead of stalling ingest behind an 8s writer transaction, and
+re-running `db:migrate` completes the job. The drop itself is cheap: 3.4ms for
+201k rows across 4 partitions.
+
+`20261110000001` carries it, guarded by `index_name_exists?` so it is
+re-runnable, and `down` restores the index. `test/models/event_test.rb` asserts
+the index stays absent, verified to fail when the index is forced back in — the
+guard is not vacuous.
+
 ---
 
 ## 4. Maintainability
@@ -1801,13 +1788,12 @@ three processes fit together, and where logs go.
 
 ## 6. Recommended sequence
 
-Everything in this table is now done except §1.1's operator-side step. It is kept
-as the record of the order the work went in, with the stale "why here" wording
-corrected in place.
+Every item in this table is now done. It is kept as the record of the order the
+work went in, with the stale "why here" wording corrected in place.
 
 | Priority | Item | Effort | Why here |
 |---|---|---|---|
-| 1 | §1.1 production secret: rotate + secret scanning — repo side **done** (`bin/rotate_secret_key_base`, `.gitleaks.toml`, blocking CI step); rotation on any live host remains with the operator | hours | CSRF-token exposure if any deployment still uses the 2015 key — **not** impersonation; see §1.1 for why the original wording was wrong |
+| 1 | ~~§1.1 production secret: rotate + secret scanning~~ **done** — repo side (`bin/rotate_secret_key_base`, `.gitleaks.toml`, blocking CI step), and the operator-side question answered: no live deployment holds the key | hours | CSRF-token exposure, **not** impersonation; see the appendix for why the original wording was wrong |
 | 2 | ~~§1.2 make security gates blocking~~ **done** (`bbdd4b4`, 0 advisories / 0 warnings) | — | — |
 | 2b | ~~Decide on §4.3's GET-with-side-effects~~ **done** (`60aedf6`, both now POST) | — | — |
 | 3 | ~~§4.1 option A: subprocess coverage of threaded ingest~~ **done** (`94654d1`) | — | — |
@@ -1841,7 +1827,7 @@ Verified closed against the current tree:
 | 1.2 | Two `eval` sinks (RCE as root) | #4 |
 | 1.3 | Password hashing broken by construction | #4 |
 | 1.4 | Password hashes leaking through the JSON API | #4 |
-| 1.5 | Secrets committed to the repo (working tree only -- see §1.1 above) | #6 |
+| 1.5 | Secrets committed to the repo (working tree only -- the history item is now in the appendix below) | #6 |
 | 1.6 | Session id generation | #4 |
 | 1.7 | XSS in the event renderer | #7 |
 | 1.8 | Copy-pasted, inconsistent authorization | #8 |
@@ -1867,6 +1853,8 @@ Verified closed against the current tree:
 | §2.7 | `@cachelifetime` was never assigned anywhere — `resetCaches` set every other ingest variable but not this one, and `00e3fc3` dropped the pre-extraction `@@cachelifetime = 320`. First `prune_words` on a long ingest raised `TypeError: can't convert NilClass into an exact number`, killing the importer mid-file; the cache also could never be pruned | this branch |
 | §3.6 | Ingest resolved every uncached token through `Word.find_or_add` — one `SELECT` plus one autocommit `INSERT` per token, ~55% of ingest time. `stage_event` now defers uncached tokens and `resolve_staged_words` resolves the batch through `Word.resolve_ids` (one `IN` lookup + one `insert_all … RETURNING` per chunk). 186,089 → 360 statements per 20k lines; 6.4× cold, 2.36× warm; `events_words` rows written byte-identical, search plan unchanged | this branch |
 | §2.5 | No username uniqueness at any layer: `do_logon` uses `find_by`, so a second account with a taken name could never sign in, silently. Blank usernames also accepted and reachable from the login form. Unique index + validation; migration repairs existing dupes/blanks without deleting anything | this branch |
+| §1.1 | Production `secret_key_base` in git history (`de2043a`, 2015). Repo-side remediation was already landed; **closed** on the operator-side answer that no live deployment still holds it, which makes rotation moot and leaves history rewriting declined on the existing criteria (public repo with forks — rewriting does not un-leak it). The impact analysis stands and is preserved in `AGENTS.md`: the key signs only the CSRF token, so exposure defeats CSRF but does **not** impersonate anyone | this branch |
+| §3.7 | `index_events_words_on_generated` (added by `20150204125423`) is unreachable from every query on both engines, yet cost 28 bytes/row and 5.1% of insert time. Dropped. **Two earlier claims corrected**: it was recorded as making search 2.3–185× faster — true before the §3.3 rewrite, false after (measured identical, 5.94ms vs 5.95ms) — and the insert cost is 5.1% at 1.27M rows, not 6% | this branch |
 | §3.5 | `gatekeeper`'s per-request `find_by(session_hash:)` was a full table SCAN, and expired rows were only deleted when the owning cookie returned, so the table grew forever. Unique index, `Session.purge_expired` on login, `prune_sessions` handler | this branch |
 | §4.4 | Twelve index actions assigned a bare `Model.all`; `sessions` and `statistics` grow without bound, so those screens eventually stopped rendering. `ApplicationController#paginate` + `pagination_nav`, no new gem | this branch |
 | §1.4 | 43 bundle-audit advisories cleared by a patch-level `bundle update` (rails 8.1.4 → 8.1.4.1, rack, loofah, rails-html-sanitizer, nokogiri, addressable, sqlite3). No Gemfile constraint changed | `40a7ac8` |

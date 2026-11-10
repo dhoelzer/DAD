@@ -89,9 +89,11 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   reads `session[]` for auth. Consequences worth remembering: leaking
   `secret_key_base` defeats CSRF protection but does **not** impersonate anyone,
   and rotating it logs nobody out (sessions are DB rows). An earlier revision of
-  `RECOMMENDATIONS.md` §1.1 got this backwards and claimed account takeover.
-  Rotate with `bin/rotate_secret_key_base`; `provision.sh` only generates the
-  key on first run, so it is not the rotation path.
+  `RECOMMENDATIONS.md` (formerly §1.1, now the appendix) got this backwards and
+  claimed account takeover. The key is burned in history but no live deployment
+  holds it, so the item is closed. Rotate with `bin/rotate_secret_key_base`;
+  `provision.sh` only generates the key on first run, so it is not the
+  rotation path.
 - `ActiveSupport`'s `to_time` behaviour changed across these steps and the app
   never calls `config.load_defaults`, so *no* `load_defaults`-gated default is ever
   applied here — every behaviour change must be opted into by hand. Sequence: 7.2
@@ -378,7 +380,13 @@ suite only ever exercises one engine.
 - **`db/schema.rb` is checked in as the SQLite flavour.** Running
   `rake db:migrate` against a Postgres database rewrites it with
   `enable_extension` and `t.bigint` instead of `t.integer limit: 8`, which breaks
-  `db:schema:load` for dev/test. Never commit a Postgres-generated schema.rb.
+  `db:schema:load` for dev/test (`undefined method 'serial'`). Never commit a
+  Postgres-generated schema.rb.
+  - Only a **development**-env migrate dumps it: `config/environments/test.rb`
+    sets `dump_schema_after_migration = false`. So after verifying a migration on
+    Postgres, restore the file and regenerate it with a development-env SQLite
+    `db:migrate` — a test-env SQLite migrate runs the migration but leaves
+    `schema.rb` stale, which looks like a clean diff and is not one.
 - CI has a `postgres` job that runs the whole suite against Postgres 17. It must
   not set `BUNDLE_WITHOUT=production`, because `pg` lives in the `:production`
   group. Cucumber stays on SQLite (its `database.yml` entry and DatabaseCleaner's
