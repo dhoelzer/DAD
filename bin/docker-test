@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+#
+# Run the test suite against the Dockerized PostgreSQL, which is the engine
+# production runs.
+#
+# Why this is the default way to test now: SQLite and Postgres disagree in ways
+# that have already shipped breakage. Event.insertStatement once emitted SQLite
+# `?` placeholders through exec_query, Postgres rejected them outright, and
+# production could not insert a single event while every SQLite job stayed green
+# (RECOMMENDATIONS 3.2). events and events_words are partitioned on Postgres and
+# not partitionable at all on SQLite, so the SQLite suite never exercises the
+# shape production queries. The composite covering index on events_words is
+# Postgres-only too.
+#
+# SQLite is still supported for a fast local loop -- `bundle exec rake test` works
+# unchanged -- and the CI sqlite job keeps that path covered. What this script
+# adds is a one-command way to run the same thing locally against the real engine,
+# including the schema-shape and INVALID-index assertions CI makes.
+#
+# --build is not optional. `docker compose run` does not rebuild the image, so
+# without it this runs whatever code was copied at the last build and reports on
+# code you did not just write.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+if ! docker info >/dev/null 2>&1; then
+  echo "bin/docker-test: the Docker daemon is not reachable." >&2
+  echo "  Start it, or fall back to SQLite with: bundle exec rake test" >&2
+  exit 1
+fi
+
+# Extra arguments replace the container command rather than appending to it, so
+# you can drop into the test container or run one file:
+#   bin/docker-test bundle exec rails test test/models/event_test.rb
+#   bin/docker-test bash
+exec docker compose --profile test run --build --rm test "$@"

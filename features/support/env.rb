@@ -28,6 +28,21 @@ require 'cucumber/rails'
 #
 ActionController::Base.allow_rescue = false
 
+# DatabaseCleaner's remote-URL safeguard treats anything outside localhost /
+# 127.0.0.1 / *.local as remote, so the compose service name `db` trips it and
+# every scenario errors before the first step. That database is not remote -- the
+# same compose project creates and destroys it -- but the gem has no way to know.
+# Whitelist exactly that URL rather than clearing allow_remote_database_url, so a
+# hand-set DATABASE_URL aimed at a real server still fails loudly.
+#
+# This has to come before strategy=: `strategy=` constructs a cleaner, and the
+# cleaner runs the safeguards in its constructor. Setting the whitelist after the
+# assignment is too late and the raise happens on the line above it.
+require 'uri'
+if (url = ENV['DATABASE_URL']) && URI.parse(url).host == 'db'
+  DatabaseCleaner.url_whitelist = [url]
+end
+
 # Remove/comment out the lines below if your app doesn't have a database.
 # For some databases (like MongoDB and CouchDB) you may need to use :truncation instead.
 begin
