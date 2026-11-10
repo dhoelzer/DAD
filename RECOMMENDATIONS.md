@@ -12,7 +12,9 @@ throughput profiled end to end and the dominant cost closed (§3.6), measured
 before and after on a fixed harness rather than asserted. Re-verified a sixth
 time at `ac7076f` (2026-11-10): §1.1's operator-side question answered (no live
 deployment holds the burned key) and the item closed; one dead index dropped
-after measuring it on both engines. PRs #1–#29 all merged.
+after measuring it on both engines. Re-verified a seventh time at `9d15f4f`
+(2026-11-10): the Docker setup was found unable to build at all, and the test
+harness was moved onto the production engine (§5.6). PRs #1–#30 all merged.
 
 Two claims from earlier revisions of this file did **not** survive re-measurement
 and have been corrected rather than carried forward: the dead
@@ -50,6 +52,8 @@ than carried forward.
 | Search indexing, dashboard SQL portability, timestamp parsing | Closed |
 | Dashboard search form timeframe toggle | **Closed at `7e0f435` — §2.3**: the relative timeframe dropdown was dead; every form search used an empty now→now window |
 | Test suite | Green on both engines, CI-verified: 433 runs / 1132 assertions on SQLite (32 skips), 436 / 1224 on Postgres (3 skips); cucumber 5 scenarios / 18 steps on both |
+| Running the suite on the production engine | **Was awkward — closed at §5.6**: `bin/docker-test` runs both suites against Compose Postgres plus the CI schema-shape and INVALID-index assertions, with no local cluster to install |
+| Docker | **Was broken — closed at §5.6**: `Dockerfile.dev` could not build (a bare `gem install` line, no `RUN`), had no JS runtime, and no CI job built it. Now `Dockerfile` + a Compose stack: app containers and a separate Postgres container |
 | Scheduler crash loop | **Was open — closed at §2.4**: a blank Frequency field killed the scheduler under `Restart=always`, stopping every Job |
 | Account integrity (duplicate / blank usernames) | **Was open — closed at §2.5**: no uniqueness at any layer, so a second account with a taken name could never sign in |
 | Session lookup and retention | **Was open — closed at §3.5**: per-request cookie lookup was a full table scan, and abandoned rows were never reclaimed |
@@ -1583,7 +1587,7 @@ Rails 7.x's adapter predates the 2.x API, not because of Ruby), and
 `rack` stayed on **2.2**: Rails 8.1 supports it, and moving to 3.x is optional.
 `rack 1.6` → 3.x was low-risk here because the app defines **no custom middleware**
 (verified: zero `middleware` references in `config/`, `app/`, `lib/`). CI
-(`ruby-version`) and `Dockerfile.dev` (`FROM ruby:`) both moved to 3.3.8 at step 3
+(`ruby-version`) and `Dockerfile` (`FROM ruby:`) both moved to 3.3.8 at step 3
 and needed no further change.
 
 #### Recommended sequence
@@ -1783,6 +1787,104 @@ scheduler, or syslog collector.
 Keep one file, delete the other, and write the operational sections: required
 environment variables (`SECRET_KEY_BASE`, `DAD_DB_*` / `DATABASE_URL`), how the
 three processes fit together, and where logs go.
+
+### 5.6 ✅ Closed — the Docker setup could not build, and no test path used the production engine **[operations] [maintainability]**
+
+Two related gaps, both in the same class as the importer-that-died-at-startup
+finding above: an artifact that exists, looks configured, and has never been run.
+
+**The image could not build at all.** `Dockerfile.dev` had a bare
+
+```
+gem install bundler -v 2.6.7 --no-document
+```
+
+line. That is not a Dockerfile instruction, so `docker build` fails on it. Nothing
+caught it because **no CI job builds the image** — the `test`, `postgres`, `assets`,
+`provisioning` and `security` jobs all run on runner-installed Ruby, and the
+`provisioning` job only parses `provision.sh` and the systemd units. The file was
+also named `Dockerfile.dev`, which reads like a throwaway dev scratch file, so it
+invited no scrutiny. Renamed to `Dockerfile` and fixed to `RUN gem install ...`.
+
+**Two more things the image was missing**, neither visible from the suite:
+
+- **No JavaScript runtime.** `ruby:3.3.8` ships none. ExecJS needs one, and
+  `javascript_include_tag` in `app/views/layouts/application.html.erb` goes through
+  the sprockets/coffee pipeline, which calls ExecJS — so *every* view render raised
+  "Could not find a JavaScript runtime" (43 errors, all layout renders). CI does not
+  show this because GitHub's `ubuntu-24.04` runners ship Node. Added `nodejs`.
+- **`BUNDLE_WITHOUT=production` would have broken the database.** `pg` sits in the
+  Gemfile's `:production` group, and these containers talk to Postgres. Excluding
+  that group leaves the gem absent and every connection fails with
+  `LoadError: cannot load such file -- pg`. Deliberately not set; sqlite3 stays too,
+  because the SQLite-only query-plan and bytewise-collation assertions still need it.
+
+**What landed.** `Dockerfile`, `docker-compose.yml`, `docker-compose.db-port.yml`,
+`.dockerignore`, `bin/docker-test`. One image; separate containers for `db`
+(postgres:17), `migrate` (one-shot), `web`, `importer`, `scheduler`, `syslog`, and
+`test` behind `--profile test`. The split mirrors the three systemd units rather
+than supervising all three in one container, so the container topology is the
+topology production runs.
+
+The test service runs both suites against the Compose `db` and then repeats the two
+assertions the CI `postgres` job makes — `events`/`events_words` really are
+partitioned, and no index was left `INVALID` by a failed `CONCURRENTLY` build.
+Verified: **436 runs / 1224 assertions / 0 failures / 3 skips**, and
+**5 scenarios / 18 steps** on Postgres. The 3 skips are the SQLite-specific
+plan assertions; the 33 Postgres-only partitioning and index tests that skip on
+SQLite now execute.
+
+End-to-end ingest through the stack was verified rather than assumed: UDP packets to
+`syslog` on :514 → `Logs/LogStaging` → rotation into `LogsToProcess` → `importer` →
+**6 events, 21 words, 102 `events_words` rows** in Postgres, with the search path
+confirmed using the `(word_id, generated, event_id)` covering index per partition.
+
+**The coupling that made this non-trivial, and which nothing validates.**
+`syslog.pl` hardcodes `$LOGSTAGING="/var/DAD/Logs/LogStaging"` and
+`$LOGPROCESSING="/var/DAD/Logs/LogsToProcess"`, while `import_syslog.rb` uses paths
+relative to its own working directory (`Dir.chdir('Logs/LogsToProcess')`, then
+`PROCESSED_DIR = '../ProcessedLogs'`). The two agree only because every systemd unit
+sets `WorkingDirectory=/var/DAD`. Any container `WORKDIR` other than `/var/DAD` and
+the collector keeps accepting UDP packets and writes into a tree the importer never
+reads — silently, with no error anywhere. `Dockerfile` therefore uses
+`WORKDIR /var/DAD`.
+
+Two behaviours that look like bugs during testing and are not:
+
+- **Rotation is traffic-driven.** `RotateLog` is called from `logit`, so with no
+  inbound traffic the open staging file is never moved into `LogsToProcess` and the
+  importer sees nothing. A quiet system looks like a broken importer.
+- **The staging file reads as 0 bytes** until rotation's `close(LOG)` flushes Perl's
+  block buffer. That is buffering, not data loss.
+
+**Deliberate choices, so they are not "fixed" later:**
+
+- **No published 5432 by default.** The app containers reach `db` over the Compose
+  network by service name; publishing the port collides with a Postgres already
+  running on the developer's machine, and `docker compose up` then fails with
+  "address already in use" before anything starts. Host access is the opt-in
+  override file.
+- **No code bind mount.** The image runs as uid 1000; mounting a checkout owned by a
+  different uid makes Rails' `log/` and `tmp/` writes fail with `EACCES` in a way
+  that reads like an app bug. The gem layer is cached, so `up --build` after an edit
+  only re-runs `COPY . .`.
+- **`RAILS_ENV=development` for `web`,** not production: production sets
+  `public_file_server.enabled = false` and `assets.compile = false` because Apache
+  serves assets, and there is no Apache here. A production-mode container boots
+  fine and 404s every stylesheet and script.
+- **`migrate` uses `db:migrate_from_scratch` on an empty database,** not
+  `db:migrate`: the committed `db/schema.rb` is SQLite-flavoured, and `db:migrate`
+  loads that dump into an empty Postgres database and skips `db/migrate` entirely,
+  so the partitioned shape would never be built. It falls back to plain `db:migrate`
+  once the schema exists, because `migrate_from_scratch` drops and rebuilds.
+- **`DatabaseCleaner.url_whitelist` is set before `strategy = :transaction`** in
+  `features/support/env.rb`. DatabaseCleaner refuses a remote URL at strategy
+  assignment time, so whitelisting afterwards raises instead of cleaning.
+
+**Still open, and worth a follow-up:** no CI job builds this image, which is the
+reason the broken `gem install` line reached `master` in the first place. A
+`docker compose build` step (or a smoke boot of `web`) would close that loop; it
+needs `workflow` scope to add.
 
 ---
 
