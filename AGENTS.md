@@ -502,11 +502,19 @@ the working directory (or the image `WORKDIR`) and the collector keeps accepting
 UDP packets and writing into a tree the importer never reads — silently, with no
 error anywhere. `Dockerfile` therefore uses `WORKDIR /var/DAD`, not `/app`.
 
-Rotation is **traffic-driven**, not timer-driven: `RotateLog` runs from `logit`,
-so with no inbound traffic the open staging file is never moved into
-`LogsToProcess` and the importer sees nothing. A quiet system looks like a broken
-importer. Perl also block-buffers `print LOG`, so the staging file reads as 0
-bytes until the rotation `close(LOG)` flushes it — that is not data loss.
+Rotation is **traffic-driven**, not timer-driven: `ensure_open` runs from the
+per-message path, so with no inbound traffic the open staging file is never moved
+into `LogsToProcess` and the importer sees nothing. A quiet system looks like a
+broken importer, and a single probe packet sits in `LogStaging` until a *second*
+packet arrives after the 60s boundary — the CI `docker` job sends two for this
+reason.
+
+The collector flushes each record as it writes, so the staging file is readable
+immediately. The Perl collector it replaced block-buffered `print LOG` and left
+the file at 0 bytes until rotation's `close(LOG)`; older notes called that
+"buffering, not data loss" and it was **wrong** — measured, 40 messages left 0
+bytes durable after SIGTERM *and* SIGKILL. See "The syslog collector (Rust)"
+above.
 
 ### Running Postgres locally
 
