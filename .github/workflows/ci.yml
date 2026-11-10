@@ -371,8 +371,9 @@ jobs:
           [ "$code" = "200" ] || { echo "$asset returned $code"; exit 1; }
           echo "asset served: $asset"
 
-      # The collector is Perl and touches no database, so no other job would
-      # notice it failing to start.
+      # The collector is a standalone Rust binary and touches no database, so no
+      # Ruby-level job would notice it failing to start. The `collector` job runs
+      # its unit/integration tests; this is the end-to-end leg through the importer.
       - name: Assert the syslog collector is listening
         run: |
           docker compose ps syslog | grep -q "Up" \
@@ -380,9 +381,10 @@ jobs:
           # The line has to carry a syslog timestamp: EventIngestor parses one
           # off the front, and an unparseable line is counted as a failure rather
           # than stored, so a bare probe would prove only that UDP is open.
-          # Rotation is traffic-driven too -- RotateLog runs from logit -- so the
-          # second packet, sent after the 60s boundary, is what moves the staging
-          # file into LogsToProcess for the importer to claim.
+          # Rotation is traffic-driven -- ensure_open runs from the per-message
+          # path -- so the second packet, sent after the 60s boundary, is what
+          # moves the staging file into LogsToProcess for the importer to claim.
+          # One packet alone would sit in LogStaging until later traffic arrives.
           send() {
             python3 -c "
           import socket, time
