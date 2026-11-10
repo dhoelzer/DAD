@@ -1,0 +1,31 @@
+# The build context is the repo, and most of it is not needed to build an image.
+# Without this file `docker compose build` uploads ~5.6 GB: log/ alone is 5.3 GB
+# of development.log, and vendor/bundle is a 207 MB host gem set that would be
+# copied into the image and then shadowed by the image's own bundle.
+#
+# Keep this list in step with .gitignore, plus the things git ignores that also
+# must not enter the context.
+
+.git
+.github
+
+# Host gem set. The image runs `bundle install` into /usr/local/bundle; copying
+# this would both bloat the image and pin host-built native extensions into it.
+vendor/bundle
+
+# Local SQLite databases. The containers use Postgres; these are dev leftovers.
+/db/*.sqlite3
+/db/*.sqlite3-journal
+/db/*.sqlite3-wal
+/db/*.sqlite3-shm
+
+/log/*
+!/log/.keep
+/tmp/*
+!/tmp/.keep
+/public/assets
+/offline_storage
+/Logs/LogsToProcess
+/Logs/LogStaging
+
+.DS_Store

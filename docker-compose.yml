@@ -1,0 +1,189 @@
+# DAD as a Docker Compose stack: the application in its own containers, the
+# database in a separate PostgreSQL container.
+#
+#   docker compose up --build          # migrate, then web + importer + scheduler + syslog
+#   docker compose --profile test run --build --rm test   # the suite, on Postgres
+#
+# Why the app is split into separate services rather than one container: these
+# are independent long-lived processes with different lifetimes and failure
+# modes, and the repo already ships a systemd unit for each. Compose maps
+# one-to-one onto that topology, so the container set is the same architecture
+# production runs -- not one container running three things under a supervisor,
+# which would hide exactly the coupling the units exist to fix.
+#
+#   db        PostgreSQL 17 -- the only thing that holds data
+#   migrate   one-shot: builds the schema, then exits
+#   web       Rails (rails server, port 3000)
+#   importer  import_syslog.rb  -- Logs/LogsToProcess -> database
+#   scheduler scheduler.rb      -- runs Jobs whose next_run has passed
+#   syslog    syslog.pl         -- UDP/514 -> Logs/LogStaging
+#   test      rake test + cucumber, against the db container (profile: test)
+#
+# Production still deploys via provision.sh + systemd + Apache/Passenger; this
+# stack is the development and test path.
+
+# Shared by web/importer/scheduler/migrate/test: same image, same environment,
+# different command. A top-level `x-` key, so Compose treats it as an extension
+# and never starts it as a service of its own -- a plain `app:` service here would
+# boot an idle container running the image's default CMD.
+x-app: &app
+  build:
+    context: .
+    dockerfile: Dockerfile
+  init: true
+  environment:
+    # RAILS_ENV=development, not production. Production sets
+    # config.public_file_server.enabled = false and assets.compile = false, i.e.
+    # it assumes Apache serves public/assets. There is no Apache in this stack,
+    # so a production-mode web container boots fine and 404s every stylesheet and
+    # script. Development mode is the honest match for `rails server`.
+    RAILS_ENV: development
+    DATABASE_URL: postgresql://dad:dad@db:5432/dad_development
+  depends_on:
+    db:
+      condition: service_healthy
+  # No code bind mount. The image runs as uid 1000; bind-mounting a checkout
+  # owned by any other uid makes Rails' log/ and tmp/ writes fail with EACCES in
+  # ways that read like an app bug. The gem layer is cached, so an edit plus
+  # `up --build` only re-runs `COPY . .` and takes seconds.
+  #
+  # One volume for the whole Logs tree: the importer chdirs into Logs/LogsToProcess
+  # and moves finished files to ../ProcessedLogs, so staging, queue and processed
+  # must sit under a single mount and stay consistent with each other.
+  volumes:
+    - logs:/var/DAD/Logs
+  restart: unless-stopped
+
+services:
+  db:
+    # Pinned to a major version, matching the Postgres the CI job uses. A bare
+    # `postgres:latest` would move the engine under the suite with no code change
+    # -- the same silent environment drift a floating runner image caused in CI.
+    image: postgres:17
+    environment:
+      POSTGRES_USER: dad
+      POSTGRES_PASSWORD: dad
+      POSTGRES_DB: dad_development
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # No published port. The app containers reach this over the compose network by
+    # service name, so nothing needs a host mapping, and publishing 5432 by default
+    # collides with a Postgres already running on the developer's machine --
+    # `docker compose up` then fails with "address already in use" before any
+    # container starts. Want psql from the host? Use the override:
+    #   docker compose -f docker-compose.yml -f docker-compose.db-port.yml up
+    healthcheck:
+      # Every app service waits on this. `depends_on` alone only waits for the
+      # container to start, not for the postmaster to accept connections, so
+      # without a healthcheck the app services die on their first connect.
+      test: ["CMD-SHELL", "pg_isready -U dad -d dad_development"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  # One-shot, and the only thing allowed to change schema. Without it the app
+  # services come up against an empty database and the importer crash-loops on
+  # `relation "statistics" does not exist`.
+  #
+  # migrate_from_scratch on an empty database, not db:migrate: db/schema.rb is
+  # committed in SQLite flavour, and db:migrate loads that dump into an empty
+  # Postgres database and skips db/migrate entirely -- so the partitioned shape
+  # production has would never be built. Once the schema exists it uses plain
+  # db:migrate, because migrate_from_scratch drops and rebuilds everything.
+  migrate:
+    <<: *app
+    command:
+      - bash
+      - -c
+      - |
+        set -e
+        bundle exec rake db:create
+        if [ -z "$$(psql "$$DATABASE_URL" -tAc "select to_regclass('public.schema_migrations')")" ]; then
+          echo "Empty database: building the Postgres schema from db/migrate."
+          bundle exec rake db:migrate_from_scratch
+        else
+          bundle exec rake db:migrate
+        fi
+    restart: "no"
+
+  web:
+    <<: *app
+    command: ["bundle", "exec", "rails", "server", "-b", "0.0.0.0", "-p", "3000"]
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  importer:
+    <<: *app
+    command: ["bundle", "exec", "ruby", "import_syslog.rb"]
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  scheduler:
+    <<: *app
+    command: ["bundle", "exec", "ruby", "scheduler.rb"]
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  syslog:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    init: true
+    # syslog.pl is Perl and touches no database, so it needs no DATABASE_URL --
+    # same reasoning as the dad-syslog systemd unit holding no EnvironmentFile.
+    volumes:
+      - logs:/var/DAD/Logs
+    ports:
+      # UDP syslog intake. If something on the host already holds 514, change the
+      # host side of this mapping only.
+      - "514:514/udp"
+    command: ["perl", "syslog.pl"]
+    restart: unless-stopped
+
+  # The suite, against the engine production runs. Gated behind a profile so
+  # `docker compose up` does not run tests.
+  test:
+    <<: *app
+    profiles: ["test"]
+    environment:
+      RAILS_ENV: test
+      DATABASE_URL: postgresql://dad:dad@db:5432/dad_test
+    command:
+      - bash
+      - -c
+      - |
+        set -e
+        # No `bundle install` here: the image already ran it, and /usr/local/bundle
+        # is root-owned while the container runs as dad, so bundler fails writing
+        # its config. The lockfile is enforced at build time by --frozen.
+        bundle exec rake db:create db:migrate_from_scratch
+        bundle exec rake test
+        bundle exec cucumber
+        echo "--- asserting the Postgres-only schema shape ---"
+        psql "$$DATABASE_URL" -tAc \
+          "select count(*) from pg_class where relname in ('events','events_words') and relkind <> 'p'" \
+          | grep -qx 0 || { echo "events/events_words must be partitioned on Postgres"; exit 1; }
+        echo "--- asserting no INVALID index ---"
+        invalid=$$(psql "$$DATABASE_URL" -tAc \
+          "select c.relname from pg_class c join pg_index i on i.indexrelid = c.oid where not i.indisvalid")
+        if [ -n "$$invalid" ]; then echo "INVALID indexes:"; echo "$$invalid"; exit 1; fi
+        echo "Postgres suite green: partitioned shape present, no INVALID indexes"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+volumes:
+  pgdata:
+  logs:
