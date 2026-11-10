@@ -431,17 +431,21 @@ jobs:
           components: rustfmt, clippy
       - name: Formatting is checked in
         run: cargo fmt --all -- --check
+        working-directory: syslog_collector
       # Lint is a gate, not advisory: the collector is network-facing and
       # long-lived. Default clippy lint set only -- `clippy::pedantic` reports
       # 13 style findings here that are not worth the churn.
       - name: Clippy (warnings are errors)
         run: cargo clippy --all-targets -- -D warnings
+        working-directory: syslog_collector
       - name: Unit and integration tests
         # The integration tests spawn the real binary on high UDP ports and
         # compare bytes on disk, so they need no root and no Postgres.
         run: cargo test
         working-directory: syslog_collector
-      - name: Release build is reproducible from a clean tree
+      # The profile production and provision.sh actually build, so a release-only
+      # compile error is caught here rather than at provision time.
+      - name: Release build
         run: cargo build --release
         working-directory: syslog_collector
 
