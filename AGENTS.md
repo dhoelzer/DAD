@@ -49,7 +49,12 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   the build context off `log/` and `vendor/bundle` (~5.6 GB otherwise).
   The `Dockerfile` was `Dockerfile.dev` and **could not build**: it had a bare
   `gem install bundler` line, which is not a Dockerfile instruction. No CI job
-  built the image, so nothing caught it.
+  built the image, so nothing caught it. It also shipped no JS runtime, which
+  breaks every view render through ExecJS (CI hides this: GitHub runners have Node).
+  The `migrate` service seeds `admin` when the `users` table is empty, using
+  `DAD_ADMIN_PASSWORD` (default `dad_dev_password`, development only) — without it
+  the stack comes up with zero users and the login form can never succeed. Do not
+  seed unconditionally: `db:seed` also recreates the maintenance Jobs.
 - CI: `.github/workflows/ci.yml` (test + a `security` job with three **blocking**
   gates: `bundle-audit`, `brakeman`, and `gitleaks` over the working tree via
   `.gitleaks.toml`). `Dockerfile` mirrors the same pinned toolchain, but **no CI
