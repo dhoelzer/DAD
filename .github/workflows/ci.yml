@@ -298,13 +298,20 @@ jobs:
           # names the cause; `curl -f` here would time out and report only that the
           # URL never succeeded.
           for _ in $(seq 1 60); do
-            code=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/users/logon)
+            # `|| code=000` is load-bearing. While Rails is still binding, the
+            # first request can be reset rather than refused, and curl then exits
+            # non-zero with no output. The assignment would carry that status and
+            # `bash -e` would abort the step -- which is what happened on the
+            # runner: the stack was healthy, the poll just died on attempt one.
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 \
+              http://127.0.0.1:3000/users/logon 2>/dev/null) || code=000
             if [ "$code" != "000" ]; then
               echo "web listening (HTTP $code)"; exit 0
             fi
             sleep 2
           done
           echo "web never accepted a request"
+          docker compose logs web
           exit 1
 
       # Asserts effects, not container exit codes: `docker compose ps --format`
@@ -333,7 +340,9 @@ jobs:
           # a missing JS runtime surfaces as a 500 whose body names the cause, and
           # -f would discard that body and report only "returned error: 500".
           jar=$(mktemp)
-          page=$(curl -s -c "$jar" http://127.0.0.1:3000/users/logon)
+          # `|| page=""` keeps a failed request from aborting the step before the
+          # diagnostic below can say what actually went wrong.
+          page=$(curl -s --max-time 20 -c "$jar" http://127.0.0.1:3000/users/logon 2>/dev/null) || page="" 
           if echo "$page" | grep -q "Could not find a JavaScript runtime"; then
             echo "image has no JavaScript runtime for ExecJS: the sprockets pipeline"
             echo "behind javascript_include_tag calls ExecJS, so every view render 500s."
@@ -358,7 +367,7 @@ jobs:
           # Apache serves assets; the stack runs development, so Rails must.
           asset=$(echo "$page" | grep -oE '/assets/[A-Za-z0-9._-]+\.(css|js)' | head -1)
           [ -n "$asset" ] || { echo "page emitted no asset path"; exit 1; }
-          code=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:3000$asset")
+          code=$(curl -s --max-time 20 -o /dev/null -w "%{http_code}" "http://127.0.0.1:3000$asset" 2>/dev/null) || code=000
           [ "$code" = "200" ] || { echo "$asset returned $code"; exit 1; }
           echo "asset served: $asset"
 
@@ -376,7 +385,7 @@ jobs:
           # file into LogsToProcess for the importer to claim.
           send() {
             python3 -c "
-          import socket, sys, time
+          import socket, time
           s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
           line = '<34>%s cihost sshd[1]: probe-from-ci from 192.0.2.7 port 22 ssh2' % time.strftime('%b %e %H:%M:%S')
           s.sendto(line.encode(), ('127.0.0.1', 514))
@@ -391,8 +400,9 @@ jobs:
           found=0
           for _ in $(seq 1 40); do
             found=$(docker compose exec -T db psql -U dad -d dad_development -tAc \
-              "select count(*) from events where hunks like '%probe-from-ci%'")
-            [ "$found" -gt 0 ] && break
+              "select count(*) from events where hunks like '%probe-from-ci%'" 2>/dev/null) \
+              || found=0
+            if [ "${found:-0}" -gt 0 ]; then break; fi
             sleep 5
           done
           [ "$found" -gt 0 ] \

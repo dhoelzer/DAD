@@ -68,9 +68,14 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   Postgres, so `BUNDLE_WITHOUT=production` would break them).
   The boot step accepts **any** HTTP status, including 500 — its job is to know
   Rails finished booting, not that the app is healthy, so a render failure reaches
-  the step that names the cause. `gitleaks` is pinned by version *and* sha256 in
-  the workflow; if you bump it, update `GITLEAKS_SUM` from the release's own
-  `_checksums.txt`.
+  the step that names the cause.
+  **CI steps run `bash -e`, so a bare `x=$(some_command)` aborts the step if the
+  command fails** — the assignment carries its exit status. This bit the boot
+  poll: while Rails is still binding, the first request can be *reset* rather
+  than refused, curl exits 56 with no output, and the step died on attempt one
+  against a perfectly healthy stack. Guard polling commands with `|| fallback`.
+  `gitleaks` is pinned by version *and* sha256 in the workflow; if you bump it,
+  update `GITLEAKS_SUM` from the release's own `_checksums.txt`.
 - Rails upgrades here keep breaking on **renamed-but-not-raising config keys**:
   `Rails::Railtie::Configuration#method_missing` swallows unknown `config.*` writes
   instead of erroring, so a renamed setting silently stops applying (4.2->5.2 hit
