@@ -54,6 +54,7 @@ than carried forward.
 | Test suite | Green on both engines, CI-verified: 433 runs / 1132 assertions on SQLite (32 skips), 436 / 1224 on Postgres (3 skips); cucumber 5 scenarios / 18 steps on both |
 | Running the suite on the production engine | **Was awkward — closed at §5.6**: `bin/docker-test` runs both suites against Compose Postgres plus the CI schema-shape and INVALID-index assertions, with no local cluster to install |
 | Docker | **Was broken — closed at §5.6**: `Dockerfile.dev` could not build (a bare `gem install` line, no `RUN`), had no JS runtime, and no CI job built it. Now `Dockerfile` + a Compose stack: app containers and a separate Postgres container |
+| CI coverage of the deployment artifacts | **Was a hole — closed at §5.6**: six jobs now (`test`, `postgres`, `assets`, `provisioning`, `docker`, `security`). The `docker` job builds the image and drives the running stack end to end, including the only test in the repo that exercises the Perl collector |
 | Scheduler crash loop | **Was open — closed at §2.4**: a blank Frequency field killed the scheduler under `Restart=always`, stopping every Job |
 | Account integrity (duplicate / blank usernames) | **Was open — closed at §2.5**: no uniqueness at any layer, so a second account with a taken name could never sign in |
 | Session lookup and retention | **Was open — closed at §3.5**: per-request cookie lookup was a full table scan, and abandoned rows were never reclaimed |
@@ -1800,9 +1801,10 @@ gem install bundler -v 2.6.7 --no-document
 ```
 
 line. That is not a Dockerfile instruction, so `docker build` fails on it. Nothing
-caught it because **no CI job builds the image** — the `test`, `postgres`, `assets`,
-`provisioning` and `security` jobs all run on runner-installed Ruby, and the
-`provisioning` job only parses `provision.sh` and the systemd units. The file was
+caught it because **no CI job built the image** — the `test`, `postgres`, `assets`,
+`provisioning` and `security` jobs all ran on runner-installed Ruby, and the
+`provisioning` job only parses `provision.sh` and the systemd units. (The `docker`
+job added at the end of this section is what closes that hole.) The file was
 also named `Dockerfile.dev`, which reads like a throwaway dev scratch file, so it
 invited no scrutiny. Renamed to `Dockerfile` and fixed to `RUN gem install ...`.
 
@@ -1881,10 +1883,31 @@ Two behaviours that look like bugs during testing and are not:
   `features/support/env.rb`. DatabaseCleaner refuses a remote URL at strategy
   assignment time, so whitelisting afterwards raises instead of cleaning.
 
-**Still open, and worth a follow-up:** no CI job builds this image, which is the
-reason the broken `gem install` line reached `master` in the first place. A
-`docker compose build` step (or a smoke boot of `web`) would close that loop; it
-needs `workflow` scope to add.
+**Closed: a `docker` CI job now builds the image.** That gap was the reason the
+broken `gem install` line reached `master`, so the fix is not just a working
+Dockerfile but a gate that keeps it working. `.github/workflows/ci.yml` gained a
+sixth job that runs `docker compose build`, boots the stack, and asserts:
+
+- the `migrate` service produced a **partitioned** `events`/`events_words` and at
+  least one user (an empty `users` table is the symptom of the seeding gap above);
+- `GET /users/logon` returns a rendered form, and the body is checked for
+  "Could not find a JavaScript runtime" *before* anything else, so a missing
+  runtime reports its cause rather than a bare 500;
+- the app signs in and loads `/events`, so the authenticated layout is exercised;
+- an asset path the page actually emitted returns 200 (the stack runs development,
+  where Rails serves assets; production delegates that to Apache);
+- a UDP packet sent to `syslog`:514 ends up as a row in `events`.
+
+The last one is the only test in the repo that drives the collector, and the
+collector is Perl, so no Ruby-level job would ever notice it failing to start.
+Two details that cost a debugging cycle to get right: the probe line must carry a
+syslog timestamp (an unparseable line is counted as a failure, not stored, so a
+bare probe proves only that UDP is open), and the wait must **poll** rather than
+sleep a fixed interval — rotation needs a packet after the 60s boundary and the
+importer scans once a minute, so packet-to-row latency is 0–60s on top of that.
+
+Verified in both directions: with `nodejs` removed from the image the job fails
+with the ExecJS message; restored, all steps pass.
 
 ---
 

@@ -55,13 +55,22 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   `DAD_ADMIN_PASSWORD` (default `dad_dev_password`, development only) — without it
   the stack comes up with zero users and the login form can never succeed. Do not
   seed unconditionally: `db:seed` also recreates the maintenance Jobs.
-- CI: `.github/workflows/ci.yml` (test + a `security` job with three **blocking**
-  gates: `bundle-audit`, `brakeman`, and `gitleaks` over the working tree via
-  `.gitleaks.toml`). `Dockerfile` mirrors the same pinned toolchain, but **no CI
-  job builds it** — that is why the broken `gem install` line survived. If you
-  touch the Dockerfile, run `docker compose build` locally; the suite will not.
-  `gitleaks` is pinned by version *and* sha256 in the workflow; if you bump it,
-  update `GITLEAKS_SUM` from the release's own `_checksums.txt`.
+- CI: `.github/workflows/ci.yml` — six jobs: `test` (SQLite), `postgres`, `assets`,
+  `provisioning`, `docker`, `security` (three **blocking** gates: `bundle-audit`,
+  `brakeman`, `gitleaks` over the working tree via `.gitleaks.toml`).
+  The `docker` job builds the image and boots the compose stack, then asserts the
+  database was migrated+seeded, that a view actually renders, that an emitted asset
+  path returns 200, and that a UDP packet reaches `events`. It exists because
+  nothing used to build the image, which is how a Dockerfile containing a bare
+  `gem install` line reached `master`. Two of its checks are only meaningful
+  against the image, not runner Ruby: the JS runtime (GitHub runners ship Node, a
+  bare `ruby:*` image does not) and `pg` being present (these containers talk to
+  Postgres, so `BUNDLE_WITHOUT=production` would break them).
+  The boot step accepts **any** HTTP status, including 500 — its job is to know
+  Rails finished booting, not that the app is healthy, so a render failure reaches
+  the step that names the cause. `gitleaks` is pinned by version *and* sha256 in
+  the workflow; if you bump it, update `GITLEAKS_SUM` from the release's own
+  `_checksums.txt`.
 - Rails upgrades here keep breaking on **renamed-but-not-raising config keys**:
   `Rails::Railtie::Configuration#method_missing` swallows unknown `config.*` writes
   instead of erroring, so a renamed setting silently stops applying (4.2->5.2 hit

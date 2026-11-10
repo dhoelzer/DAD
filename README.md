@@ -582,9 +582,20 @@ failed `CONCURRENTLY` build. It passes extra arguments through to the container,
 so `bin/docker-test bundle exec rails test test/models/event_test.rb` runs one
 file, and `bin/docker-test bash` drops you into it.
 
-CI runs the unit tests and cucumber features on **both SQLite and Postgres**,
-plus brakeman, bundle-audit, an asset-precompile job, and a job that checks
-`provision.sh` parses and the systemd units verify. See `.github/workflows/ci.yml`.
+CI runs six jobs (`.github/workflows/ci.yml`): the unit tests and cucumber
+features on **both SQLite and Postgres**, an asset-precompile job, a job that
+checks `provision.sh` parses and the systemd units verify, a `security` job
+(brakeman, bundle-audit, gitleaks), and a **`docker` job that builds this image
+and boots the stack**.
+
+The `docker` job is the one that would have caught the broken `Dockerfile.dev`.
+Beyond building, it drives the running stack: it asserts the `migrate` service
+left a partitioned `events`/`events_words` and at least one user, that the login
+page actually renders (checking the body for "Could not find a JavaScript
+runtime", so a missing runtime names itself instead of showing as a bare 500),
+that an asset path the page emitted returns 200, and that a UDP packet sent to
+`syslog`:514 ends up as a row in `events`. That last check is the only automated
+test of the Perl collector — no Ruby-level job would notice it failing to start.
 
 To run against Postgres without Docker, point `DATABASE_URL` at a local cluster.
 Use `db:migrate_from_scratch`, not `db:migrate`: the committed `db/schema.rb` is
