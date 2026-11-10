@@ -6,7 +6,7 @@ restarted them (RECOMMENDATIONS.md 5.1).
 
 | unit | runs | restarts |
 |---|---|---|
-| `dad-syslog` | `syslog.pl`, UDP/514 → `Logs/LogStaging` | always |
+| `dad-syslog` | `syslog_collector` (Rust), UDP/514 → `Logs/LogStaging` | always |
 | `dad-importer` | `import_syslog.rb`, `LogsToProcess` → database | always |
 | `dad-scheduler` | `scheduler.rb`, runs due `Job` rows | always |
 
@@ -52,7 +52,7 @@ account rather than root.
 
 **`dad-syslog` gets `CAP_NET_BIND_SERVICE` instead of root.** It binds port 514
 and needs nothing else. It is also the only unit with no `EnvironmentFile`:
-`syslog.pl` has no business holding database credentials. The one variable it
+The collector has no business holding database credentials. The one variable it
 does read is `DAD_SYSLOG_DEBUG`, which echoes every received message to stdout
 (the journal). Set it in a drop-in when you need to confirm the collector is
 receiving anything at all.

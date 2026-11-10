@@ -415,6 +415,36 @@ jobs:
           docker compose ps -a
           docker compose logs --no-color
 
+  # The syslog collector is Rust, so it needs its own job: no other job compiles
+  # it, and the docker job only builds it as a side effect of building the image,
+  # which would not run its tests.
+  #
+  # Pinned to the same minor as the rust: tag in Dockerfile and the rustc/cargo
+  # provision.sh installs, so CI, the image, and a provisioned host all build the
+  # collector the same way.
+  collector:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.85.1
+        with:
+          components: rustfmt, clippy
+      - name: Formatting is checked in
+        run: cargo fmt --all -- --check
+      # Lint is a gate, not advisory: the collector is network-facing and
+      # long-lived. Default clippy lint set only -- `clippy::pedantic` reports
+      # 13 style findings here that are not worth the churn.
+      - name: Clippy (warnings are errors)
+        run: cargo clippy --all-targets -- -D warnings
+      - name: Unit and integration tests
+        # The integration tests spawn the real binary on high UDP ports and
+        # compare bytes on disk, so they need no root and no Postgres.
+        run: cargo test
+        working-directory: syslog_collector
+      - name: Release build is reproducible from a clean tree
+        run: cargo build --release
+        working-directory: syslog_collector
+
   security:
     runs-on: ubuntu-24.04
     env:

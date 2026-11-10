@@ -12,11 +12,15 @@ StartLimitIntervalSec=0
 [Service]
 Type=simple
 WorkingDirectory=/var/DAD
-# No EnvironmentFile: syslog.pl holds no database credentials and needs none.
+# No EnvironmentFile: the collector holds no database credentials and needs none.
 # The only variable it reads is DAD_SYSLOG_DEBUG, which is opt-in -- set it in a
 # drop-in (systemctl edit dad-syslog) when you want received messages echoed to
 # the journal.
-ExecStart=/usr/bin/perl /var/DAD/syslog.pl
+#
+# Absolute path because the binary is installed to /usr/local/bin by
+# provision.sh, not run from the checkout: it is a compiled artifact, and the
+# checkout has no toolchain in it.
+ExecStart=/usr/local/bin/syslog_collector
 Restart=always
 RestartSec=5
 # Port 514 is privileged. Rather than run as root, take only the capability

@@ -31,6 +31,12 @@ apt-get install -y libsqlite3-dev
 # "Could not find a JavaScript runtime" -- verified by hiding node from PATH.
 # Uglifier needed one too; this was always a requirement, just never installed.
 apt-get install -y nodejs
+# The syslog collector is Rust, not Perl. rustc/cargo from the distro: the
+# collector uses only std, so there is no toolchain-version sensitivity beyond
+# the edition, and a distro package is what an apt-based host should use. Keep
+# this in step with the rust: tag in Dockerfile and .github/workflows/ci.yml.
+apt-get install -y rustc
+apt-get install -y cargo
 apt-get install -y apache2
 # debconf-set-selections <<< 'mariadb-server-10.0 mysql-server/root_password password PASS'
 # debconf-set-selections <<< 'mariadb-server-10.0 mysql-server/root_password_again password PASS'
@@ -192,6 +198,20 @@ sudo a2enmod socache_shmcb
 # of /var/www. -f so a re-run does not fail on it already being gone.
 sudo rm -f /etc/apache2/sites-enabled/000-default*
 sudo apache2ctl start
+
+echo Building the syslog collector.
+# Compiled here rather than shipped as a script, so the binary has to exist
+# before dad-syslog can start. Built with the distro rustc installed above.
+#
+# target/ lands inside the checkout, which is why it is gitignored; the install
+# step below copies the artifact to /usr/local/bin, where the unit points it.
+cd /var/DAD/syslog_collector
+cargo build --release
+# install(1) rather than cp: sets the mode at creation, so there is no window
+# where the binary is present but not executable, and re-running provision
+# replaces the existing file atomically instead of failing on it.
+sudo install -m 0755 target/release/syslog_collector /usr/local/bin/syslog_collector
+cd /var/DAD
 
 echo Installing the DAD services.
 # The previous version backgrounded these with `&`:
