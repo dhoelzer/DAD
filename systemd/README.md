@@ -25,7 +25,9 @@ journalctl -u dad-importer -f
 
 # optional, for Windows events
 sudo mkdir -p -m 2775 /var/DAD/Logs/Windows
-sudo chown dad:www-data /var/DAD/Logs/Windows
+# writable by whichever user OpenWEC runs as, readable by www-data, which is
+# what dad-windows runs under -- hence the group and the setgid bit.
+sudo chown openwec:www-data /var/DAD/Logs/Windows
 sudo systemctl enable --now dad-windows
 journalctl -u dad-windows -f
 ```
