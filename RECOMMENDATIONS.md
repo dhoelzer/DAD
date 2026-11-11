@@ -54,7 +54,7 @@ than carried forward.
 | Ingest write path | **Was open — closed**: ingest is now write-bound, not word-bound (`write_batch` 2.59s of a 3.52s run; main thread blocked in `join_insert_threads` 1.13s). The dead `events_words` index that taxed every insert is dropped; the remaining headroom is `MAX_INSERT_THREADS = 1`, which is a checkpoint-ordering problem, not an indexing one |
 | Search indexing, dashboard SQL portability, timestamp parsing | Closed |
 | Dashboard search form timeframe toggle | **Closed at `7e0f435` — §2.3**: the relative timeframe dropdown was dead; every form search used an empty now→now window |
-| Test suite | Green on Postgres, CI-verified: **436 runs / 1237 assertions / 0 skips**; cucumber 5 scenarios / 18 steps. SQLite is gone as a test engine (§5.9), so the 32 and 3 skips those earlier rows reported are gone with it — a green run can no longer mean the partitioned path was never exercised |
+| Test suite | Green on Postgres, CI-verified: **488 runs / 1442 assertions / 0 skips**; cucumber 5 scenarios / 18 steps. SQLite is gone as a test engine (§5.9), so the 32 and 3 skips those earlier rows reported are gone with it — a green run can no longer mean the partitioned path was never exercised |
 | Running the suite on the production engine | **Was awkward — closed at §5.6**: `bin/docker-test` runs both suites against Compose Postgres plus the CI schema-shape and INVALID-index assertions, with no local cluster to install |
 | Docker | **Was broken — closed at §5.6**: `Dockerfile.dev` could not build (a bare `gem install` line, no `RUN`), had no JS runtime, and no CI job built it. Now `Dockerfile` + a Compose stack: app containers and a separate Postgres container |
 | CI coverage of the deployment artifacts | **Was a hole — closed at §5.6**: six jobs (`test`, `assets`, `systemd`, `docker`, `collector`, `security`). The `docker` job builds the image and drives the running stack end to end, including the end-to-end UDP-to-`events` check. The `postgres` job folded into `test` when SQLite went away (§5.9); `provisioning` became `systemd` when `provision.sh` was deleted; `collector` covers the Rust rewrite (§5.8) |
@@ -67,6 +67,7 @@ than carried forward.
 | Rails EOL | Closed — Rails is on the current stable line (8.1, supported to Oct 2027) |
 | CI security gates | **Closed** — gates wired and blocking (§1.2); the 43-advisory regression cleared at `40a7ac8`, audit now clean (§1.4) |
 | `Event` size and class-variable state | **Was open — closed (§4.1)** — ingestion extracted to `EventIngestor`; model down to 302 lines, 0 ingest class variables |
+| Windows event ingest | **Was absent — closed at §5.16**: OpenWEC output is converted into the existing staging record format, so the ingestor is unchanged; `dad-windows` feeds the same `LogsToProcess` queue, and CI drives it end to end into Postgres |
 | Partitioning, full-text search | Closed — `events`/`events_words` partitioned by `generated` with drop-based retention (§3.2); search cost cut 25–68% (§3.3); prefix search was returning nothing on Postgres collations, fixed (§3.4) |
 
 ---
@@ -2546,6 +2547,99 @@ rows perturbed. CI is not exposed: it always builds the database with
 a suite failure as caused by the change under review.
 
 ---
+
+### 5.16 ✅ Closed — DAD had no way to ingest Windows events **[operations] [correctness]**
+
+**Status: closed.** DAD now ingests Windows Event Log events collected by
+[OpenWEC](https://github.com/cea-sec/openwec). `README.md` §Ingesting Windows
+events is the operator documentation; `AGENTS.md` §The Windows ingest path is the
+contributor version.
+
+**The gap.** DAD's whole ingest path is syslog-shaped: UDP/514, one line per
+record, `<ip> <timestamp> <message>`. Windows events are the single most common
+enterprise log source and none of them could reach the database.
+
+**The approach, and why it is a converter rather than a new ingestor.** The
+tempting design is a second pipeline that understands Windows events natively.
+That was rejected: `EventIngestor.stage_event` already parses an RFC 3339
+timestamp as a single token, so a *converted* Windows event is already a valid
+staging record and needs **zero importer changes**. Converting instead means
+word indexing, batching, the parameter-ceiling chunking (§2.6), crash
+checkpointing (§2.2) and `generated`-based partitioning (§3.2) all apply to
+Windows events for free. A parallel path would have reimplemented every one of
+those and then drifted from the first.
+
+The converter is Ruby, not Rust. `syslog_collector` is deliberately
+zero-dependency (§5.8) — std only, so there is no supply chain to audit. Nokogiri
+is already in the Gemfile, so parsing Windows XML in Ruby costs nothing and keeps
+that property intact.
+
+**What landed**
+
+| piece | role |
+|---|---|
+| `lib/windows_events.rb` | OpenWEC record → one staging record. Handles `Json`, `Nxlog`, `Raw` (Windows XML), `JsonRaw` |
+| `lib/windows_forward.rb` | `Reader` (record framing + byte offsets), `Writer` (staging → queue), `Offset` (resume) |
+| `import_windows_events.rb` | the daemon an operator runs |
+| `systemd/dad-windows.service` | `Restart=always`, same hardening as the other three units |
+| compose service `windows` | behind a profile, since it needs an OpenWEC install |
+| `test/fixtures/windows_events/` | 10 fixtures, incl. a multi-line `Raw` record and 3 malformed cases |
+
+**Two traps this had to get right, both of which would have corrupted data
+silently rather than failing loudly.**
+
+1. **`Logs/LogStaging` is not a free-for-all.** The natural place to drop OpenWEC
+   output is the collector's staging directory. It is not available:
+   `recover_orphans()` (§5.8) moves *every* file it finds in `LogStaging` into
+   `LogsToProcess` at startup, on the stated assumption that the collector is the
+   only writer there. Point OpenWEC at it and the collector renames an
+   in-progress file away mid-append. Hence two new directories — `Logs/Windows`
+   for OpenWEC's output, `Logs/WindowsStaging` for the forwarder's buffer.
+   Separately, staging must differ from the *queue*: `LogQueue.pending` globs `*`
+   and excludes only `.processing`/`.offset` names, so a half-written file in the
+   queue would be claimed and read while still being appended to. `Writer.new`
+   raises `ArgumentError` on identical directories, and publishing is
+   write → `fsync` → rename, so the rename is what makes a file visible.
+
+2. **One record is not one line.** OpenWEC's Files driver appends exactly one
+   newline per record — true for `Json`, `Nxlog` and `JsonRaw`, false for `Raw`,
+   where a rendered `RenderingInfo/Message` carries literal newlines (a
+   service-stopped event embeds a dependency list; process-creation embeds a long
+   command line). A line-based tail would turn one 4688 into a dozen partial
+   events that are indistinguishable from real data once they are in the
+   database. `Reader` therefore reads byte chunks and splits on record
+   boundaries, and its offset advances only past records actually yielded — a
+   partial record is resumed on the next pass, never skipped. The offset is
+   written *after* the flush, making the path at-least-once, consistent with
+   §2.2; the reverse ordering loses events instead of duplicating them.
+
+**Test coverage: 50 new runs, and the end-to-end leg is the load-bearing one.**
+Unit tests cover the framing (multi-line `Raw` yields exactly one record; a
+half-written record is resumed, not skipped; an unterminated record is dropped at
+a size ceiling rather than growing the buffer forever). The end-to-end tests drive
+the **real** importer — `process_logs`, not a reimplementation — from an OpenWEC
+file through the queue into Postgres, and assert the event landed on the right
+`System` (`win10.windomain.local`), the right `Service`, with `generated` set, and
+that `logLineFailures` stayed at zero. That last assertion is the contract check:
+a non-zero count would mean the converter and `stage_event` disagree about the
+record shape, which is the failure mode a converter is most likely to have.
+
+**CI.** The `docker` job now boots the `windows` profile, copies a fixture in as
+`openwec.log`, and asserts a row reaches Postgres joined to the expected
+`systems` row. Nothing else in CI booted that service, so a compose service that
+could not start would have shipped unnoticed — the same gap the syslog leg exists
+for. The `systemd` job's `dad-*.service` glob picks up the new unit with no
+workflow change. Verified locally, not just asserted: `OpenWEC file ->
+LogsToProcess -> importer -> Postgres (1 events, host win10.windomain.local)`.
+
+**A limitation worth stating.** The fixtures are transcribed from OpenWEC's format
+documentation, not captured from a live Windows Event Collector — OpenWEC ships no
+event fixtures and its CI (fmt/clippy/cargo-test) has none worth reusing. They are
+therefore a *format* contract rather than a byte-exact upstream capture. If
+OpenWEC changes its output, re-derive them from a real collector.
+
+**Suite after this change: 488 runs / 1442 assertions / 0 failures / 0 errors /
+0 skips**, plus 40 system runs and 5 cucumber scenarios, all green on Postgres 17.
 
 ---
 

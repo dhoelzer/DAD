@@ -398,7 +398,7 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   window is gone; and `Event.recent_events` drops blank/nil patterns before `Regexp.union`,
   so an empty exclusion list no longer empties the feed.
   Grep for `\beval(` under app/ and lib/ returns nothing.
-- The suite is green on Postgres: **436 runs / 1237 assertions / 0 failures /
+- The suite is green on Postgres: **488 runs / 1442 assertions / 0 failures /
   0 errors / 0 skips** (verified across three `--seed` values, because the plan
   tests are order-sensitive). Zero skips is the point and is load-bearing: the
   adapter-conditional skips are gone, so a green run can no longer mean "the
@@ -632,6 +632,68 @@ the file at 0 bytes until rotation's `close(LOG)`; older notes called that
 "buffering, not data loss" and it was **wrong** — measured, 40 messages left 0
 bytes durable after SIGTERM *and* SIGKILL. See "The syslog collector (Rust)"
 above.
+
+### The Windows ingest path (OpenWEC)
+
+`lib/windows_events.rb` converts OpenWEC records into the staging record format;
+`lib/windows_forward.rb` is the tail/queue machinery; `import_windows_events.rb`
+is the daemon an operator runs (`dad-windows`, compose profile `windows`).
+
+**The converter exists so the ingestor does not change.** `stage_event` already
+parses an RFC 3339 timestamp as one token, so a converted line needs zero importer
+edits and inherits word indexing, batching, checkpointing and partitioning. A
+second ingest path would have reimplemented all of that and drifted. The converter
+is Ruby, not Rust, because Nokogiri is already a dependency and `syslog_collector`
+is deliberately zero-dependency (see above) — putting XML parsing there would
+break that property for no gain.
+
+**One queue, one importer.** The forwarder enqueues into `LogsToProcess`; it does
+not import. `dad-importer` owns claim/checkpoint/batch. A second importer would
+race the first for the same files.
+
+**Never point OpenWEC at `Logs/LogStaging`.** `recover_orphans()` moves *every*
+file in that directory into `LogsToProcess` at collector startup, on the stated
+assumption the collector is the only writer there. A converter appending there
+would have its in-progress file renamed away mid-write. Hence `Logs/Windows`
+(OpenWEC's output) and `Logs/WindowsStaging` (the forwarder's buffer) are new,
+separate directories.
+
+**Staging must differ from the queue.** `LogQueue.pending` globs `*` and excludes
+only `.processing` and `.offset` names, so a half-written file in the queue
+directory would be claimed and read mid-append. The forwarder writes to staging,
+`fsync`s, then renames into the queue; the rename is what publishes the file.
+`Writer.new` raises `ArgumentError` if the two directories are the same.
+
+**One record is not one line.** OpenWEC's Files driver appends one newline per
+record for `Json`/`Nxlog`/`JsonRaw`, but a `Raw` record's `RenderingInfo/Message`
+can contain literal newlines, so a line-based tail would split one 4688 into a
+dozen garbage events that are indistinguishable from real data once stored.
+`Reader` reads byte chunks and splits on record boundaries (`<Event`..`</Event>`
+for XML, newline for JSON). Its offset advances only past records actually
+yielded, so a partial record is resumed, not skipped. The offset is written
+*after* the flush: at-least-once, never at-most-once.
+
+**Field keys are downcased in every format; values keep their case.** Otherwise
+the same event arriving as `Json` versus `Nxlog` displays under two spellings.
+The word index downcases regardless, so this only affects `hunks` in the UI and
+in exports.
+
+**Timestamps are normalised to RFC 3339 with a literal `Z`.** A `+` offset
+becomes a space under `stage_event`'s sanitiser, which splits the timestamp
+across two tokens and mis-locates the service name (the service is read at
+`1 + consumed`, so the timestamp's token count is load-bearing).
+
+**Fixtures are hand-authored.** OpenWEC ships no event fixtures and its CI has
+none worth reusing. `test/fixtures/windows_events/` holds 10, including a
+multi-line `Raw` record (the framing trap) and three malformed cases. They are
+transcribed from the OpenWEC format docs, not captured from a live WEC, so they
+are a *format* contract, not a byte-exact upstream capture. If OpenWEC changes
+its output, re-derive them from a real collector.
+
+**CI**: the `docker` job boots the `windows` profile, copies a fixture in as
+`openwec.log`, and asserts a row lands in Postgres on the right `System`. The
+`systemd` job's `dad-*.service` glob picks up `dad-windows.service` with no
+workflow change.
 
 ### Running Postgres locally
 
