@@ -1,5 +1,5 @@
 require 'test_helper'
-require 'sqlite3'
+require_relative 'support/scratch_database'
 require File.expand_path('../../lib/log_queue.rb', __FILE__)
 
 # Crash-then-reclaim, end to end.
@@ -22,14 +22,13 @@ class ImportSyslogCrashTest < ActiveSupport::TestCase
   RUBY = RbConfig.ruby
 
   def setup
-    @db = Tempfile.new(['reclaim', '.sqlite3'])
-    @db.close
+    @db = ScratchDatabase.new('reclaim')
     @queue = Dir.mktmpdir('LogsToProcess')
     @processed = Dir.mktmpdir('ProcessedLogs')
   end
 
   def teardown
-    @db.unlink rescue nil
+    @db&.drop
     [@queue, @processed].each do |d|
       FileUtils.remove_entry(d) if d && File.directory?(d)
     end
@@ -56,7 +55,7 @@ class ImportSyslogCrashTest < ActiveSupport::TestCase
     boot += "load 'db/schema.rb'; EventIngestor.resetCaches; " if build_schema
     out = IO.popen(
       { 'RAILS_ENV' => 'development',
-        'DATABASE_URL' => "sqlite3:#{@db.path}",
+        'DATABASE_URL' => @db.url,
         'SECRET_KEY_BASE' => 'x' * 32,
         'QUEUE_DIR' => @queue,
         'PROCESSED_DEST' => @processed }.merge(env),
@@ -96,10 +95,7 @@ class ImportSyslogCrashTest < ActiveSupport::TestCase
   # Reads the subprocess database directly. ActiveRecord::Base here points at
   # the test database, which holds fixtures and none of the subprocess writes.
   def hunks
-    db = SQLite3::Database.new(@db.path)
-    rows = db.execute('select hunks from events order by id').map { |r| r[0] }
-    db.close
-    rows
+    @db.query('select hunks from events order by id').map { |r| r[0] }
   end
 
   def duplicate_count(values)
@@ -319,9 +315,8 @@ class ImportSyslogCrashTest < ActiveSupport::TestCase
     assert_equal 0, status
 
     # Read the subprocess database: ActiveRecord::Base here is the test DB.
-    db = SQLite3::Database.new(@db.path)
-    rows = db.execute('select type_id, stat from statistics order by id').map { |r| [r[0], r[1]] }
-    db.close
+    rows = @db.query('select type_id, stat from statistics order by id')
+             .map { |r| [r[0].to_i, r[1].to_f] }
     failures = rows.select { |t, _| t == 2 }.map { |_, v| v }
     assert_equal [2], failures, 'one failure row for the pass, counting both skips'
     refute_empty rows.select { |t, _| t == 0 }, 'the lines-processed series is still written'
@@ -338,9 +333,7 @@ class ImportSyslogCrashTest < ActiveSupport::TestCase
     _out, status = run_importer(body, build_schema: true)
     assert_equal 0, status
 
-    db = SQLite3::Database.new(@db.path)
-    count = db.execute('select count(*) from statistics where type_id = 2').first[0]
-    db.close
-    assert_equal 0, count, 'a pass with no skips must not write a zero row'
+    count = @db.query('select count(*) from statistics where type_id = 2').first[0]
+    assert_equal '0', count, 'a pass with no skips must not write a zero row'
   end
 end

@@ -1,4 +1,5 @@
 require 'test_helper'
+require_relative '../support/scratch_database'
 
 # Two pieces of the threaded ingest path that the other subprocess suites leave
 # uncovered: the back-pressure branch in performPendingInserts, and prune_words.
@@ -59,18 +60,17 @@ class EventIngestBackpressureTest < ActiveSupport::TestCase
   PATCH
 
   def setup
-    @db = Tempfile.new(['ingest_backpressure', '.sqlite3'])
-    @db.close
+    @db = ScratchDatabase.new('ingest_backpressure')
   end
 
   def teardown
-    @db.unlink rescue nil
+    @db&.drop
   end
 
   def run_development(body)
     out = IO.popen(
       { 'RAILS_ENV' => 'development',
-        'DATABASE_URL' => "sqlite3:#{@db.path}",
+        'DATABASE_URL' => @db.url,
         'SECRET_KEY_BASE' => 'x' * 32 },
       [RUBY, '-e', "require './config/environment'; #{body}"],
       err: %i[child out], &:read

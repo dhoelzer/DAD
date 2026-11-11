@@ -1,27 +1,36 @@
-# SQLite version 3.x
-#   gem install sqlite3
+# Postgres everywhere. SQLite was dropped as the dev/test engine: it cannot
+# partition events/events_words, so the SQLite suite never exercised the shape
+# production queries, and adapter-specific SQL broke in production while the
+# SQLite jobs stayed green (RECOMMENDATIONS 3.2).
 #
-#   Ensure the SQLite 3 gem is defined in your Gemfile
-#   gem 'sqlite3'
+# A local cluster is the default target. For the containerised one, or any other
+# engine/URL, set DATABASE_URL -- it takes precedence over this file:
+#   DATABASE_URL=postgresql://dad:dad@127.0.0.1:5432/dad_test
+#   bin/docker-test          # runs the suite against the compose db
 development:
-  adapter: sqlite3
-  database: db/development.sqlite3
+  adapter: postgresql
+  encoding: utf8
+  database: dad_development
+  username: <%= ENV["DAD_DB_USER"] %>
+  password: <%= ENV["DAD_DB_PASSWORD"] %>
+  host: <%= ENV["DAD_DB_HOST"] || "127.0.0.1" %>
   pool: 5
   timeout: 5000
 
-# Warning: The database defined as "test" will be erased and
-# re-generated from your development database when you run "rake".
-# Do not set this db to the same as development or production.
 test: &test
-    adapter: sqlite3
-    database: db/test.sqlite3
-    pool: 5
-    timeout: 5000
+  adapter: postgresql
+  encoding: utf8
+  database: dad_test
+  username: <%= ENV["DAD_DB_USER"] %>
+  password: <%= ENV["DAD_DB_PASSWORD"] %>
+  host: <%= ENV["DAD_DB_HOST"] || "127.0.0.1" %>
+  pool: 5
+  timeout: 5000
 
 # Production credentials come from the environment, never from this file.
 # Set DATABASE_URL (preferred), e.g.
 #   postgres://rails:<password>@127.0.0.1/events_prod
-# or the individual DAD_DB_* variables. provision.sh writes these to
+# or the individual DAD_DB_* variables. On a systemd host these live in
 # /etc/DAD/environment; the individual variables exist so an operator can point
 # at a cluster without hand-writing a URL.
 production:

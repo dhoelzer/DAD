@@ -19,7 +19,8 @@
 #   syslog    syslog_collector  -- UDP/514 -> Logs/LogStaging
 #   test      rake test + cucumber, against the db container (profile: test)
 #
-# Production still deploys via provision.sh + systemd + Apache/Passenger; this
+# Production deploys via systemd + your own web server (see systemd/README.md);
+# this
 # stack is the development and test path.
 
 # Shared by web/importer/scheduler/migrate/test: same image, same environment,
@@ -96,7 +97,7 @@ services:
     # inventing a well-known account, so without it the stack comes up with zero
     # users and the web UI is unreachable -- it renders a login form that can
     # never succeed. This default is a development convenience and is stated in
-    # the README; production gets its password from provision.sh.
+    # the README; production sets its own password.
     environment:
       RAILS_ENV: development
       DATABASE_URL: postgresql://dad:dad@db:5432/dad_development
@@ -118,7 +119,7 @@ services:
         # seeds the maintenance Jobs, and re-running it on every start would
         # re-create any Job an operator had deleted.
         if [ "$$(psql "$$DATABASE_URL" -tAc "select count(*) from users")" = "0" ]; then
-          echo "No users: seeding roles, rights and admin/$${DAD_ADMIN_USER}."
+          echo "No users: seeding roles, rights and the admin account ($${DAD_ADMIN_USER})."
           bundle exec rake db:seed
         fi
     restart: "no"

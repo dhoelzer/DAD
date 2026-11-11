@@ -3,8 +3,8 @@
 # A separate stage because the toolchain is ~1 GB and only one 550 KB binary
 # comes out of it. The Ruby image never sees cargo.
 #
-# Pinned to the same minor the provisioning job and provision.sh install, so the
-# binary in the image and the one a provisioned host builds are the same.
+# Pinned to the same minor the CI `collector` job builds with, so the binary in
+# the image and the one CI tests are the same.
 FROM rust:1.85.1 AS collector
 
 WORKDIR /build
@@ -28,7 +28,6 @@ FROM ruby:3.3.8
 RUN apt-get update -qq && \
     apt-get install -y --no-install-recommends \
       build-essential \
-      libsqlite3-dev \
       libpq-dev \
       postgresql-client \
       nodejs && \
@@ -56,18 +55,17 @@ RUN gem install bundler -v 2.6.7 --no-document
 
 ENV BUNDLE_PATH=/usr/local/bundle
 
-# Deliberately NOT BUNDLE_WITHOUT=production. `pg` sits in the Gemfile's
-# :production group, and this image now talks to Postgres -- excluding that group
-# leaves the pg gem absent and every database connection fails with
-# "LoadError: cannot load such file -- pg". sqlite3 stays too: the SQLite-only
-# assertions (query-plan and bytewise-collation tests) still need it.
+# No BUNDLE_WITHOUT at all. `pg` is not in a Gemfile group any more -- Postgres is
+# the only engine this app runs -- so there is no group worth excluding, and
+# excluding one is exactly how the image used to end up without the driver it
+# needs ("LoadError: cannot load such file -- pg").
 
 # /var/DAD, not /app. This is the path production uses -- every systemd unit sets
 # WorkingDirectory=/var/DAD -- and the collector hardcodes absolute paths under it
 # (DEFAULT_STAGING="/var/DAD/Logs/LogStaging"). Matching it means the importer's
 # relative paths (Dir.chdir('Logs/LogsToProcess'), then '../ProcessedLogs') and
 # the collector's absolute ones resolve to the same directories in the container
-# as on a provisioned host. Pick any other WORKDIR and the collector silently
+# as the systemd units expect. Pick any other WORKDIR and the collector silently
 # writes into a directory the importer never reads.
 WORKDIR /var/DAD
 

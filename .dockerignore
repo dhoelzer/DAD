@@ -13,11 +13,6 @@
 # this would both bloat the image and pin host-built native extensions into it.
 vendor/bundle
 
-# Local SQLite databases. The containers use Postgres; these are dev leftovers.
-/db/*.sqlite3
-/db/*.sqlite3-journal
-/db/*.sqlite3-wal
-/db/*.sqlite3-shm
 
 /log/*
 !/log/.keep

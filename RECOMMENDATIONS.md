@@ -14,7 +14,10 @@ time at `ac7076f` (2026-11-10): §1.1's operator-side question answered (no live
 deployment holds the burned key) and the item closed; one dead index dropped
 after measuring it on both engines. Re-verified a seventh time at `9d15f4f`
 (2026-11-10): the Docker setup was found unable to build at all, and the test
-harness was moved onto the production engine (§5.6). PRs #1–#30 all merged.
+harness was moved onto the production engine (§5.6). Re-verified an eighth time:
+SQLite was removed as the development and test engine outright (§5.9), which
+closes the class of defect that §3.2 and §3.4 were workarounds for. PRs #1–#32
+all merged.
 
 Two claims from earlier revisions of this file did **not** survive re-measurement
 and have been corrected rather than carried forward: the dead
@@ -24,7 +27,7 @@ which was true before the §3.3 search rewrite and false after it; and the
 recorded in the appendix with the numbers that hold.
 
 **This document lists only work that is still outstanding.** As of this
-revision that list is empty: every item found across six review passes is
+revision that list is empty: every item found across eight review passes is
 closed, and the sections below are kept as the record of what was wrong and why
 each fix was chosen. Read the status snapshot first; the body is history.
 Everything marked closed is verified against the current tree, not against what
@@ -44,17 +47,17 @@ than carried forward.
 | Password hashes in HTML | **Was open — closed at `365c845` (§1.3)** — PR #4 fixed the JSON API leak; the three HTML views were missed |
 | Secrets | **Closed (§1.1)** — working tree clean under `gitleaks`; the production key in git history is confirmed to be held by no live deployment, so rotation is moot and history rewriting stays declined |
 | Ingestion crash-safety and idempotency | Closed, at-least-once — documented in the README (§2.2) |
-| Bulk INSERT size vs adapter parameter ceiling | **Was open — closed at §2.6**: the production default batch of 2000 events needs ~96k bind parameters against ceilings of 32766 (SQLite) / 65535 (Postgres); batches are now chunked inside one transaction |
+| Bulk INSERT size vs adapter parameter ceiling | **Was open — closed at §2.6**: the production default batch of 2000 events needs ~96k bind parameters against the Postgres ceiling of 65535; batches are now chunked inside one transaction |
 | Word-cache TTL | **Was open — closed at §2.7**: `@cachelifetime` was never initialised, so the first `prune_words` on a long ingest raised `TypeError` and killed the importer |
 | Ingest throughput | **Was open — closed at §3.6**: every uncached token cost a `SELECT` + an autocommit `INSERT` against `words`. Now resolved in bulk per batch: 186,089 → 360 statements per 20k lines, **6.4×** cold / **2.36×** warm, with the `events_words` rows written unchanged |
 | Ingest batch-size tuning | Exhausted past ~2000 events/batch — measured, and §2.6 is what made larger batches legal at all (500→20,000 buys only 5,389→6,085 ev/s) |
 | Ingest write path | **Was open — closed**: ingest is now write-bound, not word-bound (`write_batch` 2.59s of a 3.52s run; main thread blocked in `join_insert_threads` 1.13s). The dead `events_words` index that taxed every insert is dropped; the remaining headroom is `MAX_INSERT_THREADS = 1`, which is a checkpoint-ordering problem, not an indexing one |
 | Search indexing, dashboard SQL portability, timestamp parsing | Closed |
 | Dashboard search form timeframe toggle | **Closed at `7e0f435` — §2.3**: the relative timeframe dropdown was dead; every form search used an empty now→now window |
-| Test suite | Green on both engines, CI-verified: 433 runs / 1132 assertions on SQLite (32 skips), 436 / 1224 on Postgres (3 skips); cucumber 5 scenarios / 18 steps on both |
+| Test suite | Green on Postgres, CI-verified: **436 runs / 1237 assertions / 0 skips**; cucumber 5 scenarios / 18 steps. SQLite is gone as a test engine (§5.9), so the 32 and 3 skips those earlier rows reported are gone with it — a green run can no longer mean the partitioned path was never exercised |
 | Running the suite on the production engine | **Was awkward — closed at §5.6**: `bin/docker-test` runs both suites against Compose Postgres plus the CI schema-shape and INVALID-index assertions, with no local cluster to install |
 | Docker | **Was broken — closed at §5.6**: `Dockerfile.dev` could not build (a bare `gem install` line, no `RUN`), had no JS runtime, and no CI job built it. Now `Dockerfile` + a Compose stack: app containers and a separate Postgres container |
-| CI coverage of the deployment artifacts | **Was a hole — closed at §5.6**: six jobs now (`test`, `postgres`, `assets`, `provisioning`, `docker`, `security`). The `docker` job builds the image and drives the running stack end to end, including the only test in the repo that exercises the Perl collector |
+| CI coverage of the deployment artifacts | **Was a hole — closed at §5.6**: six jobs (`test`, `assets`, `systemd`, `docker`, `collector`, `security`). The `docker` job builds the image and drives the running stack end to end, including the end-to-end UDP-to-`events` check. The `postgres` job folded into `test` when SQLite went away (§5.9); `provisioning` became `systemd` when `provision.sh` was deleted; `collector` covers the Rust rewrite (§5.8) |
 | Scheduler crash loop | **Was open — closed at §2.4**: a blank Frequency field killed the scheduler under `Restart=always`, stopping every Job |
 | Account integrity (duplicate / blank usernames) | **Was open — closed at §2.5**: no uniqueness at any layer, so a second account with a taken name could never sign in |
 | Session lookup and retention | **Was open — closed at §3.5**: per-request cookie lookup was a full table scan, and abandoned rows were never reclaimed |
@@ -1985,7 +1988,80 @@ format by hand.
 
 ---
 
-## 6. Recommended sequence
+### 5.9 ✅ Closed — SQLite was still the development and test engine **[operations] [maintainability] [correctness]**
+
+§5.6 moved the test harness onto Postgres but left SQLite *supported*: it stayed
+the default in `config/database.yml`, the Gemfile still carried the `sqlite3` gem,
+CI still ran a SQLite job, and 32 tests skipped on SQLite while 3 more were
+defined only there. That is the same split that produced §3.2 — `Event.insertStatement`
+emitting SQLite `?` placeholders through `exec_query`, Postgres rejecting them,
+production unable to insert a single event while every job stayed green. §5.6 gave
+developers a way to run on the real engine. It did not remove the way to be wrong.
+
+**The gap was still live.** With `DATABASE_URL` unset, `bundle exec rake test` ran
+SQLite and the partitioning, backup and index tests skipped rather than failed. A
+green local run still said nothing about the partitioned path, and the README told
+people that was the normal thing to do.
+
+**What landed:**
+
+- `config/database.yml` uses the postgresql adapter in all three environments; the
+  `sqlite3` gem is gone from the `Gemfile`.
+- CI's separate `test` (SQLite) and `postgres` jobs collapsed into one `test` job
+  against a `postgres:17` service. Six jobs, not seven.
+- `Vagrantfile` and `provision.sh` deleted. They were the other half of the same
+  split: `provision.sh` installed `sqlite3`, pinned a Ruby via `rbenv`, and was the
+  only thing that generated the secrets the README described. The systemd units in
+  `systemd/` remain the deployment path and now document their own secret setup.
+  The CI `provisioning` job became `systemd` (`systemd-analyze verify` only).
+- Adapter-conditional skips and branches removed from the suite. **0 skips.**
+- `config.active_record.maintain_test_schema` was conditional on `DATABASE_URL`
+  matching `postgres://`. That condition inverted: with Postgres now the default in
+  `database.yml`, the common case is `DATABASE_URL` being *unset*, so it evaluated
+  to true and Rails would have purged the partitioned test schema and reloaded the
+  non-partitioned `db/schema.rb` dump before every run. It is now unconditionally
+  `false`.
+- `test/support/scratch_database.rb` (throwaway databases for the subprocess ingest
+  tests) and `test/support/query_plan.rb` (EXPLAIN assertions) centralised what
+  four files had each open-coded.
+
+**Two things found while doing it, both fixed:**
+
+- `Event.approximate_count`'s fallback to an exact `COUNT(*)` looked like dead
+  SQLite support. It is not: the `pg_stat_user_tables` sum over `events_p*` comes
+  back NULL on any Postgres install whose partitioned shape was never built — one
+  prepared with plain `db:migrate`, which loads the committed `db/schema.rb` dump.
+  The branch had no test. `test/models/event_count_fallback_test.rb` now pins it,
+  and asserts `relkind = 'r'` first so the test cannot quietly start asserting the
+  estimate path instead.
+- The search plan assertion matched `Index Only Scan using ...word_id_generated_event_id_idx`.
+  In a full-suite run the same query plans as `Bitmap Index Scan on ...` — the
+  planner's choice moves with how many rows the rest of the suite leaves in the
+  partition, and the parameterized `EXPLAIN` uses a generic estimate rather than
+  the bind values. The index was being used in both shapes; only the operator name
+  differed. The assertion now matches the index name, not the operator, with a
+  comment saying why. Verified stable across three `--seed` values.
+
+**Verified:** 436 runs / 1237 assertions / 0 failures / 0 errors / **0 skips**,
+across three seeds; cucumber 5 scenarios / 18 steps; the compose `test` service
+green including the partitioned-shape and no-INVALID-index assertions; and the
+stack itself (`db`, `migrate`, `importer`, `scheduler`, `web`) boots, migrates from
+scratch, seeds, and serves a login that returns 302 into a 200 `/events`.
+
+**Deliberate, so it is not re-added:**
+
+- `SqlPlaceholders.query` stays. It is not SQLite support — it is the single place
+  that turns the `?`-and-binds form Rails documents into the `$N` form Postgres
+  wants, and it is the exact seam §3.2's bug slipped through.
+- `Event.approximate_count`'s null fallback and `EventPartitioning`'s
+  `supported?` guard stay. Both handle an *unpartitioned Postgres* install, which
+  is a real state, not a second engine.
+- `db/schema.rb` stays committed as a portable, non-partitioned dump. The
+  subprocess tests load it into scratch databases because they want the tables
+  without the partition machinery. It is not the schema production runs, and
+  `db:migrate_from_scratch` — not `db:migrate` — is what builds the real shape.
+
+
 
 Every item in this table is now done. It is kept as the record of the order the
 work went in, with the stale "why here" wording corrected in place.
@@ -2068,6 +2144,8 @@ Verified closed against the current tree:
 | §5.1 | `provision.sh` made idempotent, `db/seeds.rb` idempotent (plus a re-seed regression test), three systemd units, CI job validating both | `bf547e0` |
 | §5.4 | MIT `LICENSE` | `68a6c39` |
 | §5.5 | `README.md` rewritten as operator documentation; `README`/`README.rdoc` deleted | `58407e9` |
+| §5.8 | `syslog.pl` replaced by a zero-dependency Rust crate; per-record flush, orphan recovery at startup, 65507-byte UDP cap. Perl lost 40/40 messages on SIGTERM and stranded the in-flight file on every restart | `rust-syslog-collector` branch |
+| §5.9 | SQLite removed as the dev/test engine: `database.yml` Postgres-only, `sqlite3` gem dropped, CI's SQLite and Postgres jobs collapsed into one, `Vagrantfile`/`provision.sh` deleted, all adapter-conditional skips removed (32 → 0). Plus `maintain_test_schema`'s condition inverted by the change and fixed, and `approximate_count`'s live-but-untested null fallback pinned | this branch |
 | §4.2 | `search`/`search_period` merged; `export_logs.rb` → `bin/`; `syslog.pl` global-scope bug, unchecked `open`, dead `$DEBUG`; 26 scaffold asset stubs deleted. Also a cucumber scenario that was passing for the wrong reason (a `0` time bound became the string `'0'` and matched everything) | `4ee7458` |
 | — | The cross-version probe harness used to verify the upgrade is now in the repo (`script/probe.rb`, `script/probe_compare.rb`, `rake probe:run` / `probe:compare`). Committing it fixed a coverage hole: plain `:id` resolved to a literal `1`, so every member route 404'd and show/edit/roles were never rendered — the §1.3 leak produced no probe diff at all. | `67566f4` |
 

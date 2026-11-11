@@ -16,8 +16,7 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   "BUNDLED WITH"). Rails is 8.1.4.1 (`~> 8.1.0`), upgraded through 8.1.4 (tag
   `rails-8.1.4`) and now on the 8.1.4.1 patch release; the path was 7.1.6 ->
   7.2.3.2 -> 8.0.5.1 -> 8.1.4, one commit per minor step. Ruby jumped at
-  the 7.1 step rather than at 7.2 because nokogiri and sqlite3 had already dropped
-  2.7. 3.3.8 sits above the 7.2 (3.1) and 8.1 (3.2) floors, so no step after 7.1
+  the 7.1 step rather than at 7.2 because nokogiri had already dropped 2.7. 3.3.8 sits above the 7.2 (3.1) and 8.1 (3.2) floors, so no step after 7.1
   needed any Ruby work.
 - `minitest ~> 5.25` is still load-bearing and easy to "clean up" by mistake:
   minitest 6 narrowed `Minitest::Test.run` to `(reporter, options)` and railties'
@@ -28,8 +27,8 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   `JSON.generate(jsonified, quirks_mode: true, max_nesting: false)` and json 3.x
   removed that keyword, so the 2.7 pin was load-bearing through 7.1/7.2/8.0 (all
   34 jbuilder views die without it); 8.1.4 calls plain `JSON.generate`. The floor
-  is kept explicit so a future json 4 cannot arrive transitively. `sqlite3` went
-  `~> 1.7, < 2` -> `~> 2.1` at 8.0, whose adapter *requires* >= 2.1.
+  is kept explicit so a future json 4 cannot arrive transitively. The `sqlite3`
+  gem is gone entirely: Postgres is the only engine (see "Postgres everywhere").
 - `Gemfile.lock` and `db/schema.rb` are now tracked on purpose — do not re-add them
   to `.gitignore`.
 - Run tests, preferred: `bin/docker-test` — the whole suite against the Compose
@@ -37,11 +36,26 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   job makes. Extra args replace the container command, so
   `bin/docker-test bundle exec rails test test/models/event_test.rb` runs one file
   and `bin/docker-test bash` opens a shell in it.
-- Run tests without Docker: `bundle install --frozen` (set `BUNDLE_WITHOUT=production`
-  to skip `pg`), `bundle exec rake db:migrate RAILS_ENV=test`,
-  `bundle exec rake test`, `bundle exec cucumber`. Use the cucumber **binary**, not
-  `rake cucumber:ok` — the rake task runs cucumber in-process and minitest's
-  autorun then dies on `--profile`.
+- Run tests without Docker: `bundle install --frozen`, point `DATABASE_URL` at a
+  Postgres cluster, then `bundle exec rake db:migrate_from_scratch` and
+  `bundle exec rake test`. **`db:migrate_from_scratch`, not `db:migrate`** — see
+  "Postgres everywhere". Use the cucumber **binary**, not `rake cucumber:ok` — the
+  rake task runs cucumber in-process and minitest's autorun then dies on
+  `--profile`.
+- `config/initializers/require_secrets.rb` fails the boot when `SECRET_KEY_BASE`
+  is unset, so every test command needs it exported (any non-empty value in test).
+- Tests that need a **second** database — the ingest tests that run the importer
+  as a subprocess — create throwaway databases through
+  `test/support/scratch_database.rb`. It connects over a separate raw `PG`
+  connection, not the ActiveRecord one: `CREATE DATABASE` fails with
+  `PG::ActiveSqlTransaction` inside transactional fixtures. That needs `CREATEDB`
+  on the role behind `DATABASE_URL`.
+- Tests that assert an **index is usable** go through `test/support/query_plan.rb`
+  (`include QueryPlan; explain(sql, binds)`). It sets `enable_seqscan = off`
+  deliberately: on a test-sized table the planner is entitled to prefer a seq
+  scan, so asserting its cost choice asserts a guess. Turning scans off asks the
+  question the finding was actually about — can this index serve this query shape
+  at all?
 - Docker: `Dockerfile` + `docker-compose.yml`. One image, separate containers for
   `db` (postgres:17), `migrate` (one-shot), `web`, `importer`, `scheduler`,
   `syslog`, and `test` (behind `--profile test`). `docker-compose.db-port.yml` is
@@ -55,17 +69,22 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   `DAD_ADMIN_PASSWORD` (default `dad_dev_password`, development only) — without it
   the stack comes up with zero users and the login form can never succeed. Do not
   seed unconditionally: `db:seed` also recreates the maintenance Jobs.
-- CI: `.github/workflows/ci.yml` — six jobs: `test` (SQLite), `postgres`, `assets`,
-  `provisioning`, `docker`, `security` (three **blocking** gates: `bundle-audit`,
-  `brakeman`, `gitleaks` over the working tree via `.gitleaks.toml`).
+- CI: `.github/workflows/ci.yml` — six jobs: `test` (unit + cucumber against a
+  `postgres:17` service), `assets`, `systemd`, `docker`, `collector`, `security`
+  (three **blocking** gates: `bundle-audit`, `brakeman`, `gitleaks` over the
+  working tree via `.gitleaks.toml`).
+  The `test` job runs `db:migrate_from_scratch`, then asserts the partitioned
+  shape really was built and that no index is left `INVALID`, before either suite.
+  Those two assertions exist because plain `db:migrate` would silently test a
+  schema production does not have, and a failed `CONCURRENTLY` build leaves a
+  husk that `index_exists?` reports as healthy.
   The `docker` job builds the image and boots the compose stack, then asserts the
   database was migrated+seeded, that a view actually renders, that an emitted asset
   path returns 200, and that a UDP packet reaches `events`. It exists because
   nothing used to build the image, which is how a Dockerfile containing a bare
   `gem install` line reached `master`. Two of its checks are only meaningful
   against the image, not runner Ruby: the JS runtime (GitHub runners ship Node, a
-  bare `ruby:*` image does not) and `pg` being present (these containers talk to
-  Postgres, so `BUNDLE_WITHOUT=production` would break them).
+  bare `ruby:*` image does not).
   The boot step accepts **any** HTTP status, including 500 — its job is to know
   Rails finished booting, not that the app is healthy, so a render failure reaches
   the step that names the cause.
@@ -126,9 +145,7 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   and rotating it logs nobody out (sessions are DB rows). An earlier revision of
   `RECOMMENDATIONS.md` (formerly §1.1, now the appendix) got this backwards and
   claimed account takeover. The key is burned in history but no live deployment
-  holds it, so the item is closed. Rotate with `bin/rotate_secret_key_base`;
-  `provision.sh` only generates the key on first run, so it is not the
-  rotation path.
+  holds it, so the item is closed. Rotate with `bin/rotate_secret_key_base`.
 - `ActiveSupport`'s `to_time` behaviour changed across these steps and the app
   never calls `config.load_defaults`, so *no* `load_defaults`-gated default is ever
   applied here — every behaviour change must be opted into by hand. Sequence: 7.2
@@ -158,7 +175,8 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
 - Production serves assets through `config.assets.compile = true` (line 30 of
   `production.rb` is commented out) with `digest = false`, so the layout emits the
   undigested `/assets/application.js` and sprockets compiles it on demand. Verified
-  200 on a real production boot. `provision.sh` never runs `assets:precompile`.
+  200 on a real production boot. The systemd deploy never runs
+  `assets:precompile`; only the CI `assets` job does.
 
 ## Facts worth remembering
 - Event retention is archive-gated and, since the free-space floor, also
@@ -227,11 +245,12 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
 - `/users` (HTML) no longer renders the bcrypt `password_hash` column (closed at
   `365c845`, RECOMMENDATIONS §1.3). PR #4 had fixed only the JSON API; the three HTML
   views were missed. `grep -rn password_hash app/views/` is empty.
-- App class is `Events::Application`; DB is Postgres in production, SQLite in dev/test.
-  The PG-only-SQL divergence that used to follow from that is now handled: raw SQL is
-  written with SQLite `?` and routed through `SqlPlaceholders.query`, `extract()` was
-  replaced by `substr(cast(...))`, and adapter-specific paths are guarded on
-  `connection.adapter_name`. See "Two databases" below.
+- App class is `Events::Application`; the DB is **Postgres in every environment**,
+  including development and test. Raw SQL is still written with `?` and routed
+  through `SqlPlaceholders.query`, and the few remaining `adapter_name` checks are
+  defensive (an unknown adapter chunks conservatively; an unpartitioned install
+  falls back to `COUNT(*)`) rather than supporting a second engine. See "Postgres
+  everywhere" below.
 - Auth is hand-rolled: `users`/`roles`/`rights` + `sessions` table + `cookies[:sessionID]`.
   Access control is now **declared in constants on `ApplicationController`**, not
   overridden per controller — `def authorized?` exists exactly once, in the base class,
@@ -286,12 +305,13 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   slices a staged batch and `write_batch` runs the slices in a single transaction.
   Do not call `insertStatement` directly for a staged batch — a production-sized
   batch (default 2000 events, ~16 `events_words` rows each) needs ~96k parameters
-  against ceilings of 32766 (SQLite, measured) and 65535 (Postgres), and past the
-  ceiling the adapter raises `too many SQL variables` rather than degrading.
+  against Postgres' ceiling of 65535 (Int16), and past the ceiling the adapter
+  raises rather than degrading.
   `bulk_insert_size` therefore means rows per *transaction*, not per *statement*,
   and can be raised freely. The suite cannot see this limit:
   `DEFAULT_BULK_INSERT_SIZE` is 1 in dev/test, so only the subprocess tests in
-  `test/models/event_ingest_limits_test.rb` (RAILS_ENV=development) cross it.
+  `test/models/event_ingest_limits_test.rb` (RAILS_ENV=development, against a
+  scratch database) cross it.
 - Ingest is **at-least-once, not exactly-once** (§2.2, documented under "Ingest
   semantics" in the README). A crash with a batch in flight re-reads that batch,
   so up to one batch of events can be duplicated; committed rows are never lost.
@@ -303,21 +323,20 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   a crash boundary. Do not "fix" this by advancing the checkpoint earlier: that
   is what makes rows losable. `test/import_syslog_crash_test.rb` pins both halves.
 - Search is **prefix** matching, not `LIKE '%term%'`. The exact predicate is
-  `like 'term%' escape '\'` (pins `%`/`_` to literals). How it is narrowed to be
-  index-driven is **adapter-specific**, because the two adapters order `text`
-  differently:
-  - SQLite (BINARY collation): a `[term, term + U+10FFFF)` range. Keep the upper
-    bound — without it SQLite estimates the subquery at half the table and
-    re-plans to scan `events_words` through the `generated` index.
-  - Postgres: the `like` alone, served by `index_words_on_text_pattern`
-    (`varchar_pattern_ops`, byte-wise, collation-blind).
-  **Never add a `U+10FFFF` upper bound on Postgres.** Under glibc `en_US.UTF-8`
-  (postgres:17's default, and provision.sh) `strcoll` sorts U+10FFFF *before*
-  ASCII letters, so the bound falls below every longer word and prefix search
-  silently returns nothing — measured 60000 words by `like` vs 0 by that range.
-  No sound upper bound exists there either: `en_US.UTF-8` gives trailing
-  punctuation no primary weight, so the strings above `'foo-'` are unbounded
-  (verified exhaustively over the 94 printable ASCII chars the tokenizer emits).
+  `like 'term%' escape '\'` (pins `%`/`_` to literals), served by
+  `index_words_on_text_pattern` (`varchar_pattern_ops`, byte-wise,
+  collation-blind).
+  **Never reintroduce a `[term, term + U+10FFFF)` range.** It looks like it holds
+  exactly the strings starting with `term`, and it did under SQLite's BINARY
+  collation, which is why it survived for years as the SQLite branch of
+  `word_lookup`. Under glibc `en_US.UTF-8` (postgres:17's default) `strcoll` sorts
+  U+10FFFF *before* ASCII letters, so the bound falls below every longer word and
+  prefix search silently returns nothing — measured on 280k words: term `sshd`
+  matched 60000 by `LIKE` and 0 by that range. It cannot be repaired either:
+  `en_US.UTF-8` gives trailing punctuation no primary weight, so the strings above
+  `'foo-'` are unbounded (verified exhaustively over the 94 printable ASCII chars
+  the tokenizer emits). The branch is gone; the reasoning is in the comment above
+  `WORD_IDS` and must not be lost with it.
   `searchSQL` is relational division: a derived table of `(word_id, term_no)`
   joined to `events_words`, `having count(distinct term_no) = n_terms`. Resolve
   each term **once** — duplicating the subquery into `HAVING` doubles the words
@@ -349,23 +368,24 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   window is gone; and `Event.recent_events` drops blank/nil patterns before `Regexp.union`,
   so an empty exclusion list no longer empties the feed.
   Grep for `\beval(` under app/ and lib/ returns nothing.
-- The suite is green on both engines: 433 runs / 1132 assertions on SQLite
-  (32 skips, so 401 executed), 436 / 1224 on Postgres (3 skips, so 433 executed).
-  cucumber is 5 scenarios / 18 steps on both, and on both engines via Docker.
-  Both figures read out of the CI job log rather than guessed —
-  `gh run view <id> --log` prints both totals. The gap is not a discrepancy: 29
-  tests skip on SQLite and run on Postgres, and 3 more are defined only there.
-  cucumber is 5 scenarios / 18 steps on both.
+- The suite is green on Postgres: **436 runs / 1237 assertions / 0 failures /
+  0 errors / 0 skips** (verified across three `--seed` values, because the plan
+  tests are order-sensitive). Zero skips is the point and is load-bearing: the
+  adapter-conditional skips are gone, so a green run can no longer mean "the
+  partitioned path was never exercised". cucumber is 5 scenarios / 18 steps; the
+  two `@wip` alert scenarios are excluded by `config/cucumber.yml`
+  (`--strict --tags "not @wip"`) and run under `cucumber -p wip`, where they are
+  **pending** — their step definitions are unimplemented stubs, a pre-existing
+  gap, not a Postgres failure.
   Counts drift — run the suite rather than trusting this one. The assertion count rose
   from 534 at Rails 6.1 with no test logic changed: AS 7.1's
   `assert_difference`/`assert_no_difference` route their block through minitest's
   `_assert_nothing_raised_or_warn`, which counts 1 assertion per call. Don't treat
   that kind of delta as a regression without checking the helper internals.
 - Ingest tests drain the queue (`flush_and_wait`) between staging steps so exactly one
-  writer is active; that is what makes them deterministic on SQLite instead of racing
-  `SQLite3::BusyException`, which the async insert thread otherwise triggers by opening
-  a second connection while the main thread holds a write lock. The writing thread is
-  still the thing under test.
+  writer is active. That is what makes them deterministic rather than racing the
+  async insert thread opening a second connection while the main thread holds a
+  write lock. The writing thread is still the thing under test.
 
 ## Charting / asset pipeline
 - Charts run on **Chart.js 4.4.7** (MIT), vendored at
@@ -397,49 +417,71 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   lookups, which go stale after `destroy()`.
 
 
-## Two databases: SQLite in dev/test, Postgres in production
+## Postgres everywhere
 
-`config/database.yml` uses sqlite3 for development/test and the postgresql
-adapter for production. This split hides adapter-specific breakage, because the
-suite only ever exercises one engine. `bin/docker-test` is the fix for that on a
-developer machine: it runs the suite against the engine production actually uses,
-with no local cluster to install.
+`config/database.yml` uses the postgresql adapter for development, test and
+production. SQLite was dropped as the dev/test engine, and the reason is not
+taste: while the split existed, `Event.insertStatement` emitted SQLite `?`
+placeholders through `exec_query`, Postgres rejected them outright, and
+production could not insert a single event while every CI job stayed green
+(RECOMMENDATIONS 3.2). `pg` also sat in the `:production` Gemfile group, so any
+job that set `BUNDLE_WITHOUT=production` silently lacked the driver it needed.
+`events`/`events_words` are range-partitioned and are **not partitionable at all**
+on SQLite, so a SQLite suite never exercised the shape production queries, and the
+composite covering index on `events_words` is Postgres-only.
 
-- **Raw SQL must work on both.** Queries are written with SQLite `?` placeholders
-  and routed through `SqlPlaceholders.query` (`app/models/sql_placeholders.rb`),
-  which rewrites them to `$1, $2, ...` when the connection is Postgres. Postgres
-  rejects `?` outright, so calling `exec_query` directly with `?` is a production
-  bug that no SQLite-only run can detect. Verified on both engines: `$N` binds by
-  order of appearance, so left-to-right numbering is correct on each.
-- **`extract()` is Postgres-only; SQLite rejects it.** Dashboard queries bucket
-  hours with `substr(cast(<ts> as text),1,13)` instead.
-- **`Event.approximate_count` is Postgres-only** (reads `pg_stat_user_tables`,
-  assumes `events_p*` partitions) and falls back to `Event.count` elsewhere.
-- **`db/schema.rb` is checked in as the SQLite flavour.** Running
-  `rake db:migrate` against a Postgres database rewrites it with
-  `enable_extension` and `t.bigint` instead of `t.integer limit: 8`, which breaks
-  `db:schema:load` for dev/test (`undefined method 'serial'`). Never commit a
-  Postgres-generated schema.rb.
-  - Only a **development**-env migrate dumps it: `config/environments/test.rb`
-    sets `dump_schema_after_migration = false`. So after verifying a migration on
-    Postgres, restore the file and regenerate it with a development-env SQLite
-    `db:migrate` — a test-env SQLite migrate runs the migration but leaves
-    `schema.rb` stale, which looks like a clean diff and is not one.
-- CI has a `postgres` job that runs the whole suite against Postgres 17. It must
-  not set `BUNDLE_WITHOUT=production`, because `pg` lives in the `:production`
-  group. Cucumber runs on both engines. `features/support/env.rb` whitelists the
-  Compose URL in `DatabaseCleaner.url_whitelist` **before** setting
-  `strategy = :transaction` — DatabaseCleaner refuses a remote URL at strategy
-  assignment time, so whitelisting after it raises instead of cleaning.
+`bin/docker-test` is the zero-configuration path: it brings up the Compose `db`,
+runs both suites, and makes the same two schema assertions the CI `test` job makes.
+
+- **Raw SQL is still written with `?`** and routed through
+  `SqlPlaceholders.query` (`app/models/sql_placeholders.rb`), which rewrites to
+  `$1, $2, ...`. Calling `exec_query` directly with `?` is the exact bug that
+  shipped 3.2. `$N` binds by number, so left-to-right numbering is correct.
+  Known limitation: Postgres also uses `?` as the jsonb key-existence operator;
+  nothing here queries jsonb, and if it ever does that query needs its own path.
+- **`extract()` is avoided** in favour of `substr(cast(<ts> as text),1,13)`. It
+  was a portability constraint and is now just the form the dashboard uses.
+- **`Event.approximate_count`** reads `pg_stat_user_tables` and assumes
+  partitioned `events_p*`. It falls back to an exact `Event.count` when the sum
+  comes back null — i.e. on an install whose partitioned shape was never built.
+  That fallback is tested; do not remove it as "dead SQLite support".
+- **`db/schema.rb` is a portable, NON-partitioned dump.** It cannot express
+  `PARTITION BY`/`PARTITION OF`. It is what the subprocess tests load into a
+  scratch database (they want the tables without the partition machinery), and it
+  is *not* the schema production runs.
+  - `config/environments/test.rb` sets `dump_schema_after_migration = false`, so a
+    test migrate never rewrites it. If it ever must be regenerated, do it
+    deliberately and re-read the diff: a Postgres dump would silently drop the
+    partitioning while still looking complete.
+  - `maintain_test_schema = false` for the same reason. Rails purges and reloads
+    `schema.rb` before a run when a migration is newer than the dump, which would
+    install the non-partitioned shape over what `db/migrate` built. This used to
+    be conditional on `DATABASE_URL` matching `postgres://`; it cannot be, because
+    Postgres is now the default in `database.yml`, so the common case is
+    `DATABASE_URL` being **unset** and the old condition evaluated to true.
+- **Prepare the test database with `db:migrate_from_scratch`, never `db:migrate`.**
+  `db:migrate` loads the committed `schema.rb` dump into an empty Postgres
+  database and skips `db/migrate` entirely, so the partitioned shape is never
+  built and the partitioning/backup/index tests fail in ways that look like app
+  bugs. `bin/docker-test`, the compose `migrate` service and CI all use the
+  from-scratch task.
+- Cucumber runs against the same Postgres. `features/support/env.rb` whitelists
+  the Compose URL in `DatabaseCleaner.url_whitelist` **before** setting
+  `strategy = :transaction` — DatabaseCleaner refuses a non-localhost URL at
+  strategy assignment time (the cleaner runs its safeguards in its constructor),
+  so whitelisting after the assignment raises instead of cleaning. Whitelist that
+  one URL rather than clearing `allow_remote_database_url`, so a hand-set
+  `DATABASE_URL` aimed at a real server still fails loudly.
 - **`CONCURRENTLY` index builds can leave an INVALID husk, and Rails cannot see
   it.** A failed build (lock timeout, deadlock, cancel) does not roll back: the
   index stays, holding its name, marked `indisvalid = false`. `index_exists?` and
   `index_name_exists?` do not filter `indisvalid`, so they report it healthy, and a
-  retry dies on `relation ... already exists` — wedging `db:migrate` and
-  `provision.sh`. A husk is also invisible to the planner, so queries degrade to a
-  seq scan with the suite green. Check with
+  retry dies on `relation ... already exists` — wedging `db:migrate`. A husk is
+  also invisible to the planner, so queries degrade to a seq scan with the suite
+  green. Check with
   `select c.relname from pg_class c join pg_index i on i.indexrelid = c.oid where not i.indisvalid`;
-  the CI `postgres` job asserts this. `AddPatternIndexToWords` self-heals its own.
+  the CI `test` job and `bin/docker-test` both assert this.
+  `AddPatternIndexToWords` self-heals its own.
 
 ### The syslog collector (Rust)
 
@@ -451,9 +493,8 @@ Build/test it on its own: `cd syslog_collector && cargo test` (26 unit + 13
 integration). The integration tests spawn the real binary on high UDP ports and
 compare bytes on disk, so they need no root and no Postgres. The CI `collector`
 job runs `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, and
-`cargo test`. Keep the toolchain pinned in lockstep across three places: the
-`rust:` tag in `Dockerfile`, `dtolnay/rust-toolchain` in `ci.yml`, and
-`apt-get install rustc` in `provision.sh`.
+`cargo test`. Keep the toolchain pinned in lockstep across two places: the
+`rust:` tag in `Dockerfile` and `dtolnay/rust-toolchain` in `ci.yml`.
 
 **The record format is the contract.** `format_record` writes
 `<source-ip> <message>\n`. `EventIngestor` stores that line whole in

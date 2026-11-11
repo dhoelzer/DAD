@@ -61,7 +61,8 @@ class AddIntegrityConstraints < ActiveRecord::Migration[8.1]
   end
 
   # A unique index cannot be built over duplicate or empty usernames, and
-  # refusing to migrate would wedge provision.sh. So the pre-existing damage is
+  # refusing to migrate would wedge every later deploy. So the pre-existing
+  # damage is
   # repaired first, loudly, rather than silently:
   #
   #   * blank/nil usernames are given a distinct placeholder, because an account

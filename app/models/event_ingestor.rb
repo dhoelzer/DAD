@@ -32,9 +32,11 @@ class EventIngestor
   # which is the point of the threads, without ever holding two write
   # transactions at the same time. The old limit of 5 meant 5 insert threads plus
   # the main thread could ask for 6 connections from a pool of 5, so a flush
-  # would block on the pool timeout instead of writing; and two concurrent
-  # writers are not available on the SQLite database development and the test
-  # suite use, which fails them with SQLite3::BusyException.
+  # would block on the pool timeout instead of writing. It was pinned to 1 while
+  # the test suite ran SQLite, which permits a single writer; Postgres would
+  # allow more, but the pipeline has only ever been exercised at 1, and the
+  # checkpoint ordering rules in test/models/event_ingest_backpressure_test.rb
+  # are written against it.
   MAX_INSERT_THREADS = 1
 
   # Word-cache size that triggers a prune, and the TTL it starts at in seconds.
@@ -49,18 +51,14 @@ class EventIngestor
 
   # Host-parameter ceilings per statement, per adapter. A multi-row INSERT with C
   # columns and R rows uses C*R parameters, and exceeding the ceiling is a hard
-  # error, not a slowdown:
-  #
-  #   SQLite3::SQLException: too many SQL variables
-  #
-  # Measured on the real insert path (binary search over events_words INSERTs):
-  # SQLite 3.54.1 accepts 32766 parameters, i.e. 10922 three-column rows.
-  # Postgres caps a statement at 65535 parameters (Int16). At the ~16 index rows
-  # per event this tokenizer produces, the production default batch of 2000
-  # events needs ~96k parameters -- over both ceilings.
+  # error, not a slowdown. Postgres caps a statement at 65535 parameters (Int16)
+  # -- measured on the real insert path by binary search over events_words
+  # INSERTs. At the ~16 index rows per event this tokenizer produces, the
+  # production default batch of 2000 events needs ~96k parameters, so the
+  # ceiling is not hypothetical: without chunking, a default-sized batch cannot be
+  # inserted at all.
   MAX_STATEMENT_PARAMS = {
-    'PostgreSQL' => 65_535,
-    'SQLite' => 32_766
+    'PostgreSQL' => 65_535
   }.freeze
 
   # Used for adapters not listed above: the lowest ceiling this app supports, so
@@ -373,11 +371,11 @@ class EventIngestor
   # parameter ceiling.
   #
   # A single multi-row INSERT for a whole batch is not always legal: R rows over
-  # C columns uses C*R parameters, and both adapters reject the statement outright
-  # once the ceiling is passed. events_words is the binding constraint at three
-  # columns and ~16 rows per event, so a 2000-event batch -- the production
-  # default -- needs ~96k parameters against ceilings of 32766 (SQLite) and
-  # 65535 (Postgres). Chunking is what lets bulk_insert_size mean "rows per
+  # C columns uses C*R parameters, and the database rejects the statement
+  # outright once the ceiling is passed. events_words is the binding constraint at
+  # three columns and ~16 rows per event, so a 2000-event batch -- the production
+  # default -- needs ~96k parameters against Postgres' ceiling of 65535. Chunking
+  # is what lets bulk_insert_size mean "rows per
   # transaction" rather than "rows per statement".
   #
   # Empty input yields no statements rather than an INSERT with no VALUES, which
@@ -457,11 +455,11 @@ class EventIngestor
   # Replaces the in-flight queue.
   #
   # A seam, not part of the pipeline. The head-of-queue ordering rule in
-  # advance_checkpoint! cannot be driven through the real path: MAX_INSERT_THREADS
-  # is 1 precisely because SQLite permits a single writer, so two concurrent
-  # write transactions would fail with BusyException and test the database
-  # rather than the ordering rule. Raising that constant to 2 is the obvious
-  # throughput change, and the ordering rule is what must not break.
+  # advance_checkpoint! cannot be driven through the real path: with
+  # MAX_INSERT_THREADS at 1 there is only ever one batch in flight, so the
+  # head-of-queue rule is not exercised by the pipeline. Raising that constant to
+  # 2 is the obvious throughput change, and the ordering rule is what must not
+  # break when someone does.
   def self.in_flight_queue=(batches)
     checkpoint_mutex.synchronize { @insertThreads = batches }
   end
@@ -515,9 +513,10 @@ class EventIngestor
     @events_words = Array.new
 
     if Rails.env.test?
-      # Cucumber runs DatabaseCleaner inside an open transaction and SQLite
-      # permits a single writer, so a second connection deadlocks the suite.
-      # Inline keeps the same write_batch path, just without the thread.
+      # Inline rather than on a writer thread: the suite's cleanup runs inside an
+      # open transaction, and a second connection writing concurrently makes the
+      # ordering of these writes nondeterministic between runs. Inline keeps the
+      # same write_batch path, just without the thread.
       write_batch(ew_statements, ev_statements)
       # Inline: the rows are durable the moment write_batch returns.
       checkpoint_mutex.synchronize do
@@ -668,8 +667,9 @@ class EventIngestor
   # between tens of thousands of statements and a handful.
   #
   # Runs on the main thread, before the batch is handed to a writer: the words
-  # table is read and written here, and SQLite allows a single writer, so doing
-  # it inside the writer thread would contend with the batch it is preparing.
+  # table is read and written here, so doing it inside the writer thread would
+  # contend with the batch it is preparing and make the checkpoint ordering
+  # harder to reason about.
   #
   # A token that turns out to be new is added to the word cache, which is what
   # keeps the next batch off the database entirely.

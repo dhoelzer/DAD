@@ -33,18 +33,15 @@ gem 'nokogiri', '~> 1.16'
 # without also moving off sprockets' JSON.parse(create_additions:) manifest.
 gem 'json', '~> 2.7'
 
-group :production do
-  # 0.21 predates Ruby 3. Not exercised by CI (BUNDLE_WITHOUT=production), so the
-  # bump is unverified locally; 1.5 is the last 1.x line and builds on Ruby 3.3.
-  gem 'pg', '~> 1.5'
-end
+# The Postgres driver. Deliberately NOT in a group: Postgres is the only engine
+# this app runs -- production, development and test -- and while `pg` sat in
+# :production, every job that set BUNDLE_WITHOUT=production silently lacked it.
+# That is what let the SQLite suite stay green while production could not insert
+# a single event (RECOMMENDATIONS 3.2), and it is why the Dockerfile had to
+# carry a comment explaining why it was *not* excluding the production group.
+gem 'pg', '~> 1.5'
 
 group :development, :test do
-  # The 8.0 sqlite3 adapter requires sqlite3 >= 2.1 (it calls into the 2.x
-  # SQLite3::Statement/Database API), so the < 2 ceiling from the 7.x steps has
-  # to go. Precompiled 2.x binaries cover x86_64-linux, so no local toolchain is
-  # needed.
-  gem 'sqlite3', '~> 2.1'
   # railties' TestUnit runner calls Minitest::Test.run(reporter, options, suite);
   # minitest 6 narrowed that to (reporter, options) and every test dies with
   # "wrong number of arguments (given 3, expected 1..2)". railties only declares

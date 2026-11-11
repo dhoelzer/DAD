@@ -17,9 +17,9 @@ WorkingDirectory=/var/DAD
 # drop-in (systemctl edit dad-syslog) when you want received messages echoed to
 # the journal.
 #
-# Absolute path because the binary is installed to /usr/local/bin by
-# provision.sh, not run from the checkout: it is a compiled artifact, and the
-# checkout has no toolchain in it.
+# Absolute path because the binary is installed to /usr/local/bin, not run from
+# the checkout: it is a compiled artifact. Build it with `cargo build --release`
+# in syslog_collector/ and `install -m 0755` it there.
 ExecStart=/usr/local/bin/syslog_collector
 Restart=always
 RestartSec=5

@@ -72,10 +72,10 @@ class System < ActiveRecord::Base
   # Shared by #hourly_stats and #events_per_hour. Returns count/bucket rows, where
   # bucket names the hour as "YYYY-MM-DD HH".
   #
-  # Buckets with substr(cast(<ts> as text),1,13) rather than extract(): extract() is
-  # Postgres-only and SQLite rejects it, which meant these dashboard queries raised
-  # on every dev/test run. See ApplicationHelper#statistics_by_hour for the same
-  # reasoning.
+  # Buckets with substr(cast(<ts> as text),1,13) rather than extract(): extract()
+  # is engine-specific, and these queries once ran on an engine that rejected it,
+  # which raised on every dev/test run. See ApplicationHelper#statistics_by_hour
+  # for the same reasoning.
   def self.hourly_counts(system_id, since)
     sql = "select count(*) as count,substr(cast(generated as text),1,13) as bucket from events where events.system_id=? and events.generated>? group by bucket order by bucket asc"
     SqlPlaceholders.query sql, [system_id, since]

@@ -3,7 +3,7 @@
 #
 # Mixed into every view. The statistics helpers are read-only and are called
 # directly from the dashboard templates. Their SQL is portable across Postgres
-# (production) and SQLite (test/dev) so the dashboard renders under both.
+# (production, development and test) so the dashboard renders everywhere.
 module ApplicationHelper
   # Returns "active" or "inactive" for the nav bar, comparing the given controller
   # name against the current request. Call from a layout as class="<%%= is_active(model) %%>".
@@ -62,10 +62,10 @@ module ApplicationHelper
   # hour as "YYYY-MM-DD HH".
   #
   # The bucket is built with substr(cast(<ts> as text), 1, 13) rather than
-  # extract(), because extract() is Postgres-only and SQLite rejects it outright.
-  # Both engines render a timestamp as "YYYY-MM-DD HH:MM:SS[.ffffff]", so the first
-  # 13 characters name the hour on either one. Keeping the query portable is what
-  # lets the dashboard render under the sqlite test suite at all.
+  # extract(). extract() is engine-specific and broke the dashboard everywhere
+  # the suite ran, because the suite ran a different engine; substr over the
+  # rendered "YYYY-MM-DD HH:MM:SS[.ffffff]" form names the hour in its first 13
+  # characters and needs no adapter branch.
   def statistics_by_hour(type_id, since, agg = 'sum')
     aggregate = AGGREGATES.fetch(agg)
     sql = "select #{aggregate} as agg_value,substr(cast(timestamp as text),1,13) as bucket from statistics where type_id=? and timestamp>? group by bucket order by bucket asc"

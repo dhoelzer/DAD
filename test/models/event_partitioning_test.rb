@@ -3,10 +3,8 @@ require 'test_helper'
 # Guards monthly partitioning of events/events_words and the retention that goes
 # with it (RECOMMENDATIONS.md 3.2).
 #
-# Partitioning is Postgres-only -- dev and test run SQLite -- so the tests split
-# in two. The naming, retention-window and adapter-guard rules are pure and run
-# on either engine. Anything that touches real partitions skips on SQLite, and a
-# Postgres CI run exercises those against the engine that ships to production.
+# The naming and retention-window rules are pure Ruby and need no connection.
+# Everything else drives real partitions on the engine production runs.
 #
 # The conversion tests build their own scratch tables rather than relying on the
 # real events table being partitioned, because the interesting case is converting
@@ -14,8 +12,6 @@ require 'test_helper'
 # and it is where the data-preservation hazards live (sequence ownership, index
 # name collisions, rows with no matching partition).
 class EventPartitioningTest < ActiveSupport::TestCase
-  POSTGRES = ActiveRecord::Base.connection.adapter_name == 'PostgreSQL'.freeze
-
   SCRATCH = 'partition_scratch'.freeze
   SCRATCH_PREFIX = 'partition_scratch_p'.freeze
   # The real table list is frozen; scratch tests pass their own prefix map.
@@ -91,33 +87,21 @@ class EventPartitioningTest < ActiveSupport::TestCase
     assert_equal Date.new(2026, 10, 1), months.first
   end
 
-  # A Job row that exists in a dev database must not raise an Alert every cycle.
-  test 'maintain returns a summary string on either adapter' do
-    # Retention pinned to 0 so the Postgres branch cannot drop partitions other
-    # tests are relying on.
+  # A Job row that exists against a scratch database must not raise an Alert
+  # every cycle, so maintain returns a summary rather than failing.
+  test 'maintain returns a summary string' do
+    # Retention pinned to 0 so maintain cannot drop partitions other tests are
+    # relying on.
     with_retention_env('0') do
       summary = EventPartitioning.maintain
       assert_kind_of String, summary
-      if POSTGRES
-        assert_match(/partitions:/, summary)
-      else
-        assert_match(/Postgres-only/, summary)
-      end
+      assert_match(/partitions:/, summary)
     end
   end
 
-  # --- adapter guards ---
-
-  test 'ensure_partitions refuses a non-Postgres adapter' do
-    skip 'guard is Postgres-specific' if POSTGRES
-    assert_raises(ArgumentError) { EventPartitioning.ensure_partitions }
-    assert_raises(ArgumentError) { EventPartitioning.drop_expired_partitions }
-  end
-
-  # --- real partitions, Postgres only ---
+  # --- real partitions ---
 
   test 'ensure_partitions creates the expected months and is idempotent' do
-    skip 'requires PostgreSQL' unless POSTGRES
     create_scratch_table
 
     first = EventPartitioning.ensure_partitions(tables: [SCRATCH], today: Date.new(2026, 10, 16), prefixes: SCRATCH_PREFIXES)
@@ -129,7 +113,6 @@ class EventPartitioningTest < ActiveSupport::TestCase
   end
 
   test 'rows land in the partition for their month' do
-    skip 'requires PostgreSQL' unless POSTGRES
     create_scratch_table
     EventPartitioning.ensure_partitions(tables: [SCRATCH], today: Date.new(2026, 10, 16), prefixes: SCRATCH_PREFIXES)
 
@@ -146,7 +129,6 @@ class EventPartitioningTest < ActiveSupport::TestCase
   # entire INSERT batch: the batch is a single statement, so a CheckViolation
   # loses every event in it, not just the bad one.
   test 'an out-of-range row goes to the default partition instead of raising' do
-    skip 'requires PostgreSQL' unless POSTGRES
     create_scratch_table
     EventPartitioning.ensure_partitions(tables: [SCRATCH], today: Date.new(2026, 10, 16), prefixes: SCRATCH_PREFIXES)
 
@@ -155,7 +137,6 @@ class EventPartitioningTest < ActiveSupport::TestCase
   end
 
   test 'drop_expired_partitions drops whole months older than the cutoff' do
-    skip 'requires PostgreSQL' unless POSTGRES
     create_scratch_table
     EventPartitioning.ensure_partitions(tables: [SCRATCH], today: Date.new(2026, 10, 16), prefixes: SCRATCH_PREFIXES)
     insert_scratch(1, Time.new(2026, 10, 3))
@@ -172,7 +153,6 @@ class EventPartitioningTest < ActiveSupport::TestCase
   # A partition is dropped only once its whole month is past the cutoff, so the
   # current month is never touched no matter how the day-of-month falls.
   test 'drop_expired_partitions keeps the current month' do
-    skip 'requires PostgreSQL' unless POSTGRES
     create_scratch_table
     EventPartitioning.ensure_partitions(tables: [SCRATCH], today: Date.new(2026, 10, 16), prefixes: SCRATCH_PREFIXES)
     insert_scratch(1, Time.new(2026, 10, 1))
@@ -183,7 +163,6 @@ class EventPartitioningTest < ActiveSupport::TestCase
   end
 
   test 'drop_expired_partitions never drops the default partition' do
-    skip 'requires PostgreSQL' unless POSTGRES
     create_scratch_table
     EventPartitioning.ensure_partitions(tables: [SCRATCH], today: Date.new(2026, 10, 16), prefixes: SCRATCH_PREFIXES)
     insert_scratch(1, Time.new(1899, 1, 1))
@@ -195,7 +174,6 @@ class EventPartitioningTest < ActiveSupport::TestCase
   end
 
   test 'retention of zero keeps every partition' do
-    skip 'requires PostgreSQL' unless POSTGRES
     create_scratch_table
     EventPartitioning.ensure_partitions(tables: [SCRATCH], today: Date.new(2026, 10, 16), prefixes: SCRATCH_PREFIXES)
     insert_scratch(1, Time.new(2000, 1, 1))
@@ -205,7 +183,6 @@ class EventPartitioningTest < ActiveSupport::TestCase
   end
 
   test 'default_partition_rows reports strays so an operator can see them' do
-    skip 'requires PostgreSQL' unless POSTGRES
     create_scratch_table
     EventPartitioning.ensure_partitions(tables: [SCRATCH], today: Date.new(2026, 10, 16), prefixes: SCRATCH_PREFIXES)
     insert_scratch(1, Time.new(1899, 1, 1))
@@ -218,7 +195,6 @@ class EventPartitioningTest < ActiveSupport::TestCase
   # --- converting an existing populated table, Postgres only ---
 
   test 'conversion preserves rows, ids and column definitions' do
-    skip 'requires PostgreSQL' unless POSTGRES
     create_unpartitioned_scratch
     insert_plain_scratch(1, Time.new(2026, 1, 15, 10, 0, 0), 'first')
     insert_plain_scratch(2, Time.new(2026, 7, 20, 10, 0, 0), 'second')
@@ -238,7 +214,6 @@ class EventPartitioningTest < ActiveSupport::TestCase
   # Existing data can be far older than the retention window. Copying a row with
   # no matching partition raises CheckViolation and aborts the migration.
   test 'conversion creates partitions for months of existing history' do
-    skip 'requires PostgreSQL' unless POSTGRES
     create_unpartitioned_scratch
     insert_plain_scratch(1, Time.new(2020, 2, 1, 10, 0, 0), 'old')
     insert_plain_scratch(2, Time.new(2026, 10, 2, 10, 0, 0), 'recent')
@@ -253,7 +228,6 @@ class EventPartitioningTest < ActiveSupport::TestCase
   # The copy inserts explicit ids, which leaves the sequence behind. Without
   # setval, the next insert that relies on the default reuses an existing id.
   test 'conversion advances the id sequence past the copied ids' do
-    skip 'requires PostgreSQL' unless POSTGRES
     create_unpartitioned_scratch
     insert_plain_scratch(1, Time.new(2026, 10, 1, 10, 0, 0), 'a')
     insert_plain_scratch(500, Time.new(2026, 10, 2, 10, 0, 0), 'b')
@@ -268,7 +242,6 @@ class EventPartitioningTest < ActiveSupport::TestCase
   # it still owns the sequence, the sequence goes with it and inserts lose their
   # id default.
   test 'conversion leaves the id sequence owned by the partitioned table' do
-    skip 'requires PostgreSQL' unless POSTGRES
     create_unpartitioned_scratch
     insert_plain_scratch(1, Time.new(2026, 10, 1, 10, 0, 0), 'a')
 
@@ -280,7 +253,6 @@ class EventPartitioningTest < ActiveSupport::TestCase
   # Rails' #indexes does not report the primary key's index. Missing it makes
   # creating the twin's PRIMARY KEY fail with "relation ..._pkey already exists".
   test 'conversion keeps the original index names on the partitioned table' do
-    skip 'requires PostgreSQL' unless POSTGRES
     create_unpartitioned_scratch
     insert_plain_scratch(1, Time.new(2026, 10, 1, 10, 0, 0), 'a')
 
@@ -294,7 +266,6 @@ class EventPartitioningTest < ActiveSupport::TestCase
   end
 
   test 'conversion is a no-op on an already partitioned table' do
-    skip 'requires PostgreSQL' unless POSTGRES
     create_scratch_table
     EventPartitioning.ensure_partitions(tables: [SCRATCH], today: Date.new(2026, 10, 16), prefixes: SCRATCH_PREFIXES)
     insert_scratch(1, Time.new(2026, 10, 1, 10, 0, 0))
@@ -306,7 +277,6 @@ class EventPartitioningTest < ActiveSupport::TestCase
   # A table with no id column (events_words) must convert without any sequence
   # or primary-key handling.
   test 'conversion handles a table with no id column' do
-    skip 'requires PostgreSQL' unless POSTGRES
     create_idless_scratch
     execute_sql("INSERT INTO #{SCRATCH} (payload, generated) VALUES ('a', '2026-10-01 10:00:00')")
     execute_sql("INSERT INTO #{SCRATCH} (payload, generated) VALUES ('b', '2026-09-01 10:00:00')")
@@ -328,7 +298,6 @@ class EventPartitioningTest < ActiveSupport::TestCase
   end
 
   test 'the real events tables are partitioned under Postgres' do
-    skip 'requires PostgreSQL' unless POSTGRES
     assert EventPartitioning.partitioned?('events')
     assert EventPartitioning.partitioned?('events_words')
   end
@@ -337,7 +306,6 @@ class EventPartitioningTest < ActiveSupport::TestCase
   # events_words partitions matched that pattern the dashboard total would be
   # inflated by every word row.
   test 'approximate_count excludes the events_words partitions' do
-    skip 'requires PostgreSQL' unless POSTGRES
     Event.connection.execute('ANALYZE events')
     Event.connection.execute('ANALYZE events_words')
 
@@ -371,7 +339,6 @@ class EventPartitioningTest < ActiveSupport::TestCase
   end
 
   def drop_scratch
-    return unless POSTGRES
     execute_sql("DROP TABLE IF EXISTS #{SCRATCH} CASCADE")
     execute_sql("DROP TABLE IF EXISTS #{SCRATCH}_unpartitioned CASCADE")
     execute_sql("DROP TABLE IF EXISTS #{SCRATCH}_partitioned CASCADE")

@@ -18,25 +18,29 @@ Events::Application.configure do
   # Rails 5 default and surfaces order dependencies in the fixtures.
   config.active_support.test_order = :random
 
-  # db/schema.rb is committed in SQLite flavour, because that is the adapter
-  # development and the default test run use. A `rake db:migrate` under
-  # DATABASE_URL=postgres://... would otherwise rewrite it in Postgres flavour --
-  # enable_extension lines, bigint instead of integer limit: 8, and (once events
-  # is partitioned) PARTITION BY / PARTITION OF table options that SQLite cannot
-  # load at all. The Postgres CI job migrates to exercise the real migration
-  # path, so it must not be allowed to overwrite the canonical dump.
+  # db/schema.rb is committed as a portable, NON-partitioned dump. It is what the
+  # subprocess tests (import_syslog_crash_test, the ingest tests) load into a
+  # scratch database, because they need the tables without the partition
+  # machinery. It cannot express PARTITION BY / PARTITION OF at all, so it is not
+  # the schema production runs and must not be regenerated from a Postgres
+  # connection -- a Postgres dump would silently drop the partitioning while
+  # still looking like a complete schema.
   #
-  # Regenerate schema.rb deliberately, from SQLite:
-  #   unset DATABASE_URL && RAILS_ENV=test bundle exec rake db:migrate
+  # Regenerate it deliberately, from a scratch SQLite-free run only if the app
+  # ever needs a portable dump again; otherwise let migrations define the shape.
   config.active_record.dump_schema_after_migration = false
 
-  # Related trap: Rails purges and reloads db/schema.rb before a test run when a
-  # migration is newer than the dump. Under Postgres that reload installs the
-  # SQLite-flavoured dump -- which cannot express PARTITION BY at all -- and
-  # silently replaces whatever the migrations built. So when DATABASE_URL points
-  # at Postgres, the schema comes from db/migrate (see rake
-  # db:migrate_from_scratch) and Rails must not touch it.
-  config.active_record.maintain_test_schema = !ENV['DATABASE_URL'].to_s.match?(%r{\Apostgres(ql)?://})
+  # Rails purges and reloads db/schema.rb before a test run when a migration is
+  # newer than the dump. That reload installs the non-partitioned dump and
+  # silently replaces whatever db/migrate built, so tests that assert the
+  # partitioned shape would be testing a schema production does not have. The
+  # test database is therefore prepared explicitly, with rake
+  # db:migrate_from_scratch (bin/docker-test and CI both do this).
+  #
+  # This used to be conditional on DATABASE_URL pointing at Postgres. It cannot
+  # be: Postgres is now the default in config/database.yml, so the common case is
+  # DATABASE_URL being unset and the condition would have evaluated to true.
+  config.active_record.maintain_test_schema = false
 
   # Do not eager load code on boot. This avoids loading your whole application
   # just for the purpose of running a single test. If you are using a tool that

@@ -1,6 +1,6 @@
 require 'test_helper'
 
-# provision.sh runs `rake db:seed` on every Vagrant provision, so seeds have to
+# Deploys run `rake db:seed` every time, so seeds have to
 # be safe to run more than once. They were not: bare new/save plus an unguarded
 # has_and_belongs_to_many append meant two runs produced 2 admin users, 4 roles
 # and 10 rights where 1, 2 and 5 were intended -- and the duplicate Admin right
@@ -77,7 +77,7 @@ class SeedsIdempotencyTest < ActiveSupport::TestCase
       'the seeded password must be the one DAD_ADMIN_PASSWORD supplied'
   end
 
-  # A re-provision must not undo a password change made after first sign-in.
+  # A re-seed must not undo a password change made after first sign-in.
   test 'a re-seed does not reset a changed admin password' do
     run_seeds
     admin = User.find_by(username: 'admin')

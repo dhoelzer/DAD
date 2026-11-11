@@ -2,8 +2,8 @@
 #
 # Replaces the previous design, in which scheduler.rb ran eval(job.script) and a
 # Job row was therefore arbitrary Ruby executing as the scheduler user (root
-# under provision.sh). Creating a Job is now choosing a name from HANDLERS plus a
-# scalar argument; no user-authored code is stored or executed anywhere.
+# under the original installer). Creating a Job is now choosing a name from
+# HANDLERS plus a scalar argument; no user-authored code is stored or executed anywhere.
 #
 # Adding capability means adding an entry here and deploying -- it is deliberately
 # not something an operator can do from the web UI.

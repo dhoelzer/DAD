@@ -1,17 +1,19 @@
 require 'test_helper'
+require_relative '../support/query_plan'
 
 class EventTest < ActiveSupport::TestCase
+  include QueryPlan
+
   setup do
     EventIngestor.resetCaches
   end
 
-  # Binds per term: SQLite narrows the words lookup with a byte-wise range
-  # (lower bound, upper bound, LIKE pattern), Postgres matches on the LIKE alone.
-  # Plus the time range and the expected term count. Each term is bound once: the
-  # derived table resolves it a single time, so the count scales with terms, not
-  # with terms*2.
+  # Binds per term: the words lookup matches on the LIKE alone, served by the
+  # varchar_pattern_ops index. Plus the time range and the expected term count.
+  # Each term is bound once: the derived table resolves it a single time, so the
+  # count scales with terms, not with terms*2.
   def placeholders_per_term
-    Event.connection.adapter_name == 'SQLite' ? 3 : 1
+    1
   end
 
   test 'searchSQL returns placeholders only, never interpolated values' do
@@ -54,18 +56,15 @@ class EventTest < ActiveSupport::TestCase
   # Postgres needs a byte-wise index for the prefix LIKE: a plain index on
   # words.text is ordered by the database collation, and under en_US.UTF-8 the
   # planner can only seq scan it.
-  test 'the byte-wise words index exists on Postgres' do
-    skip 'the pattern index is Postgres-only' unless Event.connection.adapter_name == 'PostgreSQL'
+  test 'the byte-wise words index exists' do
     assert Event.connection.index_exists?(:words, :text, name: 'index_words_on_text_pattern')
   end
 
   # The Postgres words lookup must not carry an upper bound. [term, term +
   # U+10FFFF) is only sound for byte-wise collations: under en_US.UTF-8 strcoll
   # sorts U+10FFFF before ASCII letters, so the bound sits below every longer
-  # word and prefix search silently returns nothing. See the WORD_IDS_BYTEWISE comment.
-  test 'the Postgres words lookup puts no upper bound on the range' do
-    skip 'SQLite orders text byte-wise, where the range is sound' unless
-      Event.connection.adapter_name == 'PostgreSQL'
+  # word and prefix search silently returns nothing. See the WORD_IDS comment.
+  test 'the words lookup puts no upper bound on the range' do
     sql, = Event.searchSQL(Time.now - 1.hour, Time.now, %w[alpha])
     refute_match(/text\s*</, sql,
       'no finite upper bound is sound for a punctuation-terminated prefix under a punctuation-insensitive collation')
@@ -74,7 +73,7 @@ class EventTest < ActiveSupport::TestCase
   # Direct guard for the collation bug: a term that is a strict prefix of an
   # indexed word must match it. This passed on SQLite (BINARY) and on a Postgres
   # cluster initialised with C.UTF-8, and failed on the en_US.UTF-8 that CI and
-  # provisioned production use.
+  # a stock Postgres install both use.
   test 'prefix search matches words longer than the term' do
     EventIngestor.storeEvent('1.1.1.1 Jun 1 00:00:00 host svc[1]: testservice reports')
     EventIngestor.performPendingInserts
@@ -87,13 +86,29 @@ class EventTest < ActiveSupport::TestCase
       'matching is prefix-only, not substring'
   end
 
-  test 'search uses the covering index rather than scanning events_words' do
-    skip 'plan check is sqlite-specific' unless Event.connection.adapter_name == 'SQLite'
+  # The two indexes that make search affordable, asserted through the planner
+  # rather than by listing them (RECOMMENDATIONS.md 3.4).
+  #
+  # On the partitioned table the index names are per-partition
+  # (events_words_p202611_word_id_generated_event_id_idx), so the match is on the
+  # column signature rather than the parent index name.
+  test 'search is served by the covering index and the pattern index' do
+    EventIngestor.storeEvent('1.1.1.1 Jun 1 00:00:00 host svc[1]: failed connection')
+    EventIngestor.performPendingInserts
+
     sql, binds = Event.searchSQL(Time.now - 1.year, Time.now, %w[failed connection])
-    plan = Event.connection.execute('EXPLAIN QUERY PLAN ' +
-      ActiveRecord::Base.send(:sanitize_sql_array, [sql, *binds])).map { |r| r['detail'] }.join("\n")
-    assert_includes plan, 'USING COVERING INDEX index_events_words_on_word_id_and_generated_and_event_id'
-    refute_match(/SCAN events_words/, plan)
+    plan = explain(sql, binds)
+
+    # Matched on the index name, not the scan operator. Which of `Index Only
+    # Scan using ...` and `Bitmap Index Scan on ...` the planner picks for
+    # events_words depends on its row estimate, and that moves with how many rows
+    # the rest of the suite has left in the table: the same query plans as either
+    # shape in isolation versus in a full run. Both reach the index; a missing or
+    # mis-ordered covering index would produce neither.
+    assert_match(/(?:using|on) \w*word_id_generated_event_id_idx/i, plan,
+      "events_words must be reachable through the composite covering index:\n#{plan}")
+    assert_match(/index_words_on_text_pattern/i, plan,
+      "the words prefix lookup must use the varchar_pattern_ops index:\n#{plan}")
   end
 
   # storeEvent's tokenizer keeps a-zA-Z0-9 and " -_:@*/." and blanks everything

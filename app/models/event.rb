@@ -195,54 +195,39 @@ class Event < ActiveRecord::Base
   end
   
   # Prefix matching over words.text: find every indexed word that starts with
-  # the search term. The exact predicate is `text like 'term%' escape '\'` --
-  # the ESCAPE pins % and _ to literals so a term like 'foo_bar' cannot match
-  # 'fooXbar'. How the lookup is narrowed to stay index-driven differs per
-  # adapter, because the two adapters order text differently.
+  # the search term. The predicate is `text like 'term%' escape '\'` -- the
+  # ESCAPE pins % and _ to literals so a term like 'foo_bar' cannot match
+  # 'fooXbar'.
   #
-  # SQLite's default collation is BINARY, so [term, term + U+10FFFF) is a sound
-  # range holding exactly the strings that start with term, and index_words_on_text
-  # serves it. The upper bound is not decoration: without it SQLite estimates the
-  # subquery at half the table and re-plans the outer join to drive from
-  # events_words through the generated index, scanning every join row in the time
-  # window instead of only the matched words'.
+  # It is served by index_words_on_text_pattern (varchar_pattern_ops), and the
+  # reason that index exists is worth keeping: a plain index on words.text is
+  # ordered by the cluster collation, and the LIKE operator can only use it when
+  # that collation is byte-wise. Under en_US.UTF-8 -- the postgres:17 default --
+  # the planner falls back to a seq scan of words. varchar_pattern_ops indexes
+  # raw bytes and is therefore collation-blind.
   #
-  # Postgres cannot use that range. Its collation is whatever the cluster was
-  # initialised with -- en_US.UTF-8 for postgres:17 and for provision.sh -- and
-  # under glibc's en_US.UTF-8 strcoll sorts U+10FFFF *before* ASCII letters, so
-  # the bound falls below every longer word and prefix search silently returns
-  # nothing. Measured on 280k words: term 'sshd' matched 60000 words by LIKE and
-  # 0 by that range.
-  #
-  # Nor can the bound be repaired. en_US.UTF-8 gives trailing punctuation no
-  # primary weight, so 'foo-' and 'foo' share a primary weight sequence and the
-  # strings sorting above 'foo-' are unbounded. Exhaustively checked over the 94
-  # printable ASCII characters the tokenizer can emit: incrementing the last
-  # character is an unsound bound for 35 of them, including every one of
-  # - . / : @ * _ that can end a word.
-  #
-  # So Postgres matches on the LIKE alone, served by index_words_on_text_pattern
-  # (varchar_pattern_ops), which indexes raw bytes and is therefore collation-blind.
-  WORD_IDS_BYTEWISE = "select id from words where text >= ? and text < ? and text like ? escape '\\'".freeze
-  WORD_IDS_LIKE = "select id from words where text like ? escape '\\'".freeze
+  # The obvious narrowing trick does not work here and must not be reintroduced.
+  # A range of [term, term + U+10FFFF) looks like it holds exactly the strings
+  # starting with term, and it does under a byte-wise collation -- which is why
+  # it survived as the SQLite branch of this method for years. Under en_US.UTF-8
+  # glibc's strcoll sorts U+10FFFF *before* ASCII letters, so the bound falls
+  # below every longer word and prefix search silently returns nothing. Measured
+  # on 280k words: term 'sshd' matched 60000 words by LIKE and 0 by that range.
+  # Nor can the bound be repaired -- en_US.UTF-8 gives trailing punctuation no
+  # primary weight, so 'foo-' and 'foo' share a weight sequence and the strings
+  # above 'foo-' are unbounded. Checked exhaustively over the 94 printable ASCII
+  # characters the tokenizer can emit: incrementing the last character is an
+  # unsound bound for 35 of them, including every one of - . / : @ * _ that can
+  # end a word.
 
-  # U+10FFFF is the highest Unicode code point, so term + PREFIX_UPPER bounds
-  # every string starting with term -- but only where text is ordered byte-wise.
-  # See WORD_IDS_BYTEWISE before using it anywhere else.
-  PREFIX_UPPER = "\u{10FFFF}".freeze
+  WORD_IDS = "select id from words where text like ? escape '\\'".freeze
 
   # The words lookup for one term, as [sql, binds].
   #
-  # Returned per term rather than as a constant because the placeholder count
-  # differs by adapter: keeping the fragment and its binds together is what stops
-  # the two from drifting apart.
+  # Returned per term rather than used as a constant so the fragment and its
+  # binds stay together and cannot drift apart.
   def self.word_lookup(term)
-    pattern = "#{sanitize_sql_like(term)}%"
-    if connection.adapter_name == 'SQLite'
-      [WORD_IDS_BYTEWISE, [term, term + PREFIX_UPPER, pattern]]
-    else
-      [WORD_IDS_LIKE, [pattern]]
-    end
+    [WORD_IDS, ["#{sanitize_sql_like(term)}%"]]
   end
   private_class_method :word_lookup
 
