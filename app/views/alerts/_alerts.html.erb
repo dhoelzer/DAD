@@ -1,21 +1,21 @@
 <div id="alerts">
-	<div id="alerts-header">
-      <div id='alert-time'>Generated</div>		
-      <div id='alert-system'>System</div>
-      <div id='alert-system'>Service</div>
-	  <div id='alert-desc'>Description</div>
-	  <div id='alert-ack'></div>
-	  <div id='alert-ack'>Comments?</div>
-	</div>
+        <div id="alerts-header">
+      <div class='alert-time'>Generated</div>
+      <div class='alert-system'>System</div>
+      <div class='alert-service'>Service</div>
+          <div class='alert-desc'>Description</div>
+          <div class='alert-ack'></div>
+          <div class='alert-comments'>Comments?</div>
+        </div>
 
     <% @alerts.each do |alert| %>
-      <div id='criticality-<%=alert.criticality%>'>
-		<div id='alert-time'><%= timestamp_helper(alert.generated) %>&nbsp;</div>
-        <div id='alert-system'><%= alert.system.display_name unless alert.system.nil? %>&nbsp;</div>
-        <div id='alert-system'><%= alert.service.name unless alert.service.nil? %>&nbsp;</div>
-        <div id='alert-desc'><%= link_to alert.short_description, alert %>&nbsp;</div>
-        <div id='alert-ack'><%= button_to 'Ack', acknowledge_alert_path(alert), remote: true, method: :post, class: 'ack-button' %></div>
-		<div id='alert-ack'><%= alert.comments.count < 1 ? "" : "*"%>&nbsp;</div>
+      <div class='criticality-<%=alert.criticality%>'>
+                <div class='alert-time'><%= timestamp_helper(alert.generated) %>&nbsp;</div>
+        <div class='alert-system'><%= alert.system.display_name unless alert.system.nil? %>&nbsp;</div>
+        <div class='alert-service'><%= alert.service.name unless alert.service.nil? %>&nbsp;</div>
+        <div class='alert-desc'><%= link_to alert.short_description, alert %>&nbsp;</div>
+        <div class='alert-ack'><%= button_to 'Ack', acknowledge_alert_path(alert), remote: true, method: :post, class: 'ack-button' %></div>
+                <div class='alert-comments'><%= alert.comments.count < 1 ? "" : "*"%>&nbsp;</div>
       </div>
     <% end %>
 </div>

@@ -6,8 +6,8 @@
  * that had never been edited since the app was generated. Both were loaded into
  * the same bundle, and neither referenced a selector the other defined, so they
  * are merged here. The scaffold rules are still needed -- every generated
- * _form.html.erb uses div.field / div.actions / #error_explanation, and every
- * show page uses #notice.
+ * _form.html.erb uses div.field / div.actions / #error_explanation, and the
+ * layout emits the single #notice.
  *
  * Order is load-bearing only where a rule overrides another rule of equal
  * specificity on the same selector; #alerts is the one such case and is merged
@@ -168,11 +168,11 @@ div.field, div.actions {
 /* display: table-row is not decoration: #alerts is display:table and each
    criticality div is its direct child, so without it a row stops participating
    in the table layout and the columns stop lining up with #alerts-header. */
-#criticality-1 { background-color: #90ff90; display: table-row; }
-#criticality-2 { background-color: #50b050; display: table-row; }
-#criticality-3 { background-color: #ffff90; display: table-row; }
-#criticality-4 { background-color: #ff9020; display: table-row; }
-#criticality-5 { background-color: #ff5050; display: table-row; }
+.criticality-1 { background-color: #90ff90; display: table-row; }
+.criticality-2 { background-color: #50b050; display: table-row; }
+.criticality-3 { background-color: #ffff90; display: table-row; }
+.criticality-4 { background-color: #ff9020; display: table-row; }
+.criticality-5 { background-color: #ff5050; display: table-row; }
 
 #alerts {
   padding: 1em;
@@ -186,17 +186,17 @@ div.field, div.actions {
   width: auto;
 }
 
-#alert-time, #alert-system {
+.alert-time, .alert-system, .alert-service {
   display: table-column;
   float: left;
   width: 200px;
 }
-#alert-desc {
+.alert-desc {
   display: table-column;
   float: left;
   width: 700px;
 }
-#alert-ack {
+.alert-ack, .alert-comments {
   display: table-column;
   float: left;
   width: 40px;
@@ -206,11 +206,11 @@ div.field, div.actions {
    state-changing GET is not covered by protect_from_forgery. The queue is laid
    out with display:table-column in a 40px cell, so the form's default block box
    and margins have to be neutralised or the row height changes. */
-#alert-ack form {
+.alert-ack form {
   margin: 0;
   display: inline;
 }
-#alert-ack input[type=submit] {
+.alert-ack input[type=submit] {
   padding: 0;
   border: none;
   background: none;
@@ -299,7 +299,7 @@ div.field, div.actions {
   background-color: #888855;
 }
 
-li#active {
+li.active {
   background-color: #555;
 }
 
@@ -353,7 +353,7 @@ li#active {
   }
 
   /* The alert queue is display:table with fixed columns summing to 1140px
-     (200 + 200 + 700 + 40, and the header row repeats #alert-system twice).
+     (200 + 200 + 700 + 40 + 40, six columns across two rows).
      No phone is that wide, so the columns have to stop being columns. */
   #alerts {
     display: block;
@@ -364,19 +364,19 @@ li#active {
   #alerts-header {
     display: none;
   }
-  #criticality-1, #criticality-2, #criticality-3, #criticality-4, #criticality-5 {
+  .criticality-1, .criticality-2, .criticality-3, .criticality-4, .criticality-5 {
     display: block;
     margin-bottom: 0.5em;
     padding: 0.25em;
   }
-  #alert-time, #alert-system, #alert-desc, #alert-ack {
+  .alert-time, .alert-system, .alert-service, .alert-desc, .alert-ack, .alert-comments {
     display: block;
     float: none;
     width: auto;
   }
   /* The header row is hidden, so each alert has to name its own fields. */
-  #alert-time:before   { content: "Generated: "; }
-  #alert-desc:before   { content: "Description: "; }
+  .alert-time:before   { content: "Generated: "; }
+  .alert-desc:before   { content: "Description: "; }
 
   /* Dashboard panels are 49% floats that sit two-up; at this width two charts
      side by side are too narrow to read. */

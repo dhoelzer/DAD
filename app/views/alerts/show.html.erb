@@ -1,4 +1,3 @@
-<p id="notice"><%= notice %></p>
 <div id='comments'>
 	<h3>Analyst Comments</h3>
 	<%= link_to "Add Comment", new_alert_comment_path(@alert) %>
@@ -7,7 +6,7 @@
 	<% end %>
 </div>
 
-<div id='criticality-<%=@alert.criticality%>'>
+<div class='criticality-<%=@alert.criticality%>'>
   <%= @alert.criticality_name %>
 </div>
 <%= button_to 'Acknowledge', acknowledge_alert_path(@alert), method: :post, class: 'ack-button' %>

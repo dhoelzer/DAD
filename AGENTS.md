@@ -449,6 +449,12 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   reaching master. The containment is the safety argument: the rack-test system
   suite has no layout engine, so it cannot validate responsive CSS -- it can only
   guarantee the desktop rules are untouched.
+- **Every `id` in rendered HTML must be unique.** `test/system/unique_ids_test.rb`
+  scans 17 pages and fails on any repeat. Anything rendered inside a loop -- nav
+  tabs, alert rows, comments -- must use a `class`, never an `id`. The alert queue
+  and nav bar used per-row ids as styling hooks until this was fixed. The CSS hooks
+  are now `.criticality-N`, the `.alert-*` column classes, and `li.active`.
+  `#notice` belongs to the layout -- do not re-emit it in a view.
 - Form error summaries render through `app/views/shared/_error_explanation.html.erb`;
   all 14 `_form.html.erb` files call it with `record: @model`. Do not inline the
   block again. The h2 noun comes from `record.model_name.human.downcase`.

@@ -48,7 +48,23 @@ class AlertsTest < SystemTest
   test 'the criticality of an alert drives its styling hook' do
     visit '/alerts'
 
-    assert_selector '#criticality-5', visible: :all
+    # A class, not an id: the queue repeats this element once per alert, and an
+    # id repeated per row is invalid HTML. See unique_ids_test.rb.
+    assert_selector '.criticality-5', visible: :all
+  end
+
+  # The queue renders one row per alert, so it is the page most likely to
+  # reintroduce a repeated id. Two alerts at the same criticality is the case
+  # that used to produce a duplicate.
+  test 'two alerts at the same criticality do not repeat the styling hook id' do
+    Alert.create!(system: @system, service: @service, criticality: 5,
+                  generated: Time.now - 60, closed: false,
+                  description: 'second', short_description: 'second alert')
+    visit '/alerts'
+
+    assert_selector '.criticality-5', visible: :all, count: 2
+    assert_empty page.body.scan(/id=['"]criticality-5['"]/),
+                 'criticality hook must be a class, not a per-row id'
   end
 
   test 'the acknowledge control is present for an open alert' do
