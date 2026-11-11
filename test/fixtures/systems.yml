@@ -1,6 +1,7 @@
 # Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
 one:
+  id: 1
   address: MyString
   name: MyString
   description: MyText
@@ -8,6 +9,7 @@ one:
   contact_email: MyString
 
 two:
+  id: 2
   address: MyString
   name: MyString
   description: MyText

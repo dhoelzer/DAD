@@ -2061,6 +2061,103 @@ scratch, seeds, and serves a login that returns 302 into a 200 `/events`.
   without the partition machinery. It is not the schema production runs, and
   `db:migrate_from_scratch` — not `db:migrate` — is what builds the real shape.
 
+### 5.10 ✅ Closed — nothing rendered a page, and `rake test` could never run a test that did **[maintainability] [operations]**
+
+The suite is deep on models, ingest and controller policy, and thin on the one
+thing an operator actually sees: rendered HTML. Not one test rendered
+`app/views/layouts/application.html.erb`. The nav bar is generated at runtime
+from `$_models` and filtered by each model's `hidden?`, so a model that fails to
+load at boot, or a rights change, removes a tab from every page — and every test
+stays green. The same is true of the dashboard's `#events`, `#stats` and
+`#*_chart` divs: the dashboard JS writes into them by id, so renaming one blanks
+the landing page.
+
+There was also a structural reason the gap could not be closed by accident.
+Railties sets `DEFAULT_TEST_EXCLUDE` to `test/{system,dummy,fixtures}/**/*_test.rb`,
+so `rake test` — the command CI and `bin/docker-test` run — **skips `test/system`
+by design**. A system test added to this repo would not have run anywhere.
+
+**What landed:**
+
+- `test/system_helper.rb` plus six files under `test/system/`: authentication,
+  navigation, dashboard, search, alerts, jobs. 30 tests / 120 assertions.
+- `rake test:system` added to both the CI `test` job and the compose `test`
+  service, so local and CI run the same set.
+- `capybara ~> 3.40` declared explicitly in the `Gemfile`. It was already present
+  transitively through `cucumber-rails`; a test suite should not depend on a gem
+  that an unrelated bump can remove.
+
+**Why rack-test and not a real browser.** Two independent obstacles. The app
+forces http → https outside development (`ApplicationController#ssl`), so a
+browser session has to be served over TLS rather than driven through the in-process
+rack-test env. And there is no usable driver here: `chromium-driver` is not
+installed, and the packaged candidate (154.0.8037.57) does not match the installed
+Chromium (155.0.8059.79). Rather than pin the suite to a TLS-and-driver workaround,
+the https requirement is met the way the existing controller tests already meet it
+— an `HTTPS=on` header on the request env. The phases these tests guard change
+server-rendered markup and the asset bundle, which rack-test parses.
+
+**The cost, stated plainly:** rack-test does not run JavaScript. The dashboard's
+AJAX-filled divs are empty here, so these tests assert the static shell the
+server rendered and the ids the JS writes into — not the populated content. The
+`.js.erb` output itself remains covered by `test/controllers/dashboard_render_test.rb`.
+
+**Two live bugs the new tests found on their first run.** Both were pre-existing
+and neither was reachable by any existing test, because no existing test rendered
+these partials:
+
+1. `app/views/jobs/{index,show}.html.erb` called `job.user.username`
+   unconditionally. `jobs.yml` sets `user_id: 1` and there was no `users`
+   fixture, so `job.user` was nil and `/jobs` raised
+   `ActionView::Template::Error` — a 500 on a nav-bar tab. Fixed with the
+   `unless … .nil?` guard the alerts views already use.
+2. Fixtures hardcoded `system_id: 1`, `service_id: 1`, `user_id: 1`,
+   `alert_id: 1` and `last_event_id: 1`, but Rails gives fixtures hashed ids
+   (`980190962`, `298486374`), so **no row had id 1 and every one of those keys
+   dangled**. `_event_detail.html.erb` then raised on `nil.display_name` whenever
+   a search matched a fixture event. Latent only because no test searched for a
+   fixture event.
+
+**The fixture fix, and the guard that keeps it fixed.** `systems`, `services`,
+`events`, `alerts` now carry explicit `id:` values, and a `users` fixture was
+added, so `jobs.yml`'s `user_id: 1` resolves and the /jobs index renders a real
+username. The view guard is not redundant: `jobs.user_id` is nullable in the
+schema, so an unassigned job is a legitimate state and the view has to survive it
+regardless of what the fixtures do.
+
+`test/models/fixture_integrity_test.rb` asserts the invariant instead of trusting
+each new fixture to use labeled associations: for every child fixture, no
+foreign-key column may reference a row no parent fixture provides. It caught two
+more dangling keys (`Job.last_event_id`, `Comment.alert_id`) while the ids were
+being added one table at a time, which is the evidence it is worth keeping.
+
+**A third finding, deliberately not fixed here.** `EventIngestor` writes events,
+systems, services and words from background batch threads, each holding its own
+database connection. Those connections sit outside the transaction that wraps a
+transactional-fixture test, so the thread's rows **commit for real** while the
+test's own rows roll back. Ingesting inside a fixture test therefore leaves
+`events` rows whose `system_id` points at a `systems` row that no longer exists —
+a dangling FK that leaks into whichever test runs next. This is why
+`test/system_helper.rb` builds searchable events directly rather than through
+`storeEvent`, and it is the same reason `test/controllers/xss_test.rb` writes its
+`events_words` rows by hand. Cucumber does not hit it because `DatabaseCleaner`
+uses `:transaction` there too but the features never assert on a *rendered* event
+list. Worth a follow-up: any test that ingests can poison the tests after it.
+
+**Also found, not fixed:** `UsersController#do_logon` sets
+`flash[:notice] = "Logon Failed!"` and redirects to `/`, which is itself
+protected — so `authorized?` overwrites the flash with "Not authorized" before
+anything renders it. A failed logon tells the operator they lack rights. The
+system test asserts the operator lands back on the logon form and explicitly does
+*not* pin the notice text, with a comment saying why.
+
+**Verified:** 437 runs / 1259 assertions / 0 failures / 0 errors / 0 skips
+(`rake test`); 30 runs / 120 assertions / 0 failures (`rake test:system`, stable
+across three `--seed` values); cucumber 5 scenarios / 18 steps. The two jobs
+tests were checked against a deliberately reverted fix: with the nil guard
+removed, exactly the two unassigned-job tests error with
+`undefined method 'username' for nil`, and they pass with it in place.
+
 
 
 Every item in this table is now done. It is kept as the record of the order the

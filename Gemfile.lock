@@ -366,6 +366,7 @@ DEPENDENCIES
   bcrypt (~> 3.1.20)
   brakeman (~> 7.0)
   bundler-audit (~> 0.9)
+  capybara (~> 3.40)
   coffee-rails (~> 4.2.2)
   cucumber-rails (~> 3.1)
   database_cleaner (~> 1.7)

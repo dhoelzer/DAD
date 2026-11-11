@@ -18,7 +18,7 @@
       <tr>
         <td><%= link_to job.name, job %></td>
         <td><%= link_to job.description, job %></td>
-        <td><%= job.user.username %></td>
+        <td><%= job.user.username unless job.user.nil? %></td>
         <td><%= job.last_run %></td>
         <td><%= job.next_run %></td>
         <td><%= job.frequency %></td>

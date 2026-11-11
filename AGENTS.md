@@ -42,6 +42,36 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   "Postgres everywhere". Use the cucumber **binary**, not `rake cucumber:ok` — the
   rake task runs cucumber in-process and minitest's autorun then dies on
   `--profile`.
+- **`rake test` does not run `test/system`.** Railties sets `DEFAULT_TEST_EXCLUDE`
+  to `test/{system,dummy,fixtures}/**/*_test.rb`, so the browser-level suite needs
+  `bundle exec rake test:system` (or `bin/rails test test/system`). CI and the
+  compose `test` service run both; a bare `rake test` passing says nothing about
+  the rendered-HTML tests.
+- `test/system/` uses **Capybara rack-test, not a real browser**. Two reasons.
+  The app forces http → https outside development (`ApplicationController#ssl`),
+  so a browser session has to be served over TLS. And there is no usable driver:
+  `chromium-driver` is not installed and the packaged candidate (154.0.8037.57)
+  does not match the installed Chromium (155.0.8059.79), so Selenium fails at
+  session creation. `SystemTest` (in `test/system_helper.rb`) instead sends
+  `HTTPS=on` in the request env, the way the controller tests already satisfy
+  that filter. Consequence:
+  **rack-test runs no JavaScript.** The dashboard's `#events`, `#stats` and
+  `#*_chart` divs are empty there, so those tests assert the static shell and the
+  ids the JS writes into, not the populated content. `.js.erb` output stays
+  covered by `test/controllers/dashboard_render_test.rb`.
+- **Ingesting inside a fixture test poisons later tests.** `EventIngestor` writes
+  events, systems, services and words from background batch threads, each on its
+  own database connection, which sits outside the transaction wrapping a
+  transactional-fixture test. The thread's rows commit for real while the test's
+  own rows roll back, leaving `events.system_id` pointing at a `systems` row that
+  no longer exists — and the next test that renders that event 500s on
+  `nil.display_name`. Build searchable events with
+  `SystemTest#create_searchable_event`, or the way `test/controllers/xss_test.rb`
+  writes `events_words` rows by hand.
+- Fixture foreign keys must resolve. Fixtures get hashed ids, so a hardcoded
+  `system_id: 1` dangles unless the parent fixture declares `id: 1`.
+  `test/models/fixture_integrity_test.rb` enforces that; `systems`, `services`,
+  `events`, `alerts` and `users` carry explicit ids for exactly that reason.
 - `config/initializers/require_secrets.rb` fails the boot when `SECRET_KEY_BASE`
   is unset, so every test command needs it exported (any non-empty value in test).
 - Tests that need a **second** database — the ingest tests that run the importer
@@ -69,8 +99,8 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   `DAD_ADMIN_PASSWORD` (default `dad_dev_password`, development only) — without it
   the stack comes up with zero users and the login form can never succeed. Do not
   seed unconditionally: `db:seed` also recreates the maintenance Jobs.
-- CI: `.github/workflows/ci.yml` — six jobs: `test` (unit + cucumber against a
-  `postgres:17` service), `assets`, `systemd`, `docker`, `collector`, `security`
+- CI: `.github/workflows/ci.yml` — six jobs: `test` (unit + `test:system` + cucumber
+  against a `postgres:17` service), `assets`, `systemd`, `docker`, `collector`, `security`
   (three **blocking** gates: `bundle-audit`, `brakeman`, `gitleaks` over the
   working tree via `.gitleaks.toml`).
   The `test` job runs `db:migrate_from_scratch`, then asserts the partitioned
