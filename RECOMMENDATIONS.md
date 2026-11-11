@@ -2358,6 +2358,67 @@ them would trade 14 short readable files for one file with parameters. Left as i
 assertions** (up from 32/127); cucumber 5 scenarios / 18 steps; brakeman 0
 warnings; bundle-audit clean.
 
+### 5.14 ✅ Closed — the app rendered 209 duplicate `id` attributes across 17 pages **[correctness]**
+
+Duplicate ids are invalid HTML, and browsers resolve `getElementById` and `#id`
+CSS to the **first** match, so every later element with that id is silently
+unaddressable. A scan of the rendered HTML (not the source) found **209 redundant
+id attributes across 17 pages**:
+
+| Source | Duplication |
+|---|---|
+| Nav bar: `<li id="active">` / `<li id="inactive">` | 10–11 per page, **every page** |
+| `_alerts.html.erb`: `#alert-time`, `#alert-system`, `#alert-desc`, `#alert-ack`, `#criticality-N` | 51 on `/alerts` |
+| 23 views re-emitting the layout's `<p id="notice">` | 1 per affected page |
+| `#turbokiller` (5 views), `#comment` (per-comment partial) | 1–2 per page |
+
+The nav bar was the worst case and the easiest to miss: `is_active` returns
+`"active"`/`"inactive"`, and the layout used it as `id=`. **The helper's own doc
+comment already said to use `class=`** -- the layout just didn't. So the bug was
+visible in the file that caused it.
+
+`_alerts.html.erb` used ids as styling hooks, repeating them per row *and* within
+a row: the header row emitted `#alert-system` twice (System and Service) and
+`#alert-ack` twice (Ack and Comments?). Two alerts at the same criticality also
+shared `#criticality-5`.
+
+**Fixes, all id → class, no visual change:**
+- Nav: `li#active` → `li.active` (CSS already scoped under `#navbar li`, so
+  specificity is unchanged: 0,1,1 → 0,1,1).
+- Alert queue: `.alert-time`, `.alert-system`, `.alert-service`, `.alert-desc`,
+  `.alert-ack`, `.alert-comments`, `.criticality-N`. The duplicated
+  `#alert-system`/`#alert-ack` pairs became distinct `service`/`comments` classes
+  sharing the existing width rules, so the 1140px column layout is preserved.
+- `#notice`: the 23 view copies deleted; the layout owns the one instance.
+- `#turbokiller` → `.turbokiller`, `#comment` → `.comment`: **no CSS or JS ever
+  referenced either id**; only `data-no-turbolink` is load-bearing, and it is
+  untouched.
+
+**Result: 209 → 0 on every page scanned.**
+
+**Evidence the layout is unchanged.** The CSS diff is selector-only -- every
+declaration body is byte-identical, including the `display: table-row` /
+`display: table-column` rules that the queue's layout depends on. Rendered
+structure was captured before and after for `/alerts`, `/alerts/1`, `/events` and
+`/comments/1`: identical `<div>` counts (52/5/22/1), identical link hrefs and
+text, identical form actions, identical per-cell text. The only differences were
+wall-clock timestamps between the two runs.
+
+Compiled bundle: `5ea87000d1f6b5cb` (9714 bytes) → `07e73aaa…` (9776 bytes). The
++62 bytes are the added class names in selector lists. Zero stale `#criticality-`
+/ `#alert-*` / `li#active` selectors remain in the compiled CSS.
+
+**Guard:** `test/system/unique_ids_test.rb` scans 17 rendered pages and asserts
+no id appears twice. It is a scan rather than per-element assertions because the
+failure mode is a view adding an id inside a loop -- easy to write, and invisible
+to a test that only checks the element it cares about exists. Verified by
+mutation: adding one `id='dup-hook'` inside the alert loop fails with
+`/alerts renders duplicate id attributes: {"dup-hook"=>5}`.
+
+**Verified:** 437 runs / 1259 assertions; **40 system runs / 237 assertions** (up
+from 36/193); cucumber 5 scenarios / 18 steps; brakeman 0 warnings; bundle-audit
+clean; all 3 asset paths resolve.
+
 
 Every item in this table is now done. It is kept as the record of the order the
 work went in, with the stale "why here" wording corrected in place.
