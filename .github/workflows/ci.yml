@@ -125,6 +125,15 @@ jobs:
 
   assets:
     runs-on: ubuntu-24.04
+    # Set at job level because every step here boots the app, and two of them set
+    # RAILS_ENV=production. Production refuses to boot without the Active Record
+    # encryption keys -- the same fail-closed rule as SECRET_KEY_BASE above, and
+    # the same reasoning: a dummy value is fine here because these steps only
+    # boot the app and never read or write a Windows credential. Rails derives the
+    # actual keys from these passphrases, so they need no particular length.
+    env:
+      DAD_AR_ENCRYPTION_KEY: not_a_secret_only_ci_boots_key
+      DAD_AR_ENCRYPTION_SALT: not_a_secret_only_ci_boots_salt
     steps:
       - uses: actions/checkout@v4
 

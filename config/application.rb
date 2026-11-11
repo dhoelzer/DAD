@@ -25,6 +25,46 @@ module Events
     # Application configuration should go into files in config/initializers
     # -- all .rb files in that directory are automatically loaded.
 
+    # Active Record encryption key for WindowsTarget#password.
+    #
+    # A WinRM password is a domain credential, so it is stored encrypted rather
+    # than in the clear, where it would sit in every pg_dump, backup and replica.
+    #
+    # Set here rather than in an initializer: Rails reads this config from its own
+    # active_record.encryption initializer, which runs before anything in
+    # config/initializers/. An initializer is too late and the model raises
+    # "Missing Active Record encryption credential" on first use.
+    #
+    # Same convention as secret_key_base: production reads from the environment
+    # and fails closed rather than falling back to a committed value; development
+    # and test carry committed values that are documented as dev-only.
+    #
+    # Changing this key makes stored Windows credentials unreadable, so generate it
+    # once. Rails requires a 32-byte key.
+    # Rails 8.1 needs both: primary_key for the ciphertext, and
+    # key_derivation_salt because the derived-secret-key provider is armed by
+    # default and raises on boot without it.
+    if Rails.env.production?
+      key = ENV['DAD_AR_ENCRYPTION_KEY']
+      salt = ENV['DAD_AR_ENCRYPTION_SALT']
+      if key.blank? || salt.blank?
+        raise 'Refusing to boot in production: DAD_AR_ENCRYPTION_KEY and ' \
+              'DAD_AR_ENCRYPTION_SALT must both be set. Generate them with ' \
+              '`rails runner "puts SecureRandom.hex(32); puts SecureRandom.hex(32)"` ' \
+              'and add them to /etc/DAD/environment. Without them, Windows ' \
+              'credentials cannot be stored. See "The Windows credential keys" in README.md.'
+      end
+      config.active_record.encryption.primary_key = key
+      config.active_record.encryption.key_derivation_salt = salt
+    else
+      # Not a secret: a developer's own database and the test database.
+      # Introduced 2026-11-11 alongside the Windows polling feature.
+      config.active_record.encryption.primary_key =
+        'a3f1c6d8e9b7402516c8d4a7e2f9b1c3057d8ea46c1f9b2d7e4a8c3f60b5d291'
+      config.active_record.encryption.key_derivation_salt =
+        '5c7e2a91b4d83f06e8a1c9d72b6f4e30a8d5c1e97b3f6a2d4e8c0b5917a6d3f2'
+    end
+
     # No `config.load_defaults` call, deliberately -- still correct on Rails 6.1.
     # With no call the app keeps the 4.1-era framework defaults, which is what it
     # was written against. Opting in would flip belongs_to_required_by_default to

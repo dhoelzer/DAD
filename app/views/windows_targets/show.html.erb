@@ -1,0 +1,43 @@
+<p id="alert"><%= alert %></p>
+
+<h1><%= @windows_target.display_name %></h1>
+
+<table>
+  <tr><th>Host</th><td><%= @windows_target.address %></td></tr>
+  <tr><th>Name</th><td><%= @windows_target.name %></td></tr>
+  <tr>
+    <th>Priority</th>
+    <td>
+      <%= @windows_target.polling_priority.name %>
+      (at least every <%= @windows_target.polling_priority.max_interval_secs %>s,
+      never more often than every <%= @windows_target.polling_priority.min_interval_secs %>s)
+    </td>
+  </tr>
+  <tr><th>Event logs</th><td><%= @windows_target.event_logs %></td></tr>
+  <tr><th>Polling</th><td><%= @windows_target.enabled? ? 'enabled' : 'disabled' %></td></tr>
+  <tr><th>Username</th><td><%= @windows_target.username %></td></tr>
+  <tr><th>Credential</th><td><%= @windows_target.password.present? ? 'stored' : 'not set' %></td></tr>
+  <tr><th>Last poll</th><td><%= @windows_target.last_polled_at %></td></tr>
+  <tr><th>Next poll</th><td><%= @windows_target.next_poll_at %></td></tr>
+  <tr>
+    <th>Current interval</th>
+    <td><%= @windows_target.current_interval_secs || 'not yet polled' %></td>
+  </tr>
+  <tr>
+    <th>Next interval</th>
+    <td><%= @windows_target.next_interval_secs %>s</td>
+  </tr>
+  <tr><th>Events last poll</th><td><%= @windows_target.last_event_count %></td></tr>
+  <tr><th>Smoothed rate</th><td><%= format('%.3f', @windows_target.events_per_second) %> events/s</td></tr>
+  <tr><th>Polls</th><td><%= @windows_target.poll_count %></td></tr>
+  <tr><th>Last status</th><td><%= @windows_target.last_status %></td></tr>
+</table>
+
+<br>
+
+<%= button_to 'Poll now', poll_now_windows_target_path(@windows_target), method: :post %>
+
+<br>
+
+<%= link_to 'Edit', edit_windows_target_path(@windows_target) %> &middot;
+<%= link_to 'Back', windows_targets_path %>

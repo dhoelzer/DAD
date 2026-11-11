@@ -151,6 +151,13 @@ GEM
     ffi (1.17.4-x86_64-linux-musl)
     globalid (1.4.0)
       activesupport (>= 6.1)
+    gssapi (1.3.1)
+      ffi (>= 1.0.1)
+    gyoku (1.4.0)
+      builder (>= 2.1.2)
+      rexml (~> 3.0)
+    httpclient (2.10.0)
+      mutex_m
     i18n (1.15.2)
       concurrent-ruby (~> 1.0)
     io-console (0.9.5)
@@ -187,6 +194,7 @@ GEM
     mini_mime (1.1.5)
     minitest (5.27.0)
     multi_test (1.1.0)
+    mutex_m (0.3.0)
     net-imap (0.6.8)
       date
       net-protocol
@@ -213,6 +221,9 @@ GEM
       racc (~> 1.4)
     nokogiri (1.19.7-x86_64-linux-musl)
       racc (~> 1.4)
+    nori (2.9.1)
+      bigdecimal
+      stringio
     pg (1.7.0)
     pg (1.7.0-aarch64-linux)
     pg (1.7.0-aarch64-linux-musl)
@@ -287,6 +298,7 @@ GEM
     regexp_parser (2.13.1)
     reline (0.7.0)
       io-console (~> 0.5)
+    rexml (3.4.4)
     rspec-core (3.13.6)
       rspec-support (~> 3.13.0)
     rspec-expectations (3.13.5)
@@ -304,6 +316,8 @@ GEM
       rspec-mocks (~> 3.13)
       rspec-support (~> 3.13)
     rspec-support (3.13.7)
+    rubyntlm (0.6.8)
+      base64
     sass (3.7.4)
       sass-listen (~> 4.0.0)
     sass-listen (4.0.0)
@@ -326,6 +340,7 @@ GEM
       actionpack (>= 6.1)
       activesupport (>= 6.1)
       sprockets (>= 3.0.0)
+    stringio (3.2.0)
     sys-uname (1.5.1)
       ffi (~> 1.1)
       memoist3 (~> 1.0.0)
@@ -346,6 +361,16 @@ GEM
       base64
       websocket-extensions (>= 0.1.0)
     websocket-extensions (0.1.5)
+    winrm (2.4.2)
+      base64 (~> 0.2)
+      builder (>= 2.1.2)
+      gssapi (~> 1.2)
+      gyoku (~> 1.0)
+      httpclient (~> 2.2, >= 2.2.0.2)
+      logger (~> 1.5)
+      nori (~> 2.0, >= 2.7.1)
+      rexml (~> 3.0)
+      rubyntlm (~> 0.6.0, >= 0.6.3)
     xpath (3.2.0)
       nokogiri (~> 1.8)
     zeitwerk (2.8.3)
@@ -383,6 +408,7 @@ DEPENDENCIES
   sdoc (~> 2.6)
   terser (~> 1.0)
   turbolinks (~> 2.5)
+  winrm (~> 2.4)
 
 BUNDLED WITH
    2.6.7

@@ -723,6 +723,71 @@ state. If it happens, `rake db:migrate_from_scratch` and re-run.
 `DATABASE_URL` must carry `host=`/`port=`; `DAD_DB_HOST` alone does not set the
 port, and `postgres://user@/db` (empty host) is rejected by URI parsing.
 
+## Windows collection: two paths, one pipeline
+
+DAD polls Windows hosts itself (`wevtutil` over WinRM) and also still supports the
+OpenWEC push path. **Both converge on the same staging line and the same
+`LogsToProcess` queue**, so everything below `WindowsEvents.convert` is shared.
+Keep that property: the original design decision was to convert Windows events
+into the format the ingestor already accepts rather than teach the ingestor about
+Windows, and it is what makes each new source a bolt-on instead of a fork of the
+ingest path. Do not add importer changes for a new source.
+
+The poller is a `Job` (`poll_windows_events`), not a daemon -- it runs inside
+`dad-scheduler`, so it needs no new unit, container, or `Logs` volume.
+
+Two numbers that are deliberately different, and easy to misread as a bug:
+- the **Job `frequency`** (60s) is only how often the due-list is swept;
+- the **per-host interval** is computed from its `PollingPriority` band and its
+  EMA-smoothed event rate: `clamp(500 / eps, band_min, band_max)`, applied only
+  when the change is >=25% off (deadband), and a zero rate takes the band's
+  *slowest* interval -- dividing first gives `Infinity`, and `Infinity.round`
+  raises `FloatDomainError`.
+
+Scheduling state lives in the `windows_targets` row, not memory: the scheduler
+runs under `Restart=always`, and a crash between polls must not reset a measured
+rate.
+
+`WindowsPoll.poll` must **never raise** for a host-level failure. An exception
+there aborts the cycle and skips every remaining target in a fleet of hundreds.
+Record the failure in `last_status` and reschedule at the band's slowest interval.
+Likewise a failing *channel* must not lose the host's other channels, and
+wevtutil's exit code must be checked (3 = unknown channel, 5 = access denied) --
+reporting those as "no events" makes a permission-locked channel look quiet.
+
+The WinRM transport sits behind `#run_command` because there is no Windows host in
+CI. Test the parsing, delta-query and queueing logic against recorded `wevtutil`
+XML; do not mock the parts that can actually be wrong.
+
+## Production boot is fail-closed on the encryption keys
+
+`config/application.rb` raises in production unless `DAD_AR_ENCRYPTION_KEY` and
+`DAD_AR_ENCRYPTION_SALT` are both set, because a `WindowsTarget` row holds a domain
+credential and silently falling back to plaintext is worse than not booting.
+Rails 8.1 requires the salt whenever encryption is configured.
+
+**Any CI step that sets `RAILS_ENV=production` needs dummy values for both**, the
+same way it already supplies a dummy `SECRET_KEY_BASE`. The `assets` job does this
+and broke when the check landed. Verify both directions when touching this: with
+the dummies `rails runner` prints `boot ok`, and without them it still raises.
+
+Rotating those keys makes stored Windows credentials unreadable -- there is no
+re-derivation path. They are deliberately *not* in `bin/rotate_secret_key_base`,
+unlike `SECRET_KEY_BASE`, which is safe to rotate (sessions are DB rows).
+
+Windows target input (address, channel names) is validated against strict patterns
+rather than escaped: the `wevtutil` command line is built for **cmd.exe**, whose
+quoting rules are not the ones Ruby's escaping assumes. Never switch these to
+shell-escaping.
+
+## The wiki is a separate git repo
+
+`https://github.com/dhoelzer/DAD.wiki.git` clones to `<repo>.wiki` and is a normal
+git repo -- commit and push it directly (wikis have no PR mechanism). It needs its
+own local `git config user.name/email`; the clone has none. Keep it in sync with
+the code: it duplicates the Jobs handler table, the env-var table, the rights
+tables, the paginated-screen list, and test counts, all of which go stale.
+
 ## Credentials (do not commit)
 - A GitHub PAT for `dhoelzer/DAD` is stored at `../.secrets/github_pat` relative to
   this repo (i.e. `<workspace>/.secrets/github_pat`), mode 0600 and outside version

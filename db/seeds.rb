@@ -127,3 +127,28 @@ if admin && !Job.exists?(script: 'tune_dashboard_feed')
     last_run: nil
   )
 end
+
+# Windows event polling.
+#
+# Sweeps the due-list of WindowsTargets. The Job's frequency is only how often
+# the sweep happens; the interval that decides when any given host is polled is
+# computed per target from its measured event rate and its priority band. It is
+# seeded at 60s -- the scheduler's own cycle -- because Priority 1 allows a 60s
+# floor, and a slower sweep would make that floor unreachable.
+#
+# Seeded rather than left to the operator because a DAD instance with Windows
+# targets configured and no Job to poll them silently collects nothing.
+admin = User.find_by(username: admin_user)
+if admin && !Job.exists?(script: 'poll_windows_events')
+  Job.create!(
+    name: 'Poll Windows event logs',
+    description: 'Polls every enabled WindowsTarget whose next_poll_at has arrived, ' \
+                 'over WinRM, and queues what it reads for the importer. The per-host ' \
+                 'interval adapts to how many events that host is producing.',
+    user: admin,
+    script: 'poll_windows_events',
+    frequency: 60,
+    next_run: Time.now,
+    last_run: nil
+  )
+end

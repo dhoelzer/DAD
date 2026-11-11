@@ -143,6 +143,13 @@ end
 # Password hashing for User#store_password / #check_password.
 gem 'bcrypt', '~> 3.1.20'
 
+# WinRM client, used by WindowsPoll to read Windows event logs directly over
+# https://host:5986/wsman. Pull rather than push: DAD connects out to a host and
+# runs wevtutil, so no external collector is required and the polling cadence
+# stays under DAD's control. TLS is the default transport, so the credential
+# exchange is not in the clear.
+gem 'winrm', '~> 2.4'
+
 # Use unicorn as the app server
 # gem 'unicorn'
 

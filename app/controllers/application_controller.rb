@@ -30,6 +30,10 @@ class ApplicationController < ActionController::Base
     'sessions'    => %w[Admin],
     'statistics'  => %w[Admin],
     'systems'     => %w[Viewer],
+    # A WindowsTarget row holds a domain credential and names hosts this server
+    # will connect to, so reading one is a Viewer action but writing one is not.
+    'windows_targets'     => %w[Viewer],
+    'polling_priorities'  => %w[Viewer],
     'users'       => %w[Admin],
     'words'       => %w[Admin]
   }.freeze
@@ -37,6 +41,19 @@ class ApplicationController < ActionController::Base
   # Actions whose requirement is stricter than their controller's default.
   # Saving a search is a Detective action; reading one is a Viewer action.
   ACTION_RIGHTS = {
+    # Credentials at rest and outbound connections to named hosts: writing a
+    # WindowsTarget, or retuning a priority band, is an administrative action.
+    'windows_targets' => {
+      'new'      => %w[Admin],
+      'create'   => %w[Admin],
+      'edit'     => %w[Admin],
+      'update'   => %w[Admin],
+      'poll_now' => %w[Admin],
+    },
+    'polling_priorities' => {
+      'edit'   => %w[Admin],
+      'update' => %w[Admin],
+    },
     'searches' => {
       'new'     => %w[Detective],
       'edit'    => %w[Detective],

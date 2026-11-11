@@ -1,0 +1,37 @@
+<h1>Listing Windows targets</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Host</th>
+      <th>Priority</th>
+      <th>Event logs</th>
+      <th>Polling</th>
+      <th>Next poll</th>
+      <th>Last status</th>
+      <th></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @windows_targets.each do |target| %>
+      <tr>
+        <td><%= link_to target.display_name, target %></td>
+        <td><%= target.polling_priority.name %></td>
+        <td><%= target.event_logs %></td>
+        <td><%= target.enabled? ? 'enabled' : 'disabled' %></td>
+        <td><%= target.enabled? ? target.next_poll_at : '' %></td>
+        <td><%= target.last_status %></td>
+        <td><%= link_to 'Edit', edit_windows_target_path(target) %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<%= pagination_nav %>
+
+<br>
+
+<%= link_to 'New Windows target', new_windows_target_path %>
+&middot;
+<%= link_to 'Polling priorities', polling_priorities_path %>
