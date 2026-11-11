@@ -449,6 +449,14 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   reaching master. The containment is the safety argument: the rack-test system
   suite has no layout engine, so it cannot validate responsive CSS -- it can only
   guarantee the desktop rules are untouched.
+- Form error summaries render through `app/views/shared/_error_explanation.html.erb`;
+  all 14 `_form.html.erb` files call it with `record: @model`. Do not inline the
+  block again. The h2 noun comes from `record.model_name.human.downcase`.
+- **Most models have no validations.** Only `User` and `Job` do, and
+  `config/application.rb` deliberately omits `config.load_defaults`, so
+  `belongs_to_required_by_default` is off and a blank `Alert`/`Display`/`System`/
+  `Service` saves cleanly. Do not assume a form can report an error, and do not
+  "fix" the missing `load_defaults` without checking every `belongs_to`.
 - The nav bar is generated from `$_models` (19 tabs) and the alert queue uses
   fixed `display:table-column` widths summing to 1140px. Both are wider than any
   phone; that is why the media query exists. Adding a model adds a nav tab.

@@ -1,15 +1,5 @@
 <%= form_for(@hunk) do |f| %>
-  <% if @hunk.errors.any? %>
-    <div id="error_explanation">
-      <h2><%= pluralize(@hunk.errors.count, "error") %> prohibited this hunk from being saved:</h2>
-
-      <ul>
-      <% @hunk.errors.full_messages.each do |message| %>
-        <li><%= message %></li>
-      <% end %>
-      </ul>
-    </div>
-  <% end %>
+  <%= render 'shared/error_explanation', record: @hunk %>
 
   <div class="field">
     <%= f.label :text %><br>

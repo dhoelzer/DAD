@@ -1,15 +1,5 @@
 <%= form_for(@alert) do |f| %>
-  <% if @alert.errors.any? %>
-    <div id="error_explanation">
-      <h2><%= pluralize(@alert.errors.count, "error") %> prohibited this alert from being saved:</h2>
-
-      <ul>
-      <% @alert.errors.full_messages.each do |msg| %>
-        <li><%= msg %></li>
-      <% end %>
-      </ul>
-    </div>
-  <% end %>
+  <%= render 'shared/error_explanation', record: @alert %>
 
   <div class="field">
     <%= f.label :system_id %><br>

@@ -1,15 +1,5 @@
 <%= form_for(@display) do |f| %>
-  <% if @display.errors.any? %>
-    <div id="error_explanation">
-      <h2><%= pluralize(@display.errors.count, "error") %> prohibited this display from being saved:</h2>
-
-      <ul>
-      <% @display.errors.full_messages.each do |msg| %>
-        <li><%= msg %></li>
-      <% end %>
-      </ul>
-    </div>
-  <% end %>
+  <%= render 'shared/error_explanation', record: @display %>
 
   <div class="field">
     <%= f.label :name %><br>
