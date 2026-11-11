@@ -302,3 +302,111 @@ div.field, div.actions {
 li#active {
   background-color: #555;
 }
+
+/* ---- narrow screens ---- */
+
+/* Everything below is inside a media query on purpose: above the breakpoint the
+   bundle contains no rule that did not apply before, so desktop rendering is
+   unchanged by construction rather than by inspection. The rack-test system
+   suite has no layout engine and cannot tell whether this section is right, so
+   the containment is the guarantee that it cannot make the desktop worse.
+
+   The breakpoint is 768px, the tablet-portrait boundary, chosen because the two
+   things that break are the nav bar and the alert queue, and both break well
+   before a desktop width. */
+@media (max-width: 768px) {
+
+  /* The nav bar is generated from $_models -- 19 tabs at 120px each, so 2280px
+     of tabs against a #navbar ul that sets overflow: hidden. On any screen
+     narrower than that, tabs past the edge are not wrapped and not reachable:
+     they are clipped. Letting the items wrap and shrink makes every tab
+     reachable without a hamburger menu, which would need JS the app does not
+     have. */
+  #navbar ul {
+    overflow: visible;
+  }
+  #navbar li {
+    width: 33.33%;
+  }
+  #navbar a {
+    width: auto;
+    padding: 4px 6px;
+    font-size: 11px;
+  }
+
+  /* 16 index views use a plain <table>. display:block plus overflow-x keeps any
+     sideways scroll inside the table rather than the page, and leaves
+     thead/tbody/tr/td at their default table-* display so row structure is
+     untouched. One rule instead of 16 templates.
+
+     Deliberately NOT adding white-space: nowrap, which this pattern usually
+     carries: several of these tables have a description column, and nowrap
+     would force one very long line per row. Letting cells wrap is the
+     conservative choice -- it cannot produce an absurdly wide table. The proper
+     narrow-screen treatment (stack each row into labelled blocks) needs a
+     data-label on every cell, i.e. it belongs with the view de-duplication
+     rather than here. */
+  table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  /* The alert queue is display:table with fixed columns summing to 1140px
+     (200 + 200 + 700 + 40, and the header row repeats #alert-system twice).
+     No phone is that wide, so the columns have to stop being columns. */
+  #alerts {
+    display: block;
+    float: none;
+    width: auto;
+    padding: 0.5em;
+  }
+  #alerts-header {
+    display: none;
+  }
+  #criticality-1, #criticality-2, #criticality-3, #criticality-4, #criticality-5 {
+    display: block;
+    margin-bottom: 0.5em;
+    padding: 0.25em;
+  }
+  #alert-time, #alert-system, #alert-desc, #alert-ack {
+    display: block;
+    float: none;
+    width: auto;
+  }
+  /* The header row is hidden, so each alert has to name its own fields. */
+  #alert-time:before   { content: "Generated: "; }
+  #alert-desc:before   { content: "Description: "; }
+
+  /* Dashboard panels are 49% floats that sit two-up; at this width two charts
+     side by side are too narrow to read. */
+  #big_picture, #services_chart, #systems_chart, #graphs,
+  #logging_rate, #insert_rate {
+    width: 100%;
+    float: none;
+  }
+  #event_rates div {
+    width: 100%;
+    float: none;
+  }
+  #comments {
+    float: none;
+    width: auto;
+  }
+  #events_window {
+    width: 100%;
+  }
+
+  /* The hover tooltip is 520px wide and positioned from the element, so it
+     overflows a phone viewport. Touch devices do not hover, so this only
+     matters for a narrow desktop window; capping it keeps it on screen. */
+  .timestamp:hover:after {
+    width: 90vw;
+    left: 0;
+  }
+
+  /* The error box is a fixed 450px, wider than a phone. */
+  #error_explanation {
+    width: auto;
+  }
+}

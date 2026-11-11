@@ -2222,6 +2222,65 @@ bundle is one line with no comments.
 cucumber 5 scenarios / 18 steps, brakeman 0 warnings, and
 `script/check_asset_paths.rb` reports all 3 emitted asset paths exist on disk.
 
+### 5.12 ✅ Closed — no viewport tag, and two layouts that cannot fit a phone **[maintainability] [usability]**
+
+The layout emitted no `viewport` meta tag. Without it a phone renders the page at
+a ~980px virtual width and scales the result down, so every width-based media
+query keys off a width the device does not have. Added
+`width=device-width, initial-scale=1`. Also added `lang="en"` to `<html>`, which
+the page had never declared.
+
+**Two things genuinely do not fit, and the numbers say so:**
+
+| Layout | Required width | Problem |
+|---|---|---|
+| Nav bar | 19 tabs x 120px = **2280px** | `#navbar ul` sets `overflow: hidden`, so tabs past the edge are not wrapped and not reachable -- they are clipped. An admin sees 10 of them. |
+| Alert queue | 200 + 200 + 700 + 40 = **1140px** | `display:table` with fixed `display:table-column` widths; no phone is that wide. |
+
+Plus 16 index views using a plain `<table>`, and dashboard panels floated at 49%
+two-up.
+
+**The approach, and why it is verifiable without a browser.** All narrow-screen
+rules go inside a single `@media (max-width: 768px)` block. That makes desktop
+rendering unchanged *by construction* rather than by inspection, which matters
+because the rack-test system suite has no layout engine and cannot tell whether
+responsive CSS is correct. Proven mechanically: the compiled bundle was split at
+the media query and the portion outside it compared byte-for-byte against the
+Phase 1 baseline -- **8888 bytes, byte-identical**. The media query adds 826
+bytes and sits mid-bundle, ahead of the CodeMirror section, with zero selector
+collisions against it.
+
+**Tables are fixed by one CSS rule, not 16 templates.** `table { display: block;
+overflow-x: auto }` keeps any sideways scroll inside the table rather than the
+page, and leaves `thead`/`tbody`/`tr`/`td` at their default `table-*` display so
+row structure is untouched. Restructuring 16 views for this would have been the
+larger change for the same result.
+
+`white-space: nowrap` -- the third declaration this pattern usually carries -- is
+**deliberately omitted**. Several of these tables have a description column, and
+nowrap forces one very long line per row, so it can produce a table far wider
+than the one it was meant to tame. Letting cells wrap cannot. The proper
+narrow-screen treatment for tables (stacking each row into labelled blocks) needs
+a `data-label` on every cell, so it belongs with the view de-duplication rather
+than here.
+
+**No hamburger menu.** Making the nav bar collapsible needs JS the app does not
+have. Letting the tabs wrap at 33% width makes all 19 reachable with no new
+behaviour, which is the smaller and more honest fix.
+
+**Two guards added**, because the containment is the whole safety argument:
+`test/system/responsive_test.rb` asserts the viewport tag exists and carries
+`width=device-width`, and asserts that nothing follows the `@media` block -- a
+rule that falls out of it applies at every width and silently changes desktop
+rendering. Both checked against deliberate breakage: a leaked `#leaked { }` rule
+fails the containment test, and deleting the meta tag fails the viewport test.
+
+**Verified:** 437 runs / 1259 assertions (`rake test`); 32 system runs / 127
+assertions (`rake test:system`, up from 30/120); cucumber 5 scenarios / 18 steps;
+brakeman 0 warnings; `script/check_asset_paths.rb` all 3 paths on disk. The CSS
+digest is deterministic across two clean precompiles
+(`c561a181…`).
+
 
 Every item in this table is now done. It is kept as the record of the order the
 work went in, with the stale "why here" wording corrected in place.
