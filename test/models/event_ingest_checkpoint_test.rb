@@ -1,4 +1,5 @@
 require 'test_helper'
+require_relative '../support/scratch_database'
 
 # The checkpoint machinery around the threaded INSERT path.
 #
@@ -20,18 +21,17 @@ class EventIngestCheckpointTest < ActiveSupport::TestCase
   RUBY = RbConfig.ruby
 
   def setup
-    @db = Tempfile.new(['ingest_ckpt', '.sqlite3'])
-    @db.close
+    @db = ScratchDatabase.new('ingest_ckpt')
   end
 
   def teardown
-    @db.unlink rescue nil
+    @db&.drop
   end
 
   def run_development(body)
     out = IO.popen(
       { 'RAILS_ENV' => 'development',
-        'DATABASE_URL' => "sqlite3:#{@db.path}",
+        'DATABASE_URL' => @db.url,
         'SECRET_KEY_BASE' => 'x' * 32 },
       [RUBY, '-W0', '-e', "require './config/environment'; #{body}"],
       err: %i[child out], &:read
@@ -99,11 +99,10 @@ class EventIngestCheckpointTest < ActiveSupport::TestCase
   # at that moment.
   #
   # Built from IngestBatch structs with fake threads rather than two real writer
-  # threads: MAX_INSERT_THREADS is 1 precisely because SQLite permits a single
-  # writer, so two concurrent write transactions would fail with BusyException
-  # and test the database rather than the ordering rule. Raising the constant to
-  # 2 is the obvious throughput change, and this is the invariant it must not
-  # break.
+  # threads: with MAX_INSERT_THREADS at 1 the pipeline never has two writers to
+  # order, so driving real threads here would test thread timing rather than the
+  # ordering rule. Raising the constant to 2 is the obvious throughput change, and
+  # this is the invariant it must not break.
   test 'advance_checkpoint! releases only the head of the queue' do
     out, status = run_development(BOOT + RECORD + <<~'RUBY')
       slow = EventIngestor::IngestBatch.new(Thread.new { sleep 0.4 }, 10, false)
@@ -155,7 +154,7 @@ class EventIngestCheckpointTest < ActiveSupport::TestCase
   end
 
   FAIL_ON_SECOND_INSERT = <<~'PATCH'
-    class ActiveRecord::ConnectionAdapters::SQLite3Adapter
+    class ActiveRecord::ConnectionAdapters::PostgreSQLAdapter
       alias_method :orig_exec_query, :exec_query
       def exec_query(sql, *args, **kwargs)
         if sql.include?('INSERT INTO events (')

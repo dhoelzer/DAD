@@ -1,14 +1,14 @@
 # Runs every migration from an empty database instead of loading db/schema.rb.
 #
-# Why this exists: db/schema.rb is committed in SQLite flavour (see the note in
-# config/environments/test.rb). `rake db:migrate` against an empty Postgres
-# database loads that dump rather than replaying db/migrate, so anything a
-# migration does that the dump cannot express -- partitioning events, for one --
-# never runs, and the Postgres CI job silently tests a schema production will
-# never have.
+# Why this exists: db/schema.rb is a portable, non-partitioned dump (see the
+# note in config/environments/test.rb). `rake db:migrate` against an empty
+# Postgres database loads that dump rather than replaying db/migrate, so anything
+# a migration does that the dump cannot express -- partitioning events and
+# events_words, for one -- never runs, and the test job silently tests a schema
+# production will never have.
 #
-# The Postgres CI job uses this to prove the migration chain actually works on
-# the engine production runs.
+# This is how the test database is prepared, locally (bin/docker-test) and in CI:
+# it proves the migration chain actually works on the engine production runs.
 namespace :db do
   desc 'Replay every migration against an empty database, ignoring db/schema.rb'
   task migrate_from_scratch: :environment do

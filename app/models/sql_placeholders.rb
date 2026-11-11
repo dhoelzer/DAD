@@ -1,28 +1,26 @@
-# Positional placeholders for hand-written SQL, across both adapters this app runs.
+# Positional placeholders for hand-written SQL.
 #
-# Every raw query in the app is written with SQLite's `?` and passed to
-# exec_query along with an array of binds. That works on SQLite and fails on
-# Postgres, which rejects `?` outright:
+# Every raw query in the app is written with `?` and passed to exec_query along
+# with an array of binds. That is the form Rails documents, but Postgres rejects
+# `?` outright:
 #
 #   PG::SyntaxError: ERROR:  syntax error at or near ")"
 #
 # The failure is not confined to one query. It reached the ingest path --
 # EventIngestor.insertStatement builds the bulk INSERTs for events and events_words --
 # which meant production could not insert a single event while the whole suite
-# stayed green, because dev and test only ever run SQLite.
+# stayed green, because the suite ran a different engine.
 #
 # Rather than fork every query per adapter, translate at the one place raw SQL
 # meets the driver. Queries keep the `?`-and-binds form Rails documents, and the
 # adapter gets whatever it actually wants.
 #
-# Verified on both engines: Postgres binds $N by *number*, SQLite binds by *order
-# of appearance*, so numbering the placeholders left to right is correct on both.
-# (SQLite ignores the digits; do not reorder placeholders within a query and
-# expect either adapter to agree.)
+# Postgres binds $N by *number*, so numbering left to right is what makes the
+# bind order explicit rather than positional-by-convention.
 module SqlPlaceholders
   # Runs +sql+ on the current connection with +binds+, translating placeholders
-  # first. Prefer this over calling exec_query directly: it is what keeps a query
-  # written for one adapter from silently breaking on the other.
+  # first. Prefer this over calling exec_query directly: it is the one place that
+  # knows what the driver wants.
   def self.query(sql, binds = [], name = 'SQL')
     ActiveRecord::Base.connection.exec_query(translate(sql), name, binds)
   end
@@ -38,8 +36,7 @@ module SqlPlaceholders
     number_placeholders(sql)
   end
 
-  # The rewriting itself, with no adapter in the way so it can be tested under
-  # either engine.
+  # The rewriting itself, with no connection in the way so it can be unit tested.
   #
   # Only placeholders outside quoted literals are touched: a `?` inside 'a?b' is
   # data, not a bind slot.

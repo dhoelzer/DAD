@@ -9,8 +9,6 @@ require 'tmpdir'
 # path end to end: real partitioned tables, real rows, real CSV on disk, and a
 # restore that reads it back.
 class EventPartitionBackupTest < ActiveSupport::TestCase
-  POSTGRES = ActiveRecord::Base.connection.adapter_name == 'PostgreSQL'.freeze
-
   SCRATCH = 'partition_scratch'.freeze
   SCRATCH_PREFIX = 'partition_scratch_p'.freeze
   SCRATCH_PREFIXES = { SCRATCH => SCRATCH_PREFIX }.freeze
@@ -25,7 +23,7 @@ class EventPartitionBackupTest < ActiveSupport::TestCase
     ENV.delete('DAD_OFFLINE_STORAGE_DIR')
     ENV['DAD_OFFLINE_STORAGE_DIR'] = @old_dir_env if @old_dir_env
     FileUtils.remove_entry(@dir) if File.directory?(@dir)
-    EventPartitioning.execute("DROP TABLE IF EXISTS #{SCRATCH} CASCADE") if POSTGRES
+    EventPartitioning.execute("DROP TABLE IF EXISTS #{SCRATCH} CASCADE")
   end
 
   def create_scratch
@@ -69,7 +67,6 @@ class EventPartitionBackupTest < ActiveSupport::TestCase
   # --- the archive itself (Postgres) ------------------------------------------
 
   test 'an archive is a CSV holding the partition rows with a header' do
-    skip 'requires PostgreSQL' unless POSTGRES
     create_scratch
     insert_scratch('2026-04-03 10:00:00', 'first row')
     insert_scratch('2026-04-04 10:00:00', 'second row')
@@ -85,7 +82,6 @@ class EventPartitionBackupTest < ActiveSupport::TestCase
   end
 
   test 'an empty partition still archives, so retention can proceed' do
-    skip 'requires PostgreSQL' unless POSTGRES
     create_scratch
     path = EventPartitionBackup.backup_partition(SCRATCH, "#{SCRATCH_PREFIX}202605", dir: @dir)
     refute_nil path, 'an empty month is still a completed archive'
@@ -94,14 +90,12 @@ class EventPartitionBackupTest < ActiveSupport::TestCase
   end
 
   test 'archiving a missing partition fails rather than raising' do
-    skip 'requires PostgreSQL' unless POSTGRES
     create_scratch
     assert_nil EventPartitionBackup.backup_partition(SCRATCH, 'partition_scratch_p197001', dir: @dir)
     refute EventPartitionBackup.archived?('partition_scratch_p197001', dir: @dir)
   end
 
   test 'a failed archive leaves no file behind' do
-    skip 'requires PostgreSQL' unless POSTGRES
     create_scratch
     blocked = File.join(@dir, 'blocked')
     File.write(blocked, 'not a directory')
@@ -121,7 +115,6 @@ class EventPartitionBackupTest < ActiveSupport::TestCase
   # --- the safety property: drop is gated on archive ---------------------------
 
   test 'drop_expired_partitions keeps a partition whose archive fails' do
-    skip 'requires PostgreSQL' unless POSTGRES
     create_scratch
     insert_scratch('2026-04-03', 'must survive')
     # Archive failure injected structurally: the target is a regular file, so
@@ -138,7 +131,6 @@ class EventPartitionBackupTest < ActiveSupport::TestCase
   end
 
   test 'drop_expired_partitions archives and then drops when the archive succeeds' do
-    skip 'requires PostgreSQL' unless POSTGRES
     create_scratch
     insert_scratch('2026-04-03', 'archived then dropped')
     insert_scratch('2026-10-03', 'kept')
@@ -155,7 +147,6 @@ class EventPartitionBackupTest < ActiveSupport::TestCase
 
   # The point of the whole feature: the archived rows are recoverable.
   test 'an archived partition can be restored into a recreated partition' do
-    skip 'requires PostgreSQL' unless POSTGRES
     create_scratch
     insert_scratch('2026-04-03 10:00:00', 'recoverable row')
     insert_scratch('2026-04-04 10:00:00', 'second recoverable row')
@@ -176,7 +167,6 @@ class EventPartitionBackupTest < ActiveSupport::TestCase
   # Log lines are full of commas, quotes and embedded newlines; CSV has to
   # round-trip them or the archive is silently wrong.
   test 'awkward log text survives the archive and restore' do
-    skip 'requires PostgreSQL' unless POSTGRES
     create_scratch
     awkward = %Q{host, "quoted" field, line1\nline2, tab\there}
     insert_scratch('2026-04-05 10:00:00', awkward)
@@ -192,7 +182,6 @@ class EventPartitionBackupTest < ActiveSupport::TestCase
   end
 
   test 'expired_partitions names what would be dropped without touching anything' do
-    skip 'requires PostgreSQL' unless POSTGRES
     create_scratch
     insert_scratch('2026-04-03', 'expired')
     insert_scratch('2026-10-03', 'current')

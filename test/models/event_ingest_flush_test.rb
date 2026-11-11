@@ -1,4 +1,5 @@
 require 'test_helper'
+require_relative '../support/scratch_database'
 
 # Exercises the threaded INSERT path that performPendingInserts takes in every
 # non-test environment. Before this file that code had no coverage at all --
@@ -6,14 +7,14 @@ require 'test_helper'
 #
 # It runs in a subprocess with RAILS_ENV=development because the in-process suite
 # cannot: Rails.env.test? selects the inline branch, and that branch exists for a
-# real reason -- the suite and Cucumber hold an open transaction, and SQLite
-# permits a single writer, so a second one deadlocks them.
+# real reason -- the suite and Cucumber hold an open transaction, and a second
+# connection writing concurrently makes the ordering of these writes
+# nondeterministic between runs.
 #
 # Each case therefore drains the queue (flush_and_wait) before staging more work.
 # That keeps exactly one writer active at a time, which is what makes these
-# assertions deterministic on SQLite rather than a race against
-# SQLite3::BusyException. The thread itself is still what does the writing, which
-# is the behaviour under test.
+# assertions deterministic rather than a race. The thread itself is still what
+# does the writing, which is the behaviour under test.
 class EventIngestFlushTest < ActiveSupport::TestCase
   RUBY = RbConfig.ruby
 
@@ -35,7 +36,7 @@ class EventIngestFlushTest < ActiveSupport::TestCase
   # prepare:) so the patch keeps working across Rails versions: 4.2 passes three
   # positionals, 5.2 adds a prepare: keyword, and later versions add more.
   FAIL_ON_EVENTS_INSERT = <<~'PATCH'
-    class ActiveRecord::ConnectionAdapters::SQLite3Adapter
+    class ActiveRecord::ConnectionAdapters::PostgreSQLAdapter
       alias_method :orig_exec_query, :exec_query
       def exec_query(sql, *args, **kwargs)
         raise ActiveRecord::StatementInvalid, 'forced failure' if sql.include?('INSERT INTO events (')
@@ -48,18 +49,17 @@ class EventIngestFlushTest < ActiveSupport::TestCase
                 "where event_id not in (select id from events)"
 
   def setup
-    @db = Tempfile.new(['ingest_flush', '.sqlite3'])
-    @db.close
+    @db = ScratchDatabase.new('ingest_flush')
   end
 
   def teardown
-    @db.unlink rescue nil
+    @db&.drop
   end
 
   def run_development(body)
     out = IO.popen(
       { 'RAILS_ENV' => 'development',
-        'DATABASE_URL' => "sqlite3:#{@db.path}",
+        'DATABASE_URL' => @db.url,
         'SECRET_KEY_BASE' => 'x' * 32 },
       [RUBY, '-e', "require './config/environment'; #{body}"],
       err: %i[child out], &:read

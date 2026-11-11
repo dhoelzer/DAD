@@ -1,15 +1,15 @@
 require 'test_helper'
+require_relative '../support/scratch_database'
 
 # Two ingest limits that the rest of the suite cannot see, because both are
 # crossed only by volume:
 #
-#   1. A bulk INSERT larger than the adapter's host-parameter ceiling.
+#   1. A bulk INSERT larger than the database's host-parameter ceiling.
 #      insertStatement emits one VALUES tuple per row, so a batch of R rows over
-#      C columns uses C*R parameters. SQLite rejects the statement with
-#      "too many SQL variables" past 32766; Postgres caps a statement at 65535.
-#      events_words is the binding constraint (3 columns, ~16 rows per event), so
-#      the production default batch of 2000 events needs ~96k parameters -- over
-#      both ceilings.
+#      C columns uses C*R parameters, and Postgres rejects the statement outright
+#      past 65535 (Int16). events_words is the binding constraint (3 columns,
+#      ~16 rows per event), so the production default batch of 2000 events needs
+#      ~96k parameters -- well over the ceiling.
 #
 #      The suite never got there: DEFAULT_BULK_INSERT_SIZE is 1 in test, so every
 #      in-process test flushes one event at a time. The ceiling is only reachable
@@ -32,8 +32,7 @@ class EventIngestLimitsTest < ActiveSupport::TestCase
   BOOT = "load 'db/schema.rb'; EventIngestor.resetCaches; "
 
   def setup
-    @db = Tempfile.new(['ingest_limits', '.sqlite3'])
-    @db.close
+    @db = ScratchDatabase.new('ingest_limits')
   end
 
   def teardown
@@ -41,13 +40,13 @@ class EventIngestLimitsTest < ActiveSupport::TestCase
     # process-global ingest state; leaving it set would make later tests in this
     # file chunk at an absurd limit.
     EventIngestor.resetCaches
-    @db.unlink rescue nil
+    @db&.drop
   end
 
   def run_development(body)
     out = IO.popen(
       { 'RAILS_ENV' => 'development',
-        'DATABASE_URL' => "sqlite3:#{@db.path}",
+        'DATABASE_URL' => @db.url,
         'SECRET_KEY_BASE' => 'x' * 32 },
       [RUBY, '-e', "require './config/environment'; #{body}"],
       err: %i[child out], &:read
@@ -103,10 +102,10 @@ class EventIngestLimitsTest < ActiveSupport::TestCase
     assert_equal expected, EventIngestor.max_statement_params
   end
 
-  # The subprocess bodies below pin SQLite, so CI's Postgres job never drives a
-  # chunked write through the Postgres adapter. This pins the Postgres arithmetic
-  # directly instead: the ceiling it is assigned, and that a batch sized for it
-  # splits rather than overflowing.
+  # The subprocess cases below only prove a chunked write *succeeds*; they cannot
+  # show where the split happened. This pins the arithmetic directly: the ceiling
+  # Postgres is assigned, and that a production-sized batch splits at it rather
+  # than overflowing into a rejected statement.
   test 'a batch sized for the Postgres ceiling splits at that ceiling' do
     columns = %i[event_id word_id generated]
     pg_ceiling = EventIngestor::MAX_STATEMENT_PARAMS.fetch('PostgreSQL')
@@ -143,8 +142,8 @@ class EventIngestLimitsTest < ActiveSupport::TestCase
     out, status = run_development(BOOT + <<~'RUBY')
       EventIngestor.bulk_insert_size = 1000
       EventIngestor.inserted_last_run = 1e9
-      # 40 distinct tokens a line, so 1000 events stage ~40k index rows: well
-      # past the 32766-parameter ceiling this adapter enforces.
+      # 40 distinct tokens a line, so 1000 events stage ~40k index rows: ~120k
+      # parameters, well past the 65535-parameter ceiling Postgres enforces.
       1000.times do |i|
         toks = (0...40).map { |j| "tok#{i}_#{j}" }.join(' ')
         EventIngestor.storeEvent("1.1.1.1 Jun 1 00:00:0#{i % 10} host svc[1]: #{toks}")
@@ -168,7 +167,7 @@ class EventIngestLimitsTest < ActiveSupport::TestCase
     refute_includes out, 'DIED', 'a batch over the parameter ceiling must not raise'
     assert_includes out, 'EVENTS=1000'
     index_rows = out[/INDEX_ROWS=(\d+)/, 1].to_i
-    assert_operator index_rows * 3, :>, EventIngestor::MAX_STATEMENT_PARAMS.fetch('SQLite'),
+    assert_operator index_rows * 3, :>, EventIngestor::MAX_STATEMENT_PARAMS.fetch('PostgreSQL'),
       'the probe must actually exceed the ceiling, or this test proves nothing'
     assert_includes out, 'ORPHANS=0', 'chunking must not split a batch across transactions'
     assert_includes out, 'DANGLING_WORDS=0'

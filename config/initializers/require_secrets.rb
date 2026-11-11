@@ -5,7 +5,7 @@
 # to start. Raising here turns a silent misconfiguration into a boot failure.
 # Reads ENV directly rather than Rails.application.secrets, which Rails 7.1
 # deprecates and 7.2 removes; production has no other source for this value.
-# See config/secrets.yml and provision.sh for how it is supplied.
+# See config/secrets.yml and README (Install) for how it is supplied.
 if Rails.env.production?
   missing = []
   missing << "SECRET_KEY_BASE" if ENV["SECRET_KEY_BASE"].blank?

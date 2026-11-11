@@ -8,8 +8,8 @@
 # Why: Event.searchSQL matches terms as literal prefixes with
 # `text like 'term%' escape '\'`. A plain index on words.text is ordered by the
 # database collation, and the LIKE operator can only use it when the collation is
-# byte-wise. On en_US.UTF-8 -- the postgres:17 default, and what provision.sh
-# creates -- the planner falls back to a sequential scan of words.
+# byte-wise. On en_US.UTF-8 -- the postgres:17 default, and what a stock
+# `CREATE DATABASE` produces -- the planner falls back to a seq scan of words.
 # varchar_pattern_ops indexes raw bytes, so the LIKE can use it under any
 # collation.
 #
@@ -29,8 +29,8 @@ class AddPatternIndexToWords < ActiveRecord::Migration[8.1]
     # statement -- does not roll back. Postgres keeps the half-built index as
     # INVALID, and it still occupies the name. Re-running this migration then
     # fails with `relation "index_words_on_text_pattern" already exists`, which
-    # wedges `rake db:migrate` and with it provision.sh, because the deploy
-    # re-runs the same migration. Drop the husk first so the retry rebuilds.
+    # wedges `rake db:migrate` for every later deploy, because each one re-runs
+    # the same migration. Drop the husk first so the retry rebuilds.
     #
     # Scoped deliberately: only an index this migration owns, and only one
     # Postgres itself reports as unusable. A valid index is never touched.

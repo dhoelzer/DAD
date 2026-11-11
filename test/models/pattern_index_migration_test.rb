@@ -6,7 +6,7 @@ require_relative '../../db/migrate/20261016000002_add_pattern_index_to_words'
 # index_name_exists? both report it as healthy, because their query does not
 # filter pg_index.indisvalid. Re-running the migration then dies on
 # `relation ... already exists`, which wedges `rake db:migrate` -- and with it
-# provision.sh, since the deploy re-runs the same migration.
+# every deploy, since it re-runs the same migration.
 #
 # AddPatternIndexToWords drops such a husk before rebuilding. These tests cover
 # the detection that makes that possible, so the guard cannot be "simplified"

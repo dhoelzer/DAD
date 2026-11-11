@@ -1,7 +1,7 @@
 # Seed data for rake db:seed.
 #
 # Idempotent: every lookup is find_or_create_by and every join is guarded, so
-# re-running -- which provision.sh does on every Vagrant provision -- leaves the
+# re-running -- which every deploy does -- leaves the
 # same counts rather than duplicating every Role and Right. The previous version
 # used bare new/save, so two runs produced 2 admin users, 4 roles and 10 rights
 # where 1, 2 and 5 were intended.
@@ -45,7 +45,7 @@ seed_roles.each do |name, right_names|
 end
 
 # Created once. Deliberately not updated on later runs: an operator who changed
-# the admin password must not have it reset by a re-provision, so a password
+# the admin password must not have it reset by a re-seed, so a password
 # change is not undone here.
 if User.find_by(username: admin_user).nil?
   user = User.create!(username: admin_user, attempts: 0)

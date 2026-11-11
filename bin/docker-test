@@ -3,19 +3,18 @@
 # Run the test suite against the Dockerized PostgreSQL, which is the engine
 # production runs.
 #
-# Why this is the default way to test now: SQLite and Postgres disagree in ways
-# that have already shipped breakage. Event.insertStatement once emitted SQLite
-# `?` placeholders through exec_query, Postgres rejected them outright, and
-# production could not insert a single event while every SQLite job stayed green
-# (RECOMMENDATIONS 3.2). events and events_words are partitioned on Postgres and
-# not partitionable at all on SQLite, so the SQLite suite never exercises the
-# shape production queries. The composite covering index on events_words is
-# Postgres-only too.
+# This is how the suite runs, full stop. SQLite was dropped as the test engine:
+# Event.insertStatement once emitted SQLite `?` placeholders through exec_query,
+# Postgres rejected them outright, and production could not insert a single event
+# while every SQLite job stayed green (RECOMMENDATIONS 3.2). events and
+# events_words are partitioned on Postgres and are not partitionable at all on
+# SQLite, so a SQLite suite never exercises the shape production queries, and the
+# composite covering index on events_words is Postgres-only.
 #
-# SQLite is still supported for a fast local loop -- `bundle exec rake test` works
-# unchanged -- and the CI sqlite job keeps that path covered. What this script
-# adds is a one-command way to run the same thing locally against the real engine,
-# including the schema-shape and INVALID-index assertions CI makes.
+# `bundle exec rake test` still works against a local Postgres cluster once
+# config/database.yml points at one, but this script is the zero-configuration
+# path: it brings up its own db container and runs the schema-shape and
+# INVALID-index assertions CI makes.
 #
 # --build is not optional. `docker compose run` does not rebuild the image, so
 # without it this runs whatever code was copied at the last build and reports on
@@ -26,7 +25,8 @@ cd "$(dirname "$0")/.."
 
 if ! docker info >/dev/null 2>&1; then
   echo "bin/docker-test: the Docker daemon is not reachable." >&2
-  echo "  Start it, or fall back to SQLite with: bundle exec rake test" >&2
+  echo "  Start it, or point config/database.yml (or DATABASE_URL) at a local" >&2
+  echo "  Postgres cluster and run: bundle exec rake test" >&2
   exit 1
 fi
 

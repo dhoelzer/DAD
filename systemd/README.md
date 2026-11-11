@@ -1,8 +1,8 @@
 # systemd units
 
-These three units replace the `... &` backgrounding in `provision.sh`, which
-meant the collector, importer and scheduler died on every VM reboot and nothing
-restarted them (RECOMMENDATIONS.md 5.1).
+These three units replace the `... &` backgrounding the original installer used,
+which meant the collector, importer and scheduler died on every reboot and
+nothing restarted them (RECOMMENDATIONS.md 5.1).
 
 | unit | runs | restarts |
 |---|---|---|
@@ -10,7 +10,7 @@ restarted them (RECOMMENDATIONS.md 5.1).
 | `dad-importer` | `import_syslog.rb`, `LogsToProcess` → database | always |
 | `dad-scheduler` | `scheduler.rb`, runs due `Job` rows | always |
 
-`provision.sh` installs, enables and starts them. To do it by hand:
+Install, enable and start them yourself:
 
 ```bash
 sudo install -m 0644 systemd/dad-*.service /etc/systemd/system/
@@ -26,13 +26,22 @@ journalctl -u dad-importer -f
 source `/etc/DAD/environment` — that file uses `export KEY=value`, and systemd
 would parse the literal string `export SECRET_KEY_BASE` as the variable name.
 Every variable would come out empty and Rails would boot with a nil
-`secret_key_base`. `provision.sh` therefore writes a second copy,
-`/etc/DAD/environment.d/dad.conf`, in systemd's own `KEY=value` format. Keep the
-two in sync if you add a variable.
+`secret_key_base`. You therefore need a second copy,
+`/etc/DAD/environment.d/dad.conf`, in systemd's own `KEY=value` format:
 
-**`/usr/bin/bundle` is the path in the Vagrant box** (Debian's `ruby` package
-installs bundler there). On another host, override it in a drop-in rather than
-editing the unit:
+```bash
+sudo install -d -m 755 /etc/DAD/environment.d
+sudo install -m 600 /dev/null /etc/DAD/environment.d/dad.conf
+# then write the same variables without `export`, e.g.
+#   SECRET_KEY_BASE=...
+#   DAD_DB_USER=...
+```
+
+Keep the two in sync if you add a variable.
+
+**`/usr/bin/bundle` is Debian's path** (the `ruby` package installs bundler
+there). On another distro, or under rbenv/rvm, override it in a drop-in rather
+than editing the unit:
 
 ```bash
 sudo systemctl edit dad-importer   # creates an override

@@ -7,57 +7,29 @@ on:
 
 jobs:
   # Runners are pinned to ubuntu-24.04 rather than ubuntu-latest. ubuntu-latest
-  # moves to Ubuntu 26 on 2026-10-19, which would swap glibc, libpq and sqlite3
-  # under every job at once -- the same class of silent environment drift that
-  # put prefix search on a broken collation (§3.4) and let a json gem bump break
+  # moves to Ubuntu 26 on 2026-10-19, which would swap glibc, libpq and the
+  # system Postgres under every job at once -- the same class of silent
+  # environment drift that put prefix search on a broken collation (§3.4) and let
+  # a json gem bump break
   # the sprockets manifest reader while CI stayed green. Pinning makes the change
   # opt-in: move the pin deliberately, with the suite to check it against.
-  test:
-    runs-on: ubuntu-24.04
-    env:
-      # pg is production-only and needs libpq-dev; the test suite uses sqlite3.
-      BUNDLE_WITHOUT: production
-    steps:
-      - uses: actions/checkout@v4
 
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.3.8'
-          bundler-cache: true
-
-      - name: Install sqlite dev headers
-        run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
-
-      - name: Verify the lockfile is committed and consistent
-        run: bundle install --frozen
-
-      - name: Prepare test database
-        run: bundle exec rake db:migrate RAILS_ENV=test
-
-      - name: Unit and controller tests
-        run: bundle exec rake test
-
-      # `rake cucumber:ok` runs cucumber in-process, where minitest's autorun
-      # then parses cucumber's --profile flag and exits 1. Invoke the binary.
-      - name: Cucumber features
-        run: bundle exec cucumber
-
-  # The same suite against the engine production actually runs.
+  # The suite, against the engine production runs. There is exactly one test
+  # job now: SQLite was dropped as the dev/test engine (config/database.yml), so
+  # the old split between a fast SQLite job and a Postgres job is gone.
   #
-  # This job exists because the SQLite-only suite cannot see adapter-specific SQL
-  # breakage, and one instance was total: Event.insertStatement emitted SQLite `?`
+  # Why this one has to be Postgres is worth keeping, because it is the reason
+  # the split existed at all: Event.insertStatement once emitted SQLite `?`
   # placeholders through exec_query, Postgres rejected them outright, and
-  # production therefore could not insert a single event -- while every job above
-  # stayed green. Nothing else in CI touches Postgres, because pg sits in the
-  # :production group and every other job sets BUNDLE_WITHOUT=production.
+  # production therefore could not insert a single event -- while every SQLite
+  # job stayed green (RECOMMENDATIONS 3.2). events and events_words are
+  # partitioned on Postgres and are not partitionable at all on SQLite, so a
+  # SQLite suite also never exercised the shape production queries, and the
+  # composite covering index on events_words is Postgres-only.
   #
-  # Cucumber runs here as well as on SQLite. The features drive the same ingest
-  # and dashboard paths that broke in 3.2 and 3.4, both of which were
-  # Postgres-specific, so leaving the feature layer on SQLite left the
-  # partitioned path covered only by unit tests. RAILS_ENV stays `test` (what
-  # cucumber-rails defaults to anyway), so DATABASE_URL selects the engine for
-  # both suites and the `cucumber:` entry in database.yml is not consulted.
-  postgres:
+  # Cucumber runs here too. The features drive the same ingest and dashboard
+  # paths that broke in 3.2 and 3.4, both of which were Postgres-specific.
+  test:
     runs-on: ubuntu-24.04
 
     services:
@@ -76,8 +48,6 @@ jobs:
           --health-retries 10
 
     env:
-      # pg lives in the :production group, so this job must not exclude it.
-      BUNDLE_WITHOUT: ""
       RAILS_ENV: test
       DATABASE_URL: postgres://dad:dad@127.0.0.1:5432/dad_test
       SECRET_KEY_BASE: not_a_secret_only_ci_boots
@@ -88,7 +58,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install database client headers
-        run: sudo apt-get update && sudo apt-get install -y libpq-dev libsqlite3-dev
+        run: sudo apt-get update && sudo apt-get install -y libpq-dev
 
       - uses: ruby/setup-ruby@v1
         with:
@@ -98,15 +68,16 @@ jobs:
       - name: Verify the lockfile is committed and consistent
         run: bundle install --frozen
 
-      # Not plain `rake db:migrate`: that loads the committed SQLite-flavoured
-      # db/schema.rb into an empty Postgres database and skips db/migrate entirely,
-      # so anything the dump cannot express (partitioned events) would never be
-      # built and this job would test a schema production does not have.
+      # Not plain `rake db:migrate`: that loads the committed db/schema.rb -- a
+      # portable dump that cannot express PARTITION BY -- into an empty Postgres
+      # database and skips db/migrate entirely, so anything the dump cannot
+      # express would never be built and this job would test a schema production
+      # does not have.
       - name: Prepare test database
         run: bundle exec rake db:migrate_from_scratch
 
       # The dump cannot express PARTITION BY, so this is the assertion that the
-      # Postgres job is really testing the shape production runs.
+      # job is really testing the shape production runs.
       - name: Assert the Postgres-only schema shape was built
         run: |
           not_partitioned=$(psql "$DATABASE_URL" -tAc \
@@ -137,35 +108,27 @@ jobs:
           fi
           echo "no INVALID indexes"
 
-      - name: Unit and controller tests on Postgres
+      - name: Unit and controller tests
         run: bundle exec rake test
 
-      # Same in-process caveat as the SQLite job: rake cucumber:ok loads
-      # minitest's autorun, which then parses cucumber's own flags.
-      - name: Cucumber features on Postgres
+      # `rake cucumber:ok` runs cucumber in-process, where minitest's autorun
+      # then parses cucumber's --profile flag and exits 1. Invoke the binary.
+      - name: Cucumber features
         run: bundle exec cucumber
 
-  # Asset pipeline + boot-with-manifest. This job exists because the test suite
-  # never touches the sprockets manifest: `rake test` boots with no
-  # public/assets, so the manifest *reader* is never exercised. That is how a
-  # json 3.x bump (which removed the create_additions keyword sprockets'
-  # manifest reader passes) reached master while CI stayed green. A fresh CI
-  # checkout has no manifest, so precompile-then-boot is the only way to cover
-  # it -- and it is the production path, not a dev one.
+
   assets:
     runs-on: ubuntu-24.04
-    env:
-      BUNDLE_WITHOUT: production
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install database client headers
+        run: sudo apt-get update && sudo apt-get install -y libpq-dev
 
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.3.8'
           bundler-cache: true
-
-      - name: Install sqlite dev headers
-        run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
 
       # Precompile in production, not development. config.assets.js_compressor is
       # set only in config/environments/production.rb, so a development
@@ -173,14 +136,14 @@ jobs:
       # the bundle -- Uglifier 2.7 is UglifyJS 2.x, which aborts on the first
       # arrow function -- passed CI while breaking every deploy.
       #
-      # BUNDLE_WITHOUT: production still applies, so pg is absent; DATABASE_URL
-      # points at sqlite, which takes precedence over the postgresql adapter
-      # entry in database.yml. Nothing here touches the database beyond booting.
+      # DATABASE_URL points at a database that does not exist: precompiling only
+      # boots the app, and the sprockets railtie needs a connection for nothing.
+      # A real URL keeps the boot path identical to production's.
       - name: Precompile assets (production, with the JS compressor)
         env:
           RAILS_ENV: production
           SECRET_KEY_BASE: not_a_secret_only_ci_boots
-          DATABASE_URL: sqlite3:db/ci_assets.sqlite3
+          DATABASE_URL: postgres://dad:dad@127.0.0.1:5432/dad_missing
         run: bundle exec rake assets:precompile
 
       # The manifest now exists on disk; booting reads it. Fails loudly if the
@@ -222,20 +185,17 @@ jobs:
         env:
           RAILS_ENV: production
           SECRET_KEY_BASE: not_a_secret_only_ci_boots
-          DATABASE_URL: sqlite3:db/ci_assets.sqlite3
+          DATABASE_URL: postgres://dad:dad@127.0.0.1:5432/dad_missing
         run: bundle exec ruby script/check_asset_paths.rb
 
-  # Guards the provisioning artifacts, which no other job touches: the test
-  # suite never loads provision.sh or the systemd units, so a syntax error in
-  # either reached master silently before. These are the files that decide
-  # whether the importer survives a reboot, so they are worth a gate.
-  provisioning:
+  # Guards the systemd units, which no other job touches: the test suite never
+  # loads them, so a syntax error reached master silently before. These are the
+  # files that decide whether the importer survives a reboot, so they are worth
+  # a gate.
+  systemd:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-
-      - name: provision.sh parses
-        run: bash -n provision.sh
 
       - name: systemd units parse
         run: |
@@ -254,17 +214,16 @@ jobs:
   # ever builds the image, and an image that cannot build sat on master unnoticed:
   # the file then named Dockerfile.dev contained a bare `gem install bundler`
   # line, which is not a Dockerfile instruction, so `docker build` failed on it.
-  # The suite could not have caught that -- test/postgres/assets/provisioning all
-  # run on runner-installed Ruby, and provisioning only parses provision.sh and
-  # the systemd units.
+  # The suite could not have caught that -- test/assets/systemd all run on
+  # runner-installed Ruby, and systemd only parses unit files.
   #
   # It also covers two failures that are invisible to every other job, because
   # GitHub's ubuntu-24.04 runners already have what the image lacked:
   #   - No JavaScript runtime. ExecJS is reached through the sprockets pipeline
   #     behind javascript_include_tag, so a ruby:* base image without nodejs
   #     raises "Could not find a JavaScript runtime" on *every* view render.
-  #   - BUNDLE_WITHOUT=production would drop pg, which sits in the Gemfile's
-  #     :production group while these containers talk to Postgres.
+  #   - a Gemfile group that excluded pg would leave these containers unable to
+  #     talk to Postgres, which is why `pg` is not in a group at all.
   # Neither is exercised by the postgres job, which uses runner Ruby and a
   # runner-installed Node rather than this image.
   #
@@ -422,7 +381,7 @@ jobs:
   # which would not run its tests.
   #
   # Pinned to the same minor as the rust: tag in Dockerfile and the rustc/cargo
-  # provision.sh installs, so CI, the image, and a provisioned host all build the
+  # CI builds, so the image and the tested source build the
   # collector the same way.
   collector:
     runs-on: ubuntu-24.04
@@ -445,16 +404,14 @@ jobs:
         # compare bytes on disk, so they need no root and no Postgres.
         run: cargo test
         working-directory: syslog_collector
-      # The profile production and provision.sh actually build, so a release-only
-      # compile error is caught here rather than at provision time.
+      # The profile production and the Docker image actually build, so a
+      # release-only compile error is caught here rather than at deploy time.
       - name: Release build
         run: cargo build --release
         working-directory: syslog_collector
 
   security:
     runs-on: ubuntu-24.04
-    env:
-      BUNDLE_WITHOUT: production
     steps:
       - uses: actions/checkout@v4
 

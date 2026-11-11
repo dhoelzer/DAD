@@ -13,7 +13,7 @@ StartLimitIntervalSec=0
 Type=simple
 WorkingDirectory=/var/DAD
 # EnvironmentFile, not ExecStartPre=source: systemd has no shell, and its
-# format is KEY=VALUE with no `export`. provision.sh writes the systemd copy to
+# format is KEY=VALUE with no `export`. The systemd copy lives at
 # /etc/DAD/environment.d/dad.conf for exactly this reason -- pointing at the
 # shell file would leave every variable empty and boot Rails with a nil
 # secret_key_base.
@@ -21,7 +21,7 @@ EnvironmentFile=/etc/DAD/environment.d/dad.conf
 Environment=RAILS_ENV=production
 Environment=BUNDLE_GEMFILE=/var/DAD/Gemfile
 ExecStart=/usr/bin/bundle exec ruby import_syslog.rb
-# The whole point of the unit: the old provision.sh backgrounded this with `&`,
+# The whole point of the unit: the original installer backgrounded this with `&`,
 # so it died on reboot and nothing noticed. Restart always, and back off so a
 # permanently broken config cannot spin the CPU.
 Restart=always

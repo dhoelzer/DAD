@@ -14,7 +14,8 @@
 #   PROBE_APP_DIR=/path/to/other-checkout bundle exec ruby script/probe.rb
 #
 # Runs against the test database and WRITES to it (fixtures + probe auth rows).
-# Use a scratch db/test.sqlite3, never a database you care about.
+# Use a scratch test database, never one you care about. It is Postgres now:
+# `bin/docker-test` brings one up, or point DATABASE_URL at a throwaway db.
 require 'digest'
 require 'json'
 require 'time'
@@ -179,8 +180,13 @@ end
 out[:get_samples] = samples.sort_by { |s| [s[:path], s[:fmt]] }
 
 conn = ActiveRecord::Base.connection
-out[:ddl] = conn.select_rows('SELECT type, name, sql FROM sqlite_master ORDER BY type, name')
-                .map { |t, n, s| "#{t}|#{n}|#{s}" }
+# Engine-neutral rather than a catalog query (sqlite_master / pg_catalog): the
+# point of this section is to diff the schema two Rails versions build, and a
+# version step that changed how the dump is emitted would otherwise show up as a
+# wall of false diffs.
+out[:ddl] = conn.schema_dump(ActiveRecord::SchemaDumper).lines
+                .reject { |l| l.strip.empty? || l.start_with?('#') }
+                .map(&:chomp)
 
 p = {}
 begin; p[:event_count] = Event.count; rescue => e; p[:event_count] = e.message; end

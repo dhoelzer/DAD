@@ -1,4 +1,5 @@
 require 'test_helper'
+require_relative '../support/query_plan'
 
 # Two findings about the sessions table.
 #
@@ -10,6 +11,8 @@ require 'test_helper'
 # Close the tab, never return, and the row is permanent. So the table the
 # unindexed lookup scans grows without bound.
 class SessionIntegrityTest < ActiveSupport::TestCase
+  include QueryPlan
+
   def setup
     Session.delete_all
     @user = User.create!(username: "sess#{SecureRandom.hex(6)}", attempts: 0)
@@ -34,18 +37,16 @@ class SessionIntegrityTest < ActiveSupport::TestCase
     end
   end
 
-  # SQLite-specific wording; Postgres reports the index choice differently, so
-  # this is guarded to the adapter it can assert on.
+  # The finding this guards is a plan, not a query: the lookup ran on every
+  # authenticated request with no index, so it was a full scan of a table that
+  # only ever grew. Asserting on the plan is the only way to catch the index
+  # being dropped or renamed, since the query returns correct rows either way.
   test 'the session lookup uses the index rather than scanning the table' do
-    skip 'plan assertions are SQLite-specific' unless
-      ActiveRecord::Base.connection.adapter_name == 'SQLite'
-
-    plan = ActiveRecord::Base.connection.exec_query(
-      'EXPLAIN QUERY PLAN SELECT * FROM sessions WHERE session_hash = ?',
-      'plan', ['x' * 64]).to_a
-    detail = plan.map { |row| row['detail'].to_s }.join(' ')
-    refute_match(/SCAN sessions/i, detail,
-      "session lookup must not be a table scan: #{detail}")
+    plan = explain('SELECT * FROM sessions WHERE session_hash = ?', ['x' * 64])
+    assert_match(/Index Scan using \w*session_hash\w*/i, plan,
+      "session lookup must use the session_hash index: #{plan}")
+    refute_match(/Seq Scan on sessions/i, plan,
+      "session lookup must not be a table scan: #{plan}")
   end
 
   test 'purge_expired removes expired rows and leaves live ones' do

@@ -1,9 +1,10 @@
 # Monthly range partitioning of the event tables, and the retention that goes
 # with it.
 #
-# Postgres-only: dev and test run SQLite, which has no partitioning. Every entry
-# point here checks #supported? or is only reached from a Postgres-specific
-# migration, so a SQLite install is unaffected.
+# Postgres-only. Every entry point here checks #supported? or is only reached
+# from a Postgres-specific migration, so the guard is belt-and-braces: it keeps a
+# scratch database built from db/schema.rb (which is not partitioned) from
+# running retention against tables that are not partitioned.
 #
 # Why partitioning (RECOMMENDATIONS.md 3.2): events and events_words grew without
 # bound, and index size, search latency and backup time all degrade with them.
@@ -95,8 +96,9 @@ module EventPartitioning
   # already-archived partition is not dumped twice, and a partition whose
   # archive failed is skipped rather than dropped.
   #
-  # On SQLite it reports that there is nothing to do instead of raising, so a
-  # Job row that exists in a dev database does not raise an Alert every cycle.
+  # Reports that there is nothing to do rather than raising, so a Job row that
+  # exists against a non-partitioned scratch database does not raise an Alert
+  # every cycle.
   def self.maintain(today: Date.today)
     unless supported?
       return 'event partitioning is Postgres-only; nothing to do'

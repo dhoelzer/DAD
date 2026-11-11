@@ -1,8 +1,9 @@
 require 'test_helper'
 
 # The dashboard and host pages are .js.erb templates that call the statistics
-# helpers directly. Those helpers used extract(), which SQLite rejects, so both
-# pages raised on every dev/test run and nothing in the suite ever rendered them.
+# helpers directly. Those helpers used extract(), an engine-specific function the
+# suite's engine rejected, so both pages raised on every dev/test run and nothing
+# in the suite ever rendered them.
 # These tests render them for real and assert the result is still parseable JS.
 class DashboardRenderTest < ActionDispatch::IntegrationTest
   # The statistics helpers are instance methods of ApplicationHelper; integration
@@ -112,9 +113,14 @@ class DashboardRenderTest < ActionDispatch::IntegrationTest
     assert_equal '1/5/2026 0:00:00', ApplicationHelper.chart_label('2026-01-05 00')
   end
 
-  def test_approximate_count_falls_back_off_postgres
-    # pg_stat_user_tables does not exist on sqlite; the dashboard calls this, so a
-    # raise here would 500 the page rather than just mis-report.
+  # The dashboard calls this on every render, so a raise 500s the page rather
+  # than merely mis-reporting a number. On the partitioned test schema the figure
+  # comes from pg_stat_user_tables, and asserting the estimate path is really
+  # taken is what stops a silent fall back to COUNT(*) on a large install.
+  def test_approximate_count_uses_the_partition_statistics
+    sum = ActiveRecord::Base.connection
+                       .execute("SELECT SUM(n_live_tup) FROM pg_stat_user_tables "                                 "where relname like 'events_p%'").first['sum']
+    refute_nil sum, 'events must be partitioned as events_p* for the estimate to work'
     assert_kind_of Integer, Event.approximate_count
   end
 
