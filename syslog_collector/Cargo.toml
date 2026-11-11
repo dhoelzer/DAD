@@ -1,0 +1,10 @@
+[package]
+name = "syslog_collector"
+version = "1.0.0"
+edition = "2021"
+description = "UDP syslog collector: UDP/514 -> Logs/LogStaging, rotated into Logs/LogsToProcess"
+
+# No dependencies, on purpose. Everything this needs (UDP sockets, files, rename,
+# the clock) is in std. A network-facing intake process with zero third-party
+# crates has no supply chain to audit and no Cargo.lock to keep current; the
+# `security` CI job's bundle-audit/brakeman gates stay Ruby-only.

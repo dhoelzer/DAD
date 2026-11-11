@@ -1,12 +1,28 @@
-# The DAD application image: web, importer, scheduler, and the test suite all run
-# from this one image (see docker-compose.yml, which gives each its own container).
-# The database is NOT in this image -- it is a separate postgres container.
+# Stage 1: build the syslog collector.
 #
-# The base tag is pinned to a patch release: an unpinned `ruby:3` tag silently
-# breaks the app on a future minor release. Ruby 3.3 satisfies Rails 8.1 (which
-# needs >= 3.2); the app moved off 2.7 because nokogiri/sqlite3 and the json
-# default gem no longer support it. Keep this in lockstep with .ruby-version,
-# Gemfile, docker-compose.yml and .github/workflows/ci.yml.
+# A separate stage because the toolchain is ~1 GB and only one 550 KB binary
+# comes out of it. The Ruby image never sees cargo.
+#
+# Pinned to the same minor the provisioning job and provision.sh install, so the
+# binary in the image and the one a provisioned host builds are the same.
+FROM rust:1.85.1 AS collector
+
+WORKDIR /build
+
+# Manifest first, sources second: cargo's layer cache is keyed on Cargo.toml, so
+# editing a .rs file does not re-resolve dependencies. There are no dependencies
+# (see syslog_collector/Cargo.toml), which also means no Cargo.lock churn.
+#
+# tests/ is deliberately not copied: `cargo build --release` compiles only the
+# bin target, so including it would bust this layer on every test edit for
+# nothing. The CI `collector` job is what runs the tests.
+COPY syslog_collector/Cargo.toml ./
+COPY syslog_collector/src ./src
+
+# --release because this is the artifact production runs. The dev profile is
+# ~10x slower and 4x larger, and there is no reason to ship it.
+RUN cargo build --release
+
 FROM ruby:3.3.8
 
 RUN apt-get update -qq && \
@@ -14,10 +30,12 @@ RUN apt-get update -qq && \
       build-essential \
       libsqlite3-dev \
       libpq-dev \
-      perl \
       postgresql-client \
       nodejs && \
     rm -rf /var/lib/apt/lists/*
+
+# perl is gone. The only thing in the image that needed it was the syslog
+# collector, now a Rust binary built in stage 1.
 
 # nodejs is not optional. Execjs needs a JavaScript runtime, and
 # javascript_include_tag in app/views/layouts/application.html.erb goes through
@@ -45,8 +63,8 @@ ENV BUNDLE_PATH=/usr/local/bundle
 # assertions (query-plan and bytewise-collation tests) still need it.
 
 # /var/DAD, not /app. This is the path production uses -- every systemd unit sets
-# WorkingDirectory=/var/DAD -- and syslog.pl hardcodes absolute paths under it
-# ($LOGSTAGING="/var/DAD/Logs/LogStaging"). Matching it means the importer's
+# WorkingDirectory=/var/DAD -- and the collector hardcodes absolute paths under it
+# (DEFAULT_STAGING="/var/DAD/Logs/LogStaging"). Matching it means the importer's
 # relative paths (Dir.chdir('Logs/LogsToProcess'), then '../ProcessedLogs') and
 # the collector's absolute ones resolve to the same directories in the container
 # as on a provisioned host. Pick any other WORKDIR and the collector silently
@@ -57,6 +75,10 @@ COPY Gemfile Gemfile.lock ./
 RUN bundle install --frozen
 
 COPY . .
+
+# The collector binary, not the crate. Nothing in the runtime image needs cargo,
+# rustc, or the build cache.
+COPY --from=collector /build/target/release/syslog_collector /usr/local/bin/syslog_collector
 
 # The importer and the collector write here, and Rails writes log/. Named volumes
 # are mounted over both, so ownership has to be set on the directories

@@ -16,7 +16,7 @@
 #   web       Rails (rails server, port 3000)
 #   importer  import_syslog.rb  -- Logs/LogsToProcess -> database
 #   scheduler scheduler.rb      -- runs Jobs whose next_run has passed
-#   syslog    syslog.pl         -- UDP/514 -> Logs/LogStaging
+#   syslog    syslog_collector  -- UDP/514 -> Logs/LogStaging
 #   test      rake test + cucumber, against the db container (profile: test)
 #
 # Production still deploys via provision.sh + systemd + Apache/Passenger; this
@@ -157,15 +157,17 @@ services:
       context: .
       dockerfile: Dockerfile
     init: true
-    # syslog.pl is Perl and touches no database, so it needs no DATABASE_URL --
-    # same reasoning as the dad-syslog systemd unit holding no EnvironmentFile.
+    # The collector is a standalone Rust binary and touches no database, so it
+    # needs no DATABASE_URL -- same reasoning as the dad-syslog systemd unit
+    # holding no EnvironmentFile. It does not use the <<: *app environment block,
+    # which is why it declares build: directly instead of inheriting the anchor.
     volumes:
       - logs:/var/DAD/Logs
     ports:
       # UDP syslog intake. If something on the host already holds 514, change the
       # host side of this mapping only.
       - "514:514/udp"
-    command: ["perl", "syslog.pl"]
+    command: ["syslog_collector"]
     restart: unless-stopped
 
   # The suite, against the engine production runs. Gated behind a profile so

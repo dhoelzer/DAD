@@ -29,3 +29,9 @@
 # Partition archives written by retention before it drops a month (see
 # EventPartitionBackup). Raw log lines, never committed.
 /offline_storage
+
+# Cargo build output for the syslog collector. provision.sh builds into the
+# checkout, so this lands here on a provisioned host; the Docker build writes it
+# in its own stage instead. Cargo.lock IS committed -- the crate is a binary with
+# no dependencies, so the lockfile is the record that there are none.
+/syslog_collector/target

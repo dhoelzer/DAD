@@ -1,6 +1,6 @@
 # DAD — agent context
 
-Log aggregation/monitoring app: `syslog.pl` (UDP/514 collector) → `Logs/LogStaging` →
+Log aggregation/monitoring app: `syslog_collector` (Rust, UDP/514 collector) → `Logs/LogStaging` →
 `Logs/LogsToProcess` → `import_syslog.rb` → Postgres (`events` + `words` + `events_words`
 inverted index) → Rails UI (dashboards, search, alerts, jobs, custom RBAC).
 `scheduler.rb` polls the `jobs` table and runs each `script` through the
@@ -441,10 +441,60 @@ with no local cluster to install.
   `select c.relname from pg_class c join pg_index i on i.indexrelid = c.oid where not i.indisvalid`;
   the CI `postgres` job asserts this. `AddPatternIndexToWords` self-heals its own.
 
+### The syslog collector (Rust)
+
+`syslog_collector/` is a zero-dependency crate (std only, so there is no supply
+chain to audit and `Cargo.lock` never changes — it is committed as the record that
+there are no dependencies). It replaced `syslog.pl`; the Perl file is gone.
+
+Build/test it on its own: `cd syslog_collector && cargo test` (26 unit + 13
+integration). The integration tests spawn the real binary on high UDP ports and
+compare bytes on disk, so they need no root and no Postgres. The CI `collector`
+job runs `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, and
+`cargo test`. Keep the toolchain pinned in lockstep across three places: the
+`rust:` tag in `Dockerfile`, `dtolnay/rust-toolchain` in `ci.yml`, and
+`apt-get install rustc` in `provision.sh`.
+
+**The record format is the contract.** `format_record` writes
+`<source-ip> <message>\n`. `EventIngestor` stores that line whole in
+`events.hunks`, and `Event#event_fields` splits it on spaces, so the source IP is
+field 1 and the syslog timestamp follows it. Changing the format breaks the
+read side, not just the write side.
+
+**The transform is byte-oriented (`&[u8]`, never `String`) on purpose.** Perl
+never decoded, so a payload with invalid UTF-8 reached `hunks` verbatim. Decoding
+in the collector would corrupt it. `EventIngestor` does the UTF-8 scrubbing, and
+that is where the decision belongs.
+
+**Rotation is traffic-driven, not timer-driven.** `ensure_open` is called from the
+per-message path, so with no traffic the open file is never moved. This is why a
+single probe packet into a quiet stack sits in `LogStaging` until a *second*
+packet arrives after the 60s boundary — the CI `docker` job sends two packets for
+exactly this reason.
+
+**Three deliberate departures from Perl, all because Perl lost data.** Measured,
+not assumed:
+- Perl block-buffered stdio and had no signal handler: 40 messages sent, **0 bytes
+  durable** after SIGTERM *and* after SIGKILL. The Rust collector flushes per
+  record (costs nothing: ~400k msgs/s vs Perl's buffered write path).
+- Perl left the in-flight file stranded in `LogStaging` on every restart, and
+  **nothing ever reads `LogStaging`** — so up to 60s of logs were orphaned
+  permanently, including on a planned `systemctl restart`. `recover_orphans()`
+  claims them at startup. Startup rather than a SIGTERM handler is deliberate: a
+  handler cannot run on SIGKILL, OOM kill, or power loss.
+- Perl's `recv($buf, 1540)` silently truncated anything larger (a 3000-byte packet
+  yielded exactly 1540). The cap is now 65507, the max UDP payload. `hunks` is a
+  `:text` column, so this needs no schema change.
+
+Everything else is byte-identical to Perl, verified by running both collectors on
+UDP/514 against the same 22-packet corpus: the rotated file the importer reads was
+the same 2116 bytes with the same SHA-256. That equivalence is *not* automated —
+if you change the parse, re-verify against the record format by hand.
+
 ### The path coupling between the collector and the importer
 
-`syslog.pl` hardcodes `$LOGSTAGING="/var/DAD/Logs/LogStaging"` and
-`$LOGPROCESSING="/var/DAD/Logs/LogsToProcess"`. `import_syslog.rb` uses paths
+`syslog_collector/src/runtime.rs` hardcodes `DEFAULT_STAGING="/var/DAD/Logs/LogStaging"`
+and `DEFAULT_PROCESSING="/var/DAD/Logs/LogsToProcess"`. `import_syslog.rb` uses paths
 **relative to its own working directory**: `Dir.chdir('Logs/LogsToProcess')`, then
 `PROCESSED_DIR = '../ProcessedLogs'`. The two agree only because every systemd unit
 sets `WorkingDirectory=/var/DAD`. Nothing validates that they line up, so change
@@ -452,11 +502,19 @@ the working directory (or the image `WORKDIR`) and the collector keeps accepting
 UDP packets and writing into a tree the importer never reads — silently, with no
 error anywhere. `Dockerfile` therefore uses `WORKDIR /var/DAD`, not `/app`.
 
-Rotation is **traffic-driven**, not timer-driven: `RotateLog` runs from `logit`,
-so with no inbound traffic the open staging file is never moved into
-`LogsToProcess` and the importer sees nothing. A quiet system looks like a broken
-importer. Perl also block-buffers `print LOG`, so the staging file reads as 0
-bytes until the rotation `close(LOG)` flushes it — that is not data loss.
+Rotation is **traffic-driven**, not timer-driven: `ensure_open` runs from the
+per-message path, so with no inbound traffic the open staging file is never moved
+into `LogsToProcess` and the importer sees nothing. A quiet system looks like a
+broken importer, and a single probe packet sits in `LogStaging` until a *second*
+packet arrives after the 60s boundary — the CI `docker` job sends two for this
+reason.
+
+The collector flushes each record as it writes, so the staging file is readable
+immediately. The Perl collector it replaced block-buffered `print LOG` and left
+the file at 0 bytes until rotation's `close(LOG)`; older notes called that
+"buffering, not data loss" and it was **wrong** — measured, 40 messages left 0
+bytes durable after SIGTERM *and* SIGKILL. See "The syslog collector (Rust)"
+above.
 
 ### Running Postgres locally
 

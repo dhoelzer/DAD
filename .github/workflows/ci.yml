@@ -371,8 +371,9 @@ jobs:
           [ "$code" = "200" ] || { echo "$asset returned $code"; exit 1; }
           echo "asset served: $asset"
 
-      # The collector is Perl and touches no database, so no other job would
-      # notice it failing to start.
+      # The collector is a standalone Rust binary and touches no database, so no
+      # Ruby-level job would notice it failing to start. The `collector` job runs
+      # its unit/integration tests; this is the end-to-end leg through the importer.
       - name: Assert the syslog collector is listening
         run: |
           docker compose ps syslog | grep -q "Up" \
@@ -380,9 +381,10 @@ jobs:
           # The line has to carry a syslog timestamp: EventIngestor parses one
           # off the front, and an unparseable line is counted as a failure rather
           # than stored, so a bare probe would prove only that UDP is open.
-          # Rotation is traffic-driven too -- RotateLog runs from logit -- so the
-          # second packet, sent after the 60s boundary, is what moves the staging
-          # file into LogsToProcess for the importer to claim.
+          # Rotation is traffic-driven -- ensure_open runs from the per-message
+          # path -- so the second packet, sent after the 60s boundary, is what
+          # moves the staging file into LogsToProcess for the importer to claim.
+          # One packet alone would sit in LogStaging until later traffic arrives.
           send() {
             python3 -c "
           import socket, time
@@ -414,6 +416,40 @@ jobs:
         run: |
           docker compose ps -a
           docker compose logs --no-color
+
+  # The syslog collector is Rust, so it needs its own job: no other job compiles
+  # it, and the docker job only builds it as a side effect of building the image,
+  # which would not run its tests.
+  #
+  # Pinned to the same minor as the rust: tag in Dockerfile and the rustc/cargo
+  # provision.sh installs, so CI, the image, and a provisioned host all build the
+  # collector the same way.
+  collector:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.85.1
+        with:
+          components: rustfmt, clippy
+      - name: Formatting is checked in
+        run: cargo fmt --all -- --check
+        working-directory: syslog_collector
+      # Lint is a gate, not advisory: the collector is network-facing and
+      # long-lived. Default clippy lint set only -- `clippy::pedantic` reports
+      # 13 style findings here that are not worth the churn.
+      - name: Clippy (warnings are errors)
+        run: cargo clippy --all-targets -- -D warnings
+        working-directory: syslog_collector
+      - name: Unit and integration tests
+        # The integration tests spawn the real binary on high UDP ports and
+        # compare bytes on disk, so they need no root and no Postgres.
+        run: cargo test
+        working-directory: syslog_collector
+      # The profile production and provision.sh actually build, so a release-only
+      # compile error is caught here rather than at provision time.
+      - name: Release build
+        run: cargo build --release
+        working-directory: syslog_collector
 
   security:
     runs-on: ubuntu-24.04

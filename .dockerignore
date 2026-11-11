@@ -28,4 +28,9 @@ vendor/bundle
 /Logs/LogsToProcess
 /Logs/LogStaging
 
+# Cargo build output. The image builds the collector in its own stage; a host
+# target/ directory would be copied into the build context and then rebuilt
+# anyway. ~100 MB of it.
+/syslog_collector/target
+
 .DS_Store

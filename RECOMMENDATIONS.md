@@ -1857,7 +1857,10 @@ Two behaviours that look like bugs during testing and are not:
   inbound traffic the open staging file is never moved into `LogsToProcess` and the
   importer sees nothing. A quiet system looks like a broken importer.
 - **The staging file reads as 0 bytes** until rotation's `close(LOG)` flushes Perl's
-  block buffer. That is buffering, not data loss.
+  block buffer. **The original note called this "buffering, not data loss" and that
+  was wrong.** It is data loss: measured, 40 messages sent to the Perl collector
+  left 0 bytes durable after both SIGTERM and SIGKILL, because nothing ever closed
+  the handle. See §5.8.
 
 **Deliberate choices, so they are not "fixed" later:**
 
@@ -1908,6 +1911,77 @@ importer scans once a minute, so packet-to-row latency is 0–60s on top of that
 
 Verified in both directions: with `nodejs` removed from the image the job fails
 with the ExecJS message; restored, all steps pass.
+
+---
+
+### 5.8 ✅ Closed — the syslog collector was rewritten in Rust, and it was losing data **[operations] [correctness]**
+
+`syslog.pl` is deleted; `syslog_collector/` is a zero-dependency Rust crate (std
+only). The rewrite was a chance to measure the collector rather than read it, and
+three of the measurements turned out to be data loss. All three are fixed; the
+rest of the behaviour is byte-identical.
+
+**Verified equivalent.** Both collectors were run on UDP/514 with the production
+`/var/DAD/Logs` paths against the same 22-packet corpus (RFC 3164 and ISO 8601
+timestamps, missing/non-numeric priority, interior newlines, CRLF, empty
+datagrams, non-UTF-8 bytes, a datagram exactly at the old cap). The file handed to
+the importer — the only one `import_syslog.rb` reads — was **2116 bytes with the
+same SHA-256 (`c150534478b21a07`) from both**. Filename epoch suffixes normalised;
+contents compared raw.
+
+**Loss 1: block-buffered stdio with no signal handler.** Measured by sending 40
+messages and not triggering a rotation: **0 bytes durable after SIGTERM, and 0
+after SIGKILL.** Everything received since the last rotation lived only in the
+process's memory. Fixed by flushing per record. Cost measured at 20 000 datagrams:
+the Rust collector made all 1 180 000 bytes durable in 0.05 s (~400 k msgs/s),
+orders of magnitude above any real syslog rate, so the flush is free.
+
+**Loss 2: the stranded staging file.** `import_syslog.rb` does
+`Dir.chdir('Logs/LogsToProcess')` and reads only there; **nothing in the repo ever
+reads `LogStaging`** (grep-verified). So the file Perl left open at exit was
+orphaned permanently — up to 60 s of collected logs lost on every restart,
+*including a planned `systemctl restart` during a package upgrade*. Fixed by
+`recover_orphans()`, which moves anything found in `LogStaging` into
+`LogsToProcess` at startup. Startup rather than a SIGTERM handler is deliberate: a
+handler cannot run on SIGKILL, OOM kill, or power loss, and the orphan is still on
+disk next start either way. Verified in the Compose stack: after `docker compose
+restart syslog`, the journal shows both the planted orphan and the file the
+restart itself stranded being recovered, and both then appear in `events`.
+
+**Loss 3: silent truncation at 1540 bytes.** `recv($buf, 1540)` — verified, a
+3000-byte datagram yielded exactly 1540 bytes with no `MSG_TRUNC` signal. 1540 is
+the old RFC 3164 "should", not a protocol limit. The cap is now 65 507 (max UDP
+payload). `events.hunks` is a `:text` column, unbounded on Postgres, so no schema
+change is needed. Measured: a 2005-byte packet produced 1547 bytes from Perl and
+3558 from Rust, with the full payload present.
+
+**Deliberately preserved, because they are the contract:**
+
+- **The record format `<source-ip> <message>\n`.** `Event#event_fields` splits
+  `hunks` on spaces, so the source IP is field 1 and the timestamp follows it. The
+  read side depends on the write side's formatting.
+- **Byte-oriented parsing (`&[u8]`, never `String`).** Perl never decoded, so
+  invalid UTF-8 reached `hunks` verbatim; `EventIngestor` does the scrubbing.
+- **Traffic-driven rotation.** `ensure_open` runs from the per-message path, so a
+  quiet system moves no files. The CI `docker` job sends two packets for this
+  reason, and the Rust integration tests assert it.
+- **`chomp` removes one trailing newline only**, so a payload with an interior
+  newline still becomes two staging lines. Replicated exactly.
+
+**Not preserved: Perl's failure modes.** `recv`'s return value is now checked (a
+failed `recv` previously logged a blank record — verified that `$buf` is left
+empty, not at its previous value, so the old worst case was a blank line rather
+than a duplicate); `rename` failures are logged; and an `open` failure is logged
+and retried at the next boundary.
+
+**Coverage.** A `collector` CI job runs `cargo fmt --check`, `cargo clippy
+--all-targets -- -D warnings`, and `cargo test` (26 unit + 13 integration). The
+integration tests spawn the real binary on high UDP ports and compare bytes on
+disk, so they need neither root nor Postgres. The `docker` job still covers the
+end-to-end path. **The Perl/Rust equivalence check itself is not automated** — it
+needed root, port 514, and a 61 s rotation wait, and the Perl collector no longer
+exists to compare against. Anyone changing the parse must re-verify the record
+format by hand.
 
 ---
 

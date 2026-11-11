@@ -13,7 +13,7 @@ have a search engine over nothing.
 
 ```
                      ┌──────────────────────────────────────────────┐
- syslog/UDP:514 ───► │ syslog.pl          (dad-syslog)              │
+ syslog/UDP:514 ───► │ syslog_collector   (dad-syslog)              │
                      │   writes Logs/LogStaging/syslog.<epoch>      │
                      │   renames it to Logs/LogsToProcess every 60s │
                      └──────────────────────────────────────────────┘
@@ -42,7 +42,7 @@ should touch it.
 
 | unit | runs | loop |
 |---|---|---|
-| `dad-syslog` | `syslog.pl` | rotates the staging file every 60s |
+| `dad-syslog` | `syslog_collector` (Rust) | rotates the staging file every 60s |
 | `dad-importer` | `import_syslog.rb` | one pass every 60s; purge every 12h |
 | `dad-scheduler` | `scheduler.rb` | due `Job` rows every 60s |
 
@@ -186,7 +186,7 @@ renders fine but can never succeed.
 | `web` | `rails server` on :3000 | Apache + Passenger |
 | `importer` | `import_syslog.rb` | `dad-importer` |
 | `scheduler` | `scheduler.rb` | `dad-scheduler` |
-| `syslog` | `syslog.pl`, UDP :514 | `dad-syslog` |
+| `syslog` | `syslog_collector`, UDP :514 | `dad-syslog` |
 | `test` | the suite, on Postgres (`--profile test`) | the CI `postgres` job |
 
 The service split mirrors production deliberately: these are independent
@@ -212,7 +212,7 @@ Two things worth knowing before you reach for it:
   writes fail with `EACCES` in a way that reads like an app bug. The gem layer is
   cached, so after an edit `docker compose up --build` only re-runs `COPY . .`.
 
-The image's `WORKDIR` is `/var/DAD`, not `/app`, because `syslog.pl` hardcodes
+The image's `WORKDIR` is `/var/DAD`, not `/app`, because the collector hardcodes
 absolute paths under `/var/DAD/Logs` and every systemd unit sets
 `WorkingDirectory=/var/DAD`. Any other `WORKDIR` and the collector writes into a
 directory the importer never reads.
@@ -225,7 +225,8 @@ This is the development and test path. Production still deploys through
 Useful for development; in production use the units (see `systemd/README.md`).
 
 ```bash
-perl syslog.pl &                    # needs root or CAP_NET_BIND_SERVICE for :514
+cargo build --release --manifest-path syslog_collector/Cargo.toml
+./syslog_collector/target/release/syslog_collector &   # :514 needs root or CAP_NET_BIND_SERVICE
 ruby import_syslog.rb &             # chdir's into Logs/LogsToProcess itself
 ruby scheduler.rb &
 ```
@@ -582,11 +583,12 @@ failed `CONCURRENTLY` build. It passes extra arguments through to the container,
 so `bin/docker-test bundle exec rails test test/models/event_test.rb` runs one
 file, and `bin/docker-test bash` drops you into it.
 
-CI runs six jobs (`.github/workflows/ci.yml`): the unit tests and cucumber
+CI runs seven jobs (`.github/workflows/ci.yml`): the unit tests and cucumber
 features on **both SQLite and Postgres**, an asset-precompile job, a job that
 checks `provision.sh` parses and the systemd units verify, a `security` job
-(brakeman, bundle-audit, gitleaks), and a **`docker` job that builds this image
-and boots the stack**.
+(brakeman, bundle-audit, gitleaks), a **`docker` job that builds this image and
+boots the stack**, and a **`collector` job** that runs `cargo fmt --check`,
+`cargo clippy -D warnings`, and `cargo test` for the Rust syslog collector.
 
 The `docker` job is the one that would have caught the broken `Dockerfile.dev`.
 Beyond building, it drives the running stack: it asserts the `migrate` service
@@ -595,7 +597,9 @@ page actually renders (checking the body for "Could not find a JavaScript
 runtime", so a missing runtime names itself instead of showing as a bare 500),
 that an asset path the page emitted returns 200, and that a UDP packet sent to
 `syslog`:514 ends up as a row in `events`. That last check is the only automated
-test of the Perl collector — no Ruby-level job would notice it failing to start.
+test of the collector end-to-end through the importer — no Ruby-level job would
+notice it failing to start. The `collector` job covers the unit and integration
+tests, which the `docker` job does not run.
 
 To run against Postgres without Docker, point `DATABASE_URL` at a local cluster.
 Use `db:migrate_from_scratch`, not `db:migrate`: the committed `db/schema.rb` is
