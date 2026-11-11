@@ -189,6 +189,10 @@ services:
         # its config. The lockfile is enforced at build time by --frozen.
         bundle exec rake db:create db:migrate_from_scratch
         bundle exec rake test
+        # `rake test` excludes test/system by design (Rails sets
+        # DEFAULT_TEST_EXCLUDE to test/{system,dummy,fixtures}/**), so the
+        # browser-level suite needs its own task or it never runs.
+        bundle exec rake test:system
         bundle exec cucumber
         echo "--- asserting the Postgres-only schema shape ---"
         psql "$$DATABASE_URL" -tAc \

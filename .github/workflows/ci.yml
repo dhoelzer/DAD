@@ -111,6 +111,12 @@ jobs:
       - name: Unit and controller tests
         run: bundle exec rake test
 
+      # `rake test` excludes test/system by design (Rails sets
+      # DEFAULT_TEST_EXCLUDE to test/{system,dummy,fixtures}/**), so the
+      # browser-level suite needs its own task or it never runs in CI.
+      - name: System tests
+        run: bundle exec rake test:system
+
       # `rake cucumber:ok` runs cucumber in-process, where minitest's autorun
       # then parses cucumber's --profile flag and exits 1. Invoke the binary.
       - name: Cucumber features

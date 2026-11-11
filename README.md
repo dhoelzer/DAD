@@ -150,6 +150,7 @@ createdb -O dad dad_test
 export DATABASE_URL=postgres://dad:dad@127.0.0.1:5432/dad_test
 bundle exec rake db:migrate_from_scratch
 bundle exec rake test
+bundle exec rake test:system
 
 # production
 export SECRET_KEY_BASE=$(openssl rand -hex 64)
@@ -573,8 +574,9 @@ page; `?page=N` selects one. Nothing in the UI loads a whole table.
 ## Development
 
 ```bash
-bin/docker-test              # both suites on Postgres, in Docker -- preferred
+bin/docker-test              # all three suites on Postgres, in Docker -- preferred
 bundle exec rake test        # unit + controller tests, needs a Postgres cluster
+bundle exec rake test:system # browser-level tests (Capybara rack-test)
 bundle exec cucumber         # feature tests, needs a Postgres cluster
 bundle exec brakeman -q      # static analysis, must report 0 warnings
 bundle exec bundle-audit check # dependency CVEs
@@ -588,15 +590,19 @@ insert a single event while every SQLite job stayed green (RECOMMENDATIONS 3.2).
 on SQLite at all, so a SQLite suite never exercises the shape production queries;
 the composite covering index on `events_words` is Postgres-only too.
 
-`bin/docker-test` runs both suites against the Compose `db` service and then makes
-the same two assertions the CI `postgres` job makes — that `events` and
+`rake test` does **not** run `test/system` -- Railties excludes that directory
+from the default task -- so the browser-level suite needs its own command.
+
+`bin/docker-test` runs all three suites against the Compose `db` service and then
+makes the same two assertions the CI `test` job makes — that `events` and
 `events_words` really are partitioned, and that no index was left `INVALID` by a
 failed `CONCURRENTLY` build. It passes extra arguments through to the container,
 so `bin/docker-test bundle exec rails test test/models/event_test.rb` runs one
 file, and `bin/docker-test bash` drops you into it.
 
-CI runs six jobs (`.github/workflows/ci.yml`): the unit tests and cucumber
-features on **Postgres**, an asset-precompile job, a job that verifies the
+CI runs six jobs (`.github/workflows/ci.yml`): the unit tests, the browser-level
+system tests and the cucumber features on **Postgres**, an asset-precompile job,
+a job that verifies the
 systemd units, a `security` job (brakeman, bundle-audit, gitleaks), a **`docker`
 job that builds this image and boots the stack**, and a **`collector` job** that
 runs `cargo fmt --check`, `cargo clippy -D warnings`, and `cargo test` for the
@@ -620,6 +626,7 @@ createuser dad && createdb -O dad dad_test
 export DATABASE_URL=postgres://dad:dad@127.0.0.1:5432/dad_test
 bundle exec rake db:migrate_from_scratch
 bundle exec rake test
+bundle exec rake test:system
 bundle exec cucumber
 ```
 

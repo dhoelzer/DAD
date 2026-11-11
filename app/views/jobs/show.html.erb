@@ -12,7 +12,7 @@
 
 <p>
   <strong>User:</strong>
-  <%= @job.user.username %>
+  <%= @job.user.username unless @job.user.nil? %>
 </p>
 
   <p>

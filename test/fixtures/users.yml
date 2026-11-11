@@ -1,0 +1,20 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+#
+# Explicit ids: jobs.yml, comments.yml and searches.yml all point user_id at 1,
+# and without these rows those foreign keys dangle -- Job#user is nil, which
+# 500s the /jobs index. No password column: nothing logs in as a fixture user,
+# and users.password is nullable with no presence validation.
+
+one:
+  id: 1
+  username: fixtureuser
+  first: Fixture
+  last: User
+  attempts: 0
+
+two:
+  id: 2
+  username: fixtureuser2
+  first: Fixture
+  last: User2
+  attempts: 0

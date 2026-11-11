@@ -58,6 +58,11 @@ group :development, :test do
   # cucumber-rails 2.x env.rb API this app's features/support/env.rb uses.
   gem 'cucumber-rails', '~> 3.1', require: false
   gem 'database_cleaner', '~> 1.7'
+  # Declared explicitly rather than leaning on the copy cucumber-rails pulls in:
+  # test/system/ drives the rendered HTML through Capybara, and a transitive dep
+  # can disappear on an unrelated bump. rack-test only -- see test/system_helper.rb
+  # for why there is no real browser here.
+  gem 'capybara', '~> 3.40'
 end
 
 group :development do
