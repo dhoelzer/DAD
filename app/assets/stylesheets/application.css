@@ -1,250 +1,150 @@
 /*
- * This is a manifest file that'll be compiled into application.css, which will include all the files
- * listed below.
+ * The application stylesheet. One bundle: the layout, the nav bar, the alert
+ * queue, the dashboard charts, and the scaffold rules Rails generators rely on.
  *
- * Any CSS and SCSS file within this directory, lib/assets/stylesheets, vendor/assets/stylesheets,
- * or vendor/assets/stylesheets of plugins, if any, can be referenced here using a relative path.
+ * This file used to be two: application.css plus a stock scaffolds.css.scss
+ * that had never been edited since the app was generated. Both were loaded into
+ * the same bundle, and neither referenced a selector the other defined, so they
+ * are merged here. The scaffold rules are still needed -- every generated
+ * _form.html.erb uses div.field / div.actions / #error_explanation, and every
+ * show page uses #notice.
  *
- * You're free to add application-wide styles to this file and they'll appear at the top of the
- * compiled file, but it's generally better to create a new file per style scope.
+ * Order is load-bearing only where a rule overrides another rule of equal
+ * specificity on the same selector; #alerts is the one such case and is merged
+ * into a single block below. The vendored CodeMirror stylesheet is pulled in
+ * after these rules by the require below.
  *
  *= require_self
  *= require codemirror
  *= require_tree .
  */
 
-html, body{
-	height: 100%;
+html, body {
+  height: 100%;
 }
+
+/* ---- scaffold rules (Rails generators) ---- */
+
+body {
+  background-color: #fff;
+  color: #333;
+  font-family: verdana, arial, helvetica, sans-serif;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+p, ol, ul, td {
+  font-family: verdana, arial, helvetica, sans-serif;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+pre {
+  background-color: #eee;
+  padding: 10px;
+  font-size: 11px;
+}
+
+a {
+  color: #000;
+}
+a:visited {
+  color: #666;
+}
+a:hover {
+  color: #fff;
+  background-color: #000;
+}
+
+div.field, div.actions {
+  margin-bottom: 10px;
+}
+
+#notice {
+  color: green;
+}
+
+/* Rails wraps a failing field in this div; it is not written in any view. */
+.field_with_errors {
+  padding: 2px;
+  background-color: red;
+  display: table;
+}
+
+#error_explanation {
+  width: 450px;
+  border: 2px solid red;
+  padding: 7px;
+  padding-bottom: 0;
+  margin-bottom: 20px;
+  background-color: #f0f0f0;
+}
+#error_explanation h2 {
+  text-align: left;
+  font-weight: bold;
+  padding: 5px 5px 5px 15px;
+  font-size: 12px;
+  margin: -7px;
+  margin-bottom: 0;
+  background-color: #c00;
+  color: #fff;
+}
+#error_explanation ul li {
+  font-size: 12px;
+  list-style: square;
+}
+
+/* ---- events ---- */
 
 .CodeMirror { border: 1px solid black; }
 
 .timestamp {
-	display: inline;
-    position: relative;
-	white-space: pre-wrap;
-	font-size: 0.875em;
+  display: inline;
+  position: relative;
+  white-space: pre-wrap;
+  font-size: 0.875em;
 }
 
 .event_detail {
-	font-family: monospace;
+  font-family: monospace;
 }
 
 .system {
-	display: inline-block;
-	font-size: 0.875em;
-	width: 100px;
-	max-width: 100px;
-    position: relative;
-	white-space: pre-wrap;	
+  display: inline-block;
+  font-size: 0.875em;
+  width: 100px;
+  max-width: 100px;
+  position: relative;
+  white-space: pre-wrap;
 }
+
+/* Tooltip on hover: the full timestamp in :after, with a caret from :before.
+   The text comes from the time attribute, so it needs no JS. */
 .timestamp:hover {
-	background: #aaa;
+  background: #aaa;
 }
-.timestamp:hover:after{
-    background: #333;
-    background: rgba(0,0,0,.8);
-    border-radius: 5px;
-    bottom: 26px;
-    color: #fff;
-    content: attr(time);
-    left: 20%;
-    padding: 5px 15px;
-    position: absolute;
-    z-index: 98;
-    width: 520px;
+.timestamp:hover:after {
+  background: #333;
+  background: rgba(0, 0, 0, .8);
+  border-radius: 5px;
+  bottom: 26px;
+  color: #fff;
+  content: attr(time);
+  left: 20%;
+  padding: 5px 15px;
+  position: absolute;
+  z-index: 98;
+  width: 520px;
 }
-.timestamp:hover:before{
-    border: solid;
-    border-color: #333 transparent;
-    border-width: 6px 6px 0 6px;
-    bottom: 20px;
-    content: "";
-    left: 50%;
-    position: absolute;
-    z-index: 99;
-}
-
-#criticality-1 {
-	background-color: #90ff90;
-	display: table-row;
-}
-
-#criticality-2 {
-	background-color: #50b050;
-	display: table-row;
-}
-
-#criticality-3 {
-	background-color: #ffff90;
-	display: table-row;
-}
-
-#criticality-4 {
-	background-color: #ff9020;
-	display: table-row;
-}
-
-#criticality-5 {
-	background-color: #ff5050;
-	display: table-row;
-}
-
-#alerts {
-	padding: 1em;
-	display: table;
-	width: auto;
-}
-
-#alerts-header {
-	display: table-row;
-	width: auto;
-}
-#alert-detail {
-	display:table-column;
-	float:left;
-	width:auto;
-}
-#alert-time {
-	display:table-column;
-	float:left;
-	width:200px;
-}
-#alert-system {
-	display:table-column;
-	float:left;
-	width:200px;
-}
-#alert-desc {
-	display:table-column;
-	float:left;
-	width:700px;
-}
-#alert-ack {
-	display:table-column;
-	float:left;
-	width:40px;
-}
-
-/* Ack is a POST form (button_to), not a link: acknowledge writes, and a
-   state-changing GET is not covered by protect_from_forgery. The queue is laid
-   out with display:table-column in a 40px cell, so the form's default block box
-   and margins have to be neutralised or the row height changes. */
-#alert-ack form {
-	margin: 0;
-	display: inline;
-}
-#alert-ack input[type=submit] {
-	padding: 0;
-	border: none;
-	background: none;
-	cursor: pointer;
-	font: inherit;
-}
-
-#alerts {
-	padding: 1em;
-	float:right;
-}
-#comments {
-	float:right;
-	width:30%;
-	background-color: #c0c0c0;
-	padding: 1em;
-}
-
-#spinner {
-	width:100%;
-	height:100%;
-    position: absolute;
-	top:0;
-	left:0;
-	display: none;
-	opacity: 0.5;
-	       /* Relative on purpose: sprockets rewrites this to the digested filename.
-          A hardcoded /assets/spinner.gif would 404 once digests are enabled. */
-       background: url(spinner.gif) no-repeat center center fixed;
-	  -webkit-background-size: cover;
-	  -moz-background-size: cover;
-	  -o-background-size: cover;
-	  background-size: cover;
-    z-index:1234;
-}
-
-#big_picture {
-	width:49%;
-	float:left;
-}
-
-#services_chart {
-	width:49%;
-	float: left;
-}
-
-#clear {
-	clear: both;
-}
-#systems_chart {
-	width:49%;
-	float: left;
-}
-
-#event_rates div {
-	width: 32%;
-	float: left;
-}
-
-#graphs {
-	width: 49%;
-	float: left;
-}
-
-#logging_rate {
-	width: 99%;
-	display:inline;
-	float: left;
-}
-
-#insert_rate {
-	width: 99%;
-	display:inline;
-	float: left;
-}
-
-/* Chart.js sizes to its container, where Highcharts defaulted to 400px tall.
-   dad_prepare_canvas tags every chart div with this class, which also covers the
-   per-system gauge and graph divs, whose ids are built at render time and so
-   cannot be matched by an id rule. Keep interpolation syntax out of these
-   comments: Sass expands it even inside a comment, which fails the build. */
-.dad-chart {
-	height: 400px;
-}
-
-#navbar	ul {
-		list-style-type: none;
-		margin: 0;
-		padding: 0;
-		overflow: hidden;
-	}
-#navbar	li {
-		float: left;
-		background-color:#000000;
-	}
-#navbar	a { 
-		display: block;
-		font-weight: bold;
-		color: #ffffff;
-		text-decoration: none;
-		text-transform: uppercase;
-		padding: 1px;
-		width: 120px;
-	}
-
-li#active {
-	background-color: #555555;
-}
-#navbar a:hover {
-	background-color: #888855;
+.timestamp:hover:before {
+  border: solid;
+  border-color: #333 transparent;
+  border-width: 6px 6px 0 6px;
+  bottom: 20px;
+  content: "";
+  left: 50%;
+  position: absolute;
+  z-index: 99;
 }
 
 #events_window {
@@ -254,13 +154,151 @@ li#active {
   border: 1px black solid;
 }
 
-#events_header{
-  font-size: 1.0em;
-  font-style: bold;
+#recent_events {
+  height: 200px;
+  overflow: auto;
+  background-color: #eee;
 }
 
-#recent_events {
-  height:200px;
-  overflow: auto;
-  background-color: #eeeeee;
+/* ---- alert queue ---- */
+
+/* Criticality is a row background, 1 (informational) through 5 (critical).
+   The id is a styling hook written by _alerts.html.erb; see Phase 4 for why
+   these are ids rather than classes. */
+/* display: table-row is not decoration: #alerts is display:table and each
+   criticality div is its direct child, so without it a row stops participating
+   in the table layout and the columns stop lining up with #alerts-header. */
+#criticality-1 { background-color: #90ff90; display: table-row; }
+#criticality-2 { background-color: #50b050; display: table-row; }
+#criticality-3 { background-color: #ffff90; display: table-row; }
+#criticality-4 { background-color: #ff9020; display: table-row; }
+#criticality-5 { background-color: #ff5050; display: table-row; }
+
+#alerts {
+  padding: 1em;
+  display: table;
+  width: auto;
+  float: right;
+}
+
+#alerts-header {
+  display: table-row;
+  width: auto;
+}
+
+#alert-time, #alert-system {
+  display: table-column;
+  float: left;
+  width: 200px;
+}
+#alert-desc {
+  display: table-column;
+  float: left;
+  width: 700px;
+}
+#alert-ack {
+  display: table-column;
+  float: left;
+  width: 40px;
+}
+
+/* Ack is a POST form (button_to), not a link: acknowledge writes, and a
+   state-changing GET is not covered by protect_from_forgery. The queue is laid
+   out with display:table-column in a 40px cell, so the form's default block box
+   and margins have to be neutralised or the row height changes. */
+#alert-ack form {
+  margin: 0;
+  display: inline;
+}
+#alert-ack input[type=submit] {
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+}
+
+#comments {
+  float: right;
+  width: 30%;
+  background-color: #c0c0c0;
+  padding: 1em;
+}
+
+/* ---- dashboard layout ---- */
+
+/* Relative on purpose: sprockets rewrites this to the digested filename.
+   A hardcoded /assets/spinner.gif would 404 once digests are enabled. */
+#spinner {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: none;
+  opacity: 0.5;
+  background: url(spinner.gif) no-repeat center center fixed;
+  -webkit-background-size: cover;
+  -moz-background-size: cover;
+  -o-background-size: cover;
+  background-size: cover;
+  z-index: 1234;
+}
+
+#big_picture, #services_chart, #systems_chart, #graphs {
+  width: 49%;
+  float: left;
+}
+
+#logging_rate, #insert_rate {
+  width: 99%;
+  display: inline;
+  float: left;
+}
+
+#event_rates div {
+  width: 32%;
+  float: left;
+}
+
+#clear {
+  clear: both;
+}
+
+/* Chart.js sizes to its container, where Highcharts defaulted to 400px tall.
+   dad_prepare_canvas tags every chart div with this class, which also covers the
+   per-system gauge and graph divs, whose ids are built at render time and so
+   cannot be matched by an id rule. Keep interpolation syntax out of these
+   comments: Sass expands it even inside a comment, which fails the build. */
+.dad-chart {
+  height: 400px;
+}
+
+/* ---- nav bar ---- */
+
+#navbar ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+#navbar li {
+  float: left;
+  background-color: #000;
+}
+#navbar a {
+  display: block;
+  font-weight: bold;
+  color: #fff;
+  text-decoration: none;
+  text-transform: uppercase;
+  padding: 1px;
+  width: 120px;
+}
+#navbar a:hover {
+  background-color: #888855;
+}
+
+li#active {
+  background-color: #555;
 }
