@@ -2281,6 +2281,83 @@ brakeman 0 warnings; `script/check_asset_paths.rb` all 3 paths on disk. The CSS
 digest is deterministic across two clean precompiles
 (`c561a181…`).
 
+### 5.13 ✅ Closed — the form error summary was copy-pasted 14 times, and 12 of those copies are unreachable **[maintainability]**
+
+All 14 `_form.html.erb` files carried the same 11-line `error_explanation` block.
+Normalising the model name out left **one distinct shape across all 14** -- the
+only differences were the instance variable and the loop variable, and those had
+already drifted: 8 forms used `|msg|`, 6 used `|message|`. That drift is the
+usual argument for de-duplicating.
+
+Replaced with `app/views/shared/_error_explanation.html.erb`, rendered as
+`render 'shared/error_explanation', record: @model`. **154 lines removed, 14
+added.**
+
+The h2 noun ("prohibited this *user* from being saved") was a hardcoded string in
+each copy. It is now `record.model_name.human.downcase`, which was checked against
+all 14 before the change: every one matches the string that was written out by
+hand. So the wording is derived rather than repeated, and a model that renames
+itself via `model_name` gets a consistent summary instead of a stale one.
+
+**The finding that matters more than the duplication: 12 of the 14 blocks are
+dead code.** Only `User` (username presence) and `Job` (frequency numericality)
+have validations. The other twelve models have none, and `config/application.rb`
+deliberately does not call `config.load_defaults`, so
+`belongs_to_required_by_default` stays off. A blank `Alert`, `Display`, `System`
+or `Service` therefore **saves successfully** -- `errors.any?` is false, and the
+block cannot render. Confirmed by constructing each model with no attributes and
+calling `save`: 12 returned `true` with no errors; only `User` returned `false`.
+
+So the duplication was not 14 copies of working code; it was 14 copies of a
+template, 12 of which decorate a form that cannot report an error. That is worth
+recording because it changes what a future change should assume: adding a
+validation to, say, `Display` would newly light up a summary that has never been
+rendered in production.
+
+**Nothing tested any of it.** No test in the suite referenced `error_explanation`
+or the summary text, before or after. A partial that raised would have left every
+test green. `test/system/form_errors_test.rb` now covers:
+- the two reachable paths (invalid user, invalid job), asserting the summary text
+  and `.field_with_errors`, which Rails emits itself
+- that a valid form renders **no** summary -- this is what proves the
+  `errors.any?` guard survived extraction
+- all 14 models by rendering the partial directly, since the other twelve cannot
+  reach it through a form without inventing validations they do not have
+
+Both guards checked by mutation: swapping `model_name.human.downcase` for
+`class.name` fails 3 tests; forcing the guard to `if true` fails the
+no-summary test.
+
+**Evidence the refactor is output-preserving.** Rather than eyeball the diff, the
+rendered HTML for every reachable form path (new + edit for 14 models, plus the
+two invalid-submit responses) was captured before and after and compared:
+
+| Result | Count |
+|---|---|
+| Byte-identical | 4 |
+| Differ only by a whitespace-only line | 21 |
+| Real content differences | 2 |
+
+The 21 are the forms with no error block: the removed `<% if %>` left one fewer
+blank line. The 2 "real" differences are the `datetime_select` hour rolling from
+18 to 19 between the two captures -- the clock advanced, not the code. For the two
+renders that do contain a summary, the only changes are the indentation of the
+`<h2>`, `<ul>`, `<li>` and `</div>` lines, and the h2 text is **identical**, which
+confirms the `model_name.human.downcase` derivation produces the same wording.
+
+**Not deduplicated, deliberately.** The 16 `index.html.erb` views look similar but
+are not: the action columns vary by what each controller actually permits --
+`displays` and `jobs` have Destroy but no Show or Edit, `sessions` has Show and
+Destroy but no Edit, `alerts`/`events`/`systems` have none. That variation is the
+rights model showing through, not copy-paste drift, so a shared action-cell
+partial would need per-view conditionals as numerous as the views. The
+`new`/`edit` wrappers are 4 lines each and differ in all three lines; extracting
+them would trade 14 short readable files for one file with parameters. Left as is.
+
+**Verified:** 437 runs / 1259 assertions (`rake test`); **36 system runs / 193
+assertions** (up from 32/127); cucumber 5 scenarios / 18 steps; brakeman 0
+warnings; bundle-audit clean.
+
 
 Every item in this table is now done. It is kept as the record of the order the
 work went in, with the stale "why here" wording corrected in place.
