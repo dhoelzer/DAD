@@ -150,6 +150,14 @@ gem 'bcrypt', '~> 3.1.20'
 # exchange is not in the clear.
 gem 'winrm', '~> 2.4'
 
+# LDAP client, used to query Active Directory for the machines that should be
+# polled (AdQuery). Pure Ruby -- no C extension, so it builds in the same
+# minimal image as everything else, and it negotiates RFC 2696 paged results
+# itself, which matters because Active Directory caps a search at MaxPageSize
+# (1000 by default) and a larger domain would otherwise return a silently
+# truncated host list.
+gem 'net-ldap', '~> 0.21'
+
 # Use unicorn as the app server
 # gem 'unicorn'
 

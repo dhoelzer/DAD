@@ -314,6 +314,34 @@ li.active {
    The breakpoint is 768px, the tablet-portrait boundary, chosen because the two
    things that break are the nav bar and the alert queue, and both break well
    before a desktop width. */
+
+/* Active Directory import.
+ *
+ * .hint is used by several forms and has never been styled; it stays plain text.
+ * .warning carries a real decision -- "this is a domain controller", "this host
+ * has no recognisable Windows OS", "importing from this connection will create
+ * targets that cannot poll" -- so it has to read as a warning rather than as
+ * another paragraph of the form.
+ */
+p.warning {
+  border-left: 4px solid #b26a00;
+  background-color: #fdf3e2;
+  padding: 8px 12px;
+  margin: 14px 0;
+}
+
+/* Candidates the preview deliberately left unchecked: no recognisable Windows
+ * operatingSystem, so polling them would fail. Distinguished from the ordinary
+ * rows so the reason they differ is visible without reading the table header. */
+table.ad_candidates tr.unknown_os {
+  background-color: #f6f6f6;
+  color: #666;
+}
+
+table.ad_candidates td {
+  vertical-align: top;
+}
+
 @media (max-width: 768px) {
 
   /* The nav bar is generated from $_models -- 19 tabs at 120px each, so 2280px

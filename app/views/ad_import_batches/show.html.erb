@@ -1,0 +1,154 @@
+<p id="alert"><%= alert %></p>
+
+<h1>Review hosts from <%= @batch.active_directory_connection.display_name %></h1>
+
+<p>
+  Queried <%= @batch.created_at %> by <%= @batch.user&.username || 'unknown' %>
+  &mdash; filter: <strong><%= @batch.host_filter %></strong>.
+</p>
+
+<% if @batch.applied? %>
+  <p>
+    This query was already applied on <%= @batch.applied_at %>:
+    <strong><%= @batch.added_count %></strong> target(s) created.
+    A batch applies once, so it cannot be re-run; query the directory again for
+    a fresh list.
+  </p>
+<% end %>
+
+<% connection = @batch.active_directory_connection %>
+
+<table>
+  <tr><th>Directory</th><td><%= connection.host %>:<%= connection.port %></td></tr>
+  <tr><th>Search base</th><td><%= connection.search_base %></td></tr>
+  <tr>
+    <th>Computers returned</th>
+    <td><%= @batch.candidates.size %></td>
+  </tr>
+  <tr>
+    <th>Not yet a target</th>
+    <td><strong><%= @batch.new_hosts.size %></strong></td>
+  </tr>
+  <tr>
+    <th>Already a target</th>
+    <td><%= @batch.already_present.size %></td>
+  </tr>
+  <tr>
+    <th>Priority applied</th>
+    <td><%= connection.polling_priority.name %></td>
+  </tr>
+  <tr>
+    <th>Event logs applied</th>
+    <td><%= connection.event_logs %></td>
+  </tr>
+  <tr>
+    <th>WinRM account applied</th>
+    <td><%= connection.poll_username.presence || 'none' %></td>
+  </tr>
+</table>
+
+<% unknown = @batch.new_hosts.select { |c| c['host_class'] == 'unknown' } %>
+<% controllers = @batch.new_hosts.select { |c| c['domain_controller'] } %>
+
+<% if unknown.any? %>
+  <p class="warning">
+    <%= unknown.size %> of these have no recognisable Windows operatingSystem
+    value, so they are listed as neither workstation nor server. They are shown
+    unchecked: a machine that is not Windows, or whose OS was never recorded,
+    cannot be polled successfully. Select one only if you are sure it is a
+    Windows host.
+  </p>
+<% end %>
+
+<% if controllers.any? %>
+  <p class="warning">
+    <%= controllers.size %> of these are domain controllers. They match the
+    server filter, and polling a domain controller over WinRM is a decision
+    worth making deliberately.
+  </p>
+<% end %>
+
+<% if @batch.new_hosts.empty? %>
+  <p>
+    Nothing to add: every computer object this query returned is already a
+    Windows target.
+  </p>
+<% else %>
+  <%= form_tag apply_ad_import_batch_path(@batch), method: :post do %>
+    <table class="ad_candidates">
+      <thead>
+        <tr>
+          <th>Add?</th>
+          <th>Host</th>
+          <th>Name</th>
+          <th>Operating system</th>
+          <th>Class</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @batch.new_hosts.each do |candidate| %>
+          <%# Classes, not ids: this row renders once per candidate, and a
+             repeated id would make every row after the first unaddressable. %>
+          <tr class="ad_candidate<%= ' unknown_os' if candidate['host_class'] == 'unknown' %>">
+            <td>
+              <%# Explicit id: check_box_tag derives one from the name, and
+                 'selected_addresses[]' yields the same id for every row. A
+                 repeated id is invalid HTML and makes every row after the first
+                 unaddressable by label or script. %>
+              <%= check_box_tag 'selected_addresses[]', candidate['address'],
+                    candidate['host_class'] != 'unknown',
+                    id: "select_#{candidate['address'].gsub(/[^A-Za-z0-9]/, '_')}",
+                    class: 'candidate_select' %>
+            </td>
+            <td><%= candidate['address'] %></td>
+            <td><%= candidate['name'] %></td>
+            <td><%= candidate['operating_system'].presence || '(not recorded)' %></td>
+            <td><%= candidate['host_class'] %></td>
+            <td><%= 'domain controller' if candidate['domain_controller'] %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+
+    <p class="hint">
+      <%= @batch.new_hosts.size %> host(s) available to add. Uncheck any that
+      should not be polled. Hosts already in the database are not listed and
+      cannot be added twice.
+    </p>
+
+    <div class="actions">
+      <%= submit_tag 'Add selected hosts as Windows targets',
+            data: { confirm: 'Create a Windows target for each selected host?' } %>
+    </div>
+  <% end %>
+<% end %>
+
+<% if @batch.already_present.any? %>
+  <h2>Already being polled</h2>
+  <p class="hint">
+    These were returned by the directory and already exist as targets, matched
+    on either the fully qualified name or the short hostname. They are left
+    untouched.
+  </p>
+  <table>
+    <thead>
+      <tr><th>Host</th><th>Operating system</th><th>Class</th></tr>
+    </thead>
+    <tbody>
+      <% @batch.already_present.each do |candidate| %>
+        <tr>
+          <td><%= candidate['address'] %></td>
+          <td><%= candidate['operating_system'].presence || '(not recorded)' %></td>
+          <td><%= candidate['host_class'] %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% end %>
+
+<br>
+
+<%= link_to 'Windows targets', windows_targets_path %>
+&middot;
+<%= link_to 'AD connections', active_directory_connections_path %>

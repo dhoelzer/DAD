@@ -1,0 +1,92 @@
+<p id="alert"><%= alert %></p>
+
+<h1>Import Windows hosts from Active Directory</h1>
+
+<p>
+  DAD queries the directory for computer objects, shows the ones that are not
+  already Windows targets, and lets you choose which to add. Nothing is created
+  until you confirm that list.
+</p>
+
+<%= form_tag ad_import_batches_path, method: :post do %>
+  <div class="field">
+    <%= label_tag :active_directory_connection_id, 'Directory' %><br>
+    <%= select_tag :active_directory_connection_id,
+          options_from_collection_for_select(@connections, :id, :display_name),
+          include_blank: @connections.size > 1 %>
+    <br><span class="hint">
+      <%= @connections.size.zero? ?
+        'No Active Directory connections are configured. Create one first.' :
+        'The directory to query.' %>
+    </span>
+  </div>
+
+  <div class="field">
+    <label>Which systems?</label><br>
+    <label>
+      <%= radio_button_tag :host_filter, 'all', true %>
+      Workstations and servers
+    </label><br>
+    <label>
+      <%= radio_button_tag :host_filter, 'workstations' %>
+      Workstations only
+    </label><br>
+    <label>
+      <%= radio_button_tag :host_filter, 'servers' %>
+      Servers only
+    </label>
+    <br><span class="hint">
+      Classified from the operatingSystem attribute Active Directory stores for
+      each machine. Machines whose OS is not recorded, or that are not Windows,
+      match neither category and are reported separately rather than imported.
+    </span>
+  </div>
+
+  <div class="actions">
+    <%= submit_tag 'Query Active Directory' %>
+  </div>
+<% end %>
+
+<% if @connections.any? %>
+  <h2>Import defaults for these connections</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Directory</th>
+        <th>Priority</th>
+        <th>Event logs</th>
+        <th>Polling credential</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @connections.each do |connection| %>
+        <tr>
+          <td><%= connection.display_name %></td>
+          <td><%= connection.polling_priority.name %></td>
+          <td><%= connection.event_logs %></td>
+          <td>
+            <% if connection.polling_credential_present? %>
+              stored
+            <% else %>
+              <strong>not set</strong>
+            <% end %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+
+  <% if @missing_credential.any? %>
+    <p class="warning">
+      <%= @missing_credential.map(&:display_name).join(', ') %>
+      <%= @missing_credential.size == 1 ? 'has' : 'have' %> no WinRM credential
+      configured. Hosts imported from <%= @missing_credential.size == 1 ? 'it' : 'them' %>
+      will be created but cannot poll until a credential is set.
+    </p>
+  <% end %>
+<% end %>
+
+<br>
+
+<%= link_to 'Back to AD connections', active_directory_connections_path %>

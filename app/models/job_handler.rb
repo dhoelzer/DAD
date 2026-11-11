@@ -1,3 +1,5 @@
+require 'windows_poll_cycle'
+
 # The closed set of things a scheduled Job is allowed to do.
 #
 # Replaces the previous design, in which scheduler.rb ran eval(job.script) and a

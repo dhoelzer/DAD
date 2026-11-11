@@ -92,9 +92,9 @@ without hand-writing a URL, since `config/database.yml` interpolates them.
 | `DAD_ADMIN_PASSWORD` | **yes** to seed | `db/seeds.rb` | Seeding raises rather than creating a well-known default account. |
 | `DAD_EVENT_RETENTION_DAYS` | no | `EventPartitioning` | Postgres only. How many days of event history retention keeps. **Default 365.** `0` or negative keeps every partition. A floor, not an exact age: a month is only dropped once the whole month is past the cutoff. |
 | `DAD_OFFLINE_STORAGE_DIR` | no | `EventPartitionBackup` | Where a month's CSV archive is written before its partition is dropped. Absolute, or relative to the app root. Default `offline_storage` under the app root; the systemd units set `/var/DAD/offline_storage`. |
-| `DAD_AR_ENCRYPTION_KEY` | **yes** (production) | `WindowsTarget` | Active Record encryption key for stored WinRM passwords. 32 bytes, hex. Production refuses to boot without it. |
+| `DAD_AR_ENCRYPTION_KEY` | **yes** (production) | `WindowsTarget`, `ActiveDirectoryConnection` | Active Record encryption key for stored WinRM and LDAP bind passwords. 32 bytes, hex. Production refuses to boot without it. |
 | `DAD_AR_ENCRYPTION_SALT` | **yes** (production) | `WindowsTarget` | Key-derivation salt for the same. Rails 8.1 requires it whenever encryption is configured. |
-| `WINDOWS_SSL_VERIFY` | no | `WindowsPoll` | `none` trusts an internal CA's WinRM certificate instead of the system trust store. Set it deliberately; the default verifies. |
+| `WINDOWS_SSL_VERIFY` | no | `WindowsPoll`, `AdQuery` | `none` trusts an internal CA's WinRM or LDAPS certificate instead of the system trust store. Set it deliberately; the default verifies. |
 
 `RAILS_ENV` is set by the systemd units and by Compose; you rarely set it by hand.
 
@@ -489,6 +489,71 @@ not in the `.json` forms. The edit form shows a blank password field, and
 submitting it blank leaves the stored credential alone, so an unrelated edit
 cannot silently wipe it.
 
+#### Populating the list from Active Directory
+
+Maintaining `WindowsTarget` rows by hand does not scale past a handful of
+machines, and a hand-kept list drifts from the domain: the hosts that never get
+added are the ones nobody knows are missing. DAD can query the directory for
+computer objects and import the ones that are not already targets.
+
+Configure a connection under **ActiveDirectoryConnection** (`/active_directory_connections`),
+then run an import from **`/ad_import_batches/new`**: pick a directory, pick
+workstations / servers / both, and DAD returns the machines it found that are not
+already targets. Nothing is created until you confirm that list.
+
+```bash
+bundle exec rails runner 'puts ActiveDirectoryConnection.enabled.pluck(:name, :host, :port)'
+```
+
+**The import is preview-then-apply, and the preview is stored.** That is not a UX
+nicety. A `WindowsTarget` row makes this server connect *out* to `address`
+carrying a domain credential, so if the apply step took host names from the
+submitted form, a crafted POST would add any host an attacker named and hand it
+the WinRM credential — SSRF with a domain login attached, arriving through a form
+whose only visible affordance is unchecking boxes. The candidate set is therefore
+written server-side at preview time, and apply may only *remove* from it. A name
+the directory never returned cannot be imported, whatever is posted. The audit
+trail (who queried, what came back, what was applied) comes along for free.
+
+Three behaviours in the query are load-bearing:
+
+- **Paging.** Active Directory caps a search at `MaxPageSize` (1000 by default)
+  and truncation is *silent* — the operator sees a plausible list with no hint
+  that half the fleet is missing. `net-ldap` negotiates RFC 2696 paged results
+  itself, so the fix is to not defeat it: no `:size` limit is ever passed.
+- **Unknown operating system.** A machine joined to AD may be Linux, an
+  appliance, or a Windows install whose `operatingSystem` attribute is simply
+  unset. It matches neither the workstation nor the server filter. Those hosts
+  are listed but **left unchecked**, and reported as a count, because a filter
+  that quietly omits machines is how an operator ends up believing the fleet is
+  fully covered.
+- **Domain controllers are flagged.** A DC matches "servers", and bulk-enabling
+  WinRM polling against one is a decision worth making deliberately rather than
+  by accident.
+
+Duplicate detection matches the FQDN *and* its first DNS label, case-insensitively.
+AD returns `web01.corp.example.com`; an operator adding a host by hand types
+`web01`. Treating those as different strings produces two targets for one machine,
+which double-polls it and interleaves two independent offset states.
+
+A connection holds **two** credentials, and they are not interchangeable:
+
+| field | what it is for |
+|---|---|
+| `password` | binds to the directory to read computer objects |
+| `poll_username` / `poll_password` | the WinRM login applied to every host this connection imports |
+
+Both are encrypted at rest, the same as `WindowsTarget#password`. The second pair
+exists because an imported host with no credential is a target that can never
+poll — a feature that looks finished and is not. A connection missing it is
+allowed (importing the inventory first is legitimate) but the import form says so
+out loud. The polling credential is read from the connection at apply time and
+never travels through the browser on the way back from the preview page.
+
+A directory that is unreachable is an ordinary condition, not a 500: the failure
+is recorded in `last_status` and shown, because "query failed" and "no new hosts"
+look identical otherwise, and the second one is a lie.
+
 #### Delta fetching, and why duplicates are accepted
 
 `wevtutil` has no cursor, so the boundary is a time window: each poll reads
@@ -867,6 +932,12 @@ or editing a **WindowsTarget**, polling one on demand, and editing a
 credential and names a host this server will connect out to, and widening a band
 loosens how often DAD looks for new events. A Viewer can see both lists and the
 guarantee each band offers, but cannot change either.
+
+**ActiveDirectoryConnection** and **AdImportBatch** are `Admin`-only, for reading
+as well as writing — deliberately stricter than `WindowsTarget`. Reading a target
+list is a Viewer action, but a directory query returns the whole machine
+inventory of a domain (hostname, OS, creation date), which is reconnaissance
+value on its own, before anything is imported.
 
 Two roles are seeded: **Administrators** (`Admin` only) and **Analyst** (the other
 four). Logon locks an account after 4 failed attempts and resets the counter after
