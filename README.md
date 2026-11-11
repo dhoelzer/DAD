@@ -3,7 +3,7 @@
 DAD ingests syslog, indexes every word, and gives you a web UI for searching the
 corpus, alerting on patterns, and running scheduled jobs against it.
 
-It is a Rails application plus two long-running Ruby processes and one Perl
+It is a Rails application plus two long-running Ruby processes and one Rust
 collector. The web UI is the least important part: if the importer is down, you
 have a search engine over nothing.
 
@@ -52,9 +52,11 @@ should touch it.
 
 - Ruby **3.3.8** (`.ruby-version`)
 - Rails **8.1** (installed via Bundler)
-- **PostgreSQL** for production. Development and test can use SQLite, in which
-  case the test suite needs no database server.
-- Apache + Phusion Passenger for the web UI (what `provision.sh` configures).
+- **PostgreSQL 17** for every environment, including development and test.
+  SQLite is not supported: it cannot partition `events`/`events_words`, so a
+  SQLite suite never exercises the shape production queries (see
+  [Development](#development)).
+- Apache + Phusion Passenger for the web UI, if you deploy by hand.
 - **Docker + Compose** if you want the whole stack, or the test suite against
   Postgres, without installing any of the above. See
   [The Docker Compose way](#the-docker-compose-way).
@@ -81,14 +83,15 @@ without hand-writing a URL, since `config/database.yml` interpolates them.
 | `DAD_ADMIN_USER` | no | `db/seeds.rb` | Defaults to `admin`. |
 | `DAD_ADMIN_PASSWORD` | **yes** to seed | `db/seeds.rb` | Seeding raises rather than creating a well-known default account. |
 | `DAD_EVENT_RETENTION_DAYS` | no | `EventPartitioning` | Postgres only. How many days of event history retention keeps. **Default 365.** `0` or negative keeps every partition. A floor, not an exact age: a month is only dropped once the whole month is past the cutoff. |
-| `DAD_OFFLINE_STORAGE_DIR` | no | `EventPartitionBackup` | Where a month's CSV archive is written before its partition is dropped. Absolute, or relative to the app root. Default `offline_storage` under the app root; `provision.sh` sets `/var/DAD/offline_storage`. |
+| `DAD_OFFLINE_STORAGE_DIR` | no | `EventPartitionBackup` | Where a month's CSV archive is written before its partition is dropped. Absolute, or relative to the app root. Default `offline_storage` under the app root; the systemd units set `/var/DAD/offline_storage`. |
 
-`RAILS_ENV` is set by the units and by `provision.sh`; you rarely set it by hand.
+`RAILS_ENV` is set by the systemd units and by Compose; you rarely set it by hand.
 
 ### Where the secrets live
 
-`provision.sh` generates the passwords and the signing key once and writes them
-to two root-owned files, mode `0600`, never committed:
+On a systemd host, keep the passwords and the signing key in two root-owned
+files, mode `0600`, never committed. Generate them once and reuse them; do not
+regenerate on every deploy:
 
 - `/etc/DAD/environment` — shell form (`export KEY=value`), for humans and for
   anything that sources it.
@@ -101,13 +104,13 @@ string `export SECRET_KEY_BASE` as a variable name, so every value arrives empty
 and Rails boots with a nil `secret_key_base`. If you add a variable, add it to
 both.
 
-Re-running `provision.sh` reuses the existing values, so re-provisioning does not
-invalidate sessions or rotate the database password out from under the app.
+Generate each value once and keep it. Re-generating the signing key on every
+deploy invalidates every Rails session cookie, and re-drawing the database
+password mid-deploy stops the app from connecting at all.
 
 ### Rotating the signing key
 
-Because `provision.sh` only generates secrets on first run, use the separate
-script to change `SECRET_KEY_BASE` on a host that is already provisioned:
+To change `SECRET_KEY_BASE` on a host that is already running:
 
 ```bash
 sudo bin/rotate_secret_key_base
@@ -126,35 +129,41 @@ CSRF token and flash) is invalidated, and it is re-minted on the next request.
 
 ## Install
 
-### The quick way (Vagrant)
-
-```bash
-vagrant up
-```
-
-`provision.sh` installs the packages, generates secrets, configures Apache +
-Passenger, migrates, seeds, installs the three systemd units, and starts
-everything. It is safe to re-run. The box is then reachable at
-`192.168.155.15` (self-signed certificate), with the admin username and password
-printed at the end of provisioning and stored in `/etc/DAD/environment`.
+The Docker Compose path below is the recommended one for development: it needs
+no PostgreSQL install and no secret setup. The manual path is for a host where
+you are standing up the systemd deployment yourself.
 
 ### The manual way
+
+You need a PostgreSQL cluster reachable by the app, in every environment.
 
 ```bash
 bundle install
 
-# development / test use SQLite and need no configuration
-bundle exec rake db:migrate
+# development
+createuser dad && createdb -O dad dad_development
+export DATABASE_URL=postgres://dad:dad@127.0.0.1:5432/dad_development
+bundle exec rake db:migrate_from_scratch
+
+# test
+createdb -O dad dad_test
+export DATABASE_URL=postgres://dad:dad@127.0.0.1:5432/dad_test
+bundle exec rake db:migrate_from_scratch
 bundle exec rake test
 
 # production
 export SECRET_KEY_BASE=$(openssl rand -hex 64)
 export DAD_DB_USER=... DAD_DB_PASSWORD=... DAD_DB_NAME=events_prod DAD_DB_HOST=127.0.0.1
 export DAD_ADMIN_PASSWORD=$(openssl rand -hex 12)
-bundle exec rake db:migrate RAILS_ENV=production
+bundle exec rake db:migrate_from_scratch RAILS_ENV=production
 bundle exec rake db:seed RAILS_ENV=production
 bundle exec rake assets:precompile RAILS_ENV=production
 ```
+
+Use `db:migrate_from_scratch`, not `db:migrate`, on an empty database: the
+committed `db/schema.rb` is a portable dump that cannot express `PARTITION BY`,
+and `db:migrate` loads that dump and skips `db/migrate` entirely, so the
+partitioned shape is never built. See [Development](#development).
 
 `db:seed` is idempotent — it creates the five rights, the two roles, and the
 admin user, and re-running it changes nothing. It deliberately does **not** reset
@@ -170,8 +179,8 @@ docker compose up --build
 
 Then browse to <http://localhost:3000> and sign in as **`admin` /
 `dad_dev_password`**. Override it with `DAD_ADMIN_PASSWORD=... docker compose up`
-if you care; that value exists only so the stack is usable out of the box, and
-production takes its password from `provision.sh`.
+if you care; that value exists only so the stack is usable out of the box, and a
+production deployment takes its password from `DAD_ADMIN_PASSWORD`.
 
 `docker compose up` runs a one-shot `migrate` service first. On an empty database
 it builds the Postgres schema from `db/migrate` and seeds the roles, rights and
@@ -182,7 +191,7 @@ renders fine but can never succeed.
 | service | runs | equivalent systemd unit |
 |---|---|---|
 | `db` | PostgreSQL 17, data in the `pgdata` volume | — |
-| `migrate` | `rake db:create` + migrate, then exits | `provision.sh` |
+| `migrate` | `rake db:create` + migrate, then exits | the deploy's migrate step |
 | `web` | `rails server` on :3000 | Apache + Passenger |
 | `importer` | `import_syslog.rb` | `dad-importer` |
 | `scheduler` | `scheduler.rb` | `dad-scheduler` |
@@ -217,8 +226,9 @@ absolute paths under `/var/DAD/Logs` and every systemd unit sets
 `WorkingDirectory=/var/DAD`. Any other `WORKDIR` and the collector writes into a
 directory the importer never reads.
 
-This is the development and test path. Production still deploys through
-`provision.sh` + systemd + Apache/Passenger.
+This is the development and test path. Production deploys through the systemd
+units in `systemd/` plus Apache/Passenger, with the secrets in
+`/etc/DAD/environment` as described above.
 
 ### Running the three processes by hand
 
@@ -295,7 +305,7 @@ halves: reclaim re-inserts nothing, and no line goes missing.
 
 Each flush writes one batch as a multi-row `INSERT`. A batch is chunked into as
 many statements as the database's limit on bind parameters per statement requires
-(32,766 on SQLite, 65,535 on Postgres), and the chunks commit in a single
+(Postgres caps a statement at 65,535 parameters), and the chunks commit in a single
 transaction — so a batch is still all-or-nothing, and a failed batch leaves no
 index rows behind pointing at events that were never written.
 
@@ -394,8 +404,8 @@ coming months and drops expired ones.
 
 **A month is only dropped once it has been archived.** Before any drop,
 `EventPartitionBackup` writes the partition to a CSV under
-`DAD_OFFLINE_STORAGE_DIR` (default `offline_storage` under the app root;
-`provision.sh` uses `/var/DAD/offline_storage`, mode `0700`, owned by the service
+`DAD_OFFLINE_STORAGE_DIR` (default `offline_storage` under the app root; the
+systemd units use `/var/DAD/offline_storage`, mode `0700`, owned by the service
 user). If the archive does not complete, the partition is **kept** and the next
 run retries. That is the whole safety property: retention cannot destroy the only
 copy of a month's rows.
@@ -473,8 +483,11 @@ root filesystem, and names the directory it measured. If that partition cannot b
 measured it says `disk utilization unknown` rather than `0%` — a missing reading
 must not look like an empty disk.
 
-On SQLite there is no partitioning, so none of this applies; the job reports
-`event partitioning is Postgres-only; nothing to do`.
+Every entry point checks the schema shape before acting. On a database where the
+partitioned shape was never built — one loaded from `db/schema.rb` rather than
+from `db/migrate` — the job reports `event partitioning is Postgres-only;
+nothing to do` instead of raising, so a stray `Job` row cannot crash the
+scheduler.
 
 ---
 
@@ -560,21 +573,20 @@ page; `?page=N` selects one. Nothing in the UI loads a whole table.
 ## Development
 
 ```bash
-bin/docker-test              # the suite on Postgres, in Docker -- preferred
-bundle exec rake test        # unit + controller tests on SQLite, no server needed
-bundle exec cucumber         # feature tests on SQLite
+bin/docker-test              # both suites on Postgres, in Docker -- preferred
+bundle exec rake test        # unit + controller tests, needs a Postgres cluster
+bundle exec cucumber         # feature tests, needs a Postgres cluster
 bundle exec brakeman -q      # static analysis, must report 0 warnings
 bundle exec bundle-audit check # dependency CVEs
 ```
 
-**Test on Postgres.** SQLite is still supported for a fast local loop, but it is
-not the engine production runs, and the difference has shipped breakage before:
-`Event.insertStatement` once emitted SQLite `?` placeholders through
-`exec_query`, Postgres rejected them outright, and production could not insert a
-single event while every SQLite job stayed green (RECOMMENDATIONS 3.2).
+**Postgres is the only test engine.** SQLite was dropped, and the difference is
+not theoretical: `Event.insertStatement` once emitted SQLite `?` placeholders
+through `exec_query`, Postgres rejected them outright, and production could not
+insert a single event while every SQLite job stayed green (RECOMMENDATIONS 3.2).
 `events` and `events_words` are partitioned on Postgres and are not partitionable
-on SQLite at all, so the SQLite suite never exercises the shape production
-queries; the composite covering index on `events_words` is Postgres-only too.
+on SQLite at all, so a SQLite suite never exercises the shape production queries;
+the composite covering index on `events_words` is Postgres-only too.
 
 `bin/docker-test` runs both suites against the Compose `db` service and then makes
 the same two assertions the CI `postgres` job makes — that `events` and
@@ -583,12 +595,12 @@ failed `CONCURRENTLY` build. It passes extra arguments through to the container,
 so `bin/docker-test bundle exec rails test test/models/event_test.rb` runs one
 file, and `bin/docker-test bash` drops you into it.
 
-CI runs seven jobs (`.github/workflows/ci.yml`): the unit tests and cucumber
-features on **both SQLite and Postgres**, an asset-precompile job, a job that
-checks `provision.sh` parses and the systemd units verify, a `security` job
-(brakeman, bundle-audit, gitleaks), a **`docker` job that builds this image and
-boots the stack**, and a **`collector` job** that runs `cargo fmt --check`,
-`cargo clippy -D warnings`, and `cargo test` for the Rust syslog collector.
+CI runs six jobs (`.github/workflows/ci.yml`): the unit tests and cucumber
+features on **Postgres**, an asset-precompile job, a job that verifies the
+systemd units, a `security` job (brakeman, bundle-audit, gitleaks), a **`docker`
+job that builds this image and boots the stack**, and a **`collector` job** that
+runs `cargo fmt --check`, `cargo clippy -D warnings`, and `cargo test` for the
+Rust syslog collector.
 
 The `docker` job is the one that would have caught the broken `Dockerfile.dev`.
 Beyond building, it drives the running stack: it asserts the `migrate` service
@@ -601,10 +613,7 @@ test of the collector end-to-end through the importer — no Ruby-level job woul
 notice it failing to start. The `collector` job covers the unit and integration
 tests, which the `docker` job does not run.
 
-To run against Postgres without Docker, point `DATABASE_URL` at a local cluster.
-Use `db:migrate_from_scratch`, not `db:migrate`: the committed `db/schema.rb` is
-SQLite-flavoured, and `db:migrate` loads that dump into an empty Postgres database
-and skips `db/migrate` entirely, so the partitioned shape is never built.
+To run without Docker, point `DATABASE_URL` at a local cluster:
 
 ```bash
 createuser dad && createdb -O dad dad_test
@@ -614,9 +623,16 @@ bundle exec rake test
 bundle exec cucumber
 ```
 
-Without `DATABASE_URL` everything runs on SQLite, and the Postgres-only
-partitioning, backup and index tests skip rather than fail — which is the trap:
-a green SQLite run says nothing about the partitioned path.
+Use `db:migrate_from_scratch`, not `db:migrate`, on an empty database: the
+committed `db/schema.rb` is a portable dump that cannot express `PARTITION BY`,
+and `db:migrate` loads that dump and skips `db/migrate` entirely, so the
+partitioned shape is never built and the partitioning, backup and index tests
+then fail for reasons that look like app bugs.
+
+Tests that need a *second* database — the ingest tests that run the importer as a
+subprocess — create throwaway databases of their own through
+`test/support/scratch_database.rb`. That needs `CREATEDB` on the role behind
+`DATABASE_URL`; `bin/docker-test` and CI both run as the cluster superuser.
 
 Before deploying a change to the ingest path, read the comments in
 `app/models/event.rb` around `storeEvent` / `flush_and_wait` and
