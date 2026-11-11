@@ -431,6 +431,17 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   production deploy is the only path that minifies, so it is the only path that
   exercises the compressor. `RAILS_ENV=production ... rake assets:precompile`
   is the command that actually catches minifier breakage.
+- **The same trap applies to CSS, and it bites size comparisons.** sass-rails'
+  `setup_compression` initializer sets `css_compressor = :sass` in every
+  non-development environment, so a development precompile emits an unminified
+  stylesheet: the same file measured 14885 bytes over 653 lines in development
+  and 8888 bytes on one line in production. Always diff compiled CSS from a
+  production precompile, and clear `tmp/cache/assets` too -- `rm -rf
+  public/assets` alone serves you cached output.
+- `app/assets/stylesheets/` is a single `application.css`; the stock
+  `scaffolds.css.scss` was merged into it. There are now **no `.scss` files**,
+  and `sass-rails` is still required: it provides the `:sass` `css_compressor`
+  that minifies the plain-CSS bundle. Do not drop it as vestigial.
 - Uglifier was replaced by **terser** because UglifyJS 2.x is ES5-only and
   aborts on Chart.js's ES2015 output. sprockets 3.7 has no `:terser` symbol but
   `js_compressor=` accepts any object responding to `#compress`, so

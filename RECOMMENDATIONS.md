@@ -2158,6 +2158,69 @@ tests were checked against a deliberately reverted fix: with the nil guard
 removed, exactly the two unassigned-job tests error with
 `undefined method 'username' for nil`, and they pass with it in place.
 
+### 5.11 ✅ Closed — two stylesheets, one never edited since generation, and most of the bundle styles a widget the app does not have **[maintainability]**
+
+The app shipped two stylesheets into one bundle: `application.css` (265 lines,
+hand-written: nav bar, alert queue, chart layout) and `scaffolds.css.scss`
+(69 lines). The second was the stock Rails generator output, unedited since the
+app was generated — which is why it still mattered: every generated
+`_form.html.erb` uses `div.field`, `div.actions` and `#error_explanation`, every
+show page uses `#notice`, and `.field_with_errors` is emitted by Rails itself and
+appears in no view. Deleting it would have restyled every form.
+
+Merged into one file. Neither file referenced a selector the other defined
+(checked mechanically over the compiled bundle: zero overlap), so the merge
+cannot change the cascade. Verified by diffing the compiled bundle rule by rule
+against a saved baseline: the only differences are the intended ones — two dead
+rules dropped, three same-declaration rule groups collapsed, `#alerts`' two
+blocks merged, and 6-digit hex shortened to 3. 9169 → 8888 bytes.
+
+**Two rules did nothing.** `#alert-detail` matched no element in any view or JS.
+`#events_header` set `font-style: bold`, which is not a value `font-style`
+accepts, so the declaration was discarded by every browser; the rule's other
+declaration (`font-size: 1.0em`) restated the inherited size. Both removed.
+
+**The finding that is not fixed here, and should not be silently.** Most of the
+shipped stylesheet styles CodeMirror: 5638 of the 9169-byte compiled bundle — 61%
+— is `.CodeMirror-*` and `.cm-*` rules, and CodeMirror is never instantiated
+anywhere in the app. No view, helper, controller or script constructs an editor;
+the ten `text_area` fields are plain textareas. On the JavaScript side it is
+355 KB of vendored library plus a 10 KB Ruby syntax mode.
+
+The history explains how it survived: `codemirror-rails` capped railties at
+`< 6.0`, so during the Rails 6.1 upgrade the library was vendored under
+`vendor/assets` and the upgrade was verified by asserting the built
+`application.js`/`application.css` were **byte-identical** to the Rails 5.2
+build. That was the right check for an upgrade and exactly the wrong check for
+usefulness — it guaranteed a dead dependency stayed dead and shipped.
+
+Deliberately left alone: deleting it changes what the app ships, and "is there
+supposed to be a code editor here?" is a product question, not a cleanup. The
+`displays/_form.html.erb` `display_script` field is the plausible intent. If the
+answer is no, removing the three vendored files and the two `require` lines drops
+365 KB of vendored JavaScript and 61% of the stylesheet.
+
+**Two traps found while verifying, both worth knowing.**
+
+1. CSS minification comes from sass-rails' `setup_compression` initializer, which
+   sets `config.assets.css_compressor = :sass` in every non-development
+   environment. Precompiling without `RAILS_ENV=production` therefore emits an
+   unminified bundle: the same stylesheet measured 14885 bytes over 653 lines in
+   development and 8888 bytes on one line in production. A size comparison done in
+   the wrong environment looks like a 60% regression.
+2. A stale `tmp/cache/assets` reproduced the same effect. `rm -rf public/assets`
+   alone is not enough; the bundle has to be built from a clean cache or the
+   comparison is against cached output.
+
+Also note the app now contains **zero `.scss` files** while `sass-rails` remains
+required. That is correct, not vestigial: the gem supplies the `:sass`
+`css_compressor` that minifies the plain-CSS bundle, and the scaffold generator
+still uses it as its stylesheet engine. Confirmed empirically — the production
+bundle is one line with no comments.
+
+**Verified:** 437 runs / 1259 assertions, 30 system runs / 120 assertions,
+cucumber 5 scenarios / 18 steps, brakeman 0 warnings, and
+`script/check_asset_paths.rb` reports all 3 emitted asset paths exist on disk.
 
 
 Every item in this table is now done. It is kept as the record of the order the
