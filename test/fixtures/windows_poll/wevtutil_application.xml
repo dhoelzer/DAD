@@ -1,0 +1,15 @@
+<Events>
+<Event xmlns='http://schemas.microsoft.com/win/2004/08/events/event'><System><Provider Name='Microsoft-Windows-Security-Auditing' Guid='{54849625-5478-4994-a5ba-3e3b0328c30d}'/><EventID>4720</EventID><Version>1</Version><Level>0</Level><Task>13825</Task><Opcode>0</Opcode><Keywords>0x8020000000000000</Keywords><TimeCreated SystemTime='2024-03-02T11:22:33.123456700Z'/><EventRecordID>30211</EventRecordID><Correlation/><Execution ProcessID='4' ThreadID='3124'/><Channel>Security</Channel><Computer>DC01.corp.example.com</Computer><Security UserID='S-1-5-21-1000-2000-3000-512'/></System><EventData><Data Name='SubjectUserName'>admin</Data><Data Name='TargetUserName'>svc-backup</Data><Data Name='Privileges'>-</Data></EventData></Event>
+<Event xmlns='http://schemas.microsoft.com/win/2004/08/events/event'><System><Provider Name='Microsoft-Windows-Security-Auditing' Guid='{54849625-5478-4994-a5ba-3e3b0328c30d}'/><EventID>4688</EventID><Version>2</Version><Level>0</Level><Task>13312</Task><Opcode>0</Opcode><Keywords>0x8020000000000000</Keywords><TimeCreated SystemTime='2022-12-14T16:06:51.0643605Z'/><EventRecordID>114690</EventRecordID><Correlation/><Execution ProcessID='4' ThreadID='196'/><Channel>Security</Channel><Computer>win10.windomain.local</Computer><Security/></System><EventData><Data Name='NewProcessName'>C:\Windows\System32\cmd.exe</Data><Data Name='NewProcessId'>0x3a8</Data></EventData><RenderingInfo Culture='en-US'><Message>A new process has been created.
+
+Creator Subject:
+	Security ID:		S-1-5-18
+	Account Name:		WIN10$
+	Account Domain:		WINDOMAIN
+	Logon ID:		0x3E7
+
+Process Information:
+	New Process ID:	0x3a8
+	New Process Name:	C:\Windows\System32\cmd.exe
+</Message><Level>Information</Level><Task>Process Creation</Task><Opcode>Info</Opcode><Channel>Security</Channel><Provider>Microsoft Windows security auditing.</Provider><Keywords><Keyword>Audit Success</Keyword></Keywords></RenderingInfo></Event>
+</Events>

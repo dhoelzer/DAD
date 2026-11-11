@@ -47,8 +47,11 @@ should touch it.
 | `dad-scheduler` | `scheduler.rb` | due `Job` rows every 60s |
 | `dad-windows` | `import_windows_events.rb` | optional; tails OpenWEC output every 10s |
 
-Windows events are optional. When enabled they arrive through a fourth process
-that feeds the **same** `LogsToProcess` queue rather than a second importer — see
+Windows events are optional, and there are two ways to collect them. **DAD can
+poll Windows hosts itself over WinRM** — that path needs no extra process,
+because the poller runs as a `Job` inside `dad-scheduler`. The older path has
+OpenWEC collect and a fourth process forward what it wrote. Both feed the **same**
+`LogsToProcess` queue rather than a second importer — see
 [Ingesting Windows events](#ingesting-windows-events).
 
 ---
@@ -89,6 +92,9 @@ without hand-writing a URL, since `config/database.yml` interpolates them.
 | `DAD_ADMIN_PASSWORD` | **yes** to seed | `db/seeds.rb` | Seeding raises rather than creating a well-known default account. |
 | `DAD_EVENT_RETENTION_DAYS` | no | `EventPartitioning` | Postgres only. How many days of event history retention keeps. **Default 365.** `0` or negative keeps every partition. A floor, not an exact age: a month is only dropped once the whole month is past the cutoff. |
 | `DAD_OFFLINE_STORAGE_DIR` | no | `EventPartitionBackup` | Where a month's CSV archive is written before its partition is dropped. Absolute, or relative to the app root. Default `offline_storage` under the app root; the systemd units set `/var/DAD/offline_storage`. |
+| `DAD_AR_ENCRYPTION_KEY` | **yes** (production) | `WindowsTarget` | Active Record encryption key for stored WinRM passwords. 32 bytes, hex. Production refuses to boot without it. |
+| `DAD_AR_ENCRYPTION_SALT` | **yes** (production) | `WindowsTarget` | Key-derivation salt for the same. Rails 8.1 requires it whenever encryption is configured. |
+| `WINDOWS_SSL_VERIFY` | no | `WindowsPoll` | `none` trusts an internal CA's WinRM certificate instead of the system trust store. Set it deliberately; the default verifies. |
 
 `RAILS_ENV` is set by the systemd units and by Compose; you rarely set it by hand.
 
@@ -129,6 +135,15 @@ Rotating does **not** log anyone out. Sessions are rows in the `sessions` table
 looked up by token, not payloads signed with the key, so they survive a rotation
 untouched. Only the Rails cookie session (`_Events_session`, which carries the
 CSRF token and flash) is invalidated, and it is re-minted on the next request.
+
+### The Windows credential keys
+
+`DAD_AR_ENCRYPTION_KEY` and `DAD_AR_ENCRYPTION_SALT` encrypt the WinRM passwords
+that [polling Windows hosts](#polling-windows-hosts-directly) stores. Unlike the
+signing key, **rotating them makes every stored Windows credential unreadable** —
+there is no re-derivation path, so each host's password has to be re-entered in
+the UI afterwards. Generate them once, put them in both env files, and keep them
+off the rotation tooling.
 
 ---
 
@@ -351,27 +366,177 @@ sizing steady-state collection, use the warm figure.
 
 ## Ingesting Windows events
 
-DAD ingests Windows Event Log events collected by
-[OpenWEC](https://github.com/cea-sec/openwec), a Windows Event Collector that
-subscribes to hosts over WinRM and writes what it receives to files.
+DAD ingests Windows Event Log events. There are two collection paths and they
+share everything after the point where a record becomes a staging line:
 
-The design choice here is deliberate: **Windows events are converted into the
-record format the ingestor already accepts, rather than the ingestor being
-extended to understand Windows events.** `EventIngestor.stage_event` already
-parses an RFC 3339 timestamp as a single token, so a converted line needs no
-importer changes at all, and the word indexing, batching, crash checkpointing and
-event partitioning apply to Windows events for free. A second ingest path would
-have had to reimplement all of that and would drift.
+- **Pull (default): DAD polls the hosts itself over WinRM.** No collector to
+  install on Windows, no second daemon, and the polling cadence is DAD's to
+  control. Runs as a `Job` inside `dad-scheduler`.
+- **Push: [OpenWEC](https://github.com/cea-sec/openwec) collects and a forwarder
+  converts what it wrote.** Kept because an OpenWEC subscription already receives
+  events pushed to it, which a pull model cannot recover for a host that is
+  unreachable.
+
+The design choice that makes both cheap is the same one, and it is deliberate:
+**Windows events are converted into the record format the ingestor already
+accepts, rather than the ingestor being extended to understand Windows events.**
+`EventIngestor.stage_event` already parses an RFC 3339 timestamp as a single
+token, so a converted line needs no importer changes at all, and the word
+indexing, batching, crash checkpointing and event partitioning apply to Windows
+events for free. A second ingest path would have had to reimplement all of that
+and would drift.
 
 ```
-Windows hosts ──WinRM──► OpenWEC ──► openwec.log ──┐
-                                                   │ import_windows_events.rb
-                                                   │  (dad-windows, every 10s)
-                                                   ▼
-syslog/UDP:514 ─► LogStaging ─► LogsToProcess ─► import_syslog.rb ─► Postgres
+                    ┌── poll_windows_events Job (in dad-scheduler) ──┐
+Windows hosts ◄─WinRM─┘  wevtutil qe, per channel, on a per-host cycle │
+                                                                       │
+syslog/UDP:514 ─► LogStaging ─┐                                        │
+                              │   OpenWEC ─► openwec.log ─► import_windows_events.rb
+                              │                    (dad-windows, every 10s)
+                              ▼                                        ▼
+                    WindowsStaging ─► LogsToProcess ─► import_syslog.rb ─► Postgres
 ```
 
-### Enabling it
+### Polling Windows hosts directly
+
+#### Enabling it
+
+Add the hosts under **WindowsTarget** in the UI (or via `/windows_targets`). Each
+one needs an address, a WinRM username and password, a priority, and the channels
+to read. Then make sure the poller Job exists and the scheduler is running:
+
+```bash
+bundle exec rails runner 'puts Job.where(script: "poll_windows_events").pluck(:name, :frequency)'
+```
+
+`db/seeds.rb` creates that Job, so a fresh install already has it. It runs every
+60s; that number is only how often the due-list is swept, not how often any host
+is polled.
+
+No new service is needed under Docker Compose — the poller runs inside the
+`scheduler` container, which already mounts the `Logs` volume that
+`LogsToProcess` lives on.
+
+#### What has to be true on the Windows side
+
+- The WinRM listener must be reachable on **TCP 5986** (HTTPS). The poller
+  connects out to the host; it does not open a listener for the host to call.
+- The account needs read access to the event logs. A non-admin that can read
+  `Security` is normally granted that through *Manage auditing and security log*;
+  `Application` and `System` need no extra right.
+- `wevtutil` must be present. It is part of every supported Windows edition, so
+  this is only worth checking on a Server Core image with features stripped.
+
+#### Priority bands and the adaptive interval
+
+Polling every host as often as the busiest one needs does not scale, and polling
+a quiet host every five minutes is pure load on both sides. So each host gets a
+priority band, and within that band its interval adapts to how many events it is
+actually producing:
+
+| priority | fastest | slowest |
+|---|---|---|
+| Priority 1 | 60s | 5 min |
+| Priority 2 | 5 min | 30 min |
+| Priority 3 | 30 min | 6 h |
+
+The interval aims at roughly 500 events per poll, clamped to the band:
+
+```
+interval = clamp(500 / smoothed_events_per_second, band_min, band_max)
+```
+
+Three details make that usable rather than twitchy:
+
+- The rate is an exponential moving average, so one burst — a host rebooting, a
+  logon storm — decays over a few polls instead of pinning the host at its fastest
+  interval for hours.
+- A change is only applied when it is at least 25% off the interval in force.
+  Without that deadband the interval oscillates, and an oscillating interval is
+  indistinguishable from a bug when you are trying to reason about when a host was
+  last polled.
+- A host that produced nothing takes its band's *slowest* interval, not zero.
+
+Bands are rows in `polling_priorities`, editable in the UI. Adding a Priority 4 is
+a form submission, not a code change.
+
+#### Disabling a host
+
+Each target has an **enabled** checkbox. Turning it off stops the polling but keeps
+the row, and with it the measured event rate, the credentials and the poll history
+— which is what you want when a host is down for maintenance. Deleting the row
+throws all of that away and starts from scratch when the host returns.
+
+#### Credentials
+
+The WinRM password is a domain credential, so it is encrypted at rest by Rails'
+`encrypts`; the `password` column holds ciphertext, not plaintext. Two
+consequences for operations:
+
+- Production must set `DAD_AR_ENCRYPTION_KEY` and `DAD_AR_ENCRYPTION_SALT` in
+  `/etc/DAD/environment`. DAD **refuses to boot in production without them**
+  rather than falling back to storing credentials in the clear. Generate both once:
+
+  ```bash
+  bundle exec rails runner 'puts SecureRandom.hex(32); puts SecureRandom.hex(32)'
+  ```
+
+- Changing either value makes stored Windows credentials unreadable. Generate them
+  once and keep them; rotation means re-entering the WinRM passwords.
+
+The credential is never rendered back to a browser — not on the HTML screens and
+not in the `.json` forms. The edit form shows a blank password field, and
+submitting it blank leaves the stored credential alone, so an unrelated edit
+cannot silently wipe it.
+
+#### Delta fetching, and why duplicates are accepted
+
+`wevtutil` has no cursor, so the boundary is a time window: each poll reads
+records whose `TimeCreated` falls since the last poll, **widened by 60s**. The
+widening is not slack — a record's `TimeCreated` is when the event happened, not
+when it reached the channel, and a service can log a timestamp and have the write
+land seconds later. An exact boundary would drop those.
+
+The cost is that records inside the overlap can be ingested twice. That is the
+deliberate trade: a duplicate row is visible and merely inflates a count, whereas
+a missed record is invisible and silently under-reports. There is no dedup
+anywhere in the ingest path, so this is a choice, not an oversight.
+
+Two more bounds, both to keep one host from dominating a cycle:
+
+- At most **5000 records per channel per poll**, newest-first, so a runaway log
+  yields its most recent records and the remainder arrives on the next poll.
+- The **first** poll of a new host reads the last 24h, not the whole channel.
+  Bootstrapping a full history would take minutes per channel and flood the queue
+  on first contact.
+
+#### Failure behaviour
+
+A host that is down, firewalled, or has bad credentials is a normal condition in a
+fleet of hundreds, not an exception. So:
+
+- A failing host is recorded in `last_status` and rescheduled at its band's slowest
+  interval. It is not retried every 60s, and it does not stop any other host from
+  being polled.
+- A failing *channel* does not lose the other channels on the same host: a host
+  where `Security` is access-denied still yields its `Application` and `System`
+  records, with the wevtutil error text kept in the status so the cause is legible.
+- `wevtutil`'s exit code is checked. It exits 3 for an unknown channel and 5 for
+  access denied; reporting those as "no events" would make a permission-locked
+  channel look quiet.
+
+#### Verifying the poller
+
+```sql
+select address, last_polled_at, next_poll_at, last_event_count, poll_count, last_status
+from windows_targets order by last_polled_at desc nulls last;
+```
+
+`last_status` is where a problem will show up. `partial: Security: wevtutil exit 5:
+Access is denied` means the channel list is wrong for that account, not that the
+host is quiet.
+
+### Collecting through OpenWEC instead
 
 Point an OpenWEC subscription at its Files output driver:
 
@@ -409,7 +574,10 @@ docker compose --profile windows up -d
 | `WINDOWS_MAX_LINES` | `5000` | lines per queue file |
 | `WINDOWS_POLL_INTERVAL` | `10` | seconds between input scans |
 
-### Do not point OpenWEC at `Logs/LogStaging`
+The poller uses the same `WINDOWS_STAGING` and `WINDOWS_QUEUE` defaults, so the
+two paths publish to the queue identically.
+
+#### Do not point OpenWEC at `Logs/LogStaging`
 
 This is the one setup mistake that will silently corrupt data. `LogStaging`
 belongs to the Rust syslog collector, whose startup recovery moves **every** file
@@ -425,7 +593,7 @@ file sitting in the queue directory would be claimed and read while still being
 appended to. The forwarder therefore writes to staging, `fsync`s, and only then
 renames into the queue — the rename is what publishes the file.
 
-### Formats and field mapping
+#### Formats and field mapping
 
 Four OpenWEC output formats are handled: `Json`, `Nxlog`, `Raw` (Windows XML) and
 `JsonRaw`. A record is identified by its framing, not by guessing the format:
@@ -450,7 +618,7 @@ fractional digits and OpenWEC emits a UTC offset; both parse, but only the `Z`
 form survives `stage_event`'s sanitiser intact — a `+` becomes a space, which
 would split the timestamp across two tokens and mis-locate the service name.
 
-### The multi-line `Raw` trap
+#### The multi-line `Raw` trap
 
 A rendered Windows event message (`RenderingInfo/Message`) can contain literal
 newlines — a service-stopped event embeds the service's dependency list, a
@@ -466,7 +634,7 @@ dropped at a size ceiling rather than growing the buffer forever. One 4688 event
 arrives as one row, not a dozen partial ones — and partial ones would be
 indistinguishable from real data once they were in the database.
 
-### Verifying it works
+#### Verifying it works
 
 ```sql
 select s.address, e.generated, e.hunks
@@ -646,6 +814,13 @@ executed anywhere. `JobHandler::HANDLERS` is the whole set:
 | `maintain_event_partitions` | creates next month's partitions, archives and drops expired ones (Postgres only; seeded daily) |
 | `tune_dashboard_feed` | persists the self-tuned live-feed size (seeded hourly) |
 | `prune_sessions` | reclaims login sessions whose expiry has passed (seeded hourly) |
+| `poll_windows_events` | polls every Windows host whose `next_poll_at` has arrived (seeded every 60s) |
+
+The `poll_windows_events` frequency is not the polling interval. It only sets how
+often the due-list is swept; the interval that decides when any given host is
+polled is computed per host — see
+[priority bands](#priority-bands-and-the-adaptive-interval). So the Job runs often
+and cheaply, and does nothing when nothing is due.
 
 Adding a capability means adding an entry to `JobHandler::HANDLERS` and
 deploying — it is deliberately not something an operator can do from the web UI.
@@ -681,10 +856,17 @@ from that map is unreachable to everyone. The five rights and what they unlock:
 | right | grants |
 |---|---|
 | `Admin` | everything, including users, roles, rights, sessions, preferences, services, statistics |
-| `Viewer` | events, alerts, searches, systems |
+| `Viewer` | events, alerts, searches, systems, Windows targets and priority bands (read only) |
 | `Commentator` | commenting on alerts, and Exclusions |
 | `Taskmaster` | the Jobs screens |
 | `Detective` | Displays and stored Searches |
+
+`ACTION_RIGHTS` tightens specific actions past their controller's default. Adding
+or editing a **WindowsTarget**, polling one on demand, and editing a
+**PollingPriority** band all require `Admin`: a target row holds a domain
+credential and names a host this server will connect out to, and widening a band
+loosens how often DAD looks for new events. A Viewer can see both lists and the
+guarantee each band offers, but cannot change either.
 
 Two roles are seeded: **Administrators** (`Admin` only) and **Analyst** (the other
 four). Logon locks an account after 4 failed attempts and resets the counter after
@@ -704,8 +886,9 @@ closed never presents its token again, and that lookup is indexed on
 `session_hash` — it runs on every authenticated request.
 
 Admin list screens (users, sessions, jobs, roles, rights, preferences, comments,
-exclusions, searches, displays, systems, statistics) are paginated at 25 rows per
-page; `?page=N` selects one. Nothing in the UI loads a whole table.
+exclusions, searches, displays, systems, statistics, Windows targets) are
+paginated at 25 rows per page; `?page=N` selects one. Nothing in the UI loads a
+whole table.
 
 ---
 

@@ -36,6 +36,18 @@ class JobHandler
       removed = Session.purge_expired
       "reclaimed #{removed} expired session#{'s' unless removed == 1}"
     },
+    # Drives the Windows poller. The Job's own frequency only sets how often the
+    # due-list is swept; the interval that decides *when a given host is polled*
+    # is computed per target in WindowsTarget#next_interval_secs. So this Job
+    # runs often and cheaply, and does nothing when nothing is due.
+    'poll_windows_events' => ->(_arg) {
+      r = WindowsPollCycle.run
+      summary = "polled #{r[:polled]} Windows target(s), #{r[:events]} event(s)"
+      unless r[:failed].empty?
+        summary += ", #{r[:failed].size} with errors: #{r[:failed].join(', ')}"
+      end
+      summary
+    },
   }.freeze
 
   # Names an operator may select in the Jobs form.

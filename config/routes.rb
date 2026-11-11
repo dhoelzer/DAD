@@ -59,6 +59,17 @@ Events::Application.routes.draw do
 
   resources :systems
 
+  # Windows hosts DAD polls over WinRM, and the priority bands that set their
+  # polling intervals. Priority levels are edited from the Windows Targets
+  # screens, so polling_priorities has no index/new of its own.
+  resources :windows_targets do
+    member do
+      post :poll_now
+    end
+  end
+
+  resources :polling_priorities, only: [:index, :edit, :update]
+
   resources :events do
     collection do 
       get :search

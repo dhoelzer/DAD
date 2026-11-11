@@ -1,0 +1,41 @@
+<%= form_for(@windows_target) do |f| %>
+  <%= render 'shared/error_explanation', record: @windows_target %>
+
+  <div class="field">
+    <%= f.label :address %><br>
+    <%= f.text_field :address %>
+  </div>
+  <div class="field">
+    <%= f.label :name %><br>
+    <%= f.text_field :name %>
+  </div>
+  <div class="field">
+    <%= f.label :polling_priority_id, 'Priority' %><br>
+    <%= f.collection_select :polling_priority_id, PollingPriority.ordered.all, :id, :name %>
+  </div>
+  <div class="field">
+    <%= f.label :event_logs %><br>
+    <%= f.text_field :event_logs, size: 60 %>
+    <br><span class="hint">Comma-separated Windows event log channels, for example
+      Application,System,Setup,ForwardedEvents.</span>
+  </div>
+  <div class="field">
+    <%= f.label :username %><br>
+    <%= f.text_field :username %>
+  </div>
+  <div class="field">
+    <%= label_tag 'windows_target_password', 'Password' %><br>
+    <%= password_field_tag 'windows_target[password]', nil, autocomplete: 'off' %>
+    <br><span class="hint"><%= @windows_target.persisted? && @windows_target.password.present? ?
+      'A credential is already stored. Leave this blank to keep it.' :
+      'Stored encrypted in the database.' %></span>
+  </div>
+  <div class="field">
+    <%= f.label :enabled %><br>
+    <%= f.check_box :enabled %>
+    <br><span class="hint">Uncheck to stop polling this host without deleting it.</span>
+  </div>
+  <div class="actions">
+    <%= f.submit %>
+  </div>
+<% end %>

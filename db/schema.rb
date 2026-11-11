@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_10_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_11_000001) do
   create_table "alerts", force: :cascade do |t|
     t.integer "system_id", limit: 8
     t.integer "service_id", limit: 8
@@ -90,6 +90,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_10_000001) do
     t.integer "frequency", default: 3600
     t.datetime "created_at", precision: nil
     t.datetime "updated_at", precision: nil
+  end
+
+  create_table "polling_priorities", force: :cascade do |t|
+    t.string "name", null: false
+    t.integer "rank", null: false
+    t.integer "min_interval_secs", null: false
+    t.integer "max_interval_secs", null: false
+    t.boolean "enabled", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_polling_priorities_on_name", unique: true
+    t.index ["rank"], name: "index_polling_priorities_on_rank", unique: true
   end
 
   create_table "preferences", force: :cascade do |t|
@@ -180,8 +192,31 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_10_000001) do
     t.index ["username"], name: "index_users_on_username", unique: true
   end
 
+  create_table "windows_targets", force: :cascade do |t|
+    t.string "address", null: false
+    t.string "name"
+    t.bigint "polling_priority_id", null: false
+    t.text "event_logs", default: "Application,System,Setup,ForwardedEvents", null: false
+    t.boolean "enabled", default: true, null: false
+    t.string "username"
+    t.text "password"
+    t.datetime "last_polled_at"
+    t.datetime "next_poll_at"
+    t.float "events_per_second", default: 0.0, null: false
+    t.integer "last_event_count", default: 0, null: false
+    t.integer "poll_count", default: 0, null: false
+    t.string "last_status"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["address"], name: "index_windows_targets_on_address", unique: true
+    t.index ["enabled", "next_poll_at"], name: "index_windows_targets_on_enabled_and_next_poll_at"
+    t.index ["polling_priority_id"], name: "index_windows_targets_on_polling_priority_id"
+  end
+
   create_table "words", force: :cascade do |t|
     t.string "text"
     t.index ["text"], name: "index_words_on_text"
   end
+
+  add_foreign_key "windows_targets", "polling_priorities"
 end

@@ -1,0 +1,38 @@
+<h1>Polling priorities</h1>
+
+<p>A priority sets the band a host's polling interval is kept inside. The maximum
+is the guarantee: a host is polled at least that often, however quiet it goes.
+The minimum stops a busy host being polled so aggressively that the polling
+itself becomes the load. Between the two, the interval adapts to how many events
+that host is producing.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Priority</th>
+      <th>Rank</th>
+      <th>At least every (s)</th>
+      <th>Never more often than (s)</th>
+      <th>Enabled</th>
+      <th>Hosts</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @polling_priorities.each do |priority| %>
+      <tr>
+        <td><%= priority.name %></td>
+        <td><%= priority.rank %></td>
+        <td><%= priority.max_interval_secs %></td>
+        <td><%= priority.min_interval_secs %></td>
+        <td><%= priority.enabled? %></td>
+        <td><%= priority.windows_targets.count %></td>
+        <td><%= link_to 'Edit', edit_polling_priority_path(priority) %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<br>
+
+<%= link_to 'Windows targets', windows_targets_path %>
