@@ -442,6 +442,16 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   `scaffolds.css.scss` was merged into it. There are now **no `.scss` files**,
   and `sass-rails` is still required: it provides the `:sass` `css_compressor`
   that minifies the plain-CSS bundle. Do not drop it as vestigial.
+- **All narrow-screen CSS stays inside the `@media (max-width: 768px)` block at
+  the end of `application.css`.** A rule placed after that block applies at every
+  width and silently changes desktop rendering. `test/system/responsive_test.rb`
+  asserts nothing follows the block, so a leak fails the suite rather than
+  reaching master. The containment is the safety argument: the rack-test system
+  suite has no layout engine, so it cannot validate responsive CSS -- it can only
+  guarantee the desktop rules are untouched.
+- The nav bar is generated from `$_models` (19 tabs) and the alert queue uses
+  fixed `display:table-column` widths summing to 1140px. Both are wider than any
+  phone; that is why the media query exists. Adding a model adds a nav tab.
 - Uglifier was replaced by **terser** because UglifyJS 2.x is ES5-only and
   aborts on Chart.js's ES2015 output. sprockets 3.7 has no `:terser` symbol but
   `js_compressor=` accepts any object responding to `#compress`, so
