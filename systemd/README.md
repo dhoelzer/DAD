@@ -1,14 +1,18 @@
 # systemd units
 
-These three units replace the `... &` backgrounding the original installer used,
-which meant the collector, importer and scheduler died on every reboot and
-nothing restarted them (RECOMMENDATIONS.md 5.1).
+These units replace the `... &` backgrounding the original installer used, which
+meant the collector, importer and scheduler died on every reboot and nothing
+restarted them (RECOMMENDATIONS.md 5.1).
 
 | unit | runs | restarts |
 |---|---|---|
 | `dad-syslog` | `syslog_collector` (Rust), UDP/514 → `Logs/LogStaging` | always |
 | `dad-importer` | `import_syslog.rb`, `LogsToProcess` → database | always |
 | `dad-scheduler` | `scheduler.rb`, runs due `Job` rows | always |
+| `dad-windows` | `import_windows_events.rb`, OpenWEC output → `LogsToProcess` | always |
+
+`dad-windows` is optional: it only does anything if OpenWEC is installed and
+writing an input file. Enable it on its own, not as part of the base three.
 
 Install, enable and start them yourself:
 
@@ -18,7 +22,21 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now dad-syslog dad-importer dad-scheduler
 systemctl status dad-importer
 journalctl -u dad-importer -f
+
+# optional, for Windows events
+sudo mkdir -p -m 2775 /var/DAD/Logs/Windows
+# writable by whichever user OpenWEC runs as, readable by www-data, which is
+# what dad-windows runs under -- hence the group and the setgid bit.
+sudo chown openwec:www-data /var/DAD/Logs/Windows
+sudo systemctl enable --now dad-windows
+journalctl -u dad-windows -f
 ```
+
+The `Logs/Windows` directory is where OpenWEC's Files output driver writes; the
+forwarder creates its own staging directory, but OpenWEC's is yours to create.
+Do not point OpenWEC at `Logs/LogStaging` — that directory belongs to
+`syslog_collector`, which moves every file it finds there into `LogsToProcess` at
+startup. See README §Ingesting Windows events.
 
 ## Things worth knowing before you change them
 

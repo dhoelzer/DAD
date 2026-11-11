@@ -45,6 +45,11 @@ should touch it.
 | `dad-syslog` | `syslog_collector` (Rust) | rotates the staging file every 60s |
 | `dad-importer` | `import_syslog.rb` | one pass every 60s; purge every 12h |
 | `dad-scheduler` | `scheduler.rb` | due `Job` rows every 60s |
+| `dad-windows` | `import_windows_events.rb` | optional; tails OpenWEC output every 10s |
+
+Windows events are optional. When enabled they arrive through a fourth process
+that feeds the **same** `LogsToProcess` queue rather than a second importer — see
+[Ingesting Windows events](#ingesting-windows-events).
 
 ---
 
@@ -341,6 +346,139 @@ at-least-once boundary described above, not a new one.
 
 If you are sizing a backfill, the cold-cache figure is the relevant one; if you are
 sizing steady-state collection, use the warm figure.
+
+---
+
+## Ingesting Windows events
+
+DAD ingests Windows Event Log events collected by
+[OpenWEC](https://github.com/cea-sec/openwec), a Windows Event Collector that
+subscribes to hosts over WinRM and writes what it receives to files.
+
+The design choice here is deliberate: **Windows events are converted into the
+record format the ingestor already accepts, rather than the ingestor being
+extended to understand Windows events.** `EventIngestor.stage_event` already
+parses an RFC 3339 timestamp as a single token, so a converted line needs no
+importer changes at all, and the word indexing, batching, crash checkpointing and
+event partitioning apply to Windows events for free. A second ingest path would
+have had to reimplement all of that and would drift.
+
+```
+Windows hosts ──WinRM──► OpenWEC ──► openwec.log ──┐
+                                                   │ import_windows_events.rb
+                                                   │  (dad-windows, every 10s)
+                                                   ▼
+syslog/UDP:514 ─► LogStaging ─► LogsToProcess ─► import_syslog.rb ─► Postgres
+```
+
+### Enabling it
+
+Point an OpenWEC subscription at its Files output driver:
+
+```toml
+[[subscription]]
+name = "Security"
+
+[subscription.output.files]
+path = "/var/DAD/Logs/Windows"
+file_name = "openwec.log"
+format = "Json"
+```
+
+Then run the forwarder. Under systemd:
+
+```bash
+sudo install -m 0644 systemd/dad-windows.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now dad-windows
+journalctl -u dad-windows -f
+```
+
+Under Docker Compose it is behind a profile, because it needs an OpenWEC
+installation this stack does not provide:
+
+```bash
+docker compose --profile windows up -d
+```
+
+| variable | default | meaning |
+|---|---|---|
+| `WINDOWS_INPUT` | `Logs/Windows/openwec.log` | the file OpenWEC writes |
+| `WINDOWS_STAGING` | `Logs/WindowsStaging` | where converted lines are buffered |
+| `WINDOWS_QUEUE` | `Logs/LogsToProcess` | the queue `dad-importer` polls |
+| `WINDOWS_MAX_LINES` | `5000` | lines per queue file |
+| `WINDOWS_POLL_INTERVAL` | `10` | seconds between input scans |
+
+### Do not point OpenWEC at `Logs/LogStaging`
+
+This is the one setup mistake that will silently corrupt data. `LogStaging`
+belongs to the Rust syslog collector, whose startup recovery moves **every** file
+it finds there into `LogsToProcess`, on the stated assumption that it is the only
+writer in that directory. If OpenWEC writes there, the collector renames its
+in-progress file away mid-append, and the tail of one file ends up in another.
+
+Give OpenWEC its own directory (`Logs/Windows` above), and let the forwarder
+buffer in a second one (`Logs/WindowsStaging`). The staging directory has to be
+separate from the queue for the same class of reason: `LogQueue.pending` globs
+`*` and excludes only `.processing` and `.offset` names, so a partially written
+file sitting in the queue directory would be claimed and read while still being
+appended to. The forwarder therefore writes to staging, `fsync`s, and only then
+renames into the queue — the rename is what publishes the file.
+
+### Formats and field mapping
+
+Four OpenWEC output formats are handled: `Json`, `Nxlog`, `Raw` (Windows XML) and
+`JsonRaw`. A record is identified by its framing, not by guessing the format:
+JSON records are one per line, a `Raw` XML record runs from `<Event` to
+`</Event>`.
+
+| DAD field | `Json` / `JsonRaw` | `Nxlog` | `Raw` XML |
+|---|---|---|---|
+| host (`System`) | `System.Computer` | `Host` / `Source` | `System/Computer` |
+| timestamp (`generated`) | `System.TimeCreated` | `EventTime` | `System/TimeCreated` |
+| service (`Service`) | `System.Provider.Name` | `SourceName` | `System/Provider Name` |
+| body (`hunks`) | `EventData` as `key=value` | `Event` as `key=value` | `EventData` as `key=value` |
+
+`EventID`, `Channel`, `Level`, `EventRecordID`, `Keywords`, `Task`, `Opcode` and
+the provider name are emitted as explicit fields, and `EventData` values follow
+as `data_<name>=<value>`. Field **keys** are downcased in every format so the
+same event arriving as `Json` versus `Nxlog` does not index under two different
+spellings; field **values** keep their case, because a username is data.
+
+Timestamps are normalised to RFC 3339 with a literal `Z`. Windows emits 7-9
+fractional digits and OpenWEC emits a UTC offset; both parse, but only the `Z`
+form survives `stage_event`'s sanitiser intact — a `+` becomes a space, which
+would split the timestamp across two tokens and mis-locate the service name.
+
+### The multi-line `Raw` trap
+
+A rendered Windows event message (`RenderingInfo/Message`) can contain literal
+newlines — a service-stopped event embeds the service's dependency list, a
+process-creation event can embed a long command line. OpenWEC's Files driver
+appends exactly one newline per record, which holds for `Json`, `Nxlog` and
+`JsonRaw` but **not** for `Raw`.
+
+So the forwarder cannot assume one line per record. It reads in byte chunks and
+splits on record boundaries, tracking a byte offset that only advances past
+records it has actually yielded. A record that has not finished arriving is left
+in the buffer and resumed on the next pass; a record that never terminates is
+dropped at a size ceiling rather than growing the buffer forever. One 4688 event
+arrives as one row, not a dozen partial ones — and partial ones would be
+indistinguishable from real data once they were in the database.
+
+### Verifying it works
+
+```sql
+select s.address, e.generated, e.hunks
+from events e join systems s on s.id = e.system_id
+where e.hunks like '%eventid=4688%' limit 5;
+```
+
+If the events are missing, check in order: `journalctl -u dad-windows` for
+`no input at ...` (wrong `WINDOWS_INPUT`) or `skipped N unconvertible record(s)`
+(format mismatch); then `ls Logs/WindowsStaging` (a file left there means the
+forwarder is not flushing) and `ls Logs/LogsToProcess` (a file left there means
+`dad-importer` is not running).
 
 ---
 

@@ -17,6 +17,7 @@
 #   importer  import_syslog.rb  -- Logs/LogsToProcess -> database
 #   scheduler scheduler.rb      -- runs Jobs whose next_run has passed
 #   syslog    syslog_collector  -- UDP/514 -> Logs/LogStaging
+#   windows   import_windows_events.rb -- OpenWEC output -> LogsToProcess (profile: windows)
 #   test      rake test + cucumber, against the db container (profile: test)
 #
 # Production deploys via systemd + your own web server (see systemd/README.md);
@@ -138,6 +139,24 @@ services:
   importer:
     <<: *app
     command: ["bundle", "exec", "ruby", "import_syslog.rb"]
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  # Optional: converts OpenWEC (Windows event collector) output into DAD's
+  # staging format and enqueues it. Off by default -- it needs an OpenWEC
+  # installation writing an input file, which this stack does not provide.
+  # Enable with: docker compose --profile windows up
+  windows:
+    <<: *app
+    profiles: ["windows"]
+    environment:
+      WINDOWS_INPUT: /var/DAD/Logs/Windows/openwec.log
+      WINDOWS_STAGING: /var/DAD/Logs/WindowsStaging
+      WINDOWS_QUEUE: /var/DAD/Logs/LogsToProcess
+    command: ["bundle", "exec", "ruby", "import_windows_events.rb"]
     depends_on:
       db:
         condition: service_healthy

@@ -1,0 +1,47 @@
+[Unit]
+Description=DAD Windows event forwarder (OpenWEC output -> LogsToProcess)
+Documentation=file:///var/DAD/RECOMMENDATIONS.md
+After=network.target postgresql.service
+Wants=postgresql.service
+# Optional: OpenWEC writes the input file. Wants, not Requires -- DAD should keep
+# running and simply wait if the collector is down, rather than being dragged
+# down with it.
+Wants=openwec.service
+# 0 means never give up restarting; five fast failures must not leave this down.
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+WorkingDirectory=/var/DAD
+EnvironmentFile=/etc/DAD/environment.d/dad.conf
+Environment=RAILS_ENV=production
+Environment=BUNDLE_GEMFILE=/var/DAD/Gemfile
+# Where OpenWEC's Files output driver writes. Must NOT be Logs/LogStaging: that
+# directory belongs to syslog_collector, which moves every file it finds there
+# into LogsToProcess at startup.
+Environment=WINDOWS_INPUT=/var/DAD/Logs/Windows/openwec.log
+Environment=WINDOWS_STAGING=/var/DAD/Logs/WindowsStaging
+Environment=WINDOWS_QUEUE=/var/DAD/Logs/LogsToProcess
+ExecStart=/usr/bin/bundle exec ruby import_windows_events.rb
+Restart=always
+RestartSec=5
+# Same user as the importer and Passenger, so ownership of Logs/ is agreed rather
+# than fought over.
+User=www-data
+Group=www-data
+SyslogIdentifier=dad-windows
+StandardOutput=journal
+StandardError=journal
+
+# Hardening. No inbound sockets: this reads a file and writes files; its only
+# network client is Postgres, via Rails.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target
