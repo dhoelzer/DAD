@@ -449,6 +449,17 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   reaching master. The containment is the safety argument: the rack-test system
   suite has no layout engine, so it cannot validate responsive CSS -- it can only
   guarantee the desktop rules are untouched.
+- **Never write `complete: $.ajax()` (or any `f()` call) inside a jQuery options
+  object.** It invokes the function while building the object; with no options
+  jQuery uses `ajaxSettings.url` = the current page, so it fires a stray XHR, and
+  the returned jqXHR is then dropped because `Callbacks.add` ignores non-functions.
+  CI greps the built bundle for `[A-Za-z_$]+\.ajax\(\s*\)`; the dashboard poll in
+  `app/views/events/index.js.erb` is guarded in `dashboard_render_test.rb`.
+- **`coffee-rails` cannot be removed** even though the app has no `.coffee` files:
+  `//= require turbolinks` compiles `turbolinks-2.5.4`'s own `.js.coffee`.
+- Comments in `.js.erb` are **shipped to the browser**. Use `<%# %>` for notes that
+  should stay in source -- a `//` note there is part of the response and can trip
+  assertions on that response.
 - **Every `id` in rendered HTML must be unique.** `test/system/unique_ids_test.rb`
   scans 17 pages and fails on any repeat. Anything rendered inside a loop -- nav
   tabs, alert rows, comments -- must use a `class`, never an `id`. The alert queue

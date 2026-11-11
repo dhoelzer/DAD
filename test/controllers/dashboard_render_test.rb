@@ -71,6 +71,33 @@ class DashboardRenderTest < ActionDispatch::IntegrationTest
     assert_valid_javascript body
   end
 
+  # The dashboard re-fetches /events.js every 60 seconds to stay live, and the
+  # poll is defined at the bottom of this same template. It used to read
+  #
+  #     complete: $.ajax()
+  #
+  # which *calls* $.ajax() with no options while building the options object for
+  # the real request. jQuery's ajaxSettings.url defaults to document.location.href,
+  # so every poll fired a second XHR that re-rendered the whole dashboard as HTML;
+  # jQuery then dropped the returned jqXHR, because Callbacks.add ignores anything
+  # that is not a function. Both halves of that are asserted on here: rack-test
+  # runs no JavaScript, so the rendered script is the only place the poll exists.
+  def test_dashboard_js_polls_without_a_stray_ajax_call
+    seed_recent_data
+    get 'https://www.example.com/events.js', headers: @headers
+    assert_response :success
+    body = response.body
+
+    assert_match(%r{url:'/events\.js'}, body, 'the poll must still target /events.js')
+    assert_match(/dataType: 'script'/, body, 'the poll response must stay a script')
+
+    # A no-argument $.ajax() is the bug itself, not just the complete: spelling.
+    refute_match(/\$\.ajax\(\s*\)/, body,
+                 'a no-argument $.ajax() re-fetches the current page as HTML')
+    refute_match(/complete:/, body,
+                 'the poll never had a working complete: callback; do not re-add one')
+  end
+
   # A fresh install has no statistics rows, which is the case that used to emit
   # `var stats = [NaN, NaN, NaN]` and hand Highcharts NaN gauge axes.
   def test_dashboard_js_renders_without_statistics

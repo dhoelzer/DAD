@@ -17,7 +17,7 @@ var results = function(data, code, xhr)
 var services_chart = function()
 {
 	if($('#services_chart').length) {
-		$("services_chart").html("Loading...");
+		$("#services_chart").html("Loading...");
 		draw_graph("services_chart",<%= js_literal "Breakdown for #{@system.display_name}" %>, <%= js_literal system_service_stats(@system.id) %>);
 	}
 }
