@@ -2443,6 +2443,110 @@ entry points. The `__FILE__ == $PROGRAM_NAME` guard added in PR #16 and request
 specs over the CRUD routes are the two structural fixes for it. Priorities 1 and 3
 are both versions of the same investment.
 
+### 5.15 ✅ Closed — `complete: $.ajax()` fired a second XHR for the current page, in three places **[correctness] [maintainability]**
+
+Three call sites built a jQuery options object like this:
+
+```js
+jQuery.ajax({
+        type:'GET',
+        url:'/events.js',
+        dataType: 'script',
+        complete: $.ajax()      // <-- calls $.ajax() with NO options
+        })
+```
+
+`complete:` is a property, so `$.ajax()` is **invoked while the object literal is
+being built**, not registered. Two separate consequences, both real:
+
+1. **A stray XHR.** With no options, jQuery falls back to `ajaxSettings.url`,
+   which the built bundle confirms is `url:He.href` / `document.location.href`.
+   So each of these fetched *the page you were already on*. On the dashboard that
+   is a full HTML render of `/events` -- queries and all -- every time it fired.
+2. **No callback.** jQuery's `Callbacks.add` only pushes values where
+   `jQuery.isFunction(value)` is true; a jqXHR is an object, so it was silently
+   dropped. The `complete:` handler never ran and never has.
+
+Sites: `events.js.coffee`, `systems.js.coffee`, and -- the one that actually
+mattered -- the **60-second dashboard poll** at the bottom of
+`app/views/events/index.js.erb`.
+
+**Reachability, checked rather than assumed.** `events.js.coffee` fires on
+`/events` (`#big_picture` is rendered). `systems.js.coffee` is **inert**: its
+guard is `#system-gauges`, and the only such element is commented out in
+`systems/show.html.erb`. The poll in `index.js.erb` fires unconditionally, 60s
+after every dashboard render.
+
+**Fixes**
+- Removed the `complete: $.ajax()` line at all three sites. Not replaced -- there
+  was never a working callback to restore, and inventing one would change
+  behaviour rather than fix it.
+- Converted `events.js.coffee` / `systems.js.coffee` to plain `events.js` /
+  `systems.js`, so the app's own behaviour is readable without a CoffeeScript
+  step. `systems.js` kept (inert but intentional) so uncommenting the gauge block
+  still works.
+- `$("services_chart")` in `systems/show.js.erb` -> `$("#services_chart")`. As
+  written it was an **element type selector** for `<services_chart>`, which never
+  exists, so the "Loading..." line was dead. The `draw_graph("services_chart", ...)`
+  call next to it is correct -- that one takes an id string, not a selector.
+
+**`coffee-rails` stays, and why is not obvious.** The app now has no `.coffee`
+files, but `//= require turbolinks` pulls in
+`turbolinks-2.5.4/lib/assets/javascripts/turbolinks.js.coffee`, and
+`Gemfile.lock` shows `turbolinks (2.5.4) -> coffee-rails`. Removing the gem fails
+the production precompile. Recorded in the Gemfile comment.
+
+**Equivalence, shown rather than asserted.** The conversion was checked by
+running the *real* sprockets-compiled CoffeeScript and the new JS under node
+against a stubbed jQuery that records every `$.ajax` call, selector touched and
+handler registered, across five DOM scenarios (`#big_picture` present/absent,
+`#spinner`, `#searchload`, `#system-gauges`, none):
+
+| Scenario | OLD | NEW |
+|---|---|---|
+| dashboard `/events` | 1 intended ajax + **1 stray** | 1 intended ajax, 0 stray |
+| system show page | 1 intended ajax + **1 stray** | 1 intended ajax, 0 stray |
+| search page / no `#big_picture` / nothing | 0 / 0 | 0 / 0 |
+
+Every other line of the trace -- `hide #spinner`, `bind:click`,
+`each *[id*=searchload] n=1`, the intended `AJAX GET /events.js dataType=script`
+-- is identical. `complete=` normalises to `dropped` in both, because jQuery
+discards a non-function callback either way. **Intended behaviour identical in
+all five scenarios; only the stray XHR is gone.**
+
+**Guards**
+- `test/controllers/dashboard_render_test.rb#test_dashboard_js_polls_without_a_stray_ajax_call`
+  renders `/events.js` and rejects any no-argument `$.ajax()` and any `complete:`.
+  This is the right layer: rack-test runs no JavaScript, so the rendered script
+  is the only place the poll exists.
+- A CI step greps the **built bundle** for `[A-Za-z_$]+\.ajax\(\s*\)`. Verified
+  to discriminate: it matches both occurrences in the old bundle
+  (`complete:$.ajax()})},t=functi` / `...},e=functi`) and zero in the new one.
+
+**Comment placement is load-bearing here.** The first version of the explanatory
+note was a `//` comment in `index.js.erb` -- which is *sent to the browser on
+every poll* and tripped the new test. It is now an ERB `<%# %>` comment: present
+in source, absent from the response.
+
+**Bundle:** `4328919ebec18b48` (480,166 B) -> `7bdcd4f46f779257` (480,034 B),
+−132 B. CSS digest unchanged (`07e73aaaf7773487`), as expected.
+
+**Verified on a fresh database running the CI sequence** (`db:migrate_from_scratch`
+-> `rake test` -> `rake test:system` -> `cucumber`): 438 runs / 1268 assertions;
+40 system runs / 237 assertions; cucumber 5 scenarios / 18 steps; brakeman 0;
+bundle-audit clean; all 3 asset paths resolve.
+
+**A testing trap worth recording.** Cucumber briefly reported 2 failures here,
+and they were **not** a regression -- they reproduced on clean `master` too. The
+cause was local: ad-hoc `rails runner` probes had written rows into `dad_test`
+outside a transaction, and the ingestor scenarios assert
+`Event.count - @startingEvents == 1` against a `words` table whose state those
+rows perturbed. CI is not exposed: it always builds the database with
+`db:migrate_from_scratch`. The lesson is to re-run on a fresh DB before treating
+a suite failure as caused by the change under review.
+
+---
+
 ---
 
 ## Appendix: what is closed, and where the detail is

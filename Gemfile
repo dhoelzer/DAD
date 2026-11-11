@@ -101,8 +101,11 @@ gem 'sass-rails', '~> 5.0.7'
 # and needs a JS runtime (node) at precompile time, as it always has.
 gem 'terser', '~> 1.0'
 
-# Use CoffeeScript for .js.coffee assets and views. 4.2.x is required: the 4.0.x
-# line caps railties at < 5.0.
+# Still required even though the app has no .coffee files of its own: turbolinks
+# 2.5.4 ships lib/assets/javascripts/turbolinks.js.coffee, and `//= require
+# turbolinks` in application.js cannot compile it without this. Removing the gem
+# fails the production precompile. 4.2.x is required: the 4.0.x line caps
+# railties at < 5.0.
 gem 'coffee-rails', '~> 4.2.2'
 
 # Use jquery as the JavaScript library. 4.3.x is the oldest line compatible with

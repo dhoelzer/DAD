@@ -182,6 +182,22 @@ jobs:
             || { echo "bundle looks unminified: $lines lines ($(wc -c < "$f") bytes)"; exit 1; }
           echo "bundle minified: $lines lines, $(wc -c < "$f") bytes"
 
+      # Both .js.coffee files and the dashboard's 60-second poll carried
+      # `complete: $.ajax()`, which calls $.ajax() with no options while building
+      # the options object. jQuery's ajaxSettings.url is document.location.href, so
+      # each one fired a second XHR that re-rendered the current page as HTML.
+      # Nothing else in the suite runs JavaScript, so the built bundle is the only
+      # place this is visible.
+      - name: Assert the bundle has no no-argument $.ajax() call
+        run: |
+          f=$(ls public/assets/application-*.js | head -1)
+          if grep -qE '[A-Za-z_$]+\.ajax\(\s*\)' "$f"; then
+            echo "bundle calls .ajax() with no options (re-fetches the current page):"
+            grep -oE '.{40}[A-Za-z_$]+\.ajax\(\s*\).{20}' "$f"
+            exit 1
+          fi
+          echo "no no-argument .ajax() in the bundle"
+
       # config.assets.compile = false means Apache, not Rails, serves every
       # asset. So every path the app emits has to exist on disk. This catches the
       # digest/compile coupling: with digest = false the helpers ask for

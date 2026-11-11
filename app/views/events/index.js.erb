@@ -29,10 +29,16 @@ events_div.html("");
 <% end %>
 events_div.fadeIn();
 
+<%# This poll used to carry `complete: $.ajax()`, which *called* $.ajax() with no
+    options while building this options object. jQuery's Callbacks.add drops a
+    non-function, so nothing was registered; the only effect was a second XHR to
+    document.location.href (jQuery's ajaxSettings.url) -- a full HTML render of
+    /events every 60s, on top of the script fetch below. See
+    app/assets/javascripts/events.js. Kept as an ERB comment rather than a JS one
+    so it is not shipped to the browser on every poll. %>
 setTimeout(function() {
 	jQuery.ajax({
 		type:'GET',
 		url:'/events.js',
-		dataType: 'script',
-		complete: $.ajax()
+		dataType: 'script'
 		})}, 60000);
