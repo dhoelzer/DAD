@@ -818,6 +818,17 @@ own local `git config user.name/email`; the clone has none. Keep it in sync with
 the code: it duplicates the Jobs handler table, the env-var table, the rights
 tables, the paginated-screen list, and test counts, all of which go stale.
 
+**A claim here tends to be copied, not restated.** README, wiki pages and model
+comments each repeat the same sentence, so one error lives in three places and a
+fix has to be applied to all three. A 2026-11-12 audit of all 23 pages found nine
+such claims that had drifted (RECOMMENDATIONS 4.9), including two that were
+load-bearing: the README and wiki both said the offline-storage directory was mode
+`0700` when nothing in the app sets a mode on it, and both named
+`/events/recent` as the dashboard feed endpoint although no such route is declared.
+Verify a suspicious doc claim against the tree before changing it -- and note that
+an audit of an audit can itself be stale: one flagged the Viewer rights row for
+omitting `preferences`, but `preferences` is Admin-gated, so the row was correct.
+
 ## Credentials (do not commit)
 - A GitHub PAT for `dhoelzer/DAD` is stored at `../.secrets/github_pat` relative to
   this repo (i.e. `<workspace>/.secrets/github_pat`), mode 0600 and outside version
