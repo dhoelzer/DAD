@@ -91,7 +91,7 @@ without hand-writing a URL, since `config/database.yml` interpolates them.
 | `DAD_ADMIN_USER` | no | `db/seeds.rb` | Defaults to `admin`. |
 | `DAD_ADMIN_PASSWORD` | **yes** to seed | `db/seeds.rb` | Seeding raises rather than creating a well-known default account. |
 | `DAD_EVENT_RETENTION_DAYS` | no | `EventPartitioning` | Postgres only. How many days of event history retention keeps. **Default 365.** `0` or negative keeps every partition. A floor, not an exact age: a month is only dropped once the whole month is past the cutoff. |
-| `DAD_OFFLINE_STORAGE_DIR` | no | `EventPartitionBackup` | Where a month's CSV archive is written before its partition is dropped. Absolute, or relative to the app root. Default `offline_storage` under the app root; the systemd units set `/var/DAD/offline_storage`. |
+| `DAD_OFFLINE_STORAGE_DIR` | no | `EventPartitionBackup` | Where a month's CSV archive is written before its partition is dropped. Absolute, or relative to the app root. Default `offline_storage` under the app root; no unit sets it, but `WorkingDirectory=/var/DAD` makes that resolve to `/var/DAD/offline_storage` under systemd. |
 | `DAD_AR_ENCRYPTION_KEY` | **yes** (production) | `WindowsTarget`, `ActiveDirectoryConnection` | Active Record encryption key for stored WinRM and LDAP bind passwords. 32 bytes, hex. Production refuses to boot without it. |
 | `DAD_AR_ENCRYPTION_SALT` | **yes** (production) | `WindowsTarget` | Key-derivation salt for the same. Rails 8.1 requires it whenever encryption is configured. |
 | `WINDOWS_SSL_VERIFY` | no | `WindowsPoll`, `AdQuery` | `none` trusts an internal CA's WinRM or LDAPS certificate instead of the system trust store. Set it deliberately; the default verifies. |
