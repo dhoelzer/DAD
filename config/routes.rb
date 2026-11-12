@@ -70,6 +70,19 @@ Events::Application.routes.draw do
 
   resources :polling_priorities, only: [:index, :edit, :update]
 
+  # Active Directory domains DAD can query for hosts, and the import batches
+  # those queries produce. The import is two steps -- query, then apply what
+  # survived review -- so a batch has its own resource rather than being an
+  # action on the connection: the preview has to be a page an operator can look
+  # at, come back to, and uncheck things on.
+  resources :active_directory_connections
+
+  resources :ad_import_batches, only: [:new, :create, :show] do
+    member do
+      post :apply
+    end
+  end
+
   resources :events do
     collection do 
       get :search

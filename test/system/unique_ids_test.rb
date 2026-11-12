@@ -19,7 +19,8 @@ class UniqueIdsTest < SystemTest
   # collection pages are where a per-row id would show up.
   PAGES = %w[/alerts /events /users /systems /jobs /displays /searches
              /statistics /services /roles /rights /hunks /preferences
-             /exclusions /sessions /windows_targets /alerts/1 /systems/1].freeze
+             /exclusions /sessions /windows_targets /alerts/1 /systems/1
+             /active_directory_connections].freeze
 
   setup do
     sign_in
@@ -33,10 +34,32 @@ class UniqueIdsTest < SystemTest
                     generated: Time.now - i, closed: false,
                     description: "dup#{i}", short_description: "dup#{i}")
     end
+
+    # The AD import preview renders one checkbox per candidate host. check_box_tag
+    # derives an id from the field name, so 'selected_addresses[]' would emit the
+    # same id on every row unless the view overrides it -- which is precisely the
+    # loop-local id this test exists to catch.
+    conn = ActiveDirectoryConnection.create!(
+      name: 'dupad', host: 'dc01.corp.example.com', port: 636,
+      bind_dn: 'CN=svc-dad,DC=corp,DC=example,DC=com', password: 'bindpw',
+      search_base: 'DC=corp,DC=example,DC=com',
+      polling_priority: PollingPriority.find_by(name: 'Priority 1'),
+      poll_username: 'svc-poll', poll_password: 'winrmpw',
+      event_logs: 'Application,System')
+    @ad_batch = AdImportBatch.create!(active_directory_connection: conn, host_filter: 'all',
+                                      candidates: 3.times.map do |i|
+                                        { 'address' => "web0#{i}.corp.example.com",
+                                          'name' => "web0#{i}",
+                                          'operating_system' => 'Microsoft Windows 10 Pro',
+                                          'host_class' => 'workstation',
+                                          'domain_controller' => false,
+                                          'already_present' => false }
+                                      end)
   end
 
   test 'no page renders a duplicate id attribute' do
-    PAGES.each do |path|
+    # The batch id is not a fixture, so its path is built from the record.
+    (PAGES + ["/ad_import_batches/#{@ad_batch.id}"]).each do |path|
       visit path
 
       ids = page.body.scan(/id\s*=\s*["']([^"']+)["']/).flatten

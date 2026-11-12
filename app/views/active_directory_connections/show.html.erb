@@ -1,0 +1,79 @@
+<p id="alert"><%= alert %></p>
+
+<h1><%= @connection.display_name %></h1>
+
+<table>
+  <tr><th>Name</th><td><%= @connection.name %></td></tr>
+  <tr>
+    <th>Directory server</th>
+    <td>
+      <%= @connection.host %>:<%= @connection.port %>
+      (<%= @connection.ldaps? ? 'LDAPS' : 'StartTLS on port 389' %>)
+    </td>
+  </tr>
+  <tr><th>Bind DN</th><td><%= @connection.bind_dn %></td></tr>
+  <tr><th>Bind credential</th><td><%= @connection.password.present? ? 'stored' : 'not set' %></td></tr>
+  <tr><th>Search base</th><td><%= @connection.search_base %></td></tr>
+
+  <tr><th colspan="2">Defaults applied to imported hosts</th></tr>
+  <tr>
+    <th>Priority</th>
+    <td>
+      <%= @connection.polling_priority.name %>
+      (at least every <%= @connection.polling_priority.max_interval_secs %>s)
+    </td>
+  </tr>
+  <tr><th>Event logs</th><td><%= @connection.event_logs %></td></tr>
+  <tr><th>Polling username</th><td><%= @connection.poll_username %></td></tr>
+  <tr>
+    <th>Polling credential</th>
+    <td><%= @connection.polling_credential_present? ? 'stored' : 'not set' %></td>
+  </tr>
+  <tr><th>Polling</th><td><%= @connection.enabled? ? 'enabled' : 'disabled' %></td></tr>
+
+  <tr><th>Last query</th><td><%= @connection.last_query_at %></td></tr>
+  <tr><th>Last status</th><td><%= @connection.last_status %></td></tr>
+</table>
+
+<% unless @connection.polling_credential_present? %>
+  <p class="warning">
+    No polling credential is stored on this connection. Hosts imported from it
+    will be created, but they cannot authenticate over WinRM and will never
+    collect events until one is set on each target.
+  </p>
+<% end %>
+
+<br>
+
+<%= link_to 'Import from this directory', new_ad_import_batch_path(active_directory_connection_id: @connection.id) %>
+&middot;
+<%= link_to 'Edit', edit_active_directory_connection_path(@connection) %>
+&middot;
+<%= link_to 'Back', active_directory_connections_path %>
+
+<h2>Import batches</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Queried</th>
+      <th>Filter</th>
+      <th>By</th>
+      <th>Candidates</th>
+      <th>Applied</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @connection.ad_import_batches.order(created_at: :desc).limit(20).each do |batch| %>
+      <tr>
+        <td><%= batch.created_at %></td>
+        <td><%= batch.host_filter %></td>
+        <td><%= batch.user&.username %></td>
+        <td><%= batch.new_hosts.size %> new / <%= batch.already_present.size %> existing</td>
+        <td><%= batch.applied? ? "#{batch.added_count} added" : 'not applied' %></td>
+        <td><%= link_to 'View', ad_import_batch_path(batch) %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

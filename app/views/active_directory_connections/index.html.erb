@@ -1,0 +1,48 @@
+<h1>Listing Active Directory connections</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Connection</th>
+      <th>Directory server</th>
+      <th>Search base</th>
+      <th>Import defaults</th>
+      <th>Polling credential</th>
+      <th>Last query</th>
+      <th></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @connections.each do |connection| %>
+      <tr>
+        <td><%= link_to connection.display_name, connection %></td>
+        <td>
+          <%= connection.host %>:<%= connection.port %>
+          <span class="hint">(<%= connection.ldaps? ? 'LDAPS' : 'StartTLS' %>)</span>
+        </td>
+        <td><%= connection.search_base %></td>
+        <td>
+          <%= connection.polling_priority.name %><br>
+          <span class="hint"><%= connection.event_logs %></span>
+        </td>
+        <td><%= connection.polling_credential_present? ? 'stored' : 'not set' %></td>
+        <td>
+          <%= connection.last_query_at %><br>
+          <span class="hint"><%= connection.last_status %></span>
+        </td>
+        <td><%= link_to 'Edit', edit_active_directory_connection_path(connection) %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<%= pagination_nav %>
+
+<br>
+
+<%= link_to 'New AD connection', new_active_directory_connection_path %>
+&middot;
+<%= link_to 'Import from AD', new_ad_import_batch_path %>
+&middot;
+<%= link_to 'Windows targets', windows_targets_path %>

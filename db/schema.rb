@@ -10,7 +10,41 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_11_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_12_000001) do
+  create_table "active_directory_connections", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "host", null: false
+    t.integer "port", default: 636, null: false
+    t.string "bind_dn"
+    t.text "password"
+    t.string "search_base", null: false
+    t.bigint "polling_priority_id", null: false
+    t.string "poll_username"
+    t.text "poll_password"
+    t.text "event_logs", default: "Application,System,Setup,ForwardedEvents", null: false
+    t.boolean "enabled", default: true, null: false
+    t.datetime "last_query_at"
+    t.string "last_status"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_active_directory_connections_on_name", unique: true
+    t.index ["polling_priority_id"], name: "index_active_directory_connections_on_polling_priority_id"
+  end
+
+  create_table "ad_import_batches", force: :cascade do |t|
+    t.bigint "active_directory_connection_id", null: false
+    t.bigint "user_id"
+    t.string "host_filter", null: false
+    t.text "candidates", null: false
+    t.datetime "applied_at"
+    t.integer "added_count"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["active_directory_connection_id", "created_at"], name: "idx_on_active_directory_connection_id_created_at_0093b49daa"
+    t.index ["active_directory_connection_id"], name: "index_ad_import_batches_on_active_directory_connection_id"
+    t.index ["user_id"], name: "index_ad_import_batches_on_user_id"
+  end
+
   create_table "alerts", force: :cascade do |t|
     t.integer "system_id", limit: 8
     t.integer "service_id", limit: 8
@@ -218,5 +252,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_11_000001) do
     t.index ["text"], name: "index_words_on_text"
   end
 
+  add_foreign_key "active_directory_connections", "polling_priorities"
+  add_foreign_key "ad_import_batches", "active_directory_connections"
+  add_foreign_key "ad_import_batches", "users"
   add_foreign_key "windows_targets", "polling_priorities"
 end

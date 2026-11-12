@@ -34,6 +34,12 @@ class ApplicationController < ActionController::Base
     # will connect to, so reading one is a Viewer action but writing one is not.
     'windows_targets'     => %w[Viewer],
     'polling_priorities'  => %w[Viewer],
+    # Stricter than windows_targets on purpose. Reading a target list is a
+    # Viewer action, but a directory query returns the whole machine inventory
+    # of a domain -- hostname, OS, creation date -- which is reconnaissance
+    # value on its own, before anything is imported.
+    'active_directory_connections' => %w[Admin],
+    'ad_import_batches'            => %w[Admin],
     'users'       => %w[Admin],
     'words'       => %w[Admin]
   }.freeze

@@ -1,0 +1,86 @@
+<%= form_for(@connection) do |f| %>
+  <%= render 'shared/error_explanation', record: @connection %>
+
+  <div class="field">
+    <%= f.label :name %><br>
+    <%= f.text_field :name %>
+    <br><span class="hint">Label for this directory, for example "corp.example.com".</span>
+  </div>
+
+  <div class="field">
+    <%= f.label :host %><br>
+    <%= f.text_field :host %>
+    <br><span class="hint">Domain controller or LDAP host to bind to.</span>
+  </div>
+
+  <div class="field">
+    <%= f.label :port %><br>
+    <%= f.select :port, [[636, '636 (LDAPS)'], [389, '389 (StartTLS)']] %>
+    <br><span class="hint">636 is recommended. Port 389 only encrypts the bind once
+      StartTLS is negotiated.</span>
+  </div>
+
+  <div class="field">
+    <%= f.label :bind_dn %><br>
+    <%= f.text_field :bind_dn, size: 60 %>
+    <br><span class="hint">Distinguished name to bind as, for example
+      CN=svc-dad,OU=Service Accounts,DC=corp,DC=example,DC=com.
+      A read-only account is sufficient; only computer objects are requested.</span>
+  </div>
+
+  <div class="field">
+    <%= label_tag 'active_directory_connection_password', 'Bind password' %><br>
+    <%= password_field_tag 'active_directory_connection[password]', nil, autocomplete: 'off' %>
+    <br><span class="hint"><%= @connection.persisted? && @connection.password.present? ?
+      'A credential is already stored. Leave this blank to keep it.' :
+      'Stored encrypted in the database.' %></span>
+  </div>
+
+  <div class="field">
+    <%= f.label :search_base %><br>
+    <%= f.text_field :search_base, size: 60 %>
+    <br><span class="hint">Search base for computer objects, for example
+      DC=corp,DC=example,DC=com.</span>
+  </div>
+
+  <fieldset>
+    <legend>Defaults applied to imported hosts</legend>
+
+    <div class="field">
+      <%= f.label :polling_priority_id, 'Priority' %><br>
+      <%= f.collection_select :polling_priority_id, PollingPriority.ordered.all, :id, :name %>
+    </div>
+
+    <div class="field">
+      <%= f.label :event_logs %><br>
+      <%= f.text_field :event_logs, size: 60 %>
+      <br><span class="hint">Comma-separated Windows event log channels.</span>
+    </div>
+
+    <div class="field">
+      <%= f.label :poll_username %><br>
+      <%= f.text_field :poll_username %>
+      <br><span class="hint">WinRM account used to poll every host imported from
+        this directory.</span>
+    </div>
+
+    <div class="field">
+      <%= label_tag 'active_directory_connection_poll_password', 'WinRM password' %><br>
+      <%= password_field_tag 'active_directory_connection[poll_password]', nil, autocomplete: 'off' %>
+      <br><span class="hint"><%= @connection.persisted? && @connection.poll_password.present? ?
+        'A credential is already stored. Leave this blank to keep it.' :
+        'Stored encrypted in the database. Without it, imported hosts cannot poll.' %></span>
+    </div>
+  </fieldset>
+
+  <div class="field">
+    <%= f.label :enabled %><br>
+    <%= f.check_box :enabled %>
+    <br><span class="hint">Uncheck to keep this connection configured without
+      offering it for imports.</span>
+  </div>
+
+  <div class="actions">
+    <%= f.submit %>
+  </div>
+<% end %>
