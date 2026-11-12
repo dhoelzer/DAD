@@ -1,7 +1,8 @@
 # Management screens for Search records; requires the Detective right.
 #
-# A saved search is a bookmark: the stored string and time window re-populate the
-# events search form. The query itself is still executed by Event.search.
+# A saved search is a bookmark: the stored string re-populates the events search
+# form. No time window is stored, so the timeframe is chosen again at run time.
+# The query itself is still executed by Event.search.
 class SearchesController < ApplicationController
   before_action :set_search, only: [:show, :edit, :update, :destroy]
 

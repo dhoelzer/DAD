@@ -81,7 +81,7 @@ than carried forward.
 | **Broken links in rendered screens** | **OPEN — §2.8.** Three screens render links to actions their controller does not implement, so the link raises `AbstractController::ActionNotFound` on click: `words#index`/`#show` (New/Edit/Destroy), `services#index` (Destroy), `events#show` (Edit). **Reproduced by running the requests**, not just read from the views |
 | **Dead scaffolding** | **OPEN — §4.5, §4.6.** 9,554 lines of vendored CodeMirror are `//= require`d into every page's bundle but nothing instantiates it (the job form became a `<select>` when `eval` went); plus 13 empty helper modules, 10 empty helper test classes, the `hunks` table + its 160 lines of CRUD screens, and two join-table models that exist only to be hidden from the nav bar |
 | **Nav bar built from `ActiveRecord::Base.subclasses`** | **OPEN — §4.8.** `$_models` + a per-model `hidden?` method decide which tabs render, so every routeless or internal model needs a throwaway `hidden?`, and a model that fails to load silently loses its tab. Drive it from `CONTROLLER_RIGHTS` instead |
-| Documentation accuracy | README env table verified line by line against `ENV[...]`/`ENV.fetch` in code — accurate. Wiki `Access-Control.md` rights tables verified against `CONTROLLER_RIGHTS`/`ACTION_RIGHTS` — accurate. Wiki `Development.md` suite count was mis-split (fixed, §4.7); wiki `Access-Control.md` and a `config/routes.rb` comment both repeat a stale claim about `PollingPriority` (§4.7) |
+| Documentation accuracy | README env table verified line by line against `ENV[...]`/`ENV.fetch` in code — accurate. Wiki `Access-Control.md` rights tables verified against `CONTROLLER_RIGHTS`/`ACTION_RIGHTS` — accurate. A full 23-page wiki audit found nine false or stale claims, all fixed (§4.7, §4.9): `/events/recent` is not a route, the paginated-screen list was wrong, no Search "time window" exists, nothing sets `0700` on the archive dir, and the seeded-job, handler and breakpoint counts were off. Two model comments repeated the Search error and are fixed too |
 
 ---
 
@@ -1533,6 +1533,40 @@ after it, there is exactly one list of screens in the app instead of three
 (`$_models`, `CONTROLLER_RIGHTS`, and the per-model `hidden?` methods) that have
 to be kept in agreement by hand. Do it **after** §2.8 and §4.6, so the route
 fixes land first and the new nav list can be built against correct routes.
+
+### 4.9 ✅ Closed — the wiki and README repeated nine factual errors about the app **[documentation]**
+
+A page-by-page audit of all 23 wiki pages against this tree found seven claims that
+are simply false and two that are imprecise or stale. Each was re-verified against the tree
+before being changed, not taken on trust.
+
+| claim (wiki + README) | what the tree says |
+|---|---|
+| "`/events/recent`" refreshes the dashboard feed | No such route. `config/routes.rb` gives `events` only `index` + `collection { get :search }`, and there is no `recent.js.erb`. The feed refreshes via `GET /events.js`; `EventsController#recent` is unreachable dead code. |
+| "Every management index screen is paginated at 25 rows" | `systems` is deliberately unpaged (`System.with_events_within_hours(24)`), as are `services`, `words` (fixed 20), `alerts`, `events`, `polling_priorities`. |
+| "paginate replaced it on all thirteen: … systems …" | That commit (`30a008f`) touched **twelve** controllers and `systems` was not one of them; `hunks` was, and was omitted. `windows_targets` and `active_directory_connections` inherited it later, at `b6aafd7` and `e1ce173`. |
+| "A `Search` row is a saved search string **plus its time window**" | `searches` has `string`, `user_id`, `description`, `short_description` and nothing else (`db/schema.rb:170-177`); the controller permits exactly those four. No time window has ever existed. The model and controller comments repeated the same error. |
+| "`DAD_OFFLINE_STORAGE_DIR` … the systemd units set `/var/DAD/offline_storage`, mode `0700`" | No unit sets the variable (`grep -rn DAD_OFFLINE_STORAGE_DIR systemd/` → no hits). The path comes from the default plus `WorkingDirectory=/var/DAD`. And nothing anywhere sets `0700`: `EventPartitionBackup` uses `FileUtils.mkdir_p`, so the directory gets the umask default. Two wiki pages and the README said "it is `0700` for a reason" — there is no such reason, and the sentence implies a protection that does not exist. |
+| "`db:seed` … seeds the **two** maintenance jobs" | It seeds **four**: partitions, sessions, dashboard feed, Windows polling. |
+| "`JobHandler::HANDLERS`, a closed registry of **seven** operations" | **Eight** since `b6aafd7` added `poll_windows_events`. |
+| "Below **720px** the nav bar tabs wrap" (three pages) | The media query is `@media (max-width: 768px)` (`application.css:345`). |
+| `Statistical-Alerting.md`: "monkey patching we've done to the **Math** class" | The `Math` patch is gone; the helpers are `Stats.mean/variance/standard_deviation` (`app/models/stats.rb`). |
+
+Two of these were load-bearing rather than cosmetic. The `0700` sentence told
+operators a directory full of raw log lines was permission-protected when nothing
+protects it. And the `/events/recent` name pointed anyone debugging the dashboard
+at an action that cannot be reached.
+
+Fixed in `DAD.wiki` master and in `README.md`, `app/models/search.rb` and
+`app/controllers/searches_controller.rb`. The `Viewer` rights row was checked and
+left alone: the audit that flagged it as omitting `preferences` was itself out of
+date — `preferences` is Admin-gated (`application_controller.rb`).
+
+**The pattern worth keeping:** every one of these was a *copy* of an earlier
+statement — the README repeating the wiki, a model comment repeating the README, a
+wiki page repeating a stale code comment. §4.8's single-source-of-truth refactor is
+the structural fix; until then, a claim restated in three places needs changing in
+three places.
 
 ---
 
@@ -3081,6 +3115,7 @@ Verified closed against the current tree:
 | — | **Windows hosts polled directly over WinRM**, removing the OpenWEC dependency: `windows_targets` plus priority bands (`PollingPriority`) set per-host intervals, with per-target polling disable and log selection | #41 |
 | — | **Admin-managed Active Directory host import**: an `AdConnection` is queried to populate the Windows host list, staged through `AdImportBatch` so nothing is written until an admin accepts it | #42 |
 | §4.7 | Wiki suite count mis-split (621 read as "581 + 40 system"), plus a stale `routes.rb` comment and wiki line about `PollingPriority` having no index | `DAD.wiki` master |
+| §4.9 | Nine false or stale claims repeated across the wiki, README and two model comments — `/events/recent`, the pagination set, a Search "time window", the `0700` offline-storage claim, seeded-job and handler counts, the 720px breakpoint, the `Math` patch | `DAD.wiki` master |
 | §5.17 | The Compose stack ships every container's own stdout/stderr to the collector, so DAD watches itself. Two measured traps: the log driver resolves `syslog-address` in the daemon's namespace (a compose service name cannot work), and the driver's frame format decides whether `EventIngestor` stores anything at all. Guarded by a CI step asserting three named Services, not just a row | this branch |
 
 The superseded review revisions -- including the misdiagnoses and the reasoning
