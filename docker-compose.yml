@@ -29,8 +29,13 @@
 # this
 # stack is the development and test path.
 
-# Container self-logging, applied to every service but syslog itself, which
-# would otherwise feed itself. Each service overrides only `tag`, which is what
+# Container self-logging, applied to every service but syslog itself, which must
+# never be tagged. In steady state the collector logs almost nothing, so tagging
+# it looks harmless -- but with DAD_SYSLOG_DEBUG=1 it echoes every record it
+# writes to stdout, the driver sends that straight back to the same socket, and
+# the loop is unbounded: measured at 5.7GB -> 13.9GB in 20 seconds (~411MB/s)
+# before the container was killed. CI asserts the exemption
+# (.github/workflows/ci.yml). Each service overrides only `tag`, which is what
 # DAD parses as the event's Service (see below), so the blocks stay one line each.
 #
 # No syslog-format is set, and that is deliberate. Measured on Docker 29 over UDP,

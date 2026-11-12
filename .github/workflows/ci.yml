@@ -271,6 +271,51 @@ jobs:
       - name: Compose file parses
         run: docker compose config >/dev/null
 
+      # Every container except the collector must ship its own stdout/stderr to
+      # the collector. Asserted against the *resolved* config with all profiles
+      # enabled, so a profile-gated service cannot hide, and a new service that
+      # forgets its `logging:` block fails here instead of quietly producing no
+      # events forever.
+      #
+      # `syslog` is asserted in the opposite direction on purpose: it must NOT
+      # forward. With DAD_SYSLOG_DEBUG=1 a forwarding collector echoes each
+      # record it writes to stdout, the driver sends that straight back to the
+      # same socket, and the staging file was measured growing 5.7GB -> 13.9GB
+      # in 20 seconds (~411MB/s) until the container was killed.
+      - name: Assert every container but the collector forwards its logs
+        run: |
+          docker compose --profile windows --profile test config > /tmp/resolved.yml
+          python3 - <<'PY'
+          import sys, yaml
+          svcs = yaml.safe_load(open("/tmp/resolved.yml"))["services"]
+          forward, exempt, bad = [], [], []
+          for name in sorted(svcs):
+              log = svcs[name].get("logging") or {}
+              opt = log.get("options") or {}
+              drv = log.get("driver")
+              if name == "syslog":
+                  if drv:
+                      bad.append("syslog must NOT forward: self-feeding loop")
+                  else:
+                      exempt.append(name)
+              elif drv != "syslog":
+                  bad.append("%s: driver=%r, expected 'syslog'" % (name, drv))
+              elif not str(opt.get("tag", "")).startswith("dad-"):
+                  bad.append("%s: tag=%r, expected dad-*" % (name, opt.get("tag")))
+              elif "127.0.0.1" not in opt.get("syslog-address", ""):
+                  bad.append("%s: syslog-address=%r must be host loopback"
+                             % (name, opt.get("syslog-address")))
+              else:
+                  forward.append(opt["tag"])
+          if bad:
+              print("FAIL")
+              for b in bad:
+                  print("  " + b)
+              sys.exit(1)
+          print("forwarding (%d): %s" % (len(forward), ", ".join(forward)))
+          print("exempt (%d): %s" % (len(exempt), ", ".join(exempt)))
+          PY
+
       # No layer caching: it needs buildx plus two third-party actions, and this
       # repo pins and checksums the one external binary it does fetch. The build
       # is a few minutes of native gem compilation, which is affordable for one
