@@ -91,7 +91,7 @@ without hand-writing a URL, since `config/database.yml` interpolates them.
 | `DAD_ADMIN_USER` | no | `db/seeds.rb` | Defaults to `admin`. |
 | `DAD_ADMIN_PASSWORD` | **yes** to seed | `db/seeds.rb` | Seeding raises rather than creating a well-known default account. |
 | `DAD_EVENT_RETENTION_DAYS` | no | `EventPartitioning` | Postgres only. How many days of event history retention keeps. **Default 365.** `0` or negative keeps every partition. A floor, not an exact age: a month is only dropped once the whole month is past the cutoff. |
-| `DAD_OFFLINE_STORAGE_DIR` | no | `EventPartitionBackup` | Where a month's CSV archive is written before its partition is dropped. Absolute, or relative to the app root. Default `offline_storage` under the app root; the systemd units set `/var/DAD/offline_storage`. |
+| `DAD_OFFLINE_STORAGE_DIR` | no | `EventPartitionBackup` | Where a month's CSV archive is written before its partition is dropped. Absolute, or relative to the app root. Default `offline_storage` under the app root; no unit sets it, but `WorkingDirectory=/var/DAD` makes that resolve to `/var/DAD/offline_storage` under systemd. |
 | `DAD_AR_ENCRYPTION_KEY` | **yes** (production) | `WindowsTarget`, `ActiveDirectoryConnection` | Active Record encryption key for stored WinRM and LDAP bind passwords. 32 bytes, hex. Production refuses to boot without it. |
 | `DAD_AR_ENCRYPTION_SALT` | **yes** (production) | `WindowsTarget` | Key-derivation salt for the same. Rails 8.1 requires it whenever encryption is configured. |
 | `WINDOWS_SSL_VERIFY` | no | `WindowsPoll`, `AdQuery` | `none` trusts an internal CA's WinRM or LDAPS certificate instead of the system trust store. Set it deliberately; the default verifies. |
@@ -231,7 +231,7 @@ docker compose down          # keep the volumes
 docker compose down -v       # discard the database too
 ```
 
-Two things worth knowing before you reach for it:
+Three things worth knowing before you reach for it:
 
 - **The database port is not published.** The app containers reach `db` over the
   Compose network by service name, and publishing 5432 by default collides with a
@@ -241,6 +241,13 @@ Two things worth knowing before you reach for it:
   mounting a checkout owned by a different uid makes Rails' `log/` and `tmp/`
   writes fail with `EACCES` in a way that reads like an app bug. The gem layer is
   cached, so after an edit `docker compose up --build` only re-runs `COPY . .`.
+- **The stack watches itself.** Every service except `syslog` ships its own
+  stdout and stderr to the collector, so a Rails stack trace or a Postgres
+  checkpoint becomes an ordinary DAD event, filed under a Service named after the
+  container (`dad-web`, `dad-db`, `dad-importer`, …). Search for your own errors
+  the same way you search for anything else. If the host already holds UDP 514,
+  `DAD_SYSLOG_PORT=1514 docker compose up` moves both the published port and the
+  address every log driver sends to.
 
 The image's `WORKDIR` is `/var/DAD`, not `/app`, because the collector hardcodes
 absolute paths under `/var/DAD/Logs` and every systemd unit sets
@@ -347,7 +354,7 @@ for the words that already exist and one bulk insert for the rest.
 
 This is the single largest factor in ingest throughput. On 20,000 realistic syslog
 lines containing 46,450 distinct words, the old per-token path issued 186,089
-statements and 46,450 separate transactions; the batched path issues 360 and 67.
+statements and 46,515 transactions; the batched path issues 360 and 67.
 Measured end to end: **6.4×** faster on a cold `words` table (a first run or a
 backfill) and **2.36×** faster once `words` is already populated, which is the
 steady state for a running collector.
@@ -776,9 +783,10 @@ coming months and drops expired ones.
 
 **A month is only dropped once it has been archived.** Before any drop,
 `EventPartitionBackup` writes the partition to a CSV under
-`DAD_OFFLINE_STORAGE_DIR` (default `offline_storage` under the app root; the
-systemd units use `/var/DAD/offline_storage`, mode `0700`, owned by the service
-user). If the archive does not complete, the partition is **kept** and the next
+`DAD_OFFLINE_STORAGE_DIR` (default `offline_storage` under the app root, which
+resolves to `/var/DAD/offline_storage` under systemd because the units set
+`WorkingDirectory=/var/DAD` -- no unit sets the variable; owned by the service
+user, mode from the umask). If the archive does not complete, the partition is **kept** and the next
 run retries. That is the whole safety property: retention cannot destroy the only
 copy of a month's rows.
 
@@ -848,7 +856,8 @@ Two things to watch:
   check the job output: it reports `N expired partition(s) kept pending archive`
   when this is happening.
 - **Secrets.** Archives are raw log lines. Anything that ever reached a log line
-  is in them, so treat the directory as sensitive: it is `0700` for a reason.
+  is in them, so restrict the directory yourself: nothing sets a mode on it, so
+  it gets the umask default.
 
 The `disk_utilization` job reports the partition holding the archives, not the
 root filesystem, and names the directory it measured. If that partition cannot be
@@ -956,10 +965,12 @@ the seeded `prune_sessions` Job. The last two matter because a browser that was
 closed never presents its token again, and that lookup is indexed on
 `session_hash` — it runs on every authenticated request.
 
-Admin list screens (users, sessions, jobs, roles, rights, preferences, comments,
-exclusions, searches, displays, systems, statistics, Windows targets) are
-paginated at 25 rows per page; `?page=N` selects one. Nothing in the UI loads a
-whole table.
+Most admin list screens (users, sessions, jobs, roles, rights, preferences,
+comments, exclusions, searches, displays, hunks, statistics, Windows targets,
+Active Directory connections) are paginated at 25 rows per page; `?page=N`
+selects one. `systems` is deliberately unpaged -- it lists the hosts seen in the
+last 24 hours -- and `services`, `words`, `alerts`, `events` and
+`polling_priorities` are unpaged too.
 
 ---
 

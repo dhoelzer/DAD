@@ -20,9 +20,53 @@
 #   windows   import_windows_events.rb -- OpenWEC output -> LogsToProcess (profile: windows)
 #   test      rake test + cucumber, against the db container (profile: test)
 #
+# Every service except syslog ships its own stdout/stderr to the syslog service,
+# so the stack watches itself: a Rails stack trace or a Postgres checkpoint
+# becomes an ordinary DAD event. See x-app-logging below for the format choice
+# and why it is not the driver default.
+#
 # Production deploys via systemd + your own web server (see systemd/README.md);
 # this
 # stack is the development and test path.
+
+# Container self-logging, applied to every service but syslog itself, which
+# would otherwise feed itself. Each service overrides only `tag`, which is what
+# DAD parses as the event's Service (see below), so the blocks stay one line each.
+#
+# No syslog-format is set, and that is deliberate. Measured on Docker 29 over UDP,
+# the default frame is RFC 3164 with the HOSTNAME slot left out:
+#
+#   <30>Nov 12 16:38:21 dad-web[149784]: Started GET /users/logon
+#
+# EventIngestor takes the token after the timestamp as the Service, so `dad-web`
+# becomes the Service and each container gets its own row. Setting
+# `syslog-format: rfc3164` explicitly inserts the *Docker host's* hostname in that
+# slot instead, and the Service sanitizer strips digits, so a host named
+# `67ec82500e20` yields the Service `ece` for every container. Setting rfc5424 is
+# worse still: it puts a version number and an ISO-8601 timestamp where DAD expects
+# the timestamp, so every line fails to parse and nothing is stored at all -- the
+# queue fills and the dashboard stays empty.
+#
+# Relying on the driver default is guarded by the CI step "Assert the stack's own
+# logs reach the database", which asserts the Service name, not just that a row
+# appeared. If a future Docker changes the default, that step goes red instead of
+# the ingest path silently stopping.
+#
+# The port is interpolated from DAD_SYSLOG_PORT (default 514) in two places -- here
+# and the collector's published port below -- so target and mapping cannot drift
+# apart. Host already holding 514? `DAD_SYSLOG_PORT=1514 docker compose up` moves
+# both. A YAML anchor cannot carry it: anchors substitute whole nodes, not part of
+# a string.
+#
+# The address is the host's loopback, reaching the collector through its published
+# port. It cannot be the compose service name: the log driver resolves
+# syslog-address in the *daemon's* namespace, not the container's, so
+# `udp://syslog:514` fails with "lookup syslog on 127.0.0.11:53: server misbehaving"
+# and the container never starts. An IP needs no DNS at all.
+x-app-logging: &app-logging
+  driver: syslog
+  options: &app-logging-options
+    syslog-address: "udp://127.0.0.1:${DAD_SYSLOG_PORT:-514}"
 
 # Shared by web/importer/scheduler/migrate/test: same image, same environment,
 # different command. A top-level `x-` key, so Compose treats it as an extension
@@ -62,6 +106,19 @@ services:
     # `postgres:latest` would move the engine under the suite with no code change
     # -- the same silent environment drift a floating runner image caused in CI.
     image: postgres:17
+    # Postgres logs are the ones most worth having in DAD: checkpoints, slow
+    # queries, and connection refusals otherwise only reach `docker compose logs`.
+    #
+    # Deliberately no `depends_on: syslog` here. The log driver dials UDP at
+    # container start, so ordering would only win a few early lines -- and a hard
+    # dependency makes a failed bind on the collector (host already holding 514)
+    # take db down with it, which turns "one optional service is down" into
+    # "nothing starts". Missing the first few lines is the better failure.
+    logging:
+      <<: *app-logging
+      options:
+        <<: *app-logging-options
+        tag: dad-db
     environment:
       POSTGRES_USER: dad
       POSTGRES_PASSWORD: dad
@@ -94,6 +151,11 @@ services:
   # db:migrate, because migrate_from_scratch drops and rebuilds everything.
   migrate:
     <<: *app
+    logging:
+      <<: *app-logging
+      options:
+        <<: *app-logging-options
+        tag: dad-migrate
     # DAD_ADMIN_PASSWORD seeds the initial admin. db/seeds.rb raises rather than
     # inventing a well-known account, so without it the stack comes up with zero
     # users and the web UI is unreachable -- it renders a login form that can
@@ -127,6 +189,11 @@ services:
 
   web:
     <<: *app
+    logging:
+      <<: *app-logging
+      options:
+        <<: *app-logging-options
+        tag: dad-web
     command: ["bundle", "exec", "rails", "server", "-b", "0.0.0.0", "-p", "3000"]
     ports:
       - "3000:3000"
@@ -138,6 +205,11 @@ services:
 
   importer:
     <<: *app
+    logging:
+      <<: *app-logging
+      options:
+        <<: *app-logging-options
+        tag: dad-importer
     command: ["bundle", "exec", "ruby", "import_syslog.rb"]
     depends_on:
       db:
@@ -151,6 +223,11 @@ services:
   # Enable with: docker compose --profile windows up
   windows:
     <<: *app
+    logging:
+      <<: *app-logging
+      options:
+        <<: *app-logging-options
+        tag: dad-windows
     profiles: ["windows"]
     environment:
       WINDOWS_INPUT: /var/DAD/Logs/Windows/openwec.log
@@ -165,6 +242,11 @@ services:
 
   scheduler:
     <<: *app
+    logging:
+      <<: *app-logging
+      options:
+        <<: *app-logging-options
+        tag: dad-scheduler
     command: ["bundle", "exec", "ruby", "scheduler.rb"]
     depends_on:
       db:
@@ -184,9 +266,10 @@ services:
     volumes:
       - logs:/var/DAD/Logs
     ports:
-      # UDP syslog intake. If something on the host already holds 514, change the
-      # host side of this mapping only.
-      - "514:514/udp"
+      # UDP syslog intake, and the target of every container's own log stream
+      # (see x-app-logging). If something on the host already holds 514, set
+      # DAD_SYSLOG_PORT and both this mapping and the log drivers move together.
+      - "${DAD_SYSLOG_PORT:-514}:514/udp"
     command: ["syslog_collector"]
     restart: unless-stopped
 
@@ -194,6 +277,11 @@ services:
   # `docker compose up` does not run tests.
   test:
     <<: *app
+    logging:
+      <<: *app-logging
+      options:
+        <<: *app-logging-options
+        tag: dad-test
     profiles: ["test"]
     environment:
       RAILS_ENV: test

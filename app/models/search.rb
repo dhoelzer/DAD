@@ -1,4 +1,5 @@
-# A saved search: a search string plus its time window, kept for re-running.
+# A saved search: a search string, kept for re-running. No time window is
+# stored -- the timeframe is chosen again at run time.
 #
 # Purely a stored bookmark. SearchesController persists the record and the
 # events search form can re-populate itself from it; the actual query is still

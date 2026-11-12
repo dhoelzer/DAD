@@ -26,14 +26,23 @@ which was true before the §3.3 search rewrite and false after it; and the
 "~6%" insert cost was re-measured at 5.1% at production-ish scale. Both are
 recorded in the appendix with the numbers that hold.
 
-**This document lists only work that is still outstanding.** As of this
-revision that list is empty: every item found across eight review passes is
-closed, and the sections below are kept as the record of what was wrong and why
-each fix was chosen. Read the status snapshot first; the body is history.
+**This document lists only work that is still outstanding.** A ninth pass at
+`e2f5350` (2026-11-12) re-opened the list: it found **three live broken links**
+(§2.8) and a body of dead scaffolding worth ~10k lines (§4.5, §4.6). Those four
+items are **open** and are the only open items. Read the status snapshot first;
+everything else in the body is history.
 Everything marked closed is verified against the current tree, not against what
 a PR claimed. The full review history — the original findings, the misdiagnoses,
 and the reasoning behind each fix — lives in the git history of this file (see
 the appendix for where to find it).
+
+> **Caveat on the ninth pass.** It was made in an environment that lost Ruby,
+> Bundler, `psql` and the Docker daemon partway through, so **no test suite was
+> run** and no claim below is backed by a failing test yet. Every finding is
+> from reading the tree, and each is stated with the exact file and line so it
+> can be checked by eye. The three §2.8 defects should each be reproduced with a
+> failing request test *before* being fixed, per the convention used for every
+> other item in this file.
 
 Every item below was re-checked by reading the code at `b6adf25`. Where a claim
 from an earlier revision turned out to be stale, it is corrected here rather
@@ -54,9 +63,9 @@ than carried forward.
 | Ingest write path | **Was open — closed**: ingest is now write-bound, not word-bound (`write_batch` 2.59s of a 3.52s run; main thread blocked in `join_insert_threads` 1.13s). The dead `events_words` index that taxed every insert is dropped; the remaining headroom is `MAX_INSERT_THREADS = 1`, which is a checkpoint-ordering problem, not an indexing one |
 | Search indexing, dashboard SQL portability, timestamp parsing | Closed |
 | Dashboard search form timeframe toggle | **Closed at `7e0f435` — §2.3**: the relative timeframe dropdown was dead; every form search used an empty now→now window |
-| Test suite | Green on Postgres, CI-verified: **488 runs / 1442 assertions / 0 skips**; cucumber 5 scenarios / 18 steps. SQLite is gone as a test engine (§5.9), so the 32 and 3 skips those earlier rows reported are gone with it — a green run can no longer mean the partitioned path was never exercised |
+| Test suite | Green on Postgres, CI-verified: **621 runs / 1969 assertions** (`rake test`) plus **40 runs / 247 assertions** (`rake test:system`), 0 skips; cucumber 5 scenarios / 18 steps. SQLite is gone as a test engine (§5.9), so the 32 and 3 skips those earlier rows reported are gone with it — a green run can no longer mean the partitioned path was never exercised |
 | Running the suite on the production engine | **Was awkward — closed at §5.6**: `bin/docker-test` runs both suites against Compose Postgres plus the CI schema-shape and INVALID-index assertions, with no local cluster to install |
-| Docker | **Was broken — closed at §5.6**: `Dockerfile.dev` could not build (a bare `gem install` line, no `RUN`), had no JS runtime, and no CI job built it. Now `Dockerfile` + a Compose stack: app containers and a separate Postgres container |
+| Docker | **Was broken — closed at §5.6**: `Dockerfile.dev` could not build (a bare `gem install` line, no `RUN`), had no JS runtime, and no CI job built it. Now `Dockerfile` + a Compose stack: app containers and a separate Postgres container. **The stack now watches itself (§5.17)**: every service but `syslog` ships its own stdout/stderr to the collector, so container logs land in `events` under a per-service `Service` row |
 | CI coverage of the deployment artifacts | **Was a hole — closed at §5.6**: six jobs (`test`, `assets`, `systemd`, `docker`, `collector`, `security`). The `docker` job builds the image and drives the running stack end to end, including the end-to-end UDP-to-`events` check. The `postgres` job folded into `test` when SQLite went away (§5.9); `provisioning` became `systemd` when `provision.sh` was deleted; `collector` covers the Rust rewrite (§5.8) |
 | Scheduler crash loop | **Was open — closed at §2.4**: a blank Frequency field killed the scheduler under `Restart=always`, stopping every Job |
 | Account integrity (duplicate / blank usernames) | **Was open — closed at §2.5**: no uniqueness at any layer, so a second account with a taken name could never sign in |
@@ -69,6 +78,10 @@ than carried forward.
 | `Event` size and class-variable state | **Was open — closed (§4.1)** — ingestion extracted to `EventIngestor`; model down to 302 lines, 0 ingest class variables |
 | Windows event ingest | **Was absent — closed at §5.16**: OpenWEC output is converted into the existing staging record format, so the ingestor is unchanged; `dad-windows` feeds the same `LogsToProcess` queue, and CI drives it end to end into Postgres |
 | Partitioning, full-text search | Closed — `events`/`events_words` partitioned by `generated` with drop-based retention (§3.2); search cost cut 25–68% (§3.3); prefix search was returning nothing on Postgres collations, fixed (§3.4) |
+| **Broken links in rendered screens** | **OPEN — §2.8.** Three screens render links to actions their controller does not implement, so the link raises `AbstractController::ActionNotFound` on click: `words#index`/`#show` (New/Edit/Destroy), `services#index` (Destroy), `events#show` (Edit). **Reproduced by running the requests**, not just read from the views |
+| **Dead scaffolding** | **OPEN — §4.5, §4.6.** 9,554 lines of vendored CodeMirror are `//= require`d into every page's bundle but nothing instantiates it (the job form became a `<select>` when `eval` went); plus 13 empty helper modules, 10 empty helper test classes, the `hunks` table + its 160 lines of CRUD screens, and two join-table models that exist only to be hidden from the nav bar |
+| **Nav bar built from `ActiveRecord::Base.subclasses`** | **OPEN — §4.8.** `$_models` + a per-model `hidden?` method decide which tabs render, so every routeless or internal model needs a throwaway `hidden?`, and a model that fails to load silently loses its tab. Drive it from `CONTROLLER_RIGHTS` instead |
+| Documentation accuracy | README env table verified line by line against `ENV[...]`/`ENV.fetch` in code — accurate. Wiki `Access-Control.md` rights tables verified against `CONTROLLER_RIGHTS`/`ACTION_RIGHTS` — accurate. A full 23-page wiki audit found nine false or stale claims, all fixed (§4.7, §4.9): `/events/recent` is not a route, the paginated-screen list was wrong, no Search "time window" exists, nothing sets `0700` on the archive dir, and the seeded-job, handler and breakpoint counts were off. Two model comments repeated the Search error and are fixed too |
 
 ---
 
@@ -567,6 +580,84 @@ restores the TTL; `prune_words` runs on a fresh process; and a *flush that trips
 the prune threshold* does not kill ingest — the last one stubs `num_cached` past
 `CACHESIZE` and asserts `TRIPPED=true`, since staging 100k words in a test is not
 practical and the path from a flush into `prune_words` is what was broken.
+
+---
+
+### 2.8 ⬜ Open — three screens render links to actions that do not exist **[bug] [correctness]**
+
+`config/routes.rb` declares full `resources` blocks for `words`, `services` and
+`events`, but the controllers implement only part of the CRUD set. The views were
+left as the scaffolds generated them, so they still render buttons for the
+missing actions. The route helper exists (the route is declared), so the page
+renders fine — and the link 500s when clicked, because Rails routes it to an
+action the controller never defined.
+
+| screen | link rendered | action | controller defines |
+|---|---|---|---|
+| `app/views/words/index.html.erb` | `New Word`, `Edit`, `Destroy` | `new`/`create`, `edit`/`update`, `destroy` | `index`, `show` only |
+| `app/views/words/show.html.erb` | `Edit` | `edit`/`update` | — |
+| `app/views/services/index.html.erb:21` | `Destroy` | `destroy` | `index show new edit create update` |
+| `app/views/events/show.html.erb:24` | `Edit` | `edit`/`update` | `index recent search show` |
+
+**Confirmed by running it, not just reading it.** A throwaway integration test
+signed in an all-rights user and issued the requests:
+
+```
+get  '/words'          -> 200, body contains <a href="/words/new">New Word</a>,
+                           <a href="/words/:id/edit">Edit</a>,
+                           <a data-method="delete" href="/words/:id">Destroy</a>
+delete '/services/:id' -> AbstractController::ActionNotFound
+get  '/words/new'      -> AbstractController::ActionNotFound
+get  '/events/1/edit'  -> AbstractController::ActionNotFound
+```
+
+5 runs, 10 assertions, all green against the unfixed tree — i.e. the bug is
+reproduced. (The probe was deleted after confirming; the permanent test below is
+the one to add.)
+
+Two of these are deliberate read-only designs that the routes and views never
+caught up with:
+
+- **Words is read-only on purpose.** `WordsController`'s header says so, and
+  `Word.hidden?` returns `true` for every user, so the nav bar never shows the
+  tab. The screens are reachable only by typing `/words`. The word list is an
+  ingest-derived cache, not user data, so there is nothing to edit.
+- **Events are append-only.** Nothing in DAD edits an event; the ingestor owns the
+  table. `events#show` is reached by URL (`/events/:id`), not from a link — no
+  view links to `event_path` — so the broken `Edit` link is the only thing on the
+  page a user can click that fails.
+
+**Why it matters.** `services#index` is the one that is live for real users:
+`Service.hidden?` shows the tab to anyone with the `Viewer` right, the Destroy
+button is rendered on every row, and clicking it raises
+`AbstractController::ActionNotFound` (500). The other two are Admin-only or
+URL-only, so they are latent rather than user-visible.
+
+**Fix, in the order that keeps the guarantee testable.** For each of the three,
+write the failing request test first — `delete service_path(service)` expecting a
+redirect and a removed row, or `get edit_word_path(word)` expecting 404/403 — then
+make it pass. Do not just delete the buttons: the routes are the contract, and a
+route that exists with no action is a 500 waiting for a crawler or a bookmark.
+
+- `services`: implement `destroy` (with the same `Admin`-only `ACTION_RIGHTS`
+  tightening `new`/`create`/`edit`/`update` already have — deleting a service is a
+  write, and `CONTROLLER_RIGHTS` currently grants `services` to `Admin` already, so
+  confirm the right is what you want before adding a row), **or** drop the
+  Destroy link and add `except: [:destroy]` to the route. Deleting a `Service` has
+  to decide what happens to the `Event` rows that reference it; that is why this
+  one was never implemented. Prefer implementing it with an explicit
+  `dependent:` decision over leaving the button dead.
+- `words`: `resources :words, only: [:index, :show]`, and delete the New/Edit/
+  Destroy links from both views. This matches the documented intent.
+- `events`: `resources :events, only: [:index, :show] do collection do get :search end end`,
+  and delete the Edit link from `show.html.erb`.
+
+`test/controllers/authorization_policy_test.rb` already walks every controller and
+asserts each declares rights, so it will not catch this class of bug — it checks
+that actions are *authorized*, not that routed actions are *implemented*. A
+companion test that walks `Rails.application.routes` and asserts every routed
+CRUD action resolves to a public method on its controller would close the whole
+class permanently, and is the higher-value half of this item.
 
 ---
 
@@ -1214,6 +1305,268 @@ rendered an empty list while still offering a Prev link.
 Covered by `test/controllers/index_pagination_test.rb`: 5 runs, all failing
 before the fix. Assertions go through rendered HTML rather than `assigns`, which
 needs the `rails-controller-testing` gem the project does not carry.
+
+---
+
+### 4.5 ⬜ Open — 9,554 lines of vendored CodeMirror ship to every browser **[maintainability] [performance]**
+
+`app/assets/javascripts/application.js:22-23` requires `codemirror` and
+`codemirror/modes/ruby`, and `app/assets/stylesheets/application.css:18` requires
+`codemirror`. Those resolve to:
+
+```
+vendor/assets/javascripts/codemirror.js            8,922 lines
+vendor/assets/javascripts/codemirror/modes/ruby.js   285 lines
+vendor/assets/stylesheets/codemirror.css             347 lines
+                                                 -------
+                                                 9,554 lines
+```
+
+Both manifests use `require`/`require_tree`, so all of it is compiled into the
+single `application.js` and `application.css` that **every page** loads. Nothing
+instantiates it. `grep -rni codemirror app/` returns five lines, and all five are
+the wiring itself, not a use of it:
+
+```
+app/assets/javascripts/application.js:22   //= require codemirror
+app/assets/javascripts/application.js:23   //= require codemirror/modes/ruby
+app/assets/stylesheets/application.css:14  (comment)
+app/assets/stylesheets/application.css:18  *= require codemirror
+app/assets/stylesheets/application.css:99  .CodeMirror { border: 1px solid black; }
+```
+
+There is no `CodeMirror.fromTextArea`, no `.CodeMirror` selector in any view, and
+no `data-` hook that could bind it. The app does have nine `<textarea>`s
+(descriptions on systems/alerts/displays/services/jobs/searches, a comment
+message, a saved-search string, and `displays#display_script`) — the last of
+those is the one that would once have been the Ruby editor — but none of them is
+enhanced, so CodeMirror parses nothing and styles nothing.
+
+It is a leftover from the design §1.2 removed. CodeMirror was there to edit a
+Job's Ruby; when the `eval` sink went, the job form became a dropdown
+(`app/views/jobs/_form.html.erb:15`, `f.select :script, JobHandler.names`), and
+the editor lost its only caller. The `assets` CI job precompiles and boots the
+app, so it proves the bundle still *builds* — it cannot prove anything is *used*.
+
+**Fix.** Delete the three vendored files, the two `//= require` lines, the
+`*= require codemirror` line, the CSS comment that refers to it, and the
+`.CodeMirror` rule. Then run the `assets` job: a Sprockets `require` for a
+missing file raises at precompile, so CI is the verification. This is the single
+largest removable block in the tree and it shrinks the JS every visitor downloads.
+
+Do **not** confuse this with `vendor/assets/javascripts/chartjs/`, which *is*
+used — `//= require chartjs/chart.umd` plus `app/assets/javascripts/dad_charts.js`
+drive the dashboard graphs.
+
+### 4.6 ⬜ Open — dead scaffolding: empty helpers, empty tests, the `hunks` screens, two join models **[maintainability]**
+
+Four separate things, all verified by reading the tree, none of them load-bearing.
+
+**a. Thirteen empty helper modules.** `alerts, comments, display_fields, displays,
+events, exclusions, hunks, jobs, preferences, searches, services, statistics,
+words` `_helper.rb` are each exactly `module XHelper; end` under a comment. Only
+three helpers hold code: `ApplicationHelper` (14 methods), `SystemsHelper` (1),
+`PaginationHelper` (1). Rails `include`s all helpers into every view by default,
+so these are not needed to make anything work — an empty module is a no-op either
+way. Deleting them removes 13 files and no behaviour.
+
+**b. Ten empty helper test classes.** `test/helpers/{alerts,comments,displays,
+events,jobs,searches,services,statistics,systems,words}_helper_test.rb` are 4
+lines each: `require 'test_helper'` and an empty `class XHelperTest`. They are
+scaffold residue and contribute 0 runs. The three helper tests that do hold
+coverage — `dashboard_stats_test.rb` (77 lines), `statistics_query_test.rb`
+(186), `js_literal_test.rb` (47) — are named after the *code under test*, not
+after a helper file, and should be left alone.
+
+**c. The `hunks` table and its screens.** `hunks` is a 32-character token table
+(`db/schema.rb:109-114`) that nothing in the application reads: no model, no
+query, no view outside `app/views/hunks/` references `Hunk`. The screens are
+fully functional CRUD — `Hunk` is `hidden? true` for everyone, so they are
+reachable only by typing `/hunks` with the `Admin` right.
+
+The name collision that makes this confusing: `events.hunks` is the **event body
+column** and is very much live (`Event#hunks` is the display path, the export
+path, and the search corpus). The `hunks` **table** is unrelated to it. Any
+cleanup must not touch the column.
+
+Two tests reference the model and must be updated in the same commit:
+`test/system/form_errors_test.rb:62` builds `Hunk.new` to prove the shared error
+partial works for it, and `test/system/navigation_test.rb:12` names Hunk in a
+comment about the hidden set. Removal is: drop `resources :hunks`,
+`app/models/hunk.rb`, `app/controllers/hunks_controller.rb`,
+`app/helpers/hunks_helper.rb`, `app/views/hunks/`, the `'hunks' => %w[Admin]` row
+in `CONTROLLER_RIGHTS`, and add a migration that drops the table. Keep the
+migration reversible-in-spirit by archiving the table contents first if any
+deployment has data in it — check with `SELECT count(*) FROM hunks` before
+dropping, and record the number in the PR.
+
+**d. `RoleUser` and `RightRole`.** These two models (21 lines together) exist
+solely so the nav-bar enumeration has something to hide. `config/application.rb:98`
+requires every file under `app/models/` and builds `$_models` from
+`ActiveRecord::Base.subclasses`; `app/views/layouts/application.html.erb:13-14`
+links every entry whose `hidden?` is false. The real associations are
+`has_and_belongs_to_many` on `User`/`Role` and `Role`/`Right`; these classes are
+never queried, and nothing outside their own files names them.
+
+The clean fix is at the layout, not the models: build the nav list from an
+explicit allow-list (or from `CONTROLLER_RIGHTS`'s keys, which is already the
+authoritative list of screens) instead of from every `ActiveRecord` subclass.
+That removes the need for `hidden?` on join tables and models entirely, and it
+fixes the failure mode the code already worries about — a model that fails to
+load silently loses its tab. Then `RoleUser`/`RightRole` can go. If that refactor
+feels too large, leaving these two as-is is defensible: they are documented, tiny,
+and harmless.
+
+### 4.7 ✅ Closed — the wiki's suite count was mis-split, not stale **[documentation]**
+
+`DAD.wiki/Development.md` stated: "**0 skips** — 581 unit/controller runs plus 40
+system runs, 1969 assertions in total".
+
+Measured on this tree (Ruby 3.3.8, PostgreSQL 17.11, `dad`/`dad` on
+`127.0.0.1:5432`, the same engine and credentials CI uses):
+
+| command | runs | assertions |
+|---|---|---|
+| `bundle exec rake test` | **621** | **1969** |
+| `bundle exec rake test:system` | **40** | **247** |
+| `bundle exec cucumber` | 5 scenarios / 18 steps | — |
+
+All green, 0 failures, 0 errors, 0 skips.
+
+**The error is a mis-split, not staleness.** `rake test` excludes `test/system`
+by design (Rails sets `DEFAULT_TEST_EXCLUDE` to `test/{system,dummy,fixtures}/**`),
+so its 621 runs are all non-system. The wiki took that 621 and split it as
+"581 + 40 system", but the 40 system runs are *additional*: the true total is
+**661 runs / 2216 assertions**. The 1969 assertion figure is exactly `rake test`'s
+own count, which confirms where the number came from.
+
+Verified by scanning every commit in history: the non-system run count was
+**never** 581. It was 542 up to `b6aafd7` (2026-11-11, the WinRM polling commit)
+and 621 after it. So the figure was wrong when written, not merely overtaken.
+
+Fixed in the wiki: the counts are now given per command, with the note that
+`rake test` excludes `test/system`, so the split cannot be read off a single run.
+
+The same page and `Home.md` are otherwise accurate: Rails 8.1.4.1 / Ruby 3.3.8,
+PostgreSQL-only, the three-suite split, and the `bin/docker-test` entry point all
+match the tree.
+
+Two specific statements are wrong, both about the same model, and both are
+fallout from the same change:
+
+- **`config/routes.rb:62-64`**: the comment above the block says "priority levels
+  are edited from the Windows Targets screens, so polling_priorities has no
+  index/new of its own." It now *does* have an index — `config/routes.rb:71` is
+  `resources :polling_priorities, only: [:index, :edit, :update]`, with
+  `app/views/polling_priorities/index.html.erb` and a real `#index` action. Both
+  the route and the view landed in `b6aafd7` (2026-11-11, the WinRM polling
+  commit); the comment predates them and was not updated.
+- **`DAD.wiki/Access-Control.md`**: "`PollingPriority.hidden?` hides itself for
+  the same reason [as `AdImportBatch` — no index route]." That inherited the
+  stale comment above. The actual reason, stated correctly in the model itself,
+  is that priority levels are edited from the Windows Targets screens, where their
+  effect is visible next to the hosts using them — a UX choice, not a missing
+  route.
+
+Fix the routes comment to say "no `new` of its own", and reword the wiki line to
+give the UX reason. The model comment is correct as written.
+
+### 4.8 ⬜ Open — the nav bar is built from `ActiveRecord::Base.subclasses` **[maintainability]**
+
+`config/application.rb:98-110` requires every file under `app/models/` and then
+builds a global:
+
+```ruby
+$_models = ActiveRecord::Base.subclasses.collect { |type| type.name }.sort
+```
+
+`app/views/layouts/application.html.erb:13-14` renders the nav bar from it:
+
+```erb
+<% $_models.select {|a| !a.include?("HABTM")}.each do |model| %>
+<% if !model.constantize.hidden?(@current_user) %><li …><%= link_to model, model.constantize %></li><% end %>
+<% end %>
+```
+
+Three problems, one of them a live correctness trap.
+
+**a. A model that fails to load silently loses its tab.** The `rescue` at
+`application.rb:101` already knows this and says so in a comment: the tab
+"silently disappears — which reads like a routing or permissions problem". It
+`warn`s rather than raising, which is the right call for boot resilience, but the
+consequence is that a typo in any model file removes a screen from the nav bar
+with no error at the request layer. `test/system/navigation_test.rb` asserts the
+admin-visible tab set, so it *does* catch this — that test is the reason the
+design is tolerable today.
+
+**b. The `HABTM` filter is dead.** No model name in `app/models/` contains
+`HABTM`; the join models are `RoleUser` and `RightRole`. The filter matches
+nothing and can be deleted.
+
+**c. The set is coupled to what happens to be a subclass.** Adding any
+`ActiveRecord` subclass — a view over a CTE, a read-only reporting model —
+instantly gives it a nav-bar tab pointing at `Model.constantize`, i.e.
+`/models#index`, whether or not that route exists. `AdImportBatch` is the
+existing casualty: it is routed `only: [:new, :create, :show]` with no index, so
+its tab would be broken, and it is `hidden? true` for everyone purely to avoid
+that. Its own comment says so: "the layout links every model in `$_models` to
+`Model.constantize`, so a model without an index route would render a broken
+tab." (`PollingPriority` hides itself for a different, legitimate reason — it is
+edited from the Windows Targets screens where its effect is visible next to the
+hosts using it — and it *does* have an index route. That one should stay hidden
+under any redesign.) So the design currently produces throwaway `hidden?` methods
+to work around itself.
+
+**Fix.** Drive the nav bar from the list that is already authoritative —
+`ApplicationController::CONTROLLER_RIGHTS` keys, which is precisely "screens that
+exist and are routed", and is already asserted complete by
+`authorization_policy_test.rb:17` ("controllers with no declared rights"). Render
+tabs from that, filtered by the rights the user holds, and `hidden?` becomes
+unnecessary on join tables, service models, and routeless models at once. That
+retires §4.6(d)'s `RoleUser`/`RightRole`, the `hidden? true` bodies on
+`Comment`, `Right`, `Session`, `Statistic`, `Word`, `Hunk`, `AdImportBatch` and
+`PollingPriority`, and the dead `HABTM` filter, in one change.
+
+This is the largest of the open items and the only one that is a refactor rather
+than a deletion. It is also the one that removes the most *conceptual* surface:
+after it, there is exactly one list of screens in the app instead of three
+(`$_models`, `CONTROLLER_RIGHTS`, and the per-model `hidden?` methods) that have
+to be kept in agreement by hand. Do it **after** §2.8 and §4.6, so the route
+fixes land first and the new nav list can be built against correct routes.
+
+### 4.9 ✅ Closed — the wiki and README repeated nine factual errors about the app **[documentation]**
+
+A page-by-page audit of all 23 wiki pages against this tree found seven claims that
+are simply false and two that are imprecise or stale. Each was re-verified against the tree
+before being changed, not taken on trust.
+
+| claim (wiki + README) | what the tree says |
+|---|---|
+| "`/events/recent`" refreshes the dashboard feed | No such route. `config/routes.rb` gives `events` only `index` + `collection { get :search }`, and there is no `recent.js.erb`. The feed refreshes via `GET /events.js`; `EventsController#recent` is unreachable dead code. |
+| "Every management index screen is paginated at 25 rows" | `systems` is deliberately unpaged (`System.with_events_within_hours(24)`), as are `services`, `words` (fixed 20), `alerts`, `events`, `polling_priorities`. |
+| "paginate replaced it on all thirteen: … systems …" | That commit (`30a008f`) touched **twelve** controllers and `systems` was not one of them; `hunks` was, and was omitted. `windows_targets` and `active_directory_connections` inherited it later, at `b6aafd7` and `e1ce173`. |
+| "A `Search` row is a saved search string **plus its time window**" | `searches` has `string`, `user_id`, `description`, `short_description` and nothing else (`db/schema.rb:170-177`); the controller permits exactly those four. No time window has ever existed. The model and controller comments repeated the same error. |
+| "`DAD_OFFLINE_STORAGE_DIR` … the systemd units set `/var/DAD/offline_storage`, mode `0700`" | No unit sets the variable (`grep -rn DAD_OFFLINE_STORAGE_DIR systemd/` → no hits). The path comes from the default plus `WorkingDirectory=/var/DAD`. And nothing anywhere sets `0700`: `EventPartitionBackup` uses `FileUtils.mkdir_p`, so the directory gets the umask default. Two wiki pages and the README said "it is `0700` for a reason" — there is no such reason, and the sentence implies a protection that does not exist. |
+| "`db:seed` … seeds the **two** maintenance jobs" | It seeds **four**: partitions, sessions, dashboard feed, Windows polling. |
+| "`JobHandler::HANDLERS`, a closed registry of **seven** operations" | **Eight** since `b6aafd7` added `poll_windows_events`. |
+| "Below **720px** the nav bar tabs wrap" (three pages) | The media query is `@media (max-width: 768px)` (`application.css:345`). |
+| `Statistical-Alerting.md`: "monkey patching we've done to the **Math** class" | The `Math` patch is gone; the helpers are `Stats.mean/variance/standard_deviation` (`app/models/stats.rb`). |
+
+Two of these were load-bearing rather than cosmetic. The `0700` sentence told
+operators a directory full of raw log lines was permission-protected when nothing
+protects it. And the `/events/recent` name pointed anyone debugging the dashboard
+at an action that cannot be reached.
+
+Fixed in `DAD.wiki` master and in `README.md`, `app/models/search.rb` and
+`app/controllers/searches_controller.rb`. The `Viewer` rights row was checked and
+left alone: the audit that flagged it as omitting `preferences` was itself out of
+date — `preferences` is Admin-gated (`application_controller.rb`).
+
+**The pattern worth keeping:** every one of these was a *copy* of an earlier
+statement — the README repeating the wiki, a model comment repeating the README, a
+wiki page repeating a stale code comment. §4.8's single-source-of-truth refactor is
+the structural fix; until then, a claim restated in three places needs changing in
+three places.
 
 ---
 
@@ -2641,6 +2994,55 @@ OpenWEC changes its output, re-derive them from a real collector.
 **Suite after this change: 488 runs / 1442 assertions / 0 failures / 0 errors /
 0 skips**, plus 40 system runs and 5 cucumber scenarios, all green on Postgres 17.
 
+### 5.17 ✅ Closed — the stack's own logs went nowhere **[operations]**
+
+Under Compose, a Rails stack trace or a Postgres checkpoint was reachable only
+through `docker compose logs`. DAD, which exists to watch logs, could not watch
+its own.
+
+Every service except `syslog` now ships stdout/stderr to the collector, tagged
+`dad-web`, `dad-db`, `dad-importer`, and so on. Verified end to end on a fresh
+stack: 5 services' worth of container logs landed in `events`, each under its own
+`Service` row, with the app still serving HTTP 200.
+
+Three things had to be measured rather than assumed, and two of them are the
+opposite of what the Docker docs suggest:
+
+- **The log driver resolves `syslog-address` in the *daemon's* namespace, not the
+  container's.** `udp://syslog:514` — the obvious Compose answer — fails with
+  `lookup syslog on 127.0.0.11:53: server misbehaving` and leaves the container in
+  `Created`. It never starts. The address has to be an IP: the host loopback,
+  reaching the collector through its published port.
+- **The frame format decides whether anything is stored at all.** `syslog-format:
+  rfc5424` puts a version number and an ISO-8601 timestamp where
+  `EventIngestor.parse_timestamp` expects the timestamp, so *every* line is
+  counted as a parse failure and nothing reaches `events` — the queue fills, the
+  dashboard stays empty, and no other check goes red. `rfc3164` parses, but
+  inserts the *Docker host's* hostname ahead of the tag, and the Service
+  sanitizer strips digits, so a host named `67ec82500e20` yields the Service `ece`
+  for every container. What works is the **UDP default**, which omits the hostname
+  slot and lands the tag exactly where the Service is read from.
+- **A `depends_on: syslog` on `db` turns a busy port 514 into a dead stack.**
+  With the hard dependency, a failed bind on the collector takes `db` down with it
+  (`Container repo-db-1 not started: interrupted by the failure of Container
+  repo-syslog-1`) — nothing starts. Without it, the collector's first few lines
+  are dropped and everything else runs. Reproduced both ways.
+
+Relying on the driver default is the one deliberate risk here, so it is guarded
+rather than trusted: the new CI step *Assert the stack's own logs reach the
+database* polls for three named Services, not merely for a row. A future Docker
+that changes the default fails that step instead of silently stopping the ingest
+path.
+
+`DAD_SYSLOG_PORT` sets both the collector's published port and the address every
+driver sends to, so a host already holding UDP 514 moves both at once. The
+collector itself is deliberately left untagged — it would otherwise feed itself.
+
+**Suite after this change: 621 runs / 1969 assertions / 0 failures / 0 errors /
+0 skips**, plus 40 system runs (247 assertions) and 5 cucumber scenarios, all
+green on Postgres 17 — run through the modified `test` service, which is itself
+now a syslog-tagged container.
+
 ---
 
 ## Appendix: what is closed, and where the detail is
@@ -2703,6 +3105,18 @@ Verified closed against the current tree:
 | §5.9 | SQLite removed as the dev/test engine: `database.yml` Postgres-only, `sqlite3` gem dropped, CI's SQLite and Postgres jobs collapsed into one, `Vagrantfile`/`provision.sh` deleted, all adapter-conditional skips removed (32 → 0). Plus `maintain_test_schema`'s condition inverted by the change and fixed, and `approximate_count`'s live-but-untested null fallback pinned | this branch |
 | §4.2 | `search`/`search_period` merged; `export_logs.rb` → `bin/`; `syslog.pl` global-scope bug, unchecked `open`, dead `$DEBUG`; 26 scaffold asset stubs deleted. Also a cucumber scenario that was passing for the wrong reason (a `0` time bound became the string `'0'` and matched everything) | `4ee7458` |
 | — | The cross-version probe harness used to verify the upgrade is now in the repo (`script/probe.rb`, `script/probe_compare.rb`, `rake probe:run` / `probe:compare`). Committing it fixed a coverage hole: plain `:id` resolved to a literal `1`, so every member route 404'd and show/edit/roles were never rendered — the §1.3 leak produced no probe diff at all. | `67566f4` |
+| §5.10 | No test had ever rendered a page: `rake test` could not run a browser-level test at all. Capybara/system suite added on Postgres, plus the defects it immediately found | #34 |
+| §5.11 | Two stylesheets, one untouched since generation, most of the bundle styling a widget the app does not have. Stock scaffold CSS merged into `application.css` | #35 |
+| §5.12 | No viewport tag, and two layouts too wide for a phone | #36 |
+| §5.13 | The form error summary copy-pasted 14 times, 12 of those copies unreachable. One shared partial | #37 |
+| §5.14 | 209 duplicate `id` attributes across 17 rendered pages | #38 |
+| §5.15 | `complete: $.ajax()` re-fetched the current page a second time, in three places | #39 |
+| §5.16 | No Windows event ingest at all. OpenWEC output converted into the existing staging record format, so the ingestor is untouched; `dad-windows` feeds the same `LogsToProcess` queue, driven end to end in CI | #40 |
+| — | **Windows hosts polled directly over WinRM**, removing the OpenWEC dependency: `windows_targets` plus priority bands (`PollingPriority`) set per-host intervals, with per-target polling disable and log selection | #41 |
+| — | **Admin-managed Active Directory host import**: an `AdConnection` is queried to populate the Windows host list, staged through `AdImportBatch` so nothing is written until an admin accepts it | #42 |
+| §4.7 | Wiki suite count mis-split (621 read as "581 + 40 system"), plus a stale `routes.rb` comment and wiki line about `PollingPriority` having no index | `DAD.wiki` master |
+| §4.9 | Nine false or stale claims repeated across the wiki, README and two model comments — `/events/recent`, the pagination set, a Search "time window", the `0700` offline-storage claim, seeded-job and handler counts, the 720px breakpoint, the `Math` patch | `DAD.wiki` master |
+| §5.17 | The Compose stack ships every container's own stdout/stderr to the collector, so DAD watches itself. Two measured traps: the log driver resolves `syslog-address` in the daemon's namespace (a compose service name cannot work), and the driver's frame format decides whether `EventIngestor` stores anything at all. Guarded by a CI step asserting three named Services, not just a row | this branch |
 
 The superseded review revisions -- including the misdiagnoses and the reasoning
 that corrected them -- are preserved in git:

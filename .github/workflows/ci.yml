@@ -401,6 +401,38 @@ jobs:
             || { echo "UDP packet never reached the database"; docker compose logs syslog importer; exit 1; }
           echo "ingest path live: collector -> LogsToProcess -> importer -> Postgres ($found events)"
 
+      # The stack's own logs. docker-compose.yml ships every service's stdout to
+      # the collector, which only works if the frame the Docker log driver emits
+      # is one EventIngestor can parse *and* the tag lands in the Service slot.
+      # Neither is checked by any unit test, and both fail silently: a format
+      # change makes every line a timestamp parse failure, so the queue fills,
+      # nothing is stored, and every other step stays green.
+      #
+      # Asserting the Service name rather than just a row count is the point --
+      # a row with the wrong Service means the driver started inserting a hostname
+      # field ahead of the tag.
+      - name: Assert the stack's own logs reach the database
+        run: |
+          q() { docker compose exec -T db psql -U dad -d dad_development -tAc "$1"; }
+          # web, db and importer all boot in this job, so all three tags must show
+          # up. Rotation is 60s and the importer scans once a minute, so allow the
+          # same generous window the other ingest steps use.
+          found=0
+          for _ in $(seq 1 24); do
+            found=$(q "select count(distinct s.name) from services s
+                        join events e on e.service_id = s.id
+                        where s.name in ('dad-web','dad-db','dad-importer')") || found=0
+            if [ "${found:-0}" -ge 3 ]; then break; fi
+            sleep 5
+          done
+          if [ "${found:-0}" -lt 3 ]; then
+            echo "expected container logs from dad-web, dad-db and dad-importer; got $found service(s)"
+            echo "staging:"; docker compose exec -T syslog ls -l /var/DAD/Logs/LogStaging /var/DAD/Logs/LogsToProcess
+            docker compose logs syslog importer
+            exit 1
+          fi
+          echo "self-logging live: container stdout -> collector -> importer -> Postgres ($found services)"
+
       # The Windows leg. Nothing else in CI boots the `windows` profile, so a
       # compose service that cannot start, or a forwarder that cannot find its
       # input, would ship unnoticed -- the same class of gap the syslog leg

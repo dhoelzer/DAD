@@ -24,10 +24,11 @@ class AdImportBatch < ActiveRecord::Base
   belongs_to :user, optional: true
 
   # Not a nav tab. A batch has no index of its own -- it is reached from the
-  # connection that produced it, and its history is listed there. Same reason
-  # PollingPriority hides itself: the layout links every model in $_models to
-  # Model.constantize, so a model without an index route would render a broken
-  # tab.
+  # connection that produced it, and its history is listed there. The layout
+  # links every model in $_models to Model.constantize, so a model without an
+  # index route would render a broken tab. (PollingPriority hides itself too,
+  # but for a different reason: it does have an index, and is reached from the
+  # Windows Targets screens instead of the nav bar.)
   def self.hidden?(_current_user = nil)
     true
   end
