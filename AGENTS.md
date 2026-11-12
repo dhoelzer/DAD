@@ -101,6 +101,12 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   seed unconditionally: `db:seed` also recreates the maintenance Jobs.
 - CI: `.github/workflows/ci.yml` — six jobs: `test` (unit + `test:system` + cucumber
   against a `postgres:17` service), `assets`, `systemd`, `docker`, `collector`, `security`
+  - Brakeman runs with **no ignore file** and must report 0 warnings. Its
+    `ValidationRegex` check fires on `format: { with: /.../ }` whenever the regex
+    is not `\A`/`\z`-anchored. For a deliberate *prefix* check (e.g. the DN
+    validation on `ActiveDirectoryConnection`), write a custom `validate` method
+    instead of adding an ignore entry -- `format:` implies the anchored reading to
+    readers as well as to Brakeman, so the check is wrong as well as flagged.
   (three **blocking** gates: `bundle-audit`, `brakeman`, `gitleaks` over the
   working tree via `.gitleaks.toml`).
   The `test` job runs `db:migrate_from_scratch`, then asserts the partitioned
@@ -529,6 +535,16 @@ runs both suites, and makes the same two schema assertions the CI `test` job mak
     test migrate never rewrites it. If it ever must be regenerated, do it
     deliberately and re-read the diff: a Postgres dump would silently drop the
     partitioning while still looking complete.
+  - **Adding a migration leaves `schema.rb` stale**, because nothing regenerates it
+    automatically (see above). A fresh `db:prepare` then silently skips the new
+    tables. Regenerate with `RAILS_ENV=development bin/rails db:migrate`, but
+    expect the dumper to also reformat unrelated tables (`t.integer limit: 8` ->
+    `t.bigint` across 18 tables as of PR #42). If you hand-insert just the new
+    blocks to keep the diff reviewable, you must also hand-insert the matching
+    `add_foreign_key` lines -- `t.references ... foreign_key: true` emits them in
+    a separate section at the bottom of the file, and missing them loses the
+    constraints silently. Verify by loading the result into a scratch database and
+    counting tables and `contype='f'` constraints.
   - `maintain_test_schema = false` for the same reason. Rails purges and reloads
     `schema.rb` before a run when a migration is newer than the dump, which would
     install the non-partitioned shape over what `db/migrate` built. This used to
