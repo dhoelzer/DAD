@@ -91,6 +91,18 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   `syslog`, and `test` (behind `--profile test`). `docker-compose.db-port.yml` is
   an optional override that publishes 5432 for host `psql`. `.dockerignore` keeps
   the build context off `log/` and `vendor/bundle` (~5.6 GB otherwise).
+  Every service but `syslog` ships its own stdout/stderr to the collector
+  (`x-app-logging`), so the stack watches itself and container logs become `events`
+  rows under a per-container `Service` (`dad-web`, `dad-db`, ...). Two traps, both
+  measured: the log driver resolves `syslog-address` in the **daemon's** namespace,
+  so a compose service name (`udp://syslog:514`) cannot resolve and the container
+  never starts -- use the host loopback plus the published port; and the frame
+  format decides whether anything is stored, so set **no** `syslog-format` (the UDP
+  default omits the hostname slot and lands the tag in the `Service` field, while
+  `rfc5424` fails every timestamp parse and `rfc3164` puts the Docker host's
+  hostname there instead). `DAD_SYSLOG_PORT` moves the published port and every
+  driver address together. Do not add `depends_on: syslog` to `db`: a failed bind
+  on 514 then takes the whole stack down.
   The `Dockerfile` was `Dockerfile.dev` and **could not build**: it had a bare
   `gem install bundler` line, which is not a Dockerfile instruction. No CI job
   built the image, so nothing caught it. It also shipped no JS runtime, which
@@ -116,7 +128,9 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   husk that `index_exists?` reports as healthy.
   The `docker` job builds the image and boots the compose stack, then asserts the
   database was migrated+seeded, that a view actually renders, that an emitted asset
-  path returns 200, and that a UDP packet reaches `events`. It exists because
+  path returns 200, that a UDP packet reaches `events`, that the stack's own
+  container logs reach it under three named Services, and that a Windows fixture
+  reaches it on the right System. It exists because
   nothing used to build the image, which is how a Dockerfile containing a bare
   `gem install` line reached `master`. Two of its checks are only meaningful
   against the image, not runner Ruby: the JS runtime (GitHub runners ship Node, a

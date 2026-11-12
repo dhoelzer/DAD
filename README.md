@@ -231,7 +231,7 @@ docker compose down          # keep the volumes
 docker compose down -v       # discard the database too
 ```
 
-Two things worth knowing before you reach for it:
+Three things worth knowing before you reach for it:
 
 - **The database port is not published.** The app containers reach `db` over the
   Compose network by service name, and publishing 5432 by default collides with a
@@ -241,6 +241,13 @@ Two things worth knowing before you reach for it:
   mounting a checkout owned by a different uid makes Rails' `log/` and `tmp/`
   writes fail with `EACCES` in a way that reads like an app bug. The gem layer is
   cached, so after an edit `docker compose up --build` only re-runs `COPY . .`.
+- **The stack watches itself.** Every service except `syslog` ships its own
+  stdout and stderr to the collector, so a Rails stack trace or a Postgres
+  checkpoint becomes an ordinary DAD event, filed under a Service named after the
+  container (`dad-web`, `dad-db`, `dad-importer`, …). Search for your own errors
+  the same way you search for anything else. If the host already holds UDP 514,
+  `DAD_SYSLOG_PORT=1514 docker compose up` moves both the published port and the
+  address every log driver sends to.
 
 The image's `WORKDIR` is `/var/DAD`, not `/app`, because the collector hardcodes
 absolute paths under `/var/DAD/Logs` and every systemd unit sets
