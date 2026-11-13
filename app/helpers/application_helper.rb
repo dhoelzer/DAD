@@ -5,11 +5,70 @@
 # directly from the dashboard templates. Their SQL is portable across Postgres
 # (production, development and test) so the dashboard renders everywhere.
 module ApplicationHelper
-  # Returns "active" or "inactive" for the nav bar, comparing the given controller
-  # name against the current request. Call from a layout as class="<%%= is_active(model) %%>".
-  # Note the argument is the controller name, not a path.
-  def is_active(controller)       
-    params[:controller] == controller ? "active" : "inactive"     
+  # Nav bar order and labels. The bar used to be `$_models.sort`, so tab order was
+  # alphabetical by class name and every label was the class name itself --
+  # "ActiveDirectoryConnection" and "WindowsTarget" rendered in full at 120px each.
+  # Order and labels are declared here; the models still decide *whether* a tab
+  # appears, through hidden?.
+  #
+  # The first four are the everyday path: events, then search, then the two
+  # host-shaped indexes. Windows groups the two setup screens -- the directory
+  # connection and the polled-host list -- under one dropdown, because they are
+  # configured occasionally rather than viewed daily.
+  NAV_PRIMARY = %w[Event Search System Service].freeze
+
+  # Moved under the "Windows" dropdown and hidden from the flat list.
+  NAV_WINDOWS = %w[ActiveDirectoryConnection WindowsTarget].freeze
+
+  # Short labels for the two dropdown entries. The class names were the old tab
+  # labels, and at 120px per tab "ActiveDirectoryConnection" does not fit.
+  NAV_LABELS = { 'ActiveDirectoryConnection' => 'AD',
+                 'WindowsTarget' => 'Windows' }.freeze
+
+  def nav_label(model)
+    NAV_LABELS.fetch(model, model)
+  end
+
+  # Visible models in nav order: the four primary tabs, then everything else in
+  # $_models order. NAV_WINDOWS is excluded here because it renders in the
+  # dropdown; a model that is hidden? for this user gets no tab anywhere.
+  def nav_flat_models
+    ordered = NAV_PRIMARY + ($_models - NAV_PRIMARY - NAV_WINDOWS)
+    ordered.select do |model|
+      !model.include?('HABTM') && !model.constantize.hidden?(@current_user)
+    end
+  end
+
+  def nav_windows_models
+    NAV_WINDOWS.select { |model| !model.constantize.hidden?(@current_user) }
+  end
+
+  # Class for the dropdown's own <li>. Deliberately *not* "active": the nav bar
+  # guarantees exactly one li.active per page (asserted in unique_ids_test), and
+  # marking both the group and its open child active would render two. The group
+  # gets its own hook so it can still be highlighted while a child is current.
+  def nav_group_class(models)
+    paths = models.map { |model| nav_controller_path(model) }
+    paths.include?(params[:controller]) ? "group-active" : "group-inactive"
+  end
+
+  # Controller path a model's tab points at, i.e. the value of params[:controller]
+  # when that page renders.
+  #
+  # tableize, not pluralize.downcase: the old layout used the latter, which yields
+  # "windowstargets" and "activedirectoryconnections" where the real controller
+  # paths are "windows_targets" and "active_directory_connections". Those two tabs
+  # never received class="active", so the highlight silently lied on every
+  # Windows screen.
+  def nav_controller_path(model)
+    model.tableize
+  end
+
+  # Returns "active" or "inactive" for the nav bar. Takes a model name, because
+  # that is what the layout iterates; nav_controller_path turns it into the
+  # controller path the current request reports.
+  def is_active(model)
+    params[:controller] == nav_controller_path(model) ? "active" : "inactive"
   end
   
   # Emits +value+ as a JavaScript literal for a .js.erb template.

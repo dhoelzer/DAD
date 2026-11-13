@@ -280,7 +280,15 @@ div.field, div.actions {
   list-style-type: none;
   margin: 0;
   padding: 0;
-  overflow: hidden;
+  /* Contained the floated tabs. Replaced by the clearfix below because overflow
+     also CLIPS: the Windows dropdown is absolutely positioned, and an overflow
+     context on its ancestor would cut it off inside the bar. A clearfix contains
+     the floats without clipping anything. */
+}
+#navbar > ul::after {
+  content: "";
+  display: block;
+  clear: both;
 }
 #navbar li {
   float: left;
@@ -301,6 +309,44 @@ div.field, div.actions {
 
 li.active {
   background-color: #555;
+}
+
+/* The "Windows" dropdown. Built on <details>/<summary> rather than a JS handler:
+   the nav bar has never needed JavaScript, and the system suite runs rack-test,
+   which executes none. A script-driven menu would therefore be untested here and
+   would break outright where JS is unavailable.
+
+   The panel is anchored to its own tab so it opens under it. That is safe even
+   though opening the panel would otherwise grow the <li>: the panel is absolutely
+   positioned, so it is out of flow and cannot change its containing block's
+   height, which keeps top: 100% pinned to the summary row. */
+#navbar .nav-group-item {
+  position: relative;
+}
+#navbar summary {
+  display: block;
+  font-weight: bold;
+  color: #fff;
+  text-transform: uppercase;
+  padding: 1px;
+  width: 120px;
+  cursor: pointer;
+  list-style: none;
+}
+#navbar summary::-webkit-details-marker {
+  display: none;
+}
+li.group-active summary {
+  background-color: #555;
+}
+#navbar .submenu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 20;
+}
+#navbar .submenu li {
+  float: none;
 }
 
 /* ---- narrow screens ---- */
@@ -344,19 +390,24 @@ table.ad_candidates td {
 
 @media (max-width: 768px) {
 
-  /* The nav bar is generated from $_models -- 19 tabs at 120px each, so 2280px
-     of tabs against a #navbar ul that sets overflow: hidden. On any screen
-     narrower than that, tabs past the edge are not wrapped and not reachable:
-     they are clipped. Letting the items wrap and shrink makes every tab
-     reachable without a hamburger menu, which would need JS the app does not
-     have. */
+  /* The nav bar renders one tab per visible model at 120px each -- 17 tabs, so
+     about 2040px of tabs. On any screen narrower than that the tabs wrap into
+     rows and shrink. Letting them wrap and shrink makes every tab reachable
+     without a hamburger menu, which would need JS the app does not have. */
   #navbar ul {
     overflow: visible;
+  }
+  /* The bar wraps to three columns here, so an absolutely positioned panel would
+     land under the wrong row. Back in flow: the entries appear under their group,
+     which is reachable without depending on where the row broke. */
+  #navbar .submenu {
+    position: static;
   }
   #navbar li {
     width: 33.33%;
   }
-  #navbar a {
+  #navbar a,
+  #navbar summary {
     width: auto;
     padding: 4px 6px;
     font-size: 11px;

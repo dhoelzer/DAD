@@ -102,11 +102,17 @@ class SystemTest < ActionDispatch::IntegrationTest
     user
   end
 
-  # The nav bar is built from $_models and filtered by each model's hidden?,
-  # so the set of tabs is a property of the signed-in role rather than a
-  # hard-coded list.
+  # Labels of every nav link, including the ones inside the closed Windows
+  # dropdown. Which tabs exist is a property of the signed-in role -- each model's
+  # hidden? filters them -- so this is derived rather than a hard-coded list.
+  #
+  # Two rack-test quirks make this non-obvious. Capybara filters hidden elements
+  # out of matches by default, and a closed <details> counts as hidden, so the
+  # dropdown's links need visible: :all or they go untested. And RackTest::Node#text
+  # returns "" for a node it considers invisible, so the label has to come from the
+  # underlying Nokogiri node rather than Node#text.
   def nav_links
-    page.all('#navbar a').map(&:text)
+    page.all('#navbar a', visible: :all).map { |a| a.native.text }
   end
 
   # Builds an event that Event.search can find, without going through

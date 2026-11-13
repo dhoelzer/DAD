@@ -59,6 +59,16 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   `#*_chart` divs are empty there, so those tests assert the static shell and the
   ids the JS writes into, not the populated content. `.js.erb` output stays
   covered by `test/controllers/dashboard_render_test.rb`.
+- **A closed `<details>` is invisible to rack-test, and invisible means empty
+  text, not just unmatchable.** The nav bar's Windows dropdown is a
+  `<details>`/`<summary>` pair (no JS, so it stays testable), which means its links
+  are in the DOM but hidden. Two separate traps: Capybara filters hidden elements out
+  of matches by default, so `assert_selector` finds *nothing* rather than the wrong
+  thing; and `Capybara::RackTest::Node#text` returns `""` for a node it considers
+  invisible, so `.map(&:text)` on `visible: :all` results yields empty strings and an
+  `assert_equal %w[AD Windows], ...` fails with `["", ""]`. Read the label from
+  `node.native.text` instead. `SystemTest#nav_links` does both, which is why the
+  generic "every nav tab links to a page" test still covers the dropdown.
 - **Ingesting inside a fixture test poisons later tests.** `EventIngestor` writes
   events, systems, services and words from background batch threads, each on its
   own database connection, which sits outside the transaction wrapping a
