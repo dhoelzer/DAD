@@ -274,6 +274,13 @@ services:
       # UDP syslog intake, and the target of every container's own log stream
       # (see x-app-logging). If something on the host already holds 514, set
       # DAD_SYSLOG_PORT and both this mapping and the log drivers move together.
+      #
+      # Published on all interfaces, and the collector itself binds 0.0.0.0
+      # (syslog_collector/src/runtime.rs). That is expected, not an oversight:
+      # remote hosts sending logs is the primary use case, so restricting this to
+      # loopback would break the deployment for anyone but the stack itself. UDP
+      # syslog is unauthenticated by protocol, so the boundary is the network --
+      # filter it at the firewall; do not narrow the bind.
       - "${DAD_SYSLOG_PORT:-514}:514/udp"
     command: ["syslog_collector"]
     restart: unless-stopped

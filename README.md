@@ -248,6 +248,17 @@ Three things worth knowing before you reach for it:
   the same way you search for anything else. If the host already holds UDP 514,
   `DAD_SYSLOG_PORT=1514 docker compose up` moves both the published port and the
   address every log driver sends to.
+- **UDP 514 is published on every interface, on purpose.** The collector binds
+  `0.0.0.0` and Compose publishes the port unmapped, because remote hosts sending
+  their logs in is the point of the product. UDP syslog carries no authentication,
+  so the control is network-level: restrict 514/udp at the firewall to the hosts
+  you expect. Two different knobs, and neither is the fix:
+  - Narrowing the **published mapping** to `127.0.0.1:514` would keep the stack's
+    own logs arriving (the log drivers send from the host's loopback) but reject
+    every remote host -- i.e. it silently disables the main use case.
+  - Narrowing the **collector's own bind** would break even the stack's own logs:
+    Docker delivers published-port traffic to the container's routable interface,
+    not its loopback, so nothing would be accepted.
 
 The image's `WORKDIR` is `/var/DAD`, not `/app`, because the collector hardcodes
 absolute paths under `/var/DAD/Logs` and every systemd unit sets
