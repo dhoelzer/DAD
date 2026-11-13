@@ -436,6 +436,22 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   writer is active. That is what makes them deterministic rather than racing the
   async insert thread opening a second connection while the main thread holds a
   write lock. The writing thread is still the thing under test.
+- `app/views/events/index.js.erb` is **one script**: a raise anywhere in it means
+  `/events.js` returns an HTML error page and *none* of the JS runs. So a single nil
+  deep in a model can produce several unrelated-looking UI symptoms at once. PR #45
+  was exactly this: `Preference.where(user_id: 0).first` was nil because no migration
+  creates that row, `recent_events` raised at line 24, and the result was empty
+  `#graphs` charts *and* `#events_window` stuck on "Loading...". When a dashboard
+  area is blank, check whether the poll endpoint is 500 before suspecting the chart
+  code.
+- Related trap: `0 || DEFAULT` is `0` in Ruby. `recent_events` sizes its query with
+  `to_i`, so a stored `NULL` arrived as `0`, the feed clamped to its minimum of 1, and
+  the self-tune step `configured * 0.10` was `0` forever. Guard such settings
+  numerically (`v.nil? || v.to_i <= 0`), not with `||`.
+- Reads that run on a polled `GET` must not write. `recent_events` runs on
+  `GET /events.js`, polled every 60s per open tab; it falls back to
+  `DEFAULT_EVENTS_DASHBOARD` instead of creating the row. Writes go through
+  `Preference.global_row!`.
 
 ## Charting / asset pipeline
 - Charts run on **Chart.js 4.4.7** (MIT), vendored at
