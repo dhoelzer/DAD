@@ -3105,6 +3105,75 @@ steps), all green on Postgres 17. The 11 new tests were confirmed failing first:
 
 ---
 
+### 5.19 ✅ Closed — every container collapsed into one System, and the container name was filed as a Service **[correctness] [operations]**
+
+Under the recommended Docker deployment, the collector prepends the address the
+packet arrived from. Every container's syslog log driver sends from the bridge
+gateway, so all five services arrive carrying `172.18.0.1` and `System.find_or_add`
+— which keys identity on `systems.address` — handed them all the same row. Measured
+on the running stack: one row in `systems`, `(172.18.0.1)`, and 222 events spread
+across five Services. The per-host views showed a single host.
+
+The container name, which is the only host identity the line carries, sat in the
+application slot where the log driver puts it:
+
+```
+172.18.0.1 Nov 13 15:14:49 dad-web[149784]: Started GET /users/logon
+```
+
+**The pid in that slot is not the container's process id.** It is identical for
+every container on the host — measured, `dad-db`, `dad-web`, `dad-importer`,
+`dad-migrate` and `dad-scheduler` all reported `149784` — because it is
+`dockerd`'s. So `tag[pid]` carries no per-process information, and nothing in the
+fix treats it as an identity.
+
+`SyslogSource` resolves the application and host slots **structurally**. The
+marker is that an application is followed by its pid and a colon, which after
+`stage_event`'s sanitizing pass is the triple `name` `digits` `:` — the brackets
+in `sshd[4242]:` are *spaces* by the time tokens exist, so matching the literal
+`name[pid]:` would test a string the parser never sees. A hostname slot has no
+pid after it, so whichever token owns the pid slot is the application.
+
+**The same rule fixed a second, unrelated mis-parse that had nothing to do with
+Docker.** RFC 3164 as rsyslog forwards it by default carries a hostname slot:
+
+```
+10.0.0.5 Jun  1 12:00:00 web01 sshd[4242]: Accepted publickey for bob
+```
+
+The positional read took `web01` as the Service — and the Service sanitizer
+strips digits, so the row said `web` — and dropped `sshd` entirely. Probed before
+changing anything: that line stored service `web`. The test suite's own canonical
+line shape, `<ip> <ts> <host> <svc>[pid]:`, was mis-parsed the same way.
+
+**Gated deliberately.** The rename happens only when the source address is one of
+this container's own default-route gateways (parsed from `/proc/net/route`) *and*
+the importer is actually containerized. Without the second condition, a systemd
+deployment would rename any syslog arriving from the LAN router — routers do send
+syslog — into a System named after the router's tag. A remote host's address is
+its own identity and is never rewritten; asserted, not assumed.
+`DAD_SYSLOG_SELF_HOST=none` turns the whole rewrite off for deployments where
+something real does send from the bridge address.
+
+The name goes in `address`, not `name`: `address` is what `find_or_add` keys
+identity on, and `name` is an operator-assigned label.
+
+**Windows path verified unaffected.** The forwarder emits
+`<host> <ISO-8601> <provider> …` with no pid slot, so it falls through to the
+positional fallback. Ran the real `security_4688.json` fixture through
+`storeEvent`: system `win10.windomain.local`, service
+`microsoft-windows-security-auditing` — unchanged.
+
+**Suite after this change: 671 runs / 2074 assertions / 0 failures / 0 errors /
+0 skips**, plus 40 system runs (247 assertions) and 5 cucumber scenarios, all
+green. The 24 new tests were confirmed failing first: with only `EventIngestor`
+reverted, 8 identity tests produced 1 failure and 7 errors. Live check on the
+restarted stack: 5 distinct Systems (`dad-web`, `dad-db`, `dad-importer`,
+`dad-scheduler`, `dad-migrate`), each holding its own events, and `/systems`
+renders them as separate hosts.
+
+---
+
 ## Appendix: what is closed, and where the detail is
 
 Section numbers below are from the **original** review, which is a different

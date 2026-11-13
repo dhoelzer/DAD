@@ -90,6 +90,12 @@ x-app: &app
     # script. Development mode is the honest match for `rails server`.
     RAILS_ENV: development
     DATABASE_URL: postgresql://dad:dad@db:5432/dad_development
+    # SyslogSource rewrites a container's source address (always the bridge
+    # gateway) into a System named after the container's log tag. Set to `none`
+    # if something real sends from that address -- the Docker host itself, or a
+    # VM behind the same bridge. Only the importer reads it; it lives here so it
+    # can be set once in .env.
+    DAD_SYSLOG_SELF_HOST: ${DAD_SYSLOG_SELF_HOST:-auto}
   depends_on:
     db:
       condition: service_healthy

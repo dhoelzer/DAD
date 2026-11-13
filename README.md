@@ -95,6 +95,7 @@ without hand-writing a URL, since `config/database.yml` interpolates them.
 | `DAD_AR_ENCRYPTION_KEY` | **yes** (production) | `WindowsTarget`, `ActiveDirectoryConnection` | Active Record encryption key for stored WinRM and LDAP bind passwords. 32 bytes, hex. Production refuses to boot without it. |
 | `DAD_AR_ENCRYPTION_SALT` | **yes** (production) | `WindowsTarget` | Key-derivation salt for the same. Rails 8.1 requires it whenever encryption is configured. |
 | `WINDOWS_SSL_VERIFY` | no | `WindowsPoll`, `AdQuery` | `none` trusts an internal CA's WinRM or LDAPS certificate instead of the system trust store. Set it deliberately; the default verifies. |
+| `DAD_SYSLOG_SELF_HOST` | no | `SyslogSource` | `none` stops the importer naming a System after the container tag when the line arrives from this host's own bridge gateway. Default `auto`. See "Which host an event belongs to". |
 
 `RAILS_ENV` is set by the systemd units and by Compose; you rarely set it by hand.
 
@@ -339,6 +340,64 @@ after a crash**, so anything that counts events — the dashboards, alert
 thresholds, `Statistic` rates — is approximate across a crash boundary. This is a
 deliberate trade-off, not a bug, and `test/import_syslog_crash_test.rb` pins both
 halves: reclaim re-inserts nothing, and no line goes missing.
+
+### Which host an event belongs to
+
+Every staging line starts with the address the collector saw the packet come
+from, and `EventIngestor` files that address as the `System`. That is right for a
+host sending syslog directly, and wrong in the one deployment this project
+recommends.
+
+Under Docker, every container's log driver sends from the **bridge gateway**, so
+`web`, `db`, `importer` and the rest all arrive carrying the same address and
+collapse into a single System row labelled `(172.18.0.1)`. The container name —
+the only host identity in the line — sits in the *application* slot, where the
+log driver puts it:
+
+```
+172.18.0.1 Nov 13 15:14:49 dad-web[149784]: Started GET /users/logon
+```
+
+`SyslogSource` resolves the two slots structurally instead of positionally, and
+the pid is the marker. In syslog the application is followed by its pid and a
+colon, which after the parser's sanitizing pass is the token triple
+`name` `digits` `:` — the brackets in `sshd[4242]:` are *spaces* by then, so
+matching on `name[pid]:` would test a string the parser never sees. A hostname
+slot has no pid after it, so whichever token owns the pid slot is the
+application, and a token sitting in front of it is host information.
+
+That one rule fixes a second, unrelated mis-parse. RFC 3164 as rsyslog forwards
+it by default *does* carry a hostname slot:
+
+```
+10.0.0.5 Jun  1 12:00:00 web01 sshd[4242]: Accepted publickey for bob
+```
+
+The old positional read took `web01` as the Service — and the Service sanitizer
+strips digits, so the row said `web` — and dropped `sshd` entirely. It now
+records host `web01`, service `sshd`.
+
+Renaming a System after the tag happens **only** when the source address is one
+of this container's own default-route gateways, read from `/proc/net/route`, and
+only when the importer is actually running in a container. Both conditions
+matter: without them, a systemd deployment would rename any syslog that happened
+to arrive from the LAN router — and routers do send syslog. A remote host's
+address is its own identity and is never rewritten.
+
+Set `DAD_SYSLOG_SELF_HOST=none` if something real does send from the bridge
+address — the Docker host itself, or a VM behind the same bridge.
+
+Two consequences worth knowing:
+
+- The name goes in `systems.address`, not `systems.name`. `address` is what
+  `System.find_or_add` keys identity on; `name` is an operator-assigned label.
+- The pid in `dad-web[149784]` is **not** the container's process id. It is
+  identical for every container on the host — measured, all five services
+  reported `149784` — because it is `dockerd`'s. It carries no per-process
+  information and is never used as an identity.
+
+The Windows forwarder is unaffected: it emits `<host> <ISO-8601> <provider> …`
+with no pid slot, so the fallback path applies and the host it states is kept.
 
 ### Batching
 
