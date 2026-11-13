@@ -399,6 +399,20 @@ Two consequences worth knowing:
 The Windows forwarder is unaffected: it emits `<host> <ISO-8601> <provider> …`
 with no pid slot, so the fallback path applies and the host it states is kept.
 
+Events already stored are **not** relabelled. Ingest decides identity as a line is
+read, so a System row created before this change keeps its events: after upgrading,
+expect one stale IP-addressed System holding everything ingested up to the restart,
+and per-container Systems from that point on. Confirm which is which by the newest
+event per System rather than by count:
+
+```sql
+select sy.address, count(*), max(e.generated)
+  from systems sy join events e on e.system_id = sy.id
+ group by 1 order by 3 desc nulls last;
+```
+
+A row whose `max` predates the upgrade is history, not a live collapse.
+
 ### Batching
 
 Each flush writes one batch as a multi-row `INSERT`. A batch is chunked into as
