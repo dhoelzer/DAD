@@ -64,8 +64,15 @@ class UsersController < ApplicationController
   # flash message. Note a nonexistent username and a wrong password produce different
   # responses, which lets an attacker enumerate accounts.
   def do_logon
-    @username = params[:user][:username]
-    @password = params[:user][:password]
+    # Coerce rather than index directly: params[:user] is nil when the body has no
+    # `user` key, and deep_munge also deletes an empty one, so `user=` and a bare
+    # POST are the same case. A non-Parameters value (?user[]=a) must not reach
+    # find_by either. A malformed body is treated as a credential that does not
+    # match; note a nil username cannot match any row, because
+    # AddIntegrityConstraints renamed every blank/NULL username.
+    credentials = params[:user].is_a?(ActionController::Parameters) ? params[:user] : {}
+    @username = credentials[:username]
+    @password = credentials[:password]
     @user = User.find_by(username: @username)
     if(@user.nil?) then
       redirect_to "/"
@@ -76,7 +83,10 @@ class UsersController < ApplicationController
       @user.attempts = 0
       @user.save
     end
-    if(@user && @user.attempts > 3) then
+    # attempts is nullable with no column default, and the failure branch below
+    # already had to guard it, so a legacy row can reach here with nil. nil > 3
+    # raises, which would have made such an account unable to sign in at all.
+    if(@user && @user.attempts.to_i > 3) then
       flash[:notice] = "Account Locked!"
       redirect_to "/"
       return false

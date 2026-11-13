@@ -3045,6 +3045,66 @@ now a syslog-tagged container.
 
 ---
 
+### 5.18 ✅ Closed — `POST /users/do_logon` returned 500 on a malformed body **[correctness] [security]**
+
+`do_logon` read its credentials as `params[:user][:username]`. That is a chained
+index, and `params[:user]` is nil whenever the POST carries no `user` key — so a
+hand-built request raised `NoMethodError: undefined method '[]' for nil` and
+returned 500. Reproduced with a bare form POST carrying only the CSRF token.
+
+This is not cosmetic. `users` has three public actions (`logon`, `do_logon`,
+`logoff` — see `ApplicationController::PUBLIC_ACTIONS`), and `do_logon` is the only
+one of them that accepts a request body:
+
+- It is unauthenticated DoS on the login path. Nothing rate-limits it, since no
+  user is resolved, and every hit ran the full exception path and wrote a
+  backtrace to the log. In development that backtrace is also the response body,
+  ~110KB of app source; in production the body is the generic 500 page, but the
+  per-request cost is unchanged.
+- It is the highest-value target of its kind in the app for exactly that reason.
+
+A second 500 sat in the same method: `if(@user && @user.attempts > 3)`.
+`users.attempts` is nullable with no column default, and the failure branch
+already guarded it (`@user.attempts = 0 unless @user.attempts`), so a nil row was
+expected — but the *lockout* check did not guard it, and `nil > 3` raises. Such an
+account could not sign in at all, valid password or not. Verified load-bearing:
+with only that one guard reverted, the new NULL-counter test errors with
+`undefined method '>' for nil`. The other comparison, two lines below, is already
+covered by the assignment above it and was left alone.
+
+The fix treats a malformed body as a credential that simply does not match, which
+is how a wrong password was already handled. `params[:user]` is accepted only when
+it is an `ActionController::Parameters`; anything else becomes `{}`, so
+`?user[]=a&user[]=b` (Array) and `?user[username][]=` (Array) are rejected rather
+than reaching `find_by` with a non-scalar.
+
+Two details worth recording:
+
+- **`user={}` arrives as nil, not as an empty hash.** Rails' `deep_munge` deletes
+  any param whose value is an empty Hash or Array, so the empty-hash case and the
+  missing-key case are the same code path. Confirmed against the real request, not
+  inferred.
+- **A nil username cannot match an account.** `AddIntegrityConstraints` renamed
+  every blank/NULL username to `disabled-account-<id>`, so no live row has one and
+  the early return is safe. Asserted rather than assumed.
+
+Behaviour deliberately unchanged: a malformed POST does not mint a session, and the
+lockout counter is only spent when an account was actually named. Live check — four
+malformed POSTs left `admin.attempts` untouched; only a wrong *password* moved it.
+
+**Also found, not fixed:** the pre-existing note at §"Also found" above still
+stands — a failed logon sets `flash[:notice]` and redirects to `/`, which is itself
+protected, so `authorized?` overwrites the notice with "Not authorized". Not
+touched here; the new tests assert the redirect and the absence of a session, and
+deliberately do not pin the flash text.
+
+**Suite after this change: 647 runs / 2028 assertions / 0 failures / 0 errors /
+0 skips**, plus 40 system runs (247 assertions) and 5 cucumber scenarios (18
+steps), all green on Postgres 17. The 11 new tests were confirmed failing first:
+5 errored with `undefined method '[]' for nil` at `users_controller.rb:67`.
+
+---
+
 ## Appendix: what is closed, and where the detail is
 
 Section numbers below are from the **original** review, which is a different
@@ -3117,6 +3177,7 @@ Verified closed against the current tree:
 | §4.7 | Wiki suite count mis-split (621 read as "581 + 40 system"), plus a stale `routes.rb` comment and wiki line about `PollingPriority` having no index | `DAD.wiki` master |
 | §4.9 | Nine false or stale claims repeated across the wiki, README and two model comments — `/events/recent`, the pagination set, a Search "time window", the `0700` offline-storage claim, seeded-job and handler counts, the 720px breakpoint, the `Math` patch | `DAD.wiki` master |
 | §5.17 | The Compose stack ships every container's own stdout/stderr to the collector, so DAD watches itself. Two measured traps: the log driver resolves `syslog-address` in the daemon's namespace (a compose service name cannot work), and the driver's frame format decides whether `EventIngestor` stores anything at all. Guarded by a CI step asserting three named Services, not just a row | this branch |
+| §5.18 | `POST /users/do_logon` returned 500 on a body with no `user` key — a chained index on nil, on the one public action that takes a body. A second 500 in the same method: the lockout check compared a nullable `attempts` with `>`. 11 tests, confirmed failing first | this branch |
 
 The superseded review revisions -- including the misdiagnoses and the reasoning
 that corrected them -- are preserved in git:
