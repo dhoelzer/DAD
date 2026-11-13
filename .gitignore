@@ -30,3 +30,13 @@
 # in its own stage instead. Cargo.lock IS committed -- the crate is a binary with
 # no dependencies, so the lockfile is the record that there are none.
 /syslog_collector/target
+
+# PostgreSQL's data directory for the Compose stack (the db service bind-mounts
+# ./data/postgres). Runtime state, never committed: it is a live cluster, and a
+# checkout that carries one cannot be reviewed or cloned safely.
+/data/
+
+# Compose reads ./.env automatically, so this is where DAD_ADMIN_PASSWORD lives.
+# .env.example is committed; .env is not, and must never be -- it holds a real
+# credential the moment anyone follows the README.
+/.env

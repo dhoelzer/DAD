@@ -29,3 +29,8 @@ vendor/bundle
 /syslog_collector/target
 
 .DS_Store
+
+# PostgreSQL's data directory (see the db service). A bind mount at runtime, and
+# never part of the build context: it is tens of megabytes of a live cluster that
+# would be copied into an image that has no use for it.
+/data
