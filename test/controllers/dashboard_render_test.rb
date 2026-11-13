@@ -29,7 +29,8 @@ class DashboardRenderTest < ActionDispatch::IntegrationTest
     cookies[:sessionID] = token
 
     # Event.recent_events sizes itself from the shared user_id 0 Preference row.
-    # Nothing seeds that row, so create it here as a real deployment has it.
+    # Nothing seeds that row, so create it here to model a configured install;
+    # test_dashboard_js_renders_on_a_fresh_install covers the case without it.
     Preference.create!(user_id: 0, liveEventsDisplayed: 10)
   end
 
@@ -109,6 +110,49 @@ class DashboardRenderTest < ActionDispatch::IntegrationTest
     assert_match(/var stats = \[0\.0, 0\.0, 0\.0\];/, body,
                  "empty statistics must render as zeroes")
     assert_valid_javascript body
+  end
+
+  # A fresh install has no user_id 0 Preference row, and that used to be fatal:
+  # Preference.eventsDashboard called .first.liveEventsDisplayed on nil, so
+  # /events.js answered 500. index.js.erb is a single script, and the raise is at
+  # the recent_events line near the bottom -- which is *after* the draw_longitudinal
+  # calls, but a 500 means the body is an HTML error page and none of it runs. That
+  # is why #graphs stayed empty and #events_header/#recent_events sat on
+  # "Loading..." forever: one nil, two unrelated-looking symptoms.
+  def test_dashboard_js_renders_on_a_fresh_install
+    Preference.delete_all
+    seed_recent_data
+    get 'https://www.example.com/events.js', headers: @headers
+    assert_response :success,
+      "a fresh install must not 500: #{response.body[0, 300]}"
+    body = response.body
+
+    # The two charts in #graphs.
+    assert_match(/draw_longitudinal\("logging_rate"/, body)
+    assert_match(/draw_longitudinal\("insert_rate"/, body)
+
+    # The two divs inside #events_window, both of which ship as "Loading..." and
+    # are replaced by these calls.
+    assert_match(/events_header\.html\(/, body)
+    assert_match(/Showing \d+ events filtered from/, body)
+    assert_match(/events_div\.html\(""\)/, body)
+    assert_valid_javascript body
+  end
+
+  # The feed half specifically: the header reports how many events survived the
+  # exclusions, so assert the numbers are real rather than just present.
+  def test_dashboard_js_feed_reports_real_counts_on_a_fresh_install
+    Preference.delete_all
+    system = System.create!(name: 'fresh-host', address: '10.0.0.11')
+    service = Service.create!(name: 'fresh-svc', description: 'x')
+    3.times do |i|
+      Event.create!(system_id: system.id, service_id: service.id,
+                    generated: (i + 1).hours.ago, stored: Time.now,
+                    hunks: "fresh event #{i}")
+    end
+    get 'https://www.example.com/events.js', headers: @headers
+    assert_response :success
+    assert_match(/Showing \d+ events filtered from \d+ recent events/, response.body)
   end
 
   def test_host_page_js_renders

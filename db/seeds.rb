@@ -106,6 +106,19 @@ if admin && !Job.exists?(script: 'prune_sessions')
   )
 end
 
+# The global preference row.
+#
+# user_id 0 is the shared settings row that Preference.eventsDashboard and
+# Preference.archiveFreeSpacePercent read. Nothing migrates it into existence,
+# so on a fresh install it is absent and the Preferences screen lists no row to
+# edit at all. The accessors now tolerate its absence (the dashboard falls back
+# to Preference::DEFAULT_EVENTS_DASHBOARD rather than raising), but seeding it
+# keeps the settings screen usable without first guessing an id.
+unless Preference.global_row
+  Preference.create!(user_id: 0,
+                     liveEventsDisplayed: Preference::DEFAULT_EVENTS_DASHBOARD)
+end
+
 # Dashboard feed sizing.
 #
 # recent_events self-tunes how many lines the live dashboard shows, but it runs
