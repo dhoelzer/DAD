@@ -13,11 +13,12 @@
 # Why COPY and not pg_dump: pg_dump --table <partition> emits
 # `ALTER TABLE events ATTACH PARTITION ...` and a DEFAULT nextval reference to
 # the parent's sequence, so the output only loads into a database that already
-# has the parent and its sequence. Verified against Postgres 17: restoring such a
-# dump into a fresh database recovers zero rows. Client-side COPY produces plain
-# CSV that loads anywhere, needs no superuser (server-side COPY would write as
-# the postgres OS user), and removes the subprocess, the pg_dump binary and its
-# version coupling from the recovery path entirely.
+# has the parent and its sequence. Verified against Postgres 17 and 18: restoring
+# such a dump into a fresh database recovers zero rows (the dump carries both an
+# `ATTACH PARTITION` and a `nextval` reference, and the create fails). Client-side
+# COPY produces plain CSV that loads anywhere, needs no superuser (server-side
+# COPY would write as the postgres OS user), and removes the subprocess, the
+# pg_dump binary and its version coupling from the recovery path entirely.
 #
 # Postgres-only, like the retention it guards.
 #

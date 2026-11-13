@@ -87,7 +87,7 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   question the finding was actually about — can this index serve this query shape
   at all?
 - Docker: `Dockerfile` + `docker-compose.yml`. One image, separate containers for
-  `db` (postgres:17), `migrate` (one-shot), `web`, `importer`, `scheduler`,
+  `db` (postgres:18, data bind-mounted at `./data/postgres`), `migrate` (one-shot), `web`, `importer`, `scheduler`,
   `syslog`, and `test` (behind `--profile test`). `docker-compose.db-port.yml` is
   an optional override that publishes 5432 for host `psql`. `.dockerignore` keeps
   the build context off `log/` and `vendor/bundle` (~5.6 GB otherwise).
@@ -111,8 +111,27 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   `DAD_ADMIN_PASSWORD` (default `dad_dev_password`, development only) — without it
   the stack comes up with zero users and the login form can never succeed. Do not
   seed unconditionally: `db:seed` also recreates the maintenance Jobs.
+  - **PostgreSQL 18, and the 18+ images changed the data layout.** Mount
+    `/var/lib/postgresql`, **not** `/var/lib/postgresql/data`; the image keeps each
+    major in its own subdirectory (`data/postgres/18/docker` on the host). Mounting
+    the old path makes the entrypoint refuse to start. Also removed in 18: the
+    `lc_collate`/`lc_ctype` GUCs — locale is now per-database, so read
+    `pg_database.datcollate` instead. Collation *behaviour* is unchanged (verified:
+    `C` → `A,B,a,b`; `en_US.utf8` → `a,A,b,B`), so the `varchar_pattern_ops` and
+    `[term, term+U+10FFFF)` reasoning in `event.rb` holds on both majors.
+  - **The database is bind-mounted, never a named volume.** A named volume is
+    deleted by `down -v` and is namespaced by the Compose *project name* (the
+    directory name), so `down -v` and renaming the checkout each lose the database
+    silently. Both reproduced. CI asserts the bind mount and that the CI and
+    Compose majors match.
+  - **Three build stages** (rust collector → gems → runtime). The toolchain must
+    not reach the runtime image: it was 1.22 GB, now 440 MB. `bigdecimal` needs a
+    compiler, so it belongs in the gems stage. Re-install the exact `BUNDLED WITH`
+    bundler in the runtime stage — `gem install bundler` in the gems stage writes to
+    Ruby's default gem dir, not `$BUNDLE_PATH`, so `COPY --from=gems` does not carry
+    it and a version mismatch breaks `bundle exec`.
 - CI: `.github/workflows/ci.yml` — six jobs: `test` (unit + `test:system` + cucumber
-  against a `postgres:17` service), `assets`, `systemd`, `docker`, `collector`, `security`
+  against a `postgres:18` service), `assets`, `systemd`, `docker`, `collector`, `security`
   - Brakeman runs with **no ignore file** and must report 0 warnings. Its
     `ValidationRegex` check fires on `format: { with: /.../ }` whenever the regex
     is not `\A`/`\z`-anchored. For a deliberate *prefix* check (e.g. the DN
@@ -379,7 +398,7 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   **Never reintroduce a `[term, term + U+10FFFF)` range.** It looks like it holds
   exactly the strings starting with `term`, and it did under SQLite's BINARY
   collation, which is why it survived for years as the SQLite branch of
-  `word_lookup`. Under glibc `en_US.UTF-8` (postgres:17's default) `strcoll` sorts
+  `word_lookup`. Under glibc `en_US.UTF-8` (the PostgreSQL default) `strcoll` sorts
   U+10FFFF *before* ASCII letters, so the bound falls below every longer word and
   prefix search silently returns nothing — measured on 280k words: term `sshd`
   matched 60000 by `LIKE` and 0 by that range. It cannot be repaired either:

@@ -11,7 +11,7 @@
 # production runs -- not one container running three things under a supervisor,
 # which would hide exactly the coupling the units exist to fix.
 #
-#   db        PostgreSQL 17 -- the only thing that holds data
+#   db        PostgreSQL 18 -- the only thing that holds data, in ./data/postgres
 #   migrate   one-shot: builds the schema, then exits
 #   web       Rails (rails server, port 3000)
 #   importer  import_syslog.rb  -- Logs/LogsToProcess -> database
@@ -116,7 +116,19 @@ services:
     # Pinned to a major version, matching the Postgres the CI job uses. A bare
     # `postgres:latest` would move the engine under the suite with no code change
     # -- the same silent environment drift a floating runner image caused in CI.
-    image: postgres:17
+    #
+    # 18, not 17. There was never a reason for 17 beyond "it was current when this
+    # file was written": nothing in DAD uses a feature or avoids a regression tied
+    # to a specific major. PostgreSQL has no community LTS tier -- every major is
+    # supported for exactly five years -- so "newest" IS the long-support choice,
+    # and 18 runs to November 2030 where 17 stops in November 2029. Verified: the
+    # full suite (unit, system, cucumber, partition-shape and INVALID-index
+    # assertions) passes on 18.7 unchanged.
+    #
+    # Upgrading an existing 17 cluster is NOT done by editing this line. The 18
+    # images refuse to start on a 17 data directory and print the pg_upgrade
+    # procedure; see README, "Upgrading PostgreSQL".
+    image: postgres:18
     # Postgres logs are the ones most worth having in DAD: checkpoints, slow
     # queries, and connection refusals otherwise only reach `docker compose logs`.
     #
@@ -135,7 +147,38 @@ services:
       POSTGRES_PASSWORD: dad
       POSTGRES_DB: dad_development
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      # The database lives in the checkout, not in a Docker-managed named volume.
+      #
+      # A named volume is not disposable, and it is not findable either. Two ways
+      # this stack used to lose a database with no error anywhere:
+      #
+      #   1. `docker compose down -v` deletes named volumes. Verified: the table
+      #      was gone afterwards. The `-v` is muscle memory from cleaning up test
+      #      stacks, and it takes the development database with it.
+      #   2. The volume is namespaced by compose *project name*, which defaults to
+      #      the directory name. Move or rename the checkout and `up` silently
+      #      creates a second, empty volume; the old database is still there under
+      #      the old name, unreachable, and the dashboard is empty. Verified.
+      #
+      # A bind mount fixes both: `down -v` does not touch host directories, and the
+      # data follows the checkout instead of being keyed to its name. It is also
+      # where an operator would look for it, and it is directly backupable with
+      # `pg_dump` or a file copy of a stopped cluster.
+      #
+      # Mounted at /var/lib/postgresql, NOT /var/lib/postgresql/data. The 18+
+      # images switched to the Debian packaging layout and keep data in a
+      # major-version-specific subdirectory (data/postgres/18/docker). Mounting the
+      # old path makes the 18 entrypoint refuse to start:
+      #   "there appears to be PostgreSQL data in: /var/lib/postgresql/data
+      #    (unused mount/volume)"
+      # Mounting the parent is what lets a future pg_upgrade work without fighting
+      # the mount boundary.
+      #
+      # Ownership: the entrypoint runs as root, creates the tree, and drops the
+      # actual PGDATA to uid 999 mode 0700 -- PostgreSQL's own requirement. The
+      # host directories above it end up root-owned, so removing ./data needs sudo.
+      # That is a cosmetic cost against losing a database.
+      - ./data/postgres:/var/lib/postgresql
     # No published port. The app containers reach this over the compose network by
     # service name, so nothing needs a host mapping, and publishing 5432 by default
     # collides with a Postgres already running on the developer's machine --
@@ -334,5 +377,7 @@ services:
     restart: "no"
 
 volumes:
-  pgdata:
+  # No pgdata. The database is bind-mounted from ./data/postgres (see the db
+  # service); a named volume declared here would be created, unused, and left
+  # behind by `down -v` as a stale copy nobody asked for.
   logs:

@@ -34,7 +34,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:17
+        image: postgres:18
         env:
           POSTGRES_USER: dad
           POSTGRES_PASSWORD: dad
@@ -259,7 +259,7 @@ jobs:
   # runner-installed Node rather than this image.
   #
   # Deliberately NOT a re-run of the suite: the postgres job already covers all
-  # 436 tests on Postgres 17. What is unique here is the image and the compose
+  # all tests on Postgres 18. What is unique here is the image and the compose
   # topology, so this asserts those -- boot, migrate, seed, render, serve assets.
   docker:
     runs-on: ubuntu-24.04
@@ -315,6 +315,55 @@ jobs:
           print("forwarding (%d): %s" % (len(forward), ", ".join(forward)))
           print("exempt (%d): %s" % (len(exempt), ", ".join(exempt)))
           PY
+
+      # The database must be bind-mounted out of the checkout, not parked in a
+      # named volume. A named volume is deleted by `down -v` and is keyed to the
+      # Compose project name, so both an operator reaching for `-v` and someone
+      # renaming the checkout lose the development database with no error
+      # anywhere. Asserted against the resolved config, so it cannot be satisfied
+      # by a volume declared but never mounted.
+      - name: Assert the database is bind-mounted, not a named volume
+        run: |
+          docker compose config > /tmp/db.yml
+          python3 - <<'PY'
+          import sys, yaml
+          doc = yaml.safe_load(open("/tmp/db.yml"))
+          vols = doc["services"]["db"].get("volumes") or []
+          binds = [v for v in vols if v.get("type") == "bind"]
+          named = [v for v in vols if v.get("type") == "volume"]
+          if not binds:
+              sys.exit("db has no bind mount: the database would live in a named "
+                       "volume, which `down -v` deletes")
+          if named:
+              sys.exit("db still mounts named volume(s): %s"
+                       % ", ".join(v.get("source", "?") for v in named))
+          # /var/lib/postgresql, not .../data: the 18+ images keep each major in a
+          # subdirectory and refuse to start if the old path is mounted.
+          target = binds[0]["target"].rstrip("/")
+          if target != "/var/lib/postgresql":
+              sys.exit("db bind target is %r; the 18+ images need "
+                       "/var/lib/postgresql" % target)
+          if "pgdata" in (doc.get("volumes") or {}):
+              sys.exit("top-level pgdata volume still declared")
+          print("db bind-mounted: %s -> %s" % (binds[0]["source"], target))
+          PY
+
+      # The compose db image and the postgres job's service image must be the same
+      # major. Nothing else forces them to move together, and a suite that passes
+      # on one major while the stack runs another is exactly the silent
+      # environment drift the rest of this file goes out of its way to prevent.
+      - name: Assert CI and Compose agree on the PostgreSQL major
+        run: |
+          ci=$(grep -oE 'image: postgres:[0-9]+' .github/workflows/ci.yml | head -1 | grep -oE '[0-9]+$')
+          compose=$(docker compose config | sed -n '/^  db:/,/^  [a-z]/p' | grep -oE 'image: postgres:[0-9]+' | head -1 | grep -oE '[0-9]+$')
+          if [ -z "$ci" ] || [ -z "$compose" ]; then
+            echo "could not read both majors (ci=$ci compose=$compose)"; exit 1
+          fi
+          if [ "$ci" != "$compose" ]; then
+            echo "PostgreSQL major mismatch: CI tests $ci, the stack runs $compose"
+            exit 1
+          fi
+          echo "both on PostgreSQL $ci"
 
       # No layer caching: it needs buildx plus two third-party actions, and this
       # repo pins and checksums the one external binary it does fetch. The build

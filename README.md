@@ -60,7 +60,7 @@ OpenWEC collect and a fourth process forward what it wrote. Both feed the **same
 
 - Ruby **3.3.8** (`.ruby-version`)
 - Rails **8.1** (installed via Bundler)
-- **PostgreSQL 17** for every environment, including development and test.
+- **PostgreSQL 18** for every environment, including development and test.
   SQLite is not supported: it cannot partition `events`/`events_words`, so a
   SQLite suite never exercises the shape production queries (see
   [Development](#development)).
@@ -212,7 +212,7 @@ renders fine but can never succeed.
 
 | service | runs | equivalent systemd unit |
 |---|---|---|
-| `db` | PostgreSQL 17, data in the `pgdata` volume | — |
+| `db` | PostgreSQL 18, data in `./data/postgres` | — |
 | `migrate` | `rake db:create` + migrate, then exits | the deploy's migrate step |
 | `web` | `rails server` on :3000 | Apache + Passenger |
 | `importer` | `import_syslog.rb` | `dad-importer` |
@@ -228,9 +228,22 @@ exactly the coupling those units exist to fix.
 ```bash
 docker compose logs -f importer
 docker compose exec db psql -U dad dad_development
-docker compose down          # keep the volumes
-docker compose down -v       # discard the database too
+docker compose down                    # stop; the database is untouched
+docker compose down -v                 # also removes the named volumes -- NOT the database
+sudo rm -rf data/postgres              # this is the one that discards the database
 ```
+
+The database lives in `./data/postgres` in the checkout, bind-mounted into the
+container, so it survives `down`, `down -v`, and moving or renaming the directory.
+It used to live in a named volume, which was lost in two ways that produced no
+error anywhere: `down -v` deletes named volumes, and a volume is keyed to the
+Compose *project name* (the directory name by default), so renaming the checkout
+silently started a second, empty database while the old one sat unreachable under
+the old name. Both verified against the old config.
+
+`data/` is git-ignored. Because the container's entrypoint runs as root and
+PostgreSQL insists its data directory be mode `0700`, the tree ends up owned by
+uid `999`/`root`, so removing it needs `sudo`.
 
 Three things worth knowing before you reach for it:
 
@@ -269,6 +282,51 @@ directory the importer never reads.
 This is the development and test path. Production deploys through the systemd
 units in `systemd/` plus Apache/Passenger, with the secrets in
 `/etc/DAD/environment` as described above.
+
+#### Upgrading PostgreSQL
+
+The image is pinned to a major version, and moving that pin does **not** upgrade
+an existing database. PostgreSQL's on-disk format is not forward-compatible, and
+the `postgres:18` images refuse to start on a 17 cluster rather than risk
+corrupting it:
+
+```
+Error: in 18+, these Docker images are configured to store database data in a
+       format which is compatible with "pg_ctlcluster" ...
+       Counter to that, there appears to be PostgreSQL data in:
+         /var/lib/postgresql/data (unused mount/volume)
+```
+
+For a development database, the honest answer is usually to throw it away:
+`docker compose down && sudo rm -rf data/postgres`, then `docker compose up`
+rebuilds the schema from `db/migrate` and re-seeds.
+
+To keep the data, dump from the old major and restore into the new one:
+
+```bash
+# 1. dump from the old major, while it still starts
+sed -i 's|image: postgres:18|image: postgres:17|' docker-compose.yml
+docker compose up -d db
+docker compose exec -T db pg_dumpall -U dad > /tmp/dad.sql
+docker compose down
+
+# 2. move the pin to the new major and start it against an EMPTY data dir
+sed -i 's|image: postgres:17|image: postgres:18|' docker-compose.yml
+mv data/postgres data/postgres-17-backup
+docker compose up -d db
+docker compose cp /tmp/dad.sql db:/tmp/dad.sql
+docker compose exec -T db psql -U dad -d postgres -f /tmp/dad.sql
+docker compose up
+```
+
+The dump has to come from a *running* old-major server, which is why step 1 pins
+back to 17: the 18 image cannot read a 17 cluster at all. The `mv` in step 2 is
+what gives the new major a clean directory to initialise into.
+
+`pg_upgrade --link` is faster on a large corpus, and the bind mount at
+`/var/lib/postgresql` (rather than at the data directory itself) is what makes it
+possible: the 18 images keep each major in its own subdirectory, so both can sit
+under one mount without fighting the mount boundary.
 
 ### Running the three processes by hand
 

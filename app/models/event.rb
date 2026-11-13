@@ -202,7 +202,7 @@ class Event < ActiveRecord::Base
   # It is served by index_words_on_text_pattern (varchar_pattern_ops), and the
   # reason that index exists is worth keeping: a plain index on words.text is
   # ordered by the cluster collation, and the LIKE operator can only use it when
-  # that collation is byte-wise. Under en_US.UTF-8 -- the postgres:17 default --
+  # that collation is byte-wise. Under en_US.UTF-8 -- the PostgreSQL default --
   # the planner falls back to a seq scan of words. varchar_pattern_ops indexes
   # raw bytes and is therefore collation-blind.
   #
