@@ -10,8 +10,20 @@
 <body>
 	<div id="navbar">
 		<ul>
-			<% $_models.select {|a| !a.include?("HABTM")}.each do |model| %>
-			<% if !model.constantize.hidden?(@current_user) %><li class="<%= is_active(model.pluralize.downcase) %>"><%= link_to model, model.constantize %></li><% end %>
+			<% nav_flat_models.each do |model| %>
+			<li class="<%= is_active(model) %>"><%= link_to nav_label(model), model.constantize %></li>
+			<% end %>
+			<% if nav_windows_models.any? %>
+			<li class="nav-group-item <%= nav_group_class(nav_windows_models) %>">
+			<details class="nav-group">
+			<summary>Windows</summary>
+			<ul class="submenu">
+			<% nav_windows_models.each do |model| %>
+			<li class="<%= is_active(model) %>"><%= link_to nav_label(model), model.constantize %></li>
+			<% end %>
+			</ul>
+			</details>
+			</li>
 			<% end %>
 			<li id="active_user"><%= link_to @current_user.nil? ? "No User" : @current_user.username, "#" %></li>
 			<% if @current_user %>
