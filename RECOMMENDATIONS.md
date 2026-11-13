@@ -17,7 +17,10 @@ after measuring it on both engines. Re-verified a seventh time at `9d15f4f`
 harness was moved onto the production engine (§5.6). Re-verified an eighth time:
 SQLite was removed as the development and test engine outright (§5.9), which
 closes the class of defect that §3.2 and §3.4 were workarounds for. PRs #1–#32
-all merged.
+all merged. Re-verified a ninth time: the Compose stack was found to hold the
+development database in a volume that `down -v` deletes, the `postgres:17` pin
+was found to have no reason behind it, and the image was found to ship two
+toolchains no running process uses (§5.19).
 
 Two claims from earlier revisions of this file did **not** survive re-measurement
 and have been corrected rather than carried forward: the dead
@@ -3178,6 +3181,7 @@ Verified closed against the current tree:
 | §4.9 | Nine false or stale claims repeated across the wiki, README and two model comments — `/events/recent`, the pagination set, a Search "time window", the `0700` offline-storage claim, seeded-job and handler counts, the 720px breakpoint, the `Math` patch | `DAD.wiki` master |
 | §5.17 | The Compose stack ships every container's own stdout/stderr to the collector, so DAD watches itself. Two measured traps: the log driver resolves `syslog-address` in the daemon's namespace (a compose service name cannot work), and the driver's frame format decides whether `EventIngestor` stores anything at all. Guarded by a CI step asserting three named Services, not just a row | this branch |
 | §5.18 | `POST /users/do_logon` returned 500 on a body with no `user` key — a chained index on nil, on the one public action that takes a body. A second 500 in the same method: the lockout check compared a nullable `attempts` with `>`. 11 tests, confirmed failing first | this branch |
+| §5.19 | The Compose stack kept the development database in a **named volume**, which is destroyed by `down -v` and keyed to the Compose project name — so `down -v` and renaming the checkout each silently lost the database with no error anywhere. Both reproduced against the old config, then fixed by bind-mounting `./data/postgres`. Also: the `postgres:17` pin had no stated reason and PostgreSQL has no LTS tier (every major gets five years), so 18 is the longer-support choice; verified the whole suite green on 18.7. Image slimmed 1.22 GB → 440 MB by moving the Rust and C++ toolchains into build stages. Two new CI steps guard the bind mount and keep the CI and Compose majors from drifting apart | this branch |
 
 The superseded review revisions -- including the misdiagnoses and the reasoning
 that corrected them -- are preserved in git:

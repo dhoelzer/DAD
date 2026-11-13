@@ -8,7 +8,7 @@
 # Why: Event.searchSQL matches terms as literal prefixes with
 # `text like 'term%' escape '\'`. A plain index on words.text is ordered by the
 # database collation, and the LIKE operator can only use it when the collation is
-# byte-wise. On en_US.UTF-8 -- the postgres:17 default, and what a stock
+# byte-wise. On en_US.UTF-8 -- the PostgreSQL default, and what a stock
 # `CREATE DATABASE` produces -- the planner falls back to a seq scan of words.
 # varchar_pattern_ops indexes raw bytes, so the LIKE can use it under any
 # collation.

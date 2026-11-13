@@ -23,15 +23,58 @@ COPY syslog_collector/src ./src
 # ~10x slower and 4x larger, and there is no reason to ship it.
 RUN cargo build --release
 
-FROM ruby:3.3.8
+# Stage 2: install the gems.
+#
+# A separate stage because installing them needs a C toolchain and nothing at
+# runtime does. build-essential and libpq-dev are required here -- but they are
+# ~700 MB of the old single-stage image and are never touched once the gems exist.
+#
+# The lockfile carries precompiled variants for pg and nokogiri (including
+# -musl), but not for bigdecimal or bcrypt, so a compiler is not optional.
+# Verified: `bundle install --frozen` on a bare ruby:3.3.8-slim dies with
+# "An error occurred while installing bigdecimal".
+FROM ruby:3.3.8-slim AS gems
 
 RUN apt-get update -qq && \
     apt-get install -y --no-install-recommends \
       build-essential \
-      libpq-dev \
-      postgresql-client \
-      nodejs && \
+      libpq-dev && \
     rm -rf /var/lib/apt/lists/*
+
+# Bundler version is pinned by the "BUNDLED WITH" section of Gemfile.lock.
+# RUN is load-bearing here: the file this replaced had a bare `gem install` line,
+# which is not a Dockerfile instruction, so the image could never build at all.
+# Nothing caught it -- no CI job builds this image.
+RUN gem install bundler -v 2.6.7 --no-document
+
+ENV BUNDLE_PATH=/usr/local/bundle
+
+# No BUNDLE_WITHOUT at all. `pg` is not in a Gemfile group any more -- Postgres is
+# the only engine this app runs -- so there is no group worth excluding, and
+# excluding one is exactly how the image used to end up without the driver it
+# needs ("LoadError: cannot load such file -- pg").
+WORKDIR /var/DAD
+
+COPY Gemfile Gemfile.lock ./
+RUN bundle install --frozen
+
+# Stage 3: the runtime image.
+#
+# -slim, not the bare ruby tag: 143 MB of Debian against 950 MB. Nothing here
+# needs anything beyond Debian -- there is no Ubuntu base in this repo, and the
+# collector binary from stage 1 is glibc-linked, which Debian provides.
+FROM ruby:3.3.8-slim
+
+RUN apt-get update -qq && \
+    apt-get install -y --no-install-recommends \
+      nodejs \
+      postgresql-client \
+      libpq5 && \
+    rm -rf /var/lib/apt/lists/*
+
+# libpq5 is the runtime half of libpq-dev and it is not optional: the pg gem's
+# C extension links against libpq.so.5, so an image with the gem installed but
+# without this library fails at require time, not build time.
 
 # perl is gone. The only thing in the image that needed it was the syslog
 # collector, now a Rust binary built in stage 1.
@@ -47,18 +90,14 @@ RUN apt-get update -qq && \
 # container for the schema-shape and INVALID-index assertions, and so an operator
 # can inspect the database from inside the app container.
 
-# Bundler version is pinned by the "BUNDLED WITH" section of Gemfile.lock.
-# RUN is load-bearing here: the file this replaced had a bare `gem install` line,
-# which is not a Dockerfile instruction, so the image could never build at all.
-# Nothing caught it -- no CI job builds this image.
-RUN gem install bundler -v 2.6.7 --no-document
-
 ENV BUNDLE_PATH=/usr/local/bundle
 
-# No BUNDLE_WITHOUT at all. `pg` is not in a Gemfile group any more -- Postgres is
-# the only engine this app runs -- so there is no group worth excluding, and
-# excluding one is exactly how the image used to end up without the driver it
-# needs ("LoadError: cannot load such file -- pg").
+# Bundler again. `gem install bundler` in stage 2 wrote it to Ruby's default gem
+# directory, not to $BUNDLE_PATH, so COPY --from=gems does not carry it. Ruby
+# 3.3.8 ships a newer bundler than Gemfile.lock's "BUNDLED WITH 2.6.7", and
+# `bundle install --frozen` in stage 2 would then be a different bundler from the
+# one running `bundle exec` here.
+RUN gem install bundler -v 2.6.7 --no-document
 
 # /var/DAD, not /app. This is the path production uses -- every systemd unit sets
 # WorkingDirectory=/var/DAD -- and the collector hardcodes absolute paths under it
@@ -69,9 +108,13 @@ ENV BUNDLE_PATH=/usr/local/bundle
 # writes into a directory the importer never reads.
 WORKDIR /var/DAD
 
-COPY Gemfile Gemfile.lock ./
-RUN bundle install --frozen
+# The gem layer, already compiled. This is the whole point of stage 2: the
+# toolchain that produced it stays behind there.
+COPY --from=gems /usr/local/bundle /usr/local/bundle
 
+# Gemfile and Gemfile.lock again, separately from `COPY . .`, so `bundle exec`
+# can find them and so the cached gem layer is not busted by an app edit.
+COPY Gemfile Gemfile.lock ./
 COPY . .
 
 # The collector binary, not the crate. Nothing in the runtime image needs cargo,
