@@ -492,6 +492,17 @@ where the tests are. Keep it that way: an untestable inline loop is what let a n
   and positional args: the `.js.erb` templates and dashboard tests call them.
 - Gauge bands must draw in `afterDatasetsDraw`, not `beforeDatasetsDraw` — the
   doughnut track fill paints over them otherwise.
+- **A globally registered Chart.js plugin runs on *every* chart, and `if (!opts)`
+  does not detect the unconfigured case.** `Chart.register(dadBands, dadGauge)` is
+  global. When a chart omits `options.plugins.<id>`, Chart.js resolves it to
+  `undefined` but still pushes the plugin, handing it a truthy *resolver Proxy* whose
+  every field reads `undefined`. A plugin must test the fields it needs, not `opts`.
+  `dadGauge` used `if (!opts)` and drew on the two 24-hour pies: `String(undefined)`
+  put the word "undefined" at `arc.x/arc.y`, which for a pie (`innerRadius: 0`) is the
+  pie's centre. `dadBands` survived only because it bails on `!area || !scale` and a
+  pie has no `scales.y`. Guarded by `test/lib/dad_charts_test.rb`, which runs the real
+  plugin under `node` against a recording canvas context -- assert behaviour, do not
+  grep the JS source.
 - **CI precompiles assets in development, where no JS compressor runs.** The
   production deploy is the only path that minifies, so it is the only path that
   exercises the compressor. `RAILS_ENV=production ... rake assets:precompile`

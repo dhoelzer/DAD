@@ -75,7 +75,18 @@ function dadGaugeAngle(arc, min, max, value) {
 var dadGauge = {
   id: 'dadGauge',
   afterDatasetsDraw: function (chart, _args, opts) {
-    if (!opts) { return; }
+    // Registered globally, so this runs for *every* chart, and Chart.js hands a
+    // truthy options proxy to a chart that never configured the plugin -- so
+    // `!opts` is not a "is this a gauge?" test. The required fields are.
+    // `== null` rather than falsiness: a gauge legitimately reading 0 must still
+    // draw.
+    //
+    // Getting this wrong put the word "undefined" in the middle of both 24-hour
+    // pies: opts.value was undefined there, String(undefined) is "undefined", and
+    // a pie arc has innerRadius 0, so arc.x/arc.y is the pie's own centre. The
+    // needle was drawn too but its angle came out NaN, so only the text and the
+    // hub dot were visible.
+    if (!opts || opts.value == null || opts.min == null || opts.max == null) { return; }
     var arc = chart.getDatasetMeta(0).data[0];
     if (!arc) { return; }
     var ctx = chart.ctx;
