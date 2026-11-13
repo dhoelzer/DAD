@@ -1,3 +1,5 @@
+require 'syslog_source'
+
 # Turns one raw syslog line into an Event row plus its events_words index rows.
 #
 # Extracted from Event (RECOMMENDATIONS 4.1). Event is the model and the read
@@ -590,19 +592,42 @@ class EventIngestor
       return
     end
     service_offset = 1 + consumed
-    txtsystem = split_text[0]
+    # Which token names the application, and whether one of them names a host.
+    # Positional guessing is wrong for both the Docker log-driver frame (no
+    # hostname slot, so the container tag sits at the service offset) and RFC
+    # 3164 as rsyslog forwards it (a hostname slot, so the hostname sits there
+    # instead). See SyslogSource.
+    resolved = SyslogSource.resolve(split_text, service_offset)
+    txtservice = resolved[:service]
+    if txtservice.nil? then
+      Rails.logger.warn "Service empty: #{eventString}"
+      return
+    end
+    txtservice = txtservice.tr("^a-zA-Z\-_/","")
+    # A token that is all digits (a bare pid with no name in front of it)
+    # sanitizes to nothing, and Service.find_or_add would create a nameless row
+    # no view can label. Checked before the System lookup so a rejected line
+    # does not leave a System row behind either.
+    if txtservice.empty? then
+      Rails.logger.warn "Service empty after sanitizing: #{eventString}"
+      return
+    end
+    # Identity: the source address, except when that address carries no host
+    # information -- every container on a Docker bridge arrives as the bridge
+    # gateway, which collapses the whole stack into one System row. Then the
+    # hostname slot, or the tag in the application slot, is the only host
+    # identity the line holds.
+    #
+    # The override goes in `address`, not `name`, because `address` is what
+    # System.find_or_add keys identity on and `name` is an operator-assigned
+    # label; a container name is an identity, not a label.
+    txtsystem = SyslogSource.system_override(split_text[0], resolved) || split_text[0]
     if system_cache.has_key?(txtsystem) then
       system = system_cache[txtsystem]
     else
       system = System.find_or_add(txtsystem)
       system_cache[txtsystem] = system
     end
-    txtservice = split_text[service_offset]
-    if txtservice.nil? then
-      Rails.logger.warn "Service empty: #{eventString}"
-      return
-    end
-    txtservice = txtservice.tr("^a-zA-Z\-_/","")
     if service_cache.has_key?(txtservice) then
       service = service_cache[txtservice]
     else

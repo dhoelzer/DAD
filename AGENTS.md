@@ -698,6 +698,49 @@ the file at 0 bytes until rotation's `close(LOG)`; older notes called that
 bytes durable after SIGTERM *and* SIGKILL. See "The syslog collector (Rust)"
 above.
 
+### Which token is the host and which is the service
+
+`lib/syslog_source.rb` decides this; `EventIngestor.stage_event` asks it. Do not
+go back to reading the token at `service_offset` as the Service.
+
+The marker is the **pid slot**. In syslog the application is followed by its pid
+and a colon, and `stage_event`'s sanitizer replaces `[` and `]` with spaces —
+which leaves the `:` (an allowed character) stranded between them. So by the time
+tokens exist, `sshd[4242]:` is the triple `sshd` `4242` `:`. Grep for that
+triple; a regex for `name[pid]:` against the token array matches nothing, because
+no token contains a bracket.
+
+Two line shapes this exists for, both measured on the live stack:
+
+- **Docker's default syslog frame has no hostname slot.** `dockerd` stamps the
+  time and puts the `--syslog-tag` value where the application would be:
+  `172.18.0.1 Nov 13 15:14:49 dad-web[149784]: …`. The tag is the *container*,
+  i.e. the host, not the service.
+- **RFC 3164 as rsyslog forwards it by default *does* have one.**
+  `10.0.0.5 Jun 1 12:00:00 web01 sshd[4242]: …`. The old positional read filed
+  `web01` as the Service — and the Service sanitizer strips digits, so the row
+  said `web` — and lost `sshd`.
+
+The pid in a Docker frame is **`dockerd`'s, not the container's**, and it is the
+same number for every container on the host (measured: all five services reported
+`149784`). Never treat it as an identity.
+
+Renaming a `System` after the tag is gated on **both** the source address being
+one of this container's own default-route gateways (`/proc/net/route`) **and** the
+importer being containerized (`/.dockerenv`). Drop either gate and a systemd
+deployment starts renaming real hosts — routers send syslog, and their address is
+their LAN gateway. `DAD_SYSLOG_SELF_HOST=none` disables the rewrite.
+
+Put the name in `systems.address`, not `systems.name`. `System.find_or_add` keys
+identity on `address`; `name` is an operator-assigned label. `systems` has no
+`ipaddress` column — the query you want is `address`.
+
+The Windows forwarder is unaffected and must stay so: it emits
+`<host> <ISO-8601> <provider> …` with no pid slot, so it takes the positional
+fallback. `test/models/syslog_ingest_identity_test.rb` pins that, and the CI
+`docker` job asserts each container becomes its own System — the unit suite alone
+cannot catch a regression here, because it needs a real bridge and gateway.
+
 ### The Windows ingest path (OpenWEC)
 
 `lib/windows_events.rb` converts OpenWEC records into the staging record format;

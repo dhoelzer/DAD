@@ -7,8 +7,10 @@
 #   <host> <timestamp> <service> <words...>
 #
 # EventIngestor.stage_event takes field 0 as the System address, parses a
-# timestamp out of field 1.., and takes the token immediately after the
-# timestamp as the Service name. It already accepts RFC 3339 (parse_timestamp
+# timestamp out of field 1.., and takes the token after the timestamp as the
+# Service name (see SyslogSource: that slot is found structurally, and a token
+# with no pid after it falls back to this position). It already accepts RFC 3339
+# (parse_timestamp
 # format 1), so a Windows event maps onto that shape with no change to the
 # importer at all. This file is the whole integration.
 #

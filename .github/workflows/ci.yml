@@ -527,6 +527,57 @@ jobs:
           fi
           echo "self-logging live: container stdout -> collector -> importer -> Postgres ($found services)"
 
+      # Companion to the step above. That one proves the container tag reaches
+      # the Service column; this proves the container also became its own
+      # System, which is what SyslogSource exists for.
+      #
+      # Every container arrives carrying the bridge gateway as its source
+      # address, so without that rewrite the whole stack collapses into a single
+      # System row and the per-host views show one host. Nothing in the unit
+      # suite can catch that: it needs a real bridge, a real log driver and a
+      # real gateway address.
+      #
+      # Asserting distinct System rows, not just a non-gateway name, is the
+      # point -- one row named after whichever container happened to ingest
+      # first would satisfy a looser check.
+      - name: Assert each container becomes its own system
+        run: |
+          q() { docker compose exec -T db psql -U dad -d dad_development -tAc "$1"; }
+          systems=0
+          for _ in $(seq 1 24); do
+            systems=$(q "select count(distinct sy.address) from systems sy
+                          join events e on e.system_id = sy.id
+                          where sy.address in ('dad-web','dad-db','dad-importer')") || systems=0
+            if [ "${systems:-0}" -ge 3 ]; then break; fi
+            sleep 5
+          done
+          if [ "${systems:-0}" -lt 3 ]; then
+            echo "expected 3 distinct Systems named after container tags; got $systems"
+            echo "systems:"; docker compose exec -T db psql -U dad -d dad_development -c \
+              "select address, name from systems order by id"
+            exit 1
+          fi
+          # The gateway row must not be a stand-in for containers. Keyed on
+          # "an address that looks like an IPv4 literal" rather than a specific
+          # subnet: the bridge network differs between runners, and hardcoding
+          # 172.18.0.1 would make this pass vacuously wherever the subnet is
+          # something else.
+          collapsed=$(q "select count(*) from systems sy
+                          join events e on e.system_id = sy.id
+                          where sy.address ~ '^[0-9]+(\.[0-9]+){3}$'
+                            and e.service_id in (select id from services
+                                                  where name in ('dad-web','dad-db','dad-importer'))")
+          if [ "${collapsed:-0}" -ne 0 ]; then
+            echo "container events still filed under an IP-addressed system: $collapsed"
+            docker compose exec -T db psql -U dad -d dad_development -c \
+              "select sy.address, se.name, count(*) from systems sy
+                 join events e on e.system_id = sy.id
+                 join services se on se.id = e.service_id
+                group by 1,2 order by 3 desc"
+            exit 1
+          fi
+          echo "per-container Systems live: $systems hosts, none collapsed onto the gateway"
+
       # The Windows leg. Nothing else in CI boots the `windows` profile, so a
       # compose service that cannot start, or a forwarder that cannot find its
       # input, would ship unnoticed -- the same class of gap the syslog leg
